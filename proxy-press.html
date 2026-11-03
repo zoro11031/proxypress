@@ -1695,12 +1695,13 @@ const serverSets = [], serverFonts = {};
 const allSets = () => [...serverSets, ...(S.frameSets || [])];
 const FRAME_PRIMARY = ['magic-new', 'magic-old', 'magic-m15classic-hires'];
 const FRAME_LABELS = {'magic-new':'Modern', 'magic-old':'Retro', 'magic-m15classic-hires':'M15', 'magic-m15classic-nyx':'Nyx (enchantment)',
-  'magic-m15-commander':'Commander', 'magic-m15-bigtext':'Big text', 'magic-extended-art':'Extended / full art', 'magic-new-promo':'Promo',
+  'magic-m15-commander':'Commander', 'magic-m15-bigtext':'Big text', 'magic-extended-art':'Text over art (classic)', 'magic-new-promo':'Promo',
   'magic-new-miracle':'Miracle', 'magic-future':'Future Sight', 'magic-tenth':'Tenth Edition', 'magic-new-japanese':'Japanese',
   'magic-planeshifted':'Planeshifted', 'magic-classicshifted':'Timeshifted', 'magic-old-abu':'Alpha / Beta / Unlimited', 'magic-veryold':'Very old', 'magic-nouveau':'Nouveau'};
 const frameLabel = f => FRAME_LABELS[f.name] || f.name.replace(/^magic-/, '').replace(/[-_]+/g, ' ').replace(/\bm15\b/i, 'M15').replace(/\b\w/g, c => c.toUpperCase());
 const setOf = t => typeof t.style === 'string' && t.style.startsWith('set:') ? allSets().find(f => f.id === t.style.slice(4)) : null;
 // Fonts and frame sets kept on the server (assets/ next to the server script), for signed-in use.
+let serverAssetsP = Promise.resolve();
 async function loadServerAssets() {
   if (!location.protocol.startsWith('http')) return;
   let man;
@@ -1710,20 +1711,44 @@ async function loadServerAssets() {
     const slot = FONT_MATCH.find(([sl, re]) => !taken.has(sl) && re.test(f))?.[0];
     if (slot) { taken.add(slot); serverFonts[slot] = {url:'/assets/fonts/' + encodeURIComponent(f), name:f}; }
   }
-  for (const fr of man.frames || []) {
+  const sets = await Promise.all((man.frames || []).map(async fr => {
     try {
       const base = `/assets/frames/${encodeURIComponent(fr.name)}/`, layout = parseMseStyle(await (await fetch(base + 'style')).text());
-      if (!layout.image || !layout.text.box) continue;
+      if (!layout.image || !layout.text.box) return null;
       const images = {};
       for (const file of fr.files) { const m = file.match(/^([a-z]{1,3}(?:card|pt))\.(jpe?g|png)$/i); if (m) images[m[1].toLowerCase()] = base + encodeURIComponent(file); }
-      serverSets.push({id:'srv-' + fr.name.replace(/[^\w-]/g, '_'), name:fr.name.replace(/\.mse-style$/i, ''), w:layout.w, h:layout.h, layout, images, server:true});
+      return {id:'srv-' + fr.name.replace(/[^\w-]/g, '_'), name:fr.name.replace(/\.mse-style$/i, ''), w:layout.w, h:layout.h, layout, images, server:true};
+    } catch { return null; }
+  }));
+  serverSets.push(...sets.filter(Boolean));
+  await upgradeDrawnCards();
+}
+// Custom cards saved with the built-in drawn frames are re-rendered with the matching real frame set.
+async function upgradeDrawnCards() {
+  const pick = n => serverSets.find(f => f.name === n);
+  let done = 0;
+  for (const d of S.decks) for (const e of d.entries) for (const f of e.faces) {
+    const tp = f.template; if (!tp?.artKey || !(tp.style === 'modern' || tp.style === 'retro' || !tp.style)) continue;
+    const target = pick(tp.style === 'retro' ? 'magic-old' : 'magic-new'); if (!target) continue;
+    try {
+      const art = await loadImage(await customUrl(tp.artKey));
+      const t = {...tp, style:'set:' + target.id, artMode:tp.fullArt ? 'full' : 'normal'};
+      const c = await renderCustomCard(t, art, 600 / 25.4), old = f.custom;
+      f.custom = await storeImage(await new Promise(r => c.toBlob(r, 'image/png'))); f.template = t;
+      await removeImageIfUnused(old); done++;
     } catch {}
   }
+  if (done) { save(); renderAll(); toast(`Updated ${done} custom card${done === 1 ? '' : 's'} to your Modern and Retro frames.`, 5000); }
 }
 const setRect = (set, b, fallback) => b ? [b.l * 63 / set.w, b.t * 88 / set.h, b.w * 63 / set.w, b.h * 88 / set.h] : fallback;
 const ccGeom = t => {
   const set = setOf(t);
-  if (set) return {art:setRect(set, set.layout.image, [4.7, 9.7, 53.6, 39.3]), box:setRect(set, set.layout.text.box, [4.7, 54.9, 53.6, 25.6])};
+  if (set) {
+    const L = set.layout, b = L.border || {l:17, r:17, t:17}, mode = t.artMode || 'normal', typeTop = (L.type.box?.t ?? set.h * 0.57) - 6;
+    const art = mode === 'extended' ? setRect(set, {l:b.l, t:b.t, w:set.w - b.l - b.r, h:typeTop - b.t})
+      : mode === 'borderless' || mode === 'full' ? [0, 0, 63, 88] : setRect(set, L.image, [4.7, 9.7, 53.6, 39.3]);
+    return {art, box:setRect(set, L.text.box, [4.7, 54.9, 53.6, 25.6])};
+  }
   return t.style === 'retro'
 
   ? {art:[5.4, 9.2, 52.2, 36.8], box:[5.4, 51.8, 52.2, 27.4]}
@@ -1760,7 +1785,8 @@ function parseMseStyle(text) {
   return {
     w:num(text.match(/^card width:\s*(.+)$/m)?.[1]) || 375, h:num(text.match(/^card height:\s*(.+)$/m)?.[1]) || 523,
     name:part('name'), type:part('type'), text:part('text'), pt:part('pt'), illus:part('illustrator'), copy:part('copyright line'),
-    image:box(fields.image), ptbox:box(fields['pt box']), cost:cc ? {right:num(cc.right), top:num(cc.top), h:num(cc.height)} : null,
+    image:box(fields.image), ptbox:box(fields['pt box']),
+    border:{l:num(fields['border color']?.['left width']) || 17, r:num(fields['border color']?.['right width']) || 17, t:num(fields['border color']?.['top width']) || 17}, cost:cc ? {right:num(cc.right), top:num(cc.top), h:num(cc.height)} : null,
     whiteText:/font_colors_white\s*:=\s*\{\s*input\s*!=\s*"w"/.test(text)
   };
 }
@@ -1893,7 +1919,7 @@ async function renderCustomCard(t, art, k) {
     return right;
   };
   const geo = ccGeom(t);
-  let ink, textColor = null;
+  let ink, textColor = null, textShadow = false;
 
   x.fillStyle = '#0c0c0c'; x.fillRect(-b, -b, W, H);
   if (retro) {
@@ -1922,11 +1948,28 @@ async function renderCustomCard(t, art, k) {
   } else if (set) {
     const L = set.layout, land = /Land/.test(t.type || ''), R = b => setRect(set, b, null);
     const img = async k => k ? loadImage(k.startsWith('/') ? k : await customUrl(k)).catch(() => null) : null;
-    const frameImg = await img(setImageKey(set, key, land, false)), ptImg = t.pt && L.ptbox ? await img(setImageKey(set, key, land, true)) : null;
-    if (frameImg) x.drawImage(frameImg, 0, 0, 63, 88);
-    drawArt(geo.art);
+    const mode = t.artMode || 'normal', onArt = mode === 'full';
+    const frameImg = onArt ? null : await img(setImageKey(set, key, land, false)), ptImg = t.pt && L.ptbox && !onArt ? await img(setImageKey(set, key, land, true)) : null;
+    const piece = (b, r) => { if (!frameImg || !b) return; x.save(); rr(...R(b), r * 63 / set.w); x.clip(); x.drawImage(frameImg, 0, 0, 63, 88); x.restore(); };
+    const nb0 = L.name.box, tb0 = L.type.box, xb0 = L.text.box, costRight = L.cost?.right ?? (nb0 ? nb0.l + nb0.w : set.w - 30);
+    const nameBar = nb0 && {l:nb0.l - 12, t:nb0.t - 7, w:costRight + 9 - (nb0.l - 12), h:nb0.h + 13};
+    const typeBar = tb0 && {l:tb0.l - 12, t:tb0.t - 5, w:set.w - 2 * (tb0.l - 12), h:tb0.h + 9};
+    const textBox = xb0 && {l:xb0.l - 6, t:xb0.t - 4, w:xb0.w + 12, h:xb0.h + 8};
+    if (mode === 'normal' || mode === 'extended') {
+      if (frameImg) x.drawImage(frameImg, 0, 0, 63, 88);
+      drawArt(geo.art);
+      if (mode === 'extended') piece(nameBar, 10);
+    } else {
+      drawArt(geo.art);
+      if (mode === 'borderless') { piece(nameBar, 10); piece(typeBar, 8); piece(textBox, 4); }
+      else {
+        const top = x.createLinearGradient(0, 0, 0, 16); top.addColorStop(0, 'rgba(0,0,0,.6)'); top.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = top; x.fillRect(0, 0, 63, 16);
+        const y0 = (tb0?.t ?? set.h * 0.57) * 88 / set.h - 8, low = x.createLinearGradient(0, y0, 0, 88);
+        low.addColorStop(0, 'rgba(0,0,0,0)'); low.addColorStop(0.25, 'rgba(0,0,0,.6)'); low.addColorStop(1, 'rgba(0,0,0,.78)'); x.fillStyle = low; x.fillRect(0, y0, 63, 88 - y0);
+      }
+    }
     if (ptImg) x.drawImage(ptImg, ...R(L.ptbox));
-    const light = L.whiteText && key !== 'W', rgb = (f, d) => f?.color ? `rgb(${f.color.join(',')})` : d;
+    const light = onArt || (L.whiteText && key !== 'W'), rgb = (f, d) => onArt ? '#fff' : f?.color ? `rgb(${f.color.join(',')})` : d;
     const fontOf = f => ({w:f?.bold ? 700 : 400, f:setFontFamily(f)}), sizeOf = (f, d) => (f?.size || d) * 88 / set.h;
     ink = () => rgb(L.name.font, light ? '#fff' : '#111');
     let right = 57.5;
@@ -1941,7 +1984,7 @@ async function renderCustomCard(t, art, k) {
     if (ib && t.artist) fit(`Illus. ${t.artist}`, ib[0], ib[1] + ib[3] / 2, ib[2], sizeOf(L.illus.font, 9), fontOf(L.illus.font), credit, true);
     const cb = R(L.copy.box) || (ib && [ib[0], ib[1] + ib[3], ib[2], 1.8]);
     if (cb) fit('Proxy · not for sale', cb[0], cb[1] + cb[3] / 2, cb[2], 1.3, {w:400, f:CC_FONT.rules}, credit, true);
-    textColor = rgb(L.text.font, '#111');
+    textColor = rgb(L.text.font, '#111'); textShadow = onArt;
   } else if (custom) {
     ink = () => '#111';
     const frameImg = t.frameKey ? await loadImage(await customUrl(t.frameKey)).catch(() => null) : null;
@@ -2034,7 +2077,11 @@ async function renderCustomCard(t, art, k) {
     for (const [n, tk] of line.toks.entries()) {
       if (n) X += L.sp;
       if (/^\{[^}]+\}$/.test(tk.tok)) sym(tk.tok, X, y + (L.lh - L.sd) / 2 - L.fs * 0.05, L.sd, false);
-      else { x.font = rf(tk.italic, L.fs); x.fillStyle = textInk; x.textBaseline = 'middle'; x.fillText(tk.tok, X, y + L.lh / 2); }
+      else {
+        x.font = rf(tk.italic, L.fs); x.fillStyle = textInk; x.textBaseline = 'middle';
+        if (textShadow) { x.shadowColor = 'rgba(0,0,0,.9)'; x.shadowBlur = 0.5 * k; x.shadowOffsetY = 0.12 * k; }
+        x.fillText(tk.tok, X, y + L.lh / 2); x.shadowColor = 'transparent';
+      }
       X += tk.w;
     }
     y += L.lh + line.gap;
@@ -2062,6 +2109,7 @@ function manaCounts(str) {
 const manaFromCounts = c => '{X}'.repeat(c.X || 0) + (c.N ? `{${c.N}}` : '') + '{C}'.repeat(c.C || 0) + [...'WUBRG'].map(k => `{${k}}`.repeat(c[k] || 0)).join('');
 
 async function openCardMaker(target) {
+  busy(true, 'Loading your frames…'); await serverAssetsP; busy(false);
   let e = target.e || null;
   const i = target.i || 0, face = e?.faces[i];
   busy(true, 'Loading card text…');
@@ -2071,7 +2119,7 @@ async function openCardMaker(target) {
   const lastStyle = S.ccStyle && (!S.ccStyle.startsWith('set:') || setOf({style:S.ccStyle})) && !(sets.length && /^(modern|retro)$/.test(S.ccStyle)) ? S.ccStyle : fallback;
   let t = face?.template ? {style:'modern', ...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto', style:lastStyle};
   if (sets.length && (t.style === 'modern' || t.style === 'retro')) t.style = setStyle(named(t.style === 'modern' ? 'magic-new' : 'magic-old')) || fallback;
-  const isMore = more.some(f => t.style === 'set:' + f.id), extStyle = setStyle(named('magic-extended-art'));
+  const isMore = more.some(f => t.style === 'set:' + f.id);
   busy(false);
   let art = null;
   if (t.artKey) { const u = await customUrl(t.artKey); if (u) art = await loadImage(u).catch(() => null); }
@@ -2098,7 +2146,8 @@ async function openCardMaker(target) {
               <option value="more" ${isMore ? 'selected' : ''} hidden>From More frames</option></select>
             ${more.length ? `<select id="ccMore" style="margin-top:6px" aria-label="More frames"><option value="">More frames…</option>${more.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')}</select>` : ''}
             <div class="row" style="margin-top:4px"><button class="icon" id="ccSetBtn" title="Choose a Magic Set Editor style folder from your own frame pack">Load frame set…</button><input type="file" id="ccSetDir" webkitdirectory multiple hidden></div></div>
-          <label class="check" style="grid-column:auto;align-self:end"><input type="checkbox" id="ccFull" ${(t.fullArt && t.style === 'modern') || (extStyle && t.style === extStyle) ? 'checked' : ''} ${t.style === 'modern' || extStyle ? '' : 'disabled'}> Full art</label>
+          <div class="field"><label>Art</label><select id="ccArtMode">${[['normal', 'Normal'], ['extended', 'Extended art'], ['borderless', 'Borderless'], ['full', 'Full art (text on art)']]
+              .map(([v, n]) => `<option value="${v}" ${(t.artMode || (t.fullArt ? 'full' : 'normal')) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
           <div class="field full" id="ccFrameRow" ${t.style === 'custom' ? '' : 'hidden'}><label>Frame image</label><div class="row"><button class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame…' : 'Upload frame…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp,image/svg+xml,.svg" hidden></div>
             <p class="hint">A card-sized PNG or SVG (e.g. 744 × 1039 px) that's transparent where the art shows. Text is placed in the modern positions.</p></div>
           ${F.map(([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label>${label}</label>${k === 'text' || k === 'flavor' ? `<textarea data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`).join('')}
@@ -2138,19 +2187,13 @@ async function openCardMaker(target) {
     draw();
   });
   $('#ccColor').onchange = ev => { t.color = ev.target.value; draw(); };
-  $('#ccFull').onchange = ev => {
-    if (!extStyle || t.style === 'modern') { t.fullArt = ev.target.checked; t.ox = t.oy = 0; return draw(); }
-    const target = ev.target.checked ? extStyle : (t.prevStyle && t.prevStyle !== extStyle ? t.prevStyle : fallback);
-    if (ev.target.checked) t.prevStyle = t.style;
-    const inMore = more.some(f => target === 'set:' + f.id);
-    $('#ccStyle').value = inMore ? 'more' : target; if ($('#ccMore')) $('#ccMore').value = inMore ? target : '';
-    $('#ccStyle').onchange({target:{value:target}, fromMore:true});
-  };
+  const artModes = () => { const isSet = !!setOf(t); $$('#ccArtMode option', bd).forEach(o => { o.disabled = !isSet && !(o.value === 'normal' || (o.value === 'full' && t.style === 'modern')); }); if ($('#ccArtMode').selectedOptions[0]?.disabled) { $('#ccArtMode').value = 'normal'; t.artMode = 'normal'; t.fullArt = false; } };
+  $('#ccArtMode').onchange = ev => { t.artMode = ev.target.value; t.fullArt = t.artMode === 'full'; t.ox = t.oy = 0; draw(); };
   $('#ccMore')?.addEventListener('change', ev => { if (!ev.target.value) return; $('#ccStyle').value = 'more'; $('#ccStyle').onchange({target:{value:ev.target.value}, fromMore:true}); });
   $('#ccStyle').onchange = ev => {
     if (ev.target.value === 'more') return;
     if (!ev.fromMore && $('#ccMore')) $('#ccMore').value = '';
-    t.style = ev.target.value; S.ccStyle = t.style; save(); $('#ccFull').disabled = !(t.style === 'modern' || extStyle); if (extStyle && t.style !== 'modern') $('#ccFull').checked = t.style === extStyle; $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw(); };
+    t.style = ev.target.value; S.ccStyle = t.style; save(); artModes(); $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw(); };
   $('#ccFrameBtn').onclick = () => $('#ccFrameFile').click();
   $('#ccSetBtn').onclick = () => $('#ccSetDir').click();
   $('#ccSetDir').onchange = async ev => {
@@ -2182,7 +2225,7 @@ async function openCardMaker(target) {
   const fontList = () => {
     $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Fonts on the server are used automatically; free lookalike fonts fill any gaps. Fonts you load here override them in this browser.</p>
       <div class="row" style="margin-bottom:6px"><button class="icon primary" data-fontmulti>Load font files…</button><span class="hint">Select several at once; each goes to the slot its file name matches.</span></div>
-      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : slot === 'rrules' && (S.ccFonts?.rules || serverFonts.rules) ? 'Same as rules text (Plantin, as on real retro cards)' : 'Free font'}
+      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : slot === 'rrules' && (S.ccFonts?.rules || serverFonts.rules) ? 'Plantin' : 'Free font'}
         <button class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
   };
   fontList();
@@ -2206,6 +2249,7 @@ async function openCardMaker(target) {
     save(); fontList(); draw();
     toast(used.length ? `Loaded ${used.length} font${used.length === 1 ? '' : 's'}.` + (skipped.length ? ` Not matched: ${skipped.slice(0, 4).join(', ')}${skipped.length > 4 ? '…' : ''}` : '') : 'None of those file names matched a slot. Use Load… next to a slot instead.', 8000);
   };
+  artModes();
   $('#ccFontFile').onchange = async ev => {
     const f = ev.target.files[0]; ev.target.value = ''; if (!f || !fontSlot) return;
     try { await new FontFace('PPFontCheck', await f.arrayBuffer()).load(); } catch { return toast(`${f.name} isn't a font file this browser can read.`, 5000); }
@@ -2429,7 +2473,7 @@ function cleanDeck(raw) {
   const tpl = t => t && typeof t === 'object' ? pick({
     name:str(t.name), mana:str(t.mana), type:str(t.type), text:str(t.text), flavor:str(t.flavor), pt:str(t.pt), artist:str(t.artist),
     color:CC_COLORS.some(c => c[0] === t.color) ? t.color : undefined, artKey:key(t.artKey), zoom:num(t.zoom), ox:num(t.ox), oy:num(t.oy),
-    fullArt:!!t.fullArt, style:['retro', 'custom'].includes(t.style) || /^set:[\w-]{1,64}$/.test(t.style) ? t.style : 'modern', frameKey:key(t.frameKey), colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
+    fullArt:!!t.fullArt, artMode:['normal', 'extended', 'borderless', 'full'].includes(t.artMode) ? t.artMode : undefined, style:['retro', 'custom'].includes(t.style) || /^set:[\w-]{1,64}$/.test(t.style) ? t.style : 'modern', frameKey:key(t.frameKey), colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
   }) : undefined;
   const face = f => f && typeof f === 'object' ? pick({
     name:str(f.name) ?? '', png:url(f.png), normal:url(f.normal), custom:key(f.custom), drive:id(f.drive), file:str(f.file),
@@ -2931,7 +2975,7 @@ function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); render
 (async () => {
   await load();
   S.mode = S.mode || 'print'; applyMode();
-  loadServerAssets();
+  serverAssetsP = loadServerAssets();
   if (innerWidth < 820) S.zoom = Math.max(1, Math.min(S.zoom, (innerWidth - 40) / layout().W));
   $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks;
   setTimeout(() => { if (!S.welcomed) openTour(0); }, 50); $('#showCuts').checked = !!S.showCuts;
