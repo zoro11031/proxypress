@@ -1677,9 +1677,12 @@ const CC_BASE = {name:'"Spectral", "Palatino Linotype", Georgia, serif', type:'"
   rtype:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif', rrules:'"Crimson Text", "Palatino Linotype", Georgia, serif'};
 const CC_SLOTS = [['name', 'Modern name'], ['type', 'Modern type line & P/T'], ['rules', 'Rules text'], ['italic', 'Flavor & reminder (italic)'],
   ['rname', 'Retro name'], ['rrules', 'Retro type, rules & P/T'], ['rtype', 'Matrix (8th Edition frames)']];
-// Picks a slot from a font's file name, for loading a whole folder of fonts at once.
-const FONT_MATCH = [['type', /beleren.*small/i], ['name', /beleren/i], ['italic', /mplantin.*it|plantin.*ital/i], ['rules', /^mplantin\.(ttf|otf)$|plantin(?!.*ital)/i],
-  ['rname', /magmed|magic.?medieval|goudy.*medieval/i], ['rtype', /^matrixb\.ttf$|matrix.?bold(?!.*sc)/i]];
+// For each slot, the font file names to look for, best first.
+const FONT_PREFER = {
+  name:[/^beleren\s*2016/i, /^beleren-?bold/i, /^beleren(?!.*small)/i], type:[/beleren.*small/i],
+  rules:[/plantin.*pro.*rg\.(ttf|otf)$/i, /^mplantin\.(ttf|otf)$/i, /plantin(?!.*(it|bold))/i], italic:[/plantin.*rgit/i, /plantin.*ital/i, /^mplantinit/i],
+  rname:[/magmed|magic.?medieval/i], rrules:[], rtype:[/^matrix.?bold\.ttf$/i, /^matrixb\.ttf$/i]};
+const assignFonts = names => Object.fromEntries(Object.entries(FONT_PREFER).map(([slot, res]) => [slot, res.map(re => names.find(n => re.test(n))).find(Boolean)]).filter(([, n]) => n));
 const CC_FONT = {...CC_BASE};
 // Modern: frame, frame shadow, bar, bar edge, text box. Retro: frame, frame shadow, text box, ink on the frame.
 const CC_MODERN = {
@@ -1706,11 +1709,7 @@ async function loadServerAssets() {
   if (!location.protocol.startsWith('http')) return;
   let man;
   try { const r = await fetch('/assets/manifest.json'); if (!r.ok) return; man = await r.json(); } catch { return; }
-  const taken = new Set();
-  for (const f of man.fonts || []) {
-    const slot = FONT_MATCH.find(([sl, re]) => !taken.has(sl) && re.test(f))?.[0];
-    if (slot) { taken.add(slot); serverFonts[slot] = {url:'/assets/fonts/' + encodeURIComponent(f), name:f}; }
-  }
+  for (const [slot, f] of Object.entries(assignFonts(man.fonts || []))) serverFonts[slot] = {url:'/assets/fonts/' + encodeURIComponent(f), name:f};
   const sets = await Promise.all((man.frames || []).map(async fr => {
     try {
       const base = `/assets/frames/${encodeURIComponent(fr.name)}/`, layout = parseMseStyle(await (await fetch(base + 'style')).text());
@@ -2237,9 +2236,9 @@ async function openCardMaker(target) {
   };
   $('#ccFontMulti').onchange = async ev => {
     const files = [...ev.target.files]; ev.target.value = ''; if (!files.length) return;
-    const used = [], skipped = [], taken = new Set();
+    const used = [], skipped = [], taken = new Set(), picks = assignFonts(files.map(f => f.name));
     for (const f of files) {
-      const slot = FONT_MATCH.find(([sl, re]) => !taken.has(sl) && re.test(f.name))?.[0];
+      const slot = Object.keys(picks).find(sl => picks[sl] === f.name && !taken.has(sl));
       if (!slot) { skipped.push(f.name); continue; }
       try { await new FontFace('PPFontCheck', await f.arrayBuffer()).load(); } catch { skipped.push(f.name); continue; }
       const old = S.ccFonts?.[slot];
