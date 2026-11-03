@@ -1717,11 +1717,11 @@ const ERA_TYPE = {
     title:{slot:'rname', size:11.75, min:9.5, sx:0.82, track:-0.02, order:'scale'}, type:{slot:'rrules', size:9.75, min:7.5, sx:0.85, order:'scale'},
     rules:{size:9.5, min:6.5}, pt:{slot:'bold', size:12.5, min:10}, artist:{slot:'bold', size:7.25}, copy:{slot:'rules', size:5.25}},
   modern_8ed:{shadow:null,
-    title:{slot:'rtype', size:12.5, min:10, sx0:0.92, sx:0.80, order:'scale'}, type:{slot:'rtype', size:10.5, min:8, sx0:0.92, sx:0.92, order:'size'},
-    rules:{size:9.25, min:6.8}, pt:{slot:'rtype', size:13.25, min:11}, artist:{slot:'rtype', size:7}, copy:{slot:'rules', size:4.75}},
+    title:{slot:'rtype', size:11, min:9, sx:0.82, order:'scale'}, type:{slot:'rtype', size:9.5, min:7.5, sx:0.88, order:'scale'},
+    rules:{size:8.75, min:6.5}, pt:{slot:'rtype', size:13.25, min:11}, artist:{slot:'rtype', size:7}, copy:{slot:'rules', size:4.75}},
   m15:{shadow:null,
-    title:{slot:'name', size:10.75, min:8.5, sx:0.88, order:'size', floor:7, floorSx:0.85}, type:{slot:'name', size:9.25, min:7, sx:0.88, order:'size'},
-    rules:{size:9.25, min:6.5}, pt:{slot:'name', size:11.25, min:9.5}, artist:{slot:'type', size:6.25}, copy:{slot:'relay', size:5.5, track:0.04}}};
+    title:{slot:'name', size:9.9, min:8, sx:0.88, order:'size', floor:7, floorSx:0.85}, type:{slot:'name', size:8.3, min:6.5, sx:0.88, order:'size'},
+    rules:{size:9.5, min:6.5}, pt:{slot:'name', size:11.25, min:9.5}, artist:{slot:'type', size:4.8}, copy:{slot:'relay', size:4.5, track:0.1}, notice:{slot:'rules', size:4.9}}};
 const eraOf = t => {
   const n = setOf(t)?.name || '';
   if (n) return /m15/.test(n) ? 'm15' : /magic-(old|veryold|classicshifted)/.test(n) ? 'retro' : 'modern_8ed';
@@ -1918,7 +1918,7 @@ function fromScryfall(c, faceIdx) {
     type:src.type_line || c.type_line || '',
     text:combined ? faces.map((x, n) => n ? `${x.name} ${x.mana_cost || ''} — ${x.type_line}\n${x.oracle_text || ''}` : x.oracle_text || '').join('\n\n') : src.oracle_text || '',
     flavor:src.flavor_text || '', pt:pt(src) || pt(c), artist:src.artist || c.artist || '',
-    colors:src.colors || c.colors || c.color_identity || []
+    colors:src.colors || c.colors || c.color_identity || [], cset:c.set || '', cnum:c.collector_number || '', rarity:c.rarity || ''
   };
 }
 async function ccData(e, i) {
@@ -1988,10 +1988,10 @@ async function renderCustomCard(t, art, k) {
   let ink, textColor = null, textShadow = false, ptCut = null;
   // One line of title / type / P/T / footer text, fitted to maxW by the era's compress-or-shrink order.
   const fitLine = (str, X, cy, maxW, spec, color, shadow, align = 'left') => {
-    if (!str) return;
+    if (!str) return 0;
     const fam = CC_FONT[spec.slot], wt = fam !== CC_BASE[spec.slot] ? 400 : spec.slot === 'rules' || spec.slot === 'rrules' || spec.slot === 'rname' ? 400 : 700;
     const use = (pt, track) => { x.font = `${wt} ${pt * PT_MM}px ${fam}`; if ('letterSpacing' in x) x.letterSpacing = `${(track || 0) * pt * PT_MM}px`; };
-    let pt = spec.size, sx = spec.sx0 || 1, track = 0;
+    let pt = spec.size, sx = spec.sx0 || 1, track = spec.track > 0 ? spec.track : 0;
     const width = () => { use(pt, track); return x.measureText(str).width * sx; };
     const scaleDown = lo => { while (width() > maxW && sx > lo + 1e-6) { sx = Math.max(lo, sx - 0.01); if (spec.track) track = spec.track; } };
     const sizeDown = lo => { while (width() > maxW && pt > lo + 1e-6) pt = Math.max(lo, pt - 0.25); };
@@ -2003,8 +2003,9 @@ async function renderCustomCard(t, art, k) {
     x.save(); x.translate(X + dx, by0); x.scale(sx, 1); x.textAlign = 'left'; x.textBaseline = 'alphabetic';
     if (shadow === 'hard') { x.fillStyle = '#000'; x.fillText(str, 0.0847 / sx, 0.127); }
     else if (shadow) { x.fillStyle = 'rgba(0,0,0,.8)'; x.fillText(str, pt * PT_MM * 0.05 / sx, pt * PT_MM * 0.06); }
-    x.fillStyle = color; x.fillText(str, 0, 0); x.restore();
+    x.fillStyle = color; x.fillText(str, 0, 0); const drawn = x.measureText(str).width * sx; x.restore();
     if ('letterSpacing' in x) x.letterSpacing = '0px';
+    return drawn;
   };
 
   x.fillStyle = '#0c0c0c'; x.fillRect(-b, -b, W, H);
@@ -2069,9 +2070,22 @@ async function renderCustomCard(t, art, k) {
     if (t.pt && pb) fitLine(t.pt, pb[0] + pb[2] / 2, pb[1] + pb[3] / 2, pb[2], E.pt, ptInk, shadowFor(ptInk), 'center');
     ptCut = t.pt ? R(L.ptbox) || pb : null;
     const ib = R(L.illus.box) || [4.9, 83.2, 40, 2.2], credit = light || !L.illus.font?.color ? '#fff' : rgb(L.illus.font, '#fff'), creditShadow = onArt ? 'soft' : E.shadow && !isDark(credit) ? E.shadow : null;
-    if (ib && t.artist) fitLine(`Illus. ${t.artist}`, ib[0], ib[1] + ib[3] / 2, ib[2], E.artist, credit, creditShadow);
-    const cb = R(L.copy.box) || (ib && [ib[0], ib[1] + ib[3], ib[2], 1.9]);
-    if (cb) fitLine(E === ERA_TYPE.m15 ? 'PROXY · NOT FOR SALE' : 'Proxy · not for sale', cb[0], cb[1] + cb[3] / 2, cb[2], E.copy, credit, creditShadow);
+    if (E === ERA_TYPE.m15) {
+      // Current-frame footer: rarity + number, then set · language, brush and artist; proxy notice where the copyright goes.
+      const y1 = 82.85, y2 = 84.55, L0 = 4.0;
+      fitLine(`${(t.rarity || 'proxy')[0].toUpperCase()} ${String(t.cnum || '0000').padStart(4, '0')}`, L0, y1, 20, E.copy, credit, creditShadow);
+      const X = L0 + fitLine(`${(t.cset || 'PRX').toUpperCase()} • EN`, L0, y2, 20, E.copy, credit, creditShadow) + 0.9;
+      if (t.artist) {
+        x.save(); x.translate(X, y2); x.fillStyle = credit; x.beginPath();
+        x.moveTo(0, -0.3); x.lineTo(0.35, -0.3); x.lineTo(0.5, -0.17); x.lineTo(1.95, 0); x.lineTo(0.5, 0.17); x.lineTo(0.35, 0.3); x.lineTo(0, 0.3); x.lineTo(0.22, 0); x.closePath(); x.fill(); x.restore();
+        fitLine(t.artist, X + 2.35, y2, 30, E.artist, credit, creditShadow);
+      }
+      fitLine('Proxy · not for sale', 59, y2, 24, E.notice, credit, creditShadow, 'right');
+    } else {
+      if (ib && t.artist) fitLine(E === ERA_TYPE.retro ? `Illus. ${t.artist}` : t.artist, ib[0], ib[1] + ib[3] / 2, ib[2], E.artist, credit, creditShadow);
+      const cb = R(L.copy.box) || (ib && [ib[0], ib[1] + ib[3], ib[2], 1.9]);
+      if (cb) fitLine('Proxy · not for sale', cb[0], cb[1] + cb[3] / 2, cb[2], E.copy, credit, creditShadow);
+    }
     textColor = rgb(L.text.font, '#111'); textShadow = onArt;
   } else if (custom) {
     ink = () => '#111';
@@ -2129,8 +2143,9 @@ async function renderCustomCard(t, art, k) {
   // rules and flavor text
   const [bx, by, bw, bh] = geo.box, textInk = textColor || (full ? '#fff' : '#111'), rulesFont = retro ? CC_FONT.rrules : CC_FONT.rules;
   const hasItalic = CC_FONT.italic !== CC_BASE.italic, rf = (it, fs) => it && hasItalic ? `400 ${fs}px ${CC_FONT.italic}` : `${it ? 'italic ' : ''}400 ${fs}px ${rulesFont}`;
-  const paras = (t.text || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:false}));
-  const flavor = (t.flavor || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:true}));
+  const curly = v => v.replace(/(^|[\s(\u2014-])"/g, '$1\u201c').replace(/"/g, '\u201d').replace(/(^|[\s(\u2014-])'/g, '$1\u2018').replace(/'/g, '\u2019');
+  const paras = curly(t.text || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:false}));
+  const flavor = curly(t.flavor || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:true}));
   const pad = 1.4, maxW = bw - pad * 2, baseH = bh - pad * 2 - (t.pt && !retro && !set ? 1.6 : 0);
   const divGap = 2 * PT_MM, ruleH = 0.22;
   const layout = (fs, lhF, psF) => {
