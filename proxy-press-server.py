@@ -80,7 +80,8 @@ def page_csp(page_bytes):
     return "; ".join([
         "default-src 'self'",
         f"script-src 'self' {hashes} https://cdnjs.cloudflare.com",
-        "style-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
         "connect-src 'self' data: blob: https://api.scryfall.com https://img.mpcautofill.com https://cdn.mpcautofill.com",
         "object-src 'none'",

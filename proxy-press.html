@@ -6,6 +6,7 @@
 <title>Proxy Press</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='15' y='6' width='36' height='50' rx='5' fill='%238a6420' transform='rotate%2813 33 31%29'/%3E%3Crect x='12' y='8' width='36' height='50' rx='5' fill='%23e0a33a'/%3E%3Crect x='16' y='12' width='28' height='42' rx='3' fill='%2314161a'/%3E%3Cpath fill='%23f2c26b' fill-rule='evenodd' d='M24 21h9a7 7 0 0 1 0 14h-5v8h-4z M28 25v6h5a3 3 0 0 0 0-6z'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#14161a">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Goudy+Bookletter+1911&family=Spectral:wght@600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root{
@@ -638,7 +639,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -649,7 +650,7 @@ async function load() {
   const ui = await store.get('kv', 'ui');
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed;
+    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {};
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -967,7 +968,7 @@ async function uploadImages(files) {
 }
 async function removeImageIfUnused(key) {
   if (!key) return;
-  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key))) || S.settings.backImage === key;
+  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key);
   if (!used) { await store.del('images', key); blobUrls.delete(key); }
 }
 
@@ -1662,10 +1663,64 @@ $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttr
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(); $('#deckMenu').removeAttribute('open'); } });
 
 /* ---------- custom card maker ---------- */
-const CC_FRAMES = {W:['#f6f1de', '#cbbd8c', '#fbf8ec'], U:['#d6e7f5', '#5f8fbd', '#eef5fb'], B:['#d2cbc6', '#4f4743', '#ece8e5'], R:['#f5d0bd', '#b9553a', '#fbece4'],
-  G:['#d6e6cc', '#55834c', '#eef5e9'], M:['#f2e2ad', '#b98f2c', '#faf3dc'], C:['#e2e2e2', '#858585', '#f4f4f4'], L:['#e5d9c6', '#8a7150', '#f6f0e6']};
 const CC_COLORS = [['auto', 'Auto (card colours)'], ['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['M', 'Gold (multicolour)'], ['C', 'Colourless / artifact'], ['L', 'Land']];
-const CC_SERIF = '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif';
+const CC_BASE = {name:'"Spectral", "Palatino Linotype", Georgia, serif', type:'"Spectral", "Palatino Linotype", Georgia, serif', rules:'"Crimson Text", "Palatino Linotype", Georgia, serif',
+  rname:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif', rrules:'"Crimson Text", "Palatino Linotype", Georgia, serif'};
+const CC_SLOTS = [['name', 'Modern name'], ['type', 'Modern type line & P/T'], ['rules', 'Modern rules & flavor'], ['rname', 'Retro name, type & P/T'], ['rrules', 'Retro rules & flavor']];
+const CC_FONT = {...CC_BASE};
+// Modern: frame, frame shadow, bar, bar edge, text box. Retro: frame, frame shadow, text box, ink on the frame.
+const CC_MODERN = {
+  W:['#e8e1c9', '#b3a682', '#f3efe2', '#867b5f', '#f4efe3'], U:['#2c7cc0', '#123f6d', '#a9cbea', '#2a5683', '#dbe8f4'],
+  B:['#3a3532', '#121110', '#bcb2ab', '#46403c', '#e3dfdc'], R:['#cf5236', '#7f2416', '#f0a993', '#86372a', '#f4ddd5'],
+  G:['#3b8649', '#1a4c2a', '#a9d2a8', '#335b3a', '#cfe5cf'], M:['#d6b961', '#93742a', '#ead68e', '#86692c', '#f4e9c6'],
+  C:['#a5afb6', '#626c73', '#cdd2d6', '#636c74', '#d8d3cf'], L:['#a08b6b', '#62503a', '#d8c8ad', '#6a573f', '#e3d8c5']};
+const CC_RETRO = {
+  W:['#e6dfc6', '#a99e7b', '#f1ead6', '#111'], U:['#1e5d9c', '#0a2d52', '#d6e2ee', '#fff'], B:['#2b2623', '#090807', '#ccc4be', '#fff'],
+  R:['#b23925', '#5e170d', '#efd8cc', '#fff'], G:['#2e6a39', '#12371c', '#d5e2d0', '#fff'], M:['#c8a347', '#6f541b', '#f0e5c6', '#111'],
+  C:['#8a684b', '#463224', '#e3d5c6', '#fff'], L:['#8a6e4c', '#463525', '#e6dbcb', '#fff']};
+const ccGeom = t => t.style === 'retro'
+  ? {art:[5.4, 9.2, 52.2, 36.8], box:[5.4, 51.8, 52.2, 27.4]}
+  : t.fullArt && t.style !== 'custom' ? {art:[2.6, 2.6, 57.8, 82.8], box:[4.7, 54.9, 53.6, 25.6]} : {art:[4.7, 9.7, 53.6, 39.3], box:[4.7, 54.9, 53.6, 25.6]};
+const noiseCache = new Map();
+// Layered value noise (four octaves) for frame textures.
+function noiseCanvas(seed, cells, size = 512) {
+  const id = seed + ':' + cells; if (noiseCache.has(id)) return noiseCache.get(id);
+  let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => (h = (h * 1664525 + 1013904223) >>> 0) / 4294967296, sm = v => v * v * (3 - 2 * v);
+  const octaves = [0, 1, 2, 3].map(o => { const c = cells << o, n = c + 1; return {c, n, w:0.5 ** o, g:Float32Array.from({length:n * n}, rnd)}; });
+  const total = octaves.reduce((a, o) => a + o.w, 0);
+  const cv = document.createElement('canvas'); cv.width = cv.height = size;
+  const x = cv.getContext('2d'), img = x.createImageData(size, size);
+  for (let py = 0; py < size; py++) for (let px = 0; px < size; px++) {
+    let v = 0;
+    for (const {c, n, w, g} of octaves) {
+      const fx = px / size * c, fy = py / size * c, ix = fx | 0, iy = fy | 0, tx = sm(fx - ix), ty = sm(fy - iy);
+      v += w * ((g[iy * n + ix] * (1 - tx) + g[iy * n + ix + 1] * tx) * (1 - ty) + (g[(iy + 1) * n + ix] * (1 - tx) + g[(iy + 1) * n + ix + 1] * tx) * ty);
+    }
+    const o = (py * size + px) * 4; img.data[o] = img.data[o + 1] = img.data[o + 2] = v / total * 255; img.data[o + 3] = 255;
+  }
+  x.putImageData(img, 0, 0); noiseCache.set(id, cv); return cv;
+}
+let ccBaseFontsP = null;
+const userFaces = {};
+// Free lookalike fonts by default; font files the user loads (kept in this browser) take priority per slot.
+async function ccFonts() {
+  ccBaseFontsP ||= Promise.all([`700 10px ${CC_BASE.name}`, `400 10px ${CC_BASE.rules}`, `italic 400 10px ${CC_BASE.rules}`, `400 10px ${CC_BASE.rname}`]
+    .map(f => document.fonts.load(f))).catch(() => {});
+  await ccBaseFontsP;
+  for (const [slot] of CC_SLOTS) {
+    const k = S.ccFonts?.[slot];
+    if (k && userFaces[slot]?.key !== k) {
+      try {
+        const ff = new FontFace(`PPUser_${slot}`, await (await store.get('images', k)).arrayBuffer());
+        await ff.load();
+        if (userFaces[slot]) document.fonts.delete(userFaces[slot].ff);
+        document.fonts.add(ff); userFaces[slot] = {key:k, ff};
+      } catch { userFaces[slot] = null; }
+    }
+    CC_FONT[slot] = k && userFaces[slot]?.key === k ? `"PPUser_${slot}", ${CC_BASE[slot]}` : CC_BASE[slot];
+  }
+}
 let symbolMapP = null;
 function symbolMap() {
   if (!symbolMapP) symbolMapP = sf(SF + '/symbology').then(j => Object.fromEntries((j.data || []).map(x => [x.symbol, x.svg_uri]))).catch(() => { symbolMapP = null; return {}; });
@@ -1694,101 +1749,176 @@ async function ccData(e, i) {
   return {name, mana:'', type:'', text:'', flavor:'', pt:'', artist:'', colors:[]};
 }
 async function renderCustomCard(t, art, k) {
-  const b = MPC_BLEED, W = 63 + 2 * b, H = 88 + 2 * b;
+  await ccFonts();
+  const b = MPC_BLEED, W = 63 + 2 * b, H = 88 + 2 * b, retro = t.style === 'retro', custom = t.style === 'custom', full = t.style !== 'retro' && !custom && !!t.fullArt, key = frameKey(t);
   const cv = document.createElement('canvas'); cv.width = Math.round(W * k); cv.height = Math.round(H * k);
   const x = cv.getContext('2d'); x.scale(k, k); x.translate(b, b);
-  const [light, dark, paper] = CC_FRAMES[frameKey(t)] || CC_FRAMES.C, full = !!t.fullArt, ink = full ? '#fff' : '#141414';
+  if ('textRendering' in x) x.textRendering = 'geometricPrecision';
   const rr = (X, Y, w, h, r) => { x.beginPath(); x.roundRect(X, Y, w, h, r); };
   const map = await symbolMap(), syms = new Map();
   const need = new Set([...`${t.mana || ''} ${t.text || ''}`.matchAll(/\{[^}]+\}/g)].map(m => m[0]));
   await Promise.all([...need].map(async s => { if (map[s]) try { syms.set(s, await loadImage(map[s])); } catch {} }));
-  const sym = (tok, X, Y, d) => {
+  const texture = (rect, seed, cells, alpha, scale, r = 0) => {
+    const pat = x.createPattern(noiseCanvas(seed, cells), 'repeat'); pat.setTransform(new DOMMatrix().scale(scale));
+    x.save(); rr(...rect, r); x.clip(); x.globalCompositeOperation = 'overlay'; x.globalAlpha = alpha; x.fillStyle = pat; x.fillRect(...rect); x.restore();
+  };
+  const sym = (tok, X, Y, d, shadow) => {
+    if (shadow) { x.fillStyle = 'rgba(0,0,0,.85)'; x.beginPath(); x.arc(X + d / 2 - d * 0.07, Y + d / 2 + d * 0.09, d / 2, 0, Math.PI * 2); x.fill(); }
     const im = syms.get(tok);
     if (im) return x.drawImage(im, X, Y, d, d);
-    x.fillStyle = '#c9c5bf'; x.beginPath(); x.arc(X + d / 2, Y + d / 2, d / 2, 0, Math.PI * 2); x.fill();
-    x.fillStyle = '#111'; x.font = `bold ${d * 0.6}px ${CC_SERIF}`; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText(tok.slice(1, -1), X + d / 2, Y + d / 2 + d * 0.04); x.textAlign = 'left';
+    x.fillStyle = '#cac5c0'; x.beginPath(); x.arc(X + d / 2, Y + d / 2, d / 2, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#111'; x.font = `700 ${d * 0.62}px ${CC_FONT.name}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(tok.slice(1, -1), X + d / 2, Y + d / 2); x.textAlign = 'left';
   };
-  const fit = (str, X, cy, maxW, size, weight) => {
-    let fs = size; x.font = `${weight} ${fs}px ${CC_SERIF}`;
-    while (fs > size * 0.55 && x.measureText(str).width > maxW) { fs -= 0.05; x.font = `${weight} ${fs}px ${CC_SERIF}`; }
-    x.fillStyle = ink; x.textBaseline = 'middle'; x.fillText(str, X, cy);
+  const fit = (str, X, cy, maxW, size, font, ink, shadow) => {
+    let fs = size; x.font = `${font.w} ${fs}px ${font.f}`;
+    while (fs > size * 0.55 && x.measureText(str).width > maxW) { fs -= 0.05; x.font = `${font.w} ${fs}px ${font.f}`; }
+    x.textBaseline = 'middle';
+    if (shadow) { x.fillStyle = 'rgba(0,0,0,.8)'; x.fillText(str, X + fs * 0.05, cy + fs * 0.06); }
+    x.fillStyle = ink; x.fillText(str, X, cy);
   };
+  const drawArt = rect => {
+    x.save(); rr(...rect, 0); x.clip(); x.fillStyle = '#2a2a2a'; x.fillRect(...rect);
+    if (art) {
+      const [bx, by, bw, bh] = rect, sc = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
+      const dw = art.naturalWidth * sc, dh = art.naturalHeight * sc, mx = (dw - bw) / 2, my = (dh - bh) / 2;
+      x.drawImage(art, bx - mx - (t.ox || 0) * mx, by - my - (t.oy || 0) * my, dw, dh);
+    } else {
+      x.fillStyle = '#8f8f8f'; x.font = `400 3px ${CC_FONT.rules}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText('Choose your art', rect[0] + rect[2] / 2, rect[1] + rect[3] / 2); x.textAlign = 'left';
+    }
+    x.restore();
+  };
+  const manaRow = (right, cy, d, shadow) => {
+    for (const tok of ((t.mana || '').match(/\{[^}]+\}|\/\//g) || []).reverse()) {
+      if (tok === '//') { x.font = `700 ${d * 0.8}px ${CC_FONT.name}`; const w = x.measureText(' // ').width; right -= w; x.fillStyle = ink(); x.textBaseline = 'middle'; x.fillText(' // ', right, cy); continue; }
+      right -= d; sym(tok, right, cy - d / 2, d, shadow); right -= d * 0.1;
+    }
+    return right;
+  };
+  const geo = ccGeom(t);
+  let ink;
 
-  x.fillStyle = '#121212'; x.fillRect(-b, -b, W, H);
-  const inner = [2.6, 2.6, 57.8, 82.8], box = full ? inner : [4.9, 10.4, 53.2, 38.2];
-  if (!full) { const g = x.createLinearGradient(0, 2.6, 0, 85.4); g.addColorStop(0, light); g.addColorStop(1, dark); x.fillStyle = g; rr(...inner, 1.6); x.fill(); }
-  x.save(); rr(...box, full ? 1.6 : 0.3); x.clip(); x.fillStyle = '#2a2a2a'; x.fillRect(...box);
-  if (art) {
-    const [bx, by, bw, bh] = box, s = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
-    const dw = art.naturalWidth * s, dh = art.naturalHeight * s, mx = (dw - bw) / 2, my = (dh - bh) / 2;
-    x.drawImage(art, bx - mx - (t.ox || 0) * mx, by - my - (t.oy || 0) * my, dw, dh);
+  x.fillStyle = '#0c0c0c'; x.fillRect(-b, -b, W, H);
+  if (retro) {
+    const [frame, shade, paper, onFrame] = CC_RETRO[key] || CC_RETRO.C;
+    ink = () => onFrame;
+    const inner = [2.4, 2.4, 58.2, 83.2], g = x.createLinearGradient(0, 2.4, 63, 85.6);
+    g.addColorStop(0, frame); g.addColorStop(0.55, shade); g.addColorStop(1, frame);
+    x.fillStyle = g; x.fillRect(...inner);
+    texture(inner, key + 'r1', 5, 0.7, 0.16);
+    x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 0.3; x.strokeRect(2.6, 2.6, 57.8, 82.8);
+    manaRow(57.9, 6.15, 3.1, true);
+    fit(t.name || '', 5.3, 6.3, 40, 3.4, {w:400, f:CC_FONT.rname}, onFrame, onFrame === '#fff');
+    const [ax, ay, aw, ah] = geo.art;
+    x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(ax - 0.7, ay - 0.7, aw + 1.4, ah + 1.4);
+    x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(ax - 0.7, ay + ah, aw + 1.4, 0.7); x.fillRect(ax + aw, ay - 0.7, 0.7, ah + 1.4);
+    drawArt(geo.art);
+    fit(t.type || '', 5.6, 48.9, 51, 2.75, {w:400, f:CC_FONT.rname}, onFrame, onFrame === '#fff');
+    const [tx, ty, tw, th] = geo.box;
+    rr(tx - 0.5, ty - 0.5, tw + 1, th + 1, 2); x.fillStyle = 'rgba(0,0,0,.6)'; x.fill();
+    rr(tx, ty, tw, th, 1.6); x.fillStyle = paper; x.fill();
+    texture(geo.box, key + 'p', 6, 0.28, 0.14, 1.6);
+    if (t.pt) { x.textAlign = 'right'; fit(t.pt, 57.8, 82.5, 20, 3.6, {w:400, f:CC_FONT.rname}, onFrame, onFrame === '#fff'); x.textAlign = 'left'; }
+    x.font = `400 1.75px ${CC_FONT.rules}`; x.fillStyle = onFrame; x.textBaseline = 'middle';
+    if (t.artist) x.fillText(`Illus. ${t.artist}`, 5.6, 82.4);
+    x.font = `400 1.35px ${CC_FONT.rules}`; x.fillText('Proxy · not for sale', 5.6, 84.4);
+  } else if (custom) {
+    ink = () => '#111';
+    const frameImg = t.frameKey ? await loadImage(await customUrl(t.frameKey)).catch(() => null) : null;
+    drawArt(geo.art);
+    if (frameImg) x.drawImage(frameImg, 0, 0, 63, 88);
+    else { x.fillStyle = '#9a9a9a'; x.font = `400 2.6px ${CC_FONT.rules}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('Upload your frame image', 31.5, 70); x.textAlign = 'left'; }
+    const right = manaRow(57.7, 6.4, 3.3, true);
+    fit(t.name || '', 5.5, 6.45, right - 6.3, 3.25, {w:700, f:CC_FONT.name}, '#111');
+    fit(t.type || '', 5.5, 51.95, 52, 2.75, {w:700, f:CC_FONT.type}, '#111');
+    if (t.pt) { x.textAlign = 'center'; fit(t.pt, 53.1, 81.9, 11, 3.4, {w:700, f:CC_FONT.type}, '#111'); x.textAlign = 'left'; }
+    x.font = `600 1.6px ${CC_FONT.rules}`; x.fillStyle = '#e9e9e9'; x.textBaseline = 'middle';
+    if (t.artist) x.fillText(`Illus. ${t.artist}`, 5.0, 82.6);
+    x.font = `400 1.3px ${CC_FONT.rules}`; x.fillText('Proxy · not for sale', 5.0, 84.3);
   } else {
-    x.fillStyle = '#9a9a9a'; x.font = `3px ${CC_SERIF}`; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('Choose your art', box[0] + box[2] / 2, box[1] + box[3] / 2); x.textAlign = 'left';
+    const [frame, shade, bar, edge, paper] = CC_MODERN[key] || CC_MODERN.C;
+    ink = () => full ? '#fff' : '#111';
+    const inner = [2.6, 2.6, 57.8, 82.8];
+    if (full) drawArt(inner);
+    else {
+      const g = x.createLinearGradient(0, 2.6, 0, 85.4); g.addColorStop(0, frame); g.addColorStop(1, shade);
+      rr(...inner, 1.2); x.fillStyle = g; x.fill();
+      texture(inner, key + 'm1', 5, 0.45, 0.16, 1.2);
+    }
+    const pill = (X, Y, w, h) => {
+      x.save(); x.shadowColor = 'rgba(0,0,0,.55)'; x.shadowBlur = 0.8; x.shadowOffsetY = 0.35;
+      rr(X, Y, w, h, h / 2); x.fillStyle = full ? 'rgba(14,14,14,.66)' : bar; x.fill(); x.restore();
+      if (!full) {
+        const g = x.createLinearGradient(0, Y, 0, Y + h); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.12)');
+        rr(X, Y, w, h, h / 2); x.fillStyle = g; x.fill();
+      }
+      rr(X, Y, w, h, h / 2); x.lineWidth = 0.35; x.strokeStyle = full ? 'rgba(255,255,255,.35)' : edge; x.stroke();
+    };
+    if (!full) { drawArt(geo.art); x.lineWidth = 0.3; x.strokeStyle = '#0c0c0c'; x.strokeRect(...geo.art); }
+    pill(3.7, 3.7, 55.6, 5.4);
+    const right = manaRow(57.7, 6.4, 3.3, true);
+    fit(t.name || '', 5.5, 6.45, right - 6.3, 3.25, {w:700, f:CC_FONT.name}, ink());
+    pill(3.7, 49.4, 55.6, 5.0);
+    fit(t.type || '', 5.5, 51.95, 52, 2.75, {w:700, f:CC_FONT.type}, ink());
+    const [tx, ty, tw, th] = geo.box;
+    if (full) { rr(tx, ty, tw, th, 1); x.fillStyle = 'rgba(14,14,14,.6)'; x.fill(); }
+    else { x.fillStyle = paper; x.fillRect(...geo.box); texture(geo.box, key + 'b', 6, 0.16, 0.14); x.lineWidth = 0.3; x.strokeStyle = edge; x.strokeRect(...geo.box); }
+    if (t.pt) {
+      x.font = `700 3.4px ${CC_FONT.type}`; const w = Math.max(11.6, x.measureText(t.pt).width + 3.4), X = 59 - w;
+      x.save(); x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 0.8; x.shadowOffsetY = 0.35;
+      rr(X - 0.45, 78.85, w + 0.9, 5.9, 1.4); x.fillStyle = full ? 'rgba(14,14,14,.8)' : shade; x.fill(); x.restore();
+      rr(X, 79.3, w, 5.0, 1.1); x.fillStyle = full ? 'rgba(14,14,14,.7)' : bar; x.fill(); x.lineWidth = 0.3; x.strokeStyle = full ? 'rgba(255,255,255,.35)' : edge; x.stroke();
+      x.fillStyle = ink(); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(t.pt, X + w / 2, 81.9); x.textAlign = 'left';
+    }
+    x.font = `600 1.6px ${CC_FONT.rules}`; x.fillStyle = '#e9e9e9'; x.textBaseline = 'middle';
+    if (t.artist) x.fillText(`Illus. ${t.artist}`, 5.0, 82.6);
+    x.font = `400 1.3px ${CC_FONT.rules}`; x.fillText('Proxy · not for sale', 5.0, 84.3);
   }
-  x.restore();
-  if (!full) { x.lineWidth = 0.25; x.strokeStyle = '#111'; x.strokeRect(...box); }
-  const bar = (Y, h) => { rr(3.8, Y, 55.4, h, 2.4); x.fillStyle = full ? 'rgba(12,12,12,.62)' : paper; x.fill(); x.lineWidth = 0.35; x.strokeStyle = full ? 'rgba(255,255,255,.3)' : dark; x.stroke(); };
-  bar(3.9, 5.6); bar(49.2, 5.4);
-  const tb = [4.9, 55.4, 53.2, 25.2];
-  if (full) { rr(...tb, 1.2); x.fillStyle = 'rgba(12,12,12,.6)'; x.fill(); }
-  else { x.fillStyle = paper; x.fillRect(...tb); x.strokeStyle = dark; x.lineWidth = 0.3; x.strokeRect(...tb); }
 
-  const d = 3.5; let right = 57.9;
-  for (const tok of ((t.mana || '').match(/\{[^}]+\}|\/\//g) || []).reverse()) {
-    if (tok === '//') { x.font = `bold 3px ${CC_SERIF}`; const w = x.measureText(' // ').width; right -= w; x.fillStyle = ink; x.textBaseline = 'middle'; x.fillText(' // ', right, 6.7); continue; }
-    right -= d; sym(tok, right, 3.9 + (5.6 - d) / 2, d); right -= 0.25;
-  }
-  fit(t.name || '', 5.3, 6.75, right - 6, 3.3, 'bold');
-  fit(t.type || '', 5.3, 51.95, 52, 2.8, 'bold');
-
+  // rules and flavor text
+  const [bx, by, bw, bh] = geo.box, textInk = full ? '#fff' : '#111', rulesFont = retro ? CC_FONT.rrules : CC_FONT.rules;
   const paras = (t.text || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:false}));
   const flavor = (t.flavor || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:true}));
-  const pad = 1.5, maxW = tb[2] - pad * 2, maxH = tb[3] - pad * 2 - (t.pt ? 3.2 : 0);
+  const pad = 1.4, maxW = bw - pad * 2, maxH = bh - pad * 2 - (t.pt && !retro ? 1.6 : 0);
   const layout = fs => {
-    const lines = [], sp = fs * 0.28, sd = fs * 0.92;
+    const lines = [], sp = fs * 0.26, sd = fs * 0.86;
     const run = (list, gapAfter) => list.forEach((p, n) => {
       let line = [], w = 0, italic = p.italic;
       for (const tok of p.text.match(/\{[^}]+\}|[^\s{]+/g) || []) {
         if (tok.startsWith('(') && !p.italic) italic = true;
         let tw;
         if (/^\{[^}]+\}$/.test(tok)) tw = sd;
-        else { x.font = `${italic ? 'italic ' : ''}${fs}px ${CC_SERIF}`; tw = x.measureText(tok).width; }
+        else { x.font = `${italic ? 'italic ' : ''}400 ${fs}px ${rulesFont}`; tw = x.measureText(tok).width; }
         if (line.length && w + sp + tw > maxW) { lines.push({toks:line, gap:0}); line = []; w = 0; }
         line.push({tok, italic, w:tw}); w += (line.length > 1 ? sp : 0) + tw;
         if (tok.endsWith(')') && !p.italic) italic = false;
       }
-      lines.push({toks:line, gap:n < list.length - 1 || gapAfter ? fs * 0.42 : 0});
+      lines.push({toks:line, gap:n < list.length - 1 || gapAfter ? fs * 0.38 : 0});
     });
     run(paras, flavor.length > 0);
-    if (paras.length && flavor.length) lines.push({rule:true, gap:fs * 0.42});
+    if (paras.length && flavor.length) lines.push({rule:true, gap:fs * 0.38});
     run(flavor, false);
-    const lh = fs * 1.17, height = lines.reduce((h, l) => h + (l.rule ? 0.3 : lh) + l.gap, 0);
+    const lh = fs * 1.12, height = lines.reduce((h, l) => h + (l.rule ? 0.3 : lh) + l.gap, 0);
     return {lines, lh, sp, sd, fs, height};
   };
   let L = layout(3.0);
-  for (let fs = 3.0; fs > 1.6 && L.height > maxH; fs -= 0.08) L = layout(fs);
-  let y = tb[1] + pad + (paras.length + flavor.length <= 2 ? Math.max(0, (maxH - L.height) / 2) : 0);
+  for (let fs = 3.0; fs > 1.5 && L.height > maxH; fs -= 0.06) L = layout(fs);
+  let y = by + pad + Math.max(0, (maxH - L.height) / 2);
   for (const line of L.lines) {
-    if (line.rule) { x.strokeStyle = full ? 'rgba(255,255,255,.4)' : dark; x.lineWidth = 0.2; x.beginPath(); x.moveTo(tb[0] + 8, y + 0.15); x.lineTo(tb[0] + tb[2] - 8, y + 0.15); x.stroke(); y += 0.3 + line.gap; continue; }
-    let X = tb[0] + pad;
+    if (line.rule) {
+      const g = x.createLinearGradient(bx + 6, 0, bx + bw - 6, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, full ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g; x.fillRect(bx + 6, y, bw - 12, 0.22); y += 0.3 + line.gap; continue;
+    }
+    let X = bx + pad;
     for (const [n, tk] of line.toks.entries()) {
       if (n) X += L.sp;
-      if (/^\{[^}]+\}$/.test(tk.tok)) sym(tk.tok, X, y + (L.lh - L.sd) / 2 - L.fs * 0.06, L.sd);
-      else { x.font = `${tk.italic ? 'italic ' : ''}${L.fs}px ${CC_SERIF}`; x.fillStyle = ink; x.textBaseline = 'middle'; x.fillText(tk.tok, X, y + L.lh / 2); }
+      if (/^\{[^}]+\}$/.test(tk.tok)) sym(tk.tok, X, y + (L.lh - L.sd) / 2 - L.fs * 0.05, L.sd, false);
+      else { x.font = `${tk.italic ? 'italic ' : ''}400 ${L.fs}px ${rulesFont}`; x.fillStyle = textInk; x.textBaseline = 'middle'; x.fillText(tk.tok, X, y + L.lh / 2); }
       X += tk.w;
     }
     y += L.lh + line.gap;
   }
-  if (t.pt) {
-    x.font = `bold 3.3px ${CC_SERIF}`; const w = Math.max(11.4, x.measureText(t.pt).width + 3);
-    rr(58.9 - w, 79.6, w, 5.3, 1.6); x.fillStyle = full ? 'rgba(12,12,12,.75)' : paper; x.fill(); x.lineWidth = 0.35; x.strokeStyle = full ? 'rgba(255,255,255,.4)' : dark; x.stroke();
-    x.fillStyle = ink; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(t.pt, 58.9 - w / 2, 82.3); x.textAlign = 'left';
-  }
-  x.font = `1.55px ${CC_SERIF}`; x.fillStyle = '#d8d8d8'; x.textBaseline = 'middle';
-  if (t.artist) x.fillText(`Illus. ${t.artist}`, 5.2, 86.75);
-  x.textAlign = 'right'; x.fillText('Proxy · not for sale', 57.8, 86.75); x.textAlign = 'left';
   return cv;
 }
 
@@ -1796,7 +1926,7 @@ async function openCardMaker(target) {
   let e = target.e || null;
   const i = target.i || 0, face = e?.faces[i];
   busy(true, 'Loading card text…');
-  let t = face?.template ? {...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto'};
+  let t = face?.template ? {style:'modern', ...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto', style:'modern'};
   busy(false);
   let art = null;
   if (t.artKey) { const u = await customUrl(t.artKey); if (u) art = await loadImage(u).catch(() => null); }
@@ -1809,8 +1939,13 @@ async function openCardMaker(target) {
         <div class="grid2">
           <div class="field"><label>Art zoom</label><input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}"></div>
           <div class="field"><label>Frame colour</label><select id="ccColor">${CC_COLORS.map(([v, n]) => `<option value="${v}" ${v === (t.color || 'auto') ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-          <label class="check"><input type="checkbox" id="ccFull" ${t.fullArt ? 'checked' : ''}> Full art (art behind the text)</label>
+          <div class="field"><label>Frame style</label><select id="ccStyle"><option value="modern" ${t.style !== 'retro' ? 'selected' : ''}>Modern</option><option value="retro" ${t.style === 'retro' ? 'selected' : ''}>Retro (old border)</option><option value="custom" ${t.style === 'custom' ? 'selected' : ''}>My frame image</option></select></div>
+          <label class="check" style="grid-column:auto;align-self:end"><input type="checkbox" id="ccFull" ${t.fullArt ? 'checked' : ''} ${t.style !== 'modern' ? 'disabled' : ''}> Full art</label>
+          <div class="field full" id="ccFrameRow" ${t.style === 'custom' ? '' : 'hidden'}><label>Frame image</label><div class="row"><button class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame…' : 'Upload frame…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp" hidden></div>
+            <p class="hint">A card-sized PNG (e.g. 744 × 1039 px) that's transparent where the art shows. Text is placed in the modern positions.</p></div>
           ${F.map(([k, label]) => `<div class="field full"><label>${label}</label>${k === 'text' || k === 'flavor' ? `<textarea data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`).join('')}
+          <details class="adv full" style="grid-column:1/-1"><summary>Fonts</summary><div id="ccFontList"></div>
+            <input type="file" id="ccFontFile" accept=".ttf,.otf,.woff,.woff2" hidden></details>
           <div class="field full"><label>Fill the text from another card</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1"><button id="ccFill">Fill</button></div></div>
         </div>
         <div class="row" style="margin-top:12px"><button class="primary" id="ccSave">Save card</button><span class="hint">Saved at print quality with bleed, for printing and orders.</span></div>
@@ -1830,6 +1965,31 @@ async function openCardMaker(target) {
   });
   $('#ccColor').onchange = ev => { t.color = ev.target.value; draw(); };
   $('#ccFull').onchange = ev => { t.fullArt = ev.target.checked; t.ox = t.oy = 0; draw(); };
+  $('#ccStyle').onchange = ev => { t.style = ev.target.value; $('#ccFull').disabled = t.style !== 'modern'; $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw(); };
+  $('#ccFrameBtn').onclick = () => $('#ccFrameFile').click();
+  $('#ccFrameFile').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+    t.frameKey = await storeImage(f); $('#ccFrameBtn').textContent = 'Change frame…'; draw();
+  };
+  let fontSlot = null;
+  const fontList = () => {
+    $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Free lookalike fonts are used unless you load your own font files (.ttf, .otf, .woff2). They're kept in this browser.</p>
+      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : 'Free font'}
+        <button class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
+  };
+  fontList();
+  $('#ccFontList').onclick = async ev => {
+    const load = ev.target.dataset.font, clear = ev.target.dataset.fontclear;
+    if (load) { fontSlot = load; $('#ccFontFile').click(); }
+    if (clear) { const old = S.ccFonts[clear]; S.ccFonts = {...S.ccFonts, [clear]:undefined}; await removeImageIfUnused(old); save(); fontList(); draw(); }
+  };
+  $('#ccFontFile').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f || !fontSlot) return;
+    try { await new FontFace('PPFontCheck', await f.arrayBuffer()).load(); } catch { return toast(`${f.name} isn't a font file this browser can read.`, 5000); }
+    const old = S.ccFonts?.[fontSlot];
+    S.ccFonts = {...S.ccFonts, [fontSlot]:await storeImage(f)}; S.ccFontNames = {...S.ccFontNames, [fontSlot]:f.name};
+    await removeImageIfUnused(old); save(); fontList(); draw();
+  };
   $('#ccArt').onclick = () => $('#ccFile').click();
   $('#ccFile').onchange = async ev => {
     const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
@@ -1839,7 +1999,7 @@ async function openCardMaker(target) {
   };
   const slack = () => {
     if (!art) return [0, 0];
-    const [bw, bh] = t.fullArt ? [57.8, 82.8] : [53.2, 38.2], s = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
+    const [, , bw, bh] = ccGeom(t).art, s = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
     return [(art.naturalWidth * s - bw) / 2, (art.naturalHeight * s - bh) / 2];
   };
   let drag = null;
@@ -2043,7 +2203,7 @@ function cleanDeck(raw) {
   const tpl = t => t && typeof t === 'object' ? pick({
     name:str(t.name), mana:str(t.mana), type:str(t.type), text:str(t.text), flavor:str(t.flavor), pt:str(t.pt), artist:str(t.artist),
     color:CC_COLORS.some(c => c[0] === t.color) ? t.color : undefined, artKey:key(t.artKey), zoom:num(t.zoom), ox:num(t.ox), oy:num(t.oy),
-    fullArt:!!t.fullArt, colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
+    fullArt:!!t.fullArt, style:['retro', 'custom'].includes(t.style) ? t.style : 'modern', frameKey:key(t.frameKey), colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
   }) : undefined;
   const face = f => f && typeof f === 'object' ? pick({
     name:str(f.name) ?? '', png:url(f.png), normal:url(f.normal), custom:key(f.custom), drive:id(f.drive), file:str(f.file),
