@@ -97,6 +97,12 @@ h3:first-child{margin-top:2px}
 .pg img{cursor:context-menu}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick button{text-align:left;padding:10px;border-radius:9px;display:flex;flex-direction:column;gap:3px;white-space:normal}
+.pick button span{color:var(--muted);font-size:12px}
+.pick button.on{border-color:var(--accent);background:#2d2618}
+.pane details.adv{margin-top:10px}
+.pane details.adv > :not(summary):first-of-type{margin-top:8px}
 .round{width:30px;height:30px;padding:0;border-radius:50%;font-weight:700}
 #dataSlot .pane{display:block;padding:0;overflow:visible}
 .modal.narrow{width:min(600px,calc(100vw - 32px))}
@@ -221,7 +227,6 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="btnMpc" title="Open an order XML file as a new deck">Open order XML…</button>
       </div>
       <p class="hint">High-res art is picked for every card automatically. Right-click any card to change it.</p>
-      <p class="hint">Making your own card? Use <b>+ Custom card</b> to put your art into a frame with the card's text, or design one on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>, export it at 63 × 88 mm (at least 744 × 1039 px), then upload it here or right-click a card → <b>Upload image…</b></p>
       <details class="adv" id="moreSources">
         <summary>Local images &amp; order files</summary>
         <div class="row" style="margin-top:8px">
@@ -249,24 +254,24 @@ details.adv:not([open]){padding-bottom:10px}
     <div class="pane" id="tab-layout"><div id="settingsForm"></div></div>
 
     <div class="pane" id="tab-presets">
-      <h3>Presets</h3>
-      <div id="presetList"></div>
-      <div class="row" style="margin-top:8px"><button id="presetSave" class="primary">Save current as preset</button></div>
-      <h3>Calibrate once</h3>
-      <div class="row"><button id="btnCal" title="Print once on your paper, measure, and enter the results under Layout → Advanced">Print calibration sheet</button><button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Print double-sided test</button></div>
-      <p class="hint">The calibration sheet makes cards come out exactly 63 × 88 mm. The double-sided test checks that backs line up behind fronts.</p>
-      <h3>Printer settings guide</h3>
-      <select id="printerSel"></select>
+      <h3>Your printer</h3>
+      <select id="printerSel" aria-label="Printer"></select>
       <div id="printerGuide"></div>
+      <h3>Calibrate</h3>
+      <div class="row"><button id="btnCal" title="Print once on your paper, measure, and enter the results under Layout → Advanced">Calibration sheet</button><button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button></div>
+      <p class="hint">Print each once on your paper so cards are exactly 63 × 88 mm and backs line up.</p>
+      <details class="adv" id="morePresets">
+        <summary>Other layouts &amp; saved presets</summary>
+        <div class="row" style="margin-top:10px"><select id="presetSel" style="flex:1" aria-label="Preset"></select><button id="presetApply">Apply</button></div>
+        <div class="row" style="margin-top:8px"><button id="presetSave">Save current settings…</button><button id="presetDel" class="danger" style="display:none">Delete</button></div>
+      </details>
     </div>
 
     <div class="pane" id="tab-cutting">
-      <h3>Cutting machine</h3>
-      <div class="row"><button id="btnSvg" title="Cut lines for Silhouette Studio">Download cut file (SVG)</button></div>
-      <p class="hint">For a Silhouette Cameo: turn on registration marks under Layout → Silhouette Cameo, print the PDF, then load this file in Silhouette Studio.</p>
-      <h3>Cutting with a rotary trimmer</h3>
-      <p class="hint">No Silhouette Cameo? A rotary paper trimmer (for example a Dahle 507) and a 3 mm corner rounder cut cards just as cleanly. It takes about 2 minutes per sheet once you're used to it.</p>
+      <h3>Rotary trimmer</h3>
+      <p class="hint">A paper trimmer and a 3 mm corner rounder cut cards cleanly in about 2 minutes per sheet.</p>
       <div id="cutStatus"></div>
+      <details class="adv"><summary>Before you cut (steps 1–2)</summary>
       <h3>1 · Set up the sheet</h3>
       <ul class="tips hint" style="padding-left:18px">
         <li>Use <b>Margin lines + corners</b> for cut guides. Margin lines guide the first cuts, and corner marks stay on every strip after the sheet is cut apart.</li>
@@ -279,7 +284,8 @@ details.adv:not([open]){padding-bottom:10px}
         <li>Trim a scrap first and check which edge of the cut-line indicator the blade actually cuts on.</li>
         <li>Cut face up so you can see the marks, and hold the sheet flat under the clamp bar.</li>
       </ul>
-      <h3>Where to line up the blade</h3>
+      </details>
+      <details class="adv"><summary>Where to line up the blade</summary>
       <svg viewBox="0 0 340 190" style="width:100%;height:auto;background:#fff;border-radius:8px;margin-bottom:6px" role="img" aria-label="Diagram of cut guides">
         <rect x="40" y="40" width="130" height="150" fill="#9aa7b8"/><rect x="170" y="40" width="130" height="150" fill="#b8a99a"/>
         <rect x="50" y="50" width="110" height="140" fill="#3d5a80"/><rect x="180" y="50" width="110" height="140" fill="#7a5c3d"/>
@@ -305,6 +311,8 @@ details.adv:not([open]){padding-bottom:10px}
         <li>Every cut goes <b>exactly through a line</b>. Put the line under your trimmer's cutting indicator (the thin guide strip or line on the rail) at <b>both ends</b> before you cut.</li>
         <li>Turn on <b>Show cut lines</b> above the preview to see every cut as a red dashed line. It only shows on screen, not in the print.</li>
       </ul>
+      </details>
+      <details class="adv"><summary>Cutting the sheet (steps 3–5)</summary>
       <h3>3 · Cut the columns</h3>
       <ol class="tips hint" style="padding-left:18px">
         <li>Line the blade up with the <b>tick marks in the top and bottom margins</b>. Check both ends before every cut.</li>
@@ -325,7 +333,8 @@ details.adv:not([open]){padding-bottom:10px}
         <li>Fuzzy or torn edges mean the blade is dull. Rotate or replace it.</li>
         <li>Double-sided sheets: print the backs before cutting. All cuts follow the front marks.</li>
       </ul>
-      <h3>Corner cutting</h3>
+      </details>
+      <details class="adv"><summary>Rounding the corners</summary>
       <p class="hint">Real Magic cards have corners of roughly 3 mm (about 1/8 in) radius. Pick a tool that matches that.</p>
       <div class="preset" style="display:block">
         <b>Your tool: Sun-Star Kadomaru Pro</b>
@@ -353,6 +362,11 @@ details.adv:not([open]){padding-bottom:10px}
         <li>Fuzzy edges, a visible core, or split layers mean the blade is dull. Clean out the coating build-up, punch a few times through wax paper to lubricate it, or replace the blade.</li>
         <li>Check your first card against a real one. The corners should sit exactly on top of each other.</li>
       </ul>
+      </details>
+      <details class="adv"><summary>Cutting machine (Silhouette Cameo)</summary>
+        <p class="hint" style="margin-top:8px">Turn on registration marks under Layout → Silhouette Cameo, print the PDF, then load this cut file in Silhouette Studio.</p>
+        <div class="row"><button id="btnSvg" title="Cut lines for Silhouette Studio">Download cut file (SVG)</button></div>
+      </details>
     </div>
 
     <div class="pane" id="tab-order">
@@ -2061,44 +2075,55 @@ const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 function applyPreset(p) {
   S.settings = {...cleanSettings(p.settings), backImage:S.settings.backImage}; S.activePreset = p.id; toast(`Applied "${p.name}".`);
 }
+function presetPer(p) {
+  const saved = S.settings; S.settings = {...DEFAULTS, ...p.settings};
+  const L = layout(); S.settings = saved; return L;
+}
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
   $('#printerSel').innerHTML = PRINTERS.map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
   const presets = pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id));
+  const row = ([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`;
+  const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
-    <p class="hint"><span class="tag">${pr.kind}</span> ${esc(pr.paper)}</p>
-    <div class="row" style="margin:8px 0">${presets.map(p => `<button class="icon ${p.id === S.activePreset ? 'primary' : ''}" data-preset="${p.id}">Apply: ${esc(p.name.split(' · ').pop())}</button>`).join('')}</div>
-    <table class="drv">${pr.settings.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>
-    ${pr.more ? `<details class="adv" style="margin:0 0 10px"><summary>More driver settings</summary><table class="drv">${pr.more.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table></details>` : ''}
-    <ul class="tips hint" style="padding-left:18px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul>`;
+    <p class="hint" style="margin-top:6px">Paper: ${esc(pr.paper)}</p>
+    <h3>Layout</h3>
+    <div class="pick">${presets.map((p, n) => {
+      const L = presetPer(p), land = L.W > L.H;
+      return `<button data-preset="${p.id}" class="${p.id === S.activePreset ? 'on' : ''}" aria-pressed="${p.id === S.activePreset}">
+        <b>${land ? 'Landscape' : 'Portrait'} ${L.cols}×${L.rows}${n === 0 ? ' <span class="tag">recommended</span>' : ''}</b>
+        <span>${L.per} cards per sheet${land && !L.rot ? ', cards upright' : ''}</span></button>`;
+    }).join('')}</div>
+    <h3>Print dialog settings</h3>
+    <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
+    ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
+    <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>`;
 }
 $('#printerSel').onchange = e => { S.printer = e.target.value; save(); renderPrinter(); };
 $('#printerGuide').onclick = ev => {
-  const id = ev.target.dataset.preset; if (!id) return;
-  applyPreset(BUILTIN_PRESETS.find(p => p.id === id)); save(); renderAll();
+  const b = ev.target.closest('[data-preset]'); if (!b) return;
+  applyPreset(BUILTIN_PRESETS.find(p => p.id === b.dataset.preset)); save(); renderAll();
 };
 function renderPresets() {
-  const all = [...BUILTIN_PRESETS, ...S.presets];
-  $('#presetList').innerHTML = all.map(p => `
-    <div class="preset ${p.id === S.activePreset ? 'active' : ''}" data-id="${esc(p.id)}">
-      <span class="nm">${esc(p.name)}${p.builtin ? ' <span class="tag">built-in</span>' : ''}</span>
-      <button class="icon" data-act="apply">Apply</button>
-      ${p.builtin ? '' : '<button class="icon" data-act="update" title="Overwrite with current settings">Update</button><button class="icon danger" data-act="del">✕</button>'}
-    </div>`).join('');
+  const opt = p => `<option value="${esc(p.id)}" ${p.id === S.activePreset ? 'selected' : ''}>${esc(p.name)}</option>`;
+  $('#presetSel').innerHTML = `${S.activePreset ? '' : '<option value="">Custom settings (not saved)</option>'}
+    <optgroup label="Built-in layouts">${BUILTIN_PRESETS.map(opt).join('')}</optgroup>
+    ${S.presets.length ? `<optgroup label="Your presets">${S.presets.map(opt).join('')}</optgroup>` : ''}`;
+  $('#presetDel').style.display = S.presets.some(p => p.id === $('#presetSel').value) ? '' : 'none';
 }
-$('#presetList').onclick = ev => {
-  const act = ev.target.dataset.act; if (!act) return;
-  const id = ev.target.closest('.preset').dataset.id;
-  const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === id);
-  if (act === 'apply') applyPreset(p);
-  if (act === 'update') { p.settings = pickSettings(); S.activePreset = id; toast('Preset updated.'); }
-  if (act === 'del') { if (!confirm(`Delete preset "${p.name}"?`)) return; S.presets = S.presets.filter(x => x !== p); if (S.activePreset === id) S.activePreset = null; }
-  save(); renderAll();
+$('#presetSel').onchange = () => { $('#presetDel').style.display = S.presets.some(p => p.id === $('#presetSel').value) ? '' : 'none'; };
+$('#presetApply').onclick = () => {
+  const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === $('#presetSel').value); if (!p) return;
+  applyPreset(p); save(); renderAll();
+};
+$('#presetDel').onclick = () => {
+  const p = S.presets.find(x => x.id === $('#presetSel').value); if (!p || !confirm(`Delete preset "${p.name}"?`)) return;
+  S.presets = S.presets.filter(x => x !== p); if (S.activePreset === p.id) S.activePreset = null; save(); renderAll();
 };
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
 $('#presetSave').onclick = () => {
-  const name = prompt('Preset name'); if (!name) return;
-  const p = {id:uid(), name, settings:pickSettings()}; S.presets.push(p); S.activePreset = p.id; save(); renderPresets();
+  const name = prompt('Name this preset', 'My printer settings'); if (!name) return;
+  const p = {id:uid(), name, settings:pickSettings()}; S.presets.push(p); S.activePreset = p.id; save(); renderPresets(); toast(`Saved preset "${name}".`);
 };
 
 /* ---------- preview ---------- */
