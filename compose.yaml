@@ -10,6 +10,8 @@ services:
       PASSWORD: "${PROXY_PRESS_PASSWORD:-}"
       BASIC_AUTH: "${PROXY_PRESS_AUTH:-}"
     read_only: true
+    volumes:
+      - ./assets:/app/assets:ro,z
     cap_drop:
       - ALL
     security_opt:

@@ -639,7 +639,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -650,7 +650,7 @@ async function load() {
   const ui = await store.get('kv', 'ui');
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {};
+    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -968,7 +968,7 @@ async function uploadImages(files) {
 }
 async function removeImageIfUnused(key) {
   if (!key) return;
-  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key);
+  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key) || (S.frameSets || []).some(f => Object.values(f.images || {}).includes(key));
   if (!used) { await store.del('images', key); blobUrls.delete(key); }
 }
 
@@ -1683,9 +1683,81 @@ const CC_RETRO = {
   W:['#e6dfc6', '#a99e7b', '#f1ead6', '#111'], U:['#1e5d9c', '#0a2d52', '#d6e2ee', '#fff'], B:['#2b2623', '#090807', '#ccc4be', '#fff'],
   R:['#b23925', '#5e170d', '#efd8cc', '#fff'], G:['#2e6a39', '#12371c', '#d5e2d0', '#fff'], M:['#c8a347', '#6f541b', '#f0e5c6', '#111'],
   C:['#8a684b', '#463224', '#e3d5c6', '#fff'], L:['#8a6e4c', '#463525', '#e6dbcb', '#fff']};
-const ccGeom = t => t.style === 'retro'
+const serverSets = [], serverFonts = {};
+const allSets = () => [...serverSets, ...(S.frameSets || [])];
+const setOf = t => typeof t.style === 'string' && t.style.startsWith('set:') ? allSets().find(f => f.id === t.style.slice(4)) : null;
+// Fonts and frame sets kept on the server (assets/ next to the server script), for signed-in use.
+async function loadServerAssets() {
+  if (!location.protocol.startsWith('http')) return;
+  let man;
+  try { const r = await fetch('/assets/manifest.json'); if (!r.ok) return; man = await r.json(); } catch { return; }
+  const taken = new Set();
+  for (const f of man.fonts || []) {
+    const slot = FONT_MATCH.find(([sl, re]) => !taken.has(sl) && re.test(f))?.[0];
+    if (slot) { taken.add(slot); serverFonts[slot] = {url:'/assets/fonts/' + encodeURIComponent(f), name:f}; }
+  }
+  for (const fr of man.frames || []) {
+    try {
+      const base = `/assets/frames/${encodeURIComponent(fr.name)}/`, layout = parseMseStyle(await (await fetch(base + 'style')).text());
+      if (!layout.image || !layout.text.box) continue;
+      const images = {};
+      for (const file of fr.files) { const m = file.match(/^([a-z]{1,3}(?:card|pt))\.(jpe?g|png)$/i); if (m) images[m[1].toLowerCase()] = base + encodeURIComponent(file); }
+      serverSets.push({id:'srv-' + fr.name.replace(/[^\w-]/g, '_'), name:fr.name.replace(/\.mse-style$/i, ''), w:layout.w, h:layout.h, layout, images, server:true});
+    } catch {}
+  }
+}
+const setRect = (set, b, fallback) => b ? [b.l * 63 / set.w, b.t * 88 / set.h, b.w * 63 / set.w, b.h * 88 / set.h] : fallback;
+const ccGeom = t => {
+  const set = setOf(t);
+  if (set) return {art:setRect(set, set.layout.image, [4.7, 9.7, 53.6, 39.3]), box:setRect(set, set.layout.text.box, [4.7, 54.9, 53.6, 25.6])};
+  return t.style === 'retro'
+
   ? {art:[5.4, 9.2, 52.2, 36.8], box:[5.4, 51.8, 52.2, 27.4]}
   : t.fullArt && t.style !== 'custom' ? {art:[2.6, 2.6, 57.8, 82.8], box:[4.7, 54.9, 53.6, 25.6]} : {art:[4.7, 9.7, 53.6, 39.3], box:[4.7, 54.9, 53.6, 25.6]};
+};
+// Reads card layout from a Magic Set Editor "style" file the user loads from their own copy of a frame pack.
+function parseMseStyle(text) {
+  const num = v => {
+    if (v == null) return undefined;
+    const te = String(v).match(/then\s*"?(-?[\d.]+)"?\s*else\s*"?(-?[\d.]+)/);
+    if (te) return Math.min(+te[1], +te[2]);
+    const m = String(v).match(/-?\d+(\.\d+)?/); return m ? +m[0] : undefined;
+  };
+  const fields = {}, body = text.slice(text.indexOf('card style:'));
+  let cur = null, font = null;
+  for (const line of body.split('\n').slice(1)) {
+    if (/^\S/.test(line)) break;
+    const m = line.match(/^(\t+)([a-z ]+?)\s*:\s*(.*?)\s*$/); if (!m) continue;
+    const depth = m[1].length, key = m[2], val = m[3];
+    if (depth === 1) { cur = fields[key] = {}; font = null; }
+    else if (depth === 2 && cur) { if (key === 'font') font = cur.font = {}; else { cur[key] = val; font = null; } }
+    else if (depth === 3 && font) font[key] = val;
+  }
+  const box = f => {
+    if (!f) return null;
+    const l = num(f.left), t = num(f.top), r = num(f.right), h = num(f.height);
+    let w = num(f.width); if (w == null && r != null && l != null) w = r - l;
+    return [l, t, w, h].some(v => v == null || !isFinite(v)) ? null : {l, t, w, h};
+  };
+  const fnt = f => f?.font ? {name:f.font.name || '', size:num(f.font.size) || 12, bold:/bold/i.test(f.font.weight || ''),
+    color:(f.font.color || '').match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)?.slice(1).map(Number), shadow:'shadow color' in f.font} : null;
+  const part = k => ({box:box(fields[k]), font:fnt(fields[k])});
+  const cc = fields['casting cost'];
+  return {
+    w:num(text.match(/^card width:\s*(.+)$/m)?.[1]) || 375, h:num(text.match(/^card height:\s*(.+)$/m)?.[1]) || 523,
+    name:part('name'), type:part('type'), text:part('text'), pt:part('pt'), illus:part('illustrator'), copy:part('copyright line'),
+    image:box(fields.image), ptbox:box(fields['pt box']), cost:cc ? {right:num(cc.right), top:num(cc.top), h:num(cc.height)} : null,
+    whiteText:/font_colors_white\s*:=\s*\{\s*input\s*!=\s*"w"/.test(text)
+  };
+}
+function setImageKey(set, key, land, pt) {
+  const c = {W:'w', U:'u', B:'b', R:'r', G:'g', M:'m', C:'a', L:'c'}[key] || 'c', kind = pt ? 'pt' : 'card';
+  return [`${c}${land ? 'l' : ''}${kind}`, `${c}${kind}`, `c${kind}`, `a${kind}`].map(n => set.images[n]).find(Boolean);
+}
+const setFontFamily = f => {
+  const n = (f?.name || '').toLowerCase();
+  return CC_FONT[/beleren/.test(n) ? (/small/.test(n) ? 'type' : 'name') : /medieval/.test(n) ? 'rname' : /matrix/.test(n) ? 'rtype' : 'rules'];
+};
 const noiseCache = new Map();
 // Layered value noise (four octaves) for frame textures.
 function noiseCanvas(seed, cells, size = 512) {
@@ -1723,7 +1795,11 @@ async function ccFonts() {
         document.fonts.add(ff); userFaces[slot] = {key:k, ff};
       } catch { userFaces[slot] = null; }
     }
-    CC_FONT[slot] = k && userFaces[slot]?.key === k ? `"PPUser_${slot}", ${CC_BASE[slot]}` : CC_BASE[slot];
+    const srv = serverFonts[slot];
+    if (!k && srv && !srv.face) {
+      try { srv.face = new FontFace(`PPServer_${slot}`, `url(${srv.url})`); await srv.face.load(); document.fonts.add(srv.face); } catch { srv.face = null; serverFonts[slot] = null; }
+    }
+    CC_FONT[slot] = k && userFaces[slot]?.key === k ? `"PPUser_${slot}", ${CC_BASE[slot]}` : serverFonts[slot]?.face ? `"PPServer_${slot}", ${CC_BASE[slot]}` : CC_BASE[slot];
   }
 }
 let symbolMapP = null;
@@ -1755,7 +1831,7 @@ async function ccData(e, i) {
 }
 async function renderCustomCard(t, art, k) {
   await ccFonts();
-  const b = MPC_BLEED, W = 63 + 2 * b, H = 88 + 2 * b, retro = t.style === 'retro', custom = t.style === 'custom', full = t.style !== 'retro' && !custom && !!t.fullArt, key = frameKey(t);
+  const b = MPC_BLEED, W = 63 + 2 * b, H = 88 + 2 * b, retro = t.style === 'retro', custom = t.style === 'custom', set = setOf(t), full = t.style === 'modern' && !!t.fullArt, key = frameKey(t);
   const cv = document.createElement('canvas'); cv.width = Math.round(W * k); cv.height = Math.round(H * k);
   const x = cv.getContext('2d'); x.scale(k, k); x.translate(b, b);
   if ('textRendering' in x) x.textRendering = 'geometricPrecision';
@@ -1802,7 +1878,7 @@ async function renderCustomCard(t, art, k) {
     return right;
   };
   const geo = ccGeom(t);
-  let ink;
+  let ink, textColor = null;
 
   x.fillStyle = '#0c0c0c'; x.fillRect(-b, -b, W, H);
   if (retro) {
@@ -1828,6 +1904,29 @@ async function renderCustomCard(t, art, k) {
     x.font = `400 1.75px ${CC_FONT.rules}`; x.fillStyle = onFrame; x.textBaseline = 'middle';
     if (t.artist) x.fillText(`Illus. ${t.artist}`, 5.6, 82.4);
     x.font = `400 1.35px ${CC_FONT.rules}`; x.fillText('Proxy · not for sale', 5.6, 84.4);
+  } else if (set) {
+    const L = set.layout, land = /Land/.test(t.type || ''), R = b => setRect(set, b, null);
+    const img = async k => k ? loadImage(k.startsWith('/') ? k : await customUrl(k)).catch(() => null) : null;
+    const frameImg = await img(setImageKey(set, key, land, false)), ptImg = t.pt && L.ptbox ? await img(setImageKey(set, key, land, true)) : null;
+    if (frameImg) x.drawImage(frameImg, 0, 0, 63, 88);
+    drawArt(geo.art);
+    if (ptImg) x.drawImage(ptImg, ...R(L.ptbox));
+    const light = L.whiteText && key !== 'W', rgb = (f, d) => f?.color ? `rgb(${f.color.join(',')})` : d;
+    const fontOf = f => ({w:f?.bold ? 700 : 400, f:setFontFamily(f)}), sizeOf = (f, d) => (f?.size || d) * 88 / set.h;
+    ink = () => rgb(L.name.font, light ? '#fff' : '#111');
+    let right = 57.5;
+    if (L.cost?.right != null) right = manaRow(L.cost.right * 63 / set.w, ((L.cost.top || 0) + (L.cost.h || 22) / 2) * 88 / set.h, Math.min(3.4, (L.cost.h || 22) * 88 / set.h * 0.78), !light);
+    const nb = R(L.name.box);
+    if (nb) fit(t.name || '', nb[0], nb[1] + nb[3] / 2, Math.min(nb[2], right - nb[0] - 0.6), sizeOf(L.name.font, 16), fontOf(L.name.font), rgb(L.name.font, light ? '#fff' : '#111'), !!L.name.font?.shadow || light);
+    const tb = R(L.type.box);
+    if (tb) fit(t.type || '', tb[0], tb[1] + tb[3] / 2, tb[2], sizeOf(L.type.font, 13), fontOf(L.type.font), rgb(L.type.font, light ? '#fff' : '#111'), !!L.type.font?.shadow || light);
+    const pb = R(L.pt.box);
+    if (t.pt && pb) { x.textAlign = 'center'; fit(t.pt, pb[0] + pb[2] / 2, pb[1] + pb[3] / 2, pb[2], sizeOf(L.pt.font, 16), fontOf(L.pt.font), rgb(L.pt.font, light ? '#fff' : '#111'), !!L.pt.font?.shadow || light); x.textAlign = 'left'; }
+    const ib = R(L.illus.box), credit = light || !L.illus.font?.color ? '#fff' : rgb(L.illus.font, '#fff');
+    if (ib && t.artist) fit(`Illus. ${t.artist}`, ib[0], ib[1] + ib[3] / 2, ib[2], sizeOf(L.illus.font, 9), fontOf(L.illus.font), credit, true);
+    const cb = R(L.copy.box) || (ib && [ib[0], ib[1] + ib[3], ib[2], 1.8]);
+    if (cb) fit('Proxy · not for sale', cb[0], cb[1] + cb[3] / 2, cb[2], 1.3, {w:400, f:CC_FONT.rules}, credit, true);
+    textColor = rgb(L.text.font, '#111');
   } else if (custom) {
     ink = () => '#111';
     const frameImg = t.frameKey ? await loadImage(await customUrl(t.frameKey)).catch(() => null) : null;
@@ -1882,11 +1981,11 @@ async function renderCustomCard(t, art, k) {
   }
 
   // rules and flavor text
-  const [bx, by, bw, bh] = geo.box, textInk = full ? '#fff' : '#111', rulesFont = retro ? CC_FONT.rrules : CC_FONT.rules;
+  const [bx, by, bw, bh] = geo.box, textInk = textColor || (full ? '#fff' : '#111'), rulesFont = retro ? CC_FONT.rrules : CC_FONT.rules;
   const hasItalic = CC_FONT.italic !== CC_BASE.italic, rf = (it, fs) => it && hasItalic ? `400 ${fs}px ${CC_FONT.italic}` : `${it ? 'italic ' : ''}400 ${fs}px ${rulesFont}`;
   const paras = (t.text || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:false}));
   const flavor = (t.flavor || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:true}));
-  const pad = 1.4, maxW = bw - pad * 2, maxH = bh - pad * 2 - (t.pt && !retro ? 1.6 : 0);
+  const pad = 1.4, maxW = bw - pad * 2, maxH = bh - pad * 2 - (t.pt && !retro && !set ? 1.6 : 0);
   const layout = fs => {
     const lines = [], sp = fs * 0.26, sd = fs * 0.86;
     const run = (list, gapAfter) => list.forEach((p, n) => {
@@ -1932,7 +2031,8 @@ async function openCardMaker(target) {
   let e = target.e || null;
   const i = target.i || 0, face = e?.faces[i];
   busy(true, 'Loading card text…');
-  let t = face?.template ? {style:'modern', ...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto', style:'modern'};
+  const lastStyle = S.ccStyle && (!S.ccStyle.startsWith('set:') || setOf({style:S.ccStyle})) ? S.ccStyle : serverSets[0] ? 'set:' + serverSets[0].id : 'modern';
+  let t = face?.template ? {style:'modern', ...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto', style:lastStyle};
   busy(false);
   let art = null;
   if (t.artKey) { const u = await customUrl(t.artKey); if (u) art = await loadImage(u).catch(() => null); }
@@ -1945,7 +2045,8 @@ async function openCardMaker(target) {
         <div class="grid2">
           <div class="field"><label>Art zoom</label><input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}"></div>
           <div class="field"><label>Frame colour</label><select id="ccColor">${CC_COLORS.map(([v, n]) => `<option value="${v}" ${v === (t.color || 'auto') ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-          <div class="field"><label>Frame style</label><select id="ccStyle"><option value="modern" ${t.style !== 'retro' ? 'selected' : ''}>Modern</option><option value="retro" ${t.style === 'retro' ? 'selected' : ''}>Retro (old border)</option><option value="custom" ${t.style === 'custom' ? 'selected' : ''}>My frame image</option></select></div>
+          <div class="field"><label>Frame style</label><select id="ccStyle"><option value="modern" ${t.style !== 'retro' ? 'selected' : ''}>Modern</option><option value="retro" ${t.style === 'retro' ? 'selected' : ''}>Retro (old border)</option><option value="custom" ${t.style === 'custom' ? 'selected' : ''}>My frame image</option>${allSets().map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>Frame set: ${esc(f.name)}</option>`).join('')}</select>
+            <div class="row" style="margin-top:4px"><button class="icon" id="ccSetBtn" title="Choose a Magic Set Editor style folder from your own frame pack">Load frame set…</button><input type="file" id="ccSetDir" webkitdirectory multiple hidden></div></div>
           <label class="check" style="grid-column:auto;align-self:end"><input type="checkbox" id="ccFull" ${t.fullArt ? 'checked' : ''} ${t.style !== 'modern' ? 'disabled' : ''}> Full art</label>
           <div class="field full" id="ccFrameRow" ${t.style === 'custom' ? '' : 'hidden'}><label>Frame image</label><div class="row"><button class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame…' : 'Upload frame…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp,image/svg+xml,.svg" hidden></div>
             <p class="hint">A card-sized PNG or SVG (e.g. 744 × 1039 px) that's transparent where the art shows. Text is placed in the modern positions.</p></div>
@@ -1971,17 +2072,39 @@ async function openCardMaker(target) {
   });
   $('#ccColor').onchange = ev => { t.color = ev.target.value; draw(); };
   $('#ccFull').onchange = ev => { t.fullArt = ev.target.checked; t.ox = t.oy = 0; draw(); };
-  $('#ccStyle').onchange = ev => { t.style = ev.target.value; $('#ccFull').disabled = t.style !== 'modern'; $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw(); };
+  $('#ccStyle').onchange = ev => { t.style = ev.target.value; S.ccStyle = t.style; save(); $('#ccFull').disabled = t.style !== 'modern'; $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw(); };
   $('#ccFrameBtn').onclick = () => $('#ccFrameFile').click();
+  $('#ccSetBtn').onclick = () => $('#ccSetDir').click();
+  $('#ccSetDir').onchange = async ev => {
+    const files = [...ev.target.files]; ev.target.value = '';
+    const styleFile = files.find(f => f.name === 'style');
+    if (!styleFile) return toast('That folder has no "style" file. Choose a Magic Set Editor style folder, such as magic-new.mse-style.', 7000);
+    const layout = parseMseStyle(await styleFile.text());
+    if (!layout.image || !layout.text.box) return toast("Couldn't read the card layout from that style file.", 6000);
+    busy(true, 'Loading frame set…');
+    const images = {};
+    for (const f of files) {
+      const m = f.name.match(/^([a-z]{1,3}(?:card|pt))\.(jpe?g|png)$/i);
+      if (m && f.size < 8e6) images[m[1].toLowerCase()] = await storeImage(f);
+    }
+    busy(false);
+    if (!Object.keys(images).some(n => n.endsWith('card'))) return toast('No frame images (like wcard.jpg) found in that folder.', 6000);
+    const name = (styleFile.webkitRelativePath || '').split('/')[0].replace(/\.mse-style$/i, '') || 'Frame set';
+    const fs = {id:uid(), name, w:layout.w, h:layout.h, layout, images};
+    S.frameSets = [...(S.frameSets || []), fs]; save();
+    $('#ccStyle').insertAdjacentHTML('beforeend', `<option value="set:${fs.id}">Frame set: ${esc(name)}</option>`);
+    $('#ccStyle').value = 'set:' + fs.id; $('#ccStyle').onchange({target:$('#ccStyle')});
+    toast(`Loaded frame set "${name}" with ${Object.keys(images).length} frame images.`);
+  };
   $('#ccFrameFile').onchange = async ev => {
     const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
     t.frameKey = await storeImage(f); $('#ccFrameBtn').textContent = 'Change frame…'; draw();
   };
   let fontSlot = null;
   const fontList = () => {
-    $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Free lookalike fonts are used unless you load your own font files (.ttf, .otf, .woff2). They're kept in this browser only.</p>
+    $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Fonts on the server are used automatically; free lookalike fonts fill any gaps. Fonts you load here override them in this browser.</p>
       <div class="row" style="margin-bottom:6px"><button class="icon primary" data-fontmulti>Load font files…</button><span class="hint">Select several at once; each goes to the slot its file name matches.</span></div>
-      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : 'Free font'}
+      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : 'Free font'}
         <button class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
   };
   fontList();
@@ -2225,7 +2348,7 @@ function cleanDeck(raw) {
   const tpl = t => t && typeof t === 'object' ? pick({
     name:str(t.name), mana:str(t.mana), type:str(t.type), text:str(t.text), flavor:str(t.flavor), pt:str(t.pt), artist:str(t.artist),
     color:CC_COLORS.some(c => c[0] === t.color) ? t.color : undefined, artKey:key(t.artKey), zoom:num(t.zoom), ox:num(t.ox), oy:num(t.oy),
-    fullArt:!!t.fullArt, style:['retro', 'custom'].includes(t.style) ? t.style : 'modern', frameKey:key(t.frameKey), colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
+    fullArt:!!t.fullArt, style:['retro', 'custom'].includes(t.style) || /^set:[\w-]{1,64}$/.test(t.style) ? t.style : 'modern', frameKey:key(t.frameKey), colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
   }) : undefined;
   const face = f => f && typeof f === 'object' ? pick({
     name:str(f.name) ?? '', png:url(f.png), normal:url(f.normal), custom:key(f.custom), drive:id(f.drive), file:str(f.file),
@@ -2727,6 +2850,7 @@ function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); render
 (async () => {
   await load();
   S.mode = S.mode || 'print'; applyMode();
+  loadServerAssets();
   if (innerWidth < 820) S.zoom = Math.max(1, Math.min(S.zoom, (innerWidth - 40) / layout().W));
   $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks;
   setTimeout(() => { if (!S.welcomed) openTour(0); }, 50); $('#showCuts').checked = !!S.showCuts;

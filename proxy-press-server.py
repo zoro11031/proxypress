@@ -11,6 +11,7 @@ Environment:
   HOST        interface to listen on (default 127.0.0.1)
   PORT        port (default 8642)
   PASSWORD    show a sign-in page that asks for this password (optional)
+  ASSETS      folder of fonts/ and frames/<set>/ served to signed-in users (default ./assets)
   BASIC_AUTH  "user:password" for a browser login prompt instead (optional)
   NO_BROWSER  set to 1 to skip opening a browser on start
 """
@@ -18,6 +19,7 @@ import base64
 import hashlib
 import hmac
 import http.server
+import json
 import os
 import re
 import signal
@@ -43,6 +45,33 @@ PASSWORD = os.environ.get("PASSWORD", "")
 SECRET = os.urandom(32)
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 COOKIE = "pp_session"
+ASSETS = os.path.realpath(os.environ.get("ASSETS") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets"))
+ASSET_TYPES = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2",
+               ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", "": "text/plain; charset=utf-8"}
+
+
+def asset_manifest():
+    fonts, frames = [], []
+    font_dir, frame_dir = os.path.join(ASSETS, "fonts"), os.path.join(ASSETS, "frames")
+    if os.path.isdir(font_dir):
+        fonts = sorted(f for f in os.listdir(font_dir) if os.path.splitext(f)[1].lower() in (".ttf", ".otf", ".woff", ".woff2"))
+    if os.path.isdir(frame_dir):
+        for name in sorted(os.listdir(frame_dir)):
+            d = os.path.join(frame_dir, name)
+            if os.path.isfile(os.path.join(d, "style")):
+                frames.append({"name": name, "files": sorted(f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f)))})
+    return {"fonts": fonts, "frames": frames}
+
+
+def asset_path(route):
+    rel = urllib.parse.unquote(route[len("/assets/"):])
+    full = os.path.realpath(os.path.join(ASSETS, rel))
+    if not full.startswith(ASSETS + os.sep) or not os.path.isfile(full):
+        return None, None
+    ext = os.path.splitext(full)[1].lower()
+    if ext not in ASSET_TYPES or (ext == "" and os.path.basename(full) != "style"):
+        return None, None
+    return full, ASSET_TYPES[ext]
 
 failures, failures_lock = {}, threading.Lock()
 
@@ -81,7 +110,7 @@ def page_csp(page_bytes):
         "default-src 'self'",
         f"script-src 'self' {hashes} https://cdnjs.cloudflare.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src https://fonts.gstatic.com",
+        "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
         "connect-src 'self' data: blob: https://api.scryfall.com https://img.mpcautofill.com https://cdn.mpcautofill.com",
         "object-src 'none'",
@@ -143,7 +172,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        if not any(k == "Cache-Control" for k, _ in extra):
+            self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
@@ -173,7 +203,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return True
 
     def refuse(self):
-        if self.path.startswith("/mpc/"):
+        if self.path.startswith(("/mpc/", "/assets/")):
             return self.send(401, b'{"name":"Signed out","message":"Sign in again"}', "application/json")
         if PASSWORD:
             return self.login_page(200)
@@ -236,6 +266,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.refuse()
         if route.startswith("/mpc/"):
             return self.relay("GET")
+        if route == "/assets/manifest.json":
+            return self.send(200, json.dumps(asset_manifest()).encode(), "application/json")
+        if route.startswith("/assets/"):
+            full, ctype = asset_path(route)
+            if not full:
+                return self.send(404, b"Not found", "text/plain")
+            with open(full, "rb") as f:
+                return self.send(200, f.read(), ctype, [("Cache-Control", "private, max-age=86400")])
         if route in ("/", "/proxy-press.html"):
             with open(PAGE, "rb") as f:
                 body = f.read()
