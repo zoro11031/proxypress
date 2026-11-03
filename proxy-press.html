@@ -97,7 +97,7 @@ h3:first-child{margin-top:2px}
 .pg img{cursor:context-menu}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
-#btnHelp{width:30px;height:30px;padding:0;border-radius:50%;font-weight:700}
+.round{width:30px;height:30px;padding:0;border-radius:50%;font-weight:700}
 .modal.narrow{width:min(600px,calc(100vw - 32px))}
 .tour p{margin:0 0 10px;line-height:1.5}
 .tour-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
@@ -142,6 +142,8 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .osum dd{margin:0}
 .steps{padding-left:20px;font-size:13px}
 .steps li{margin-bottom:8px}
+pre{background:#0d0f12;border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-x:auto;font-size:12px;line-height:1.45;margin:6px 0;white-space:pre}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.95em}
 .dl{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .dl a{color:var(--accent2);border:1px solid var(--line);border-radius:6px;padding:4px 9px;text-decoration:none;font-size:12.5px}
 .dl a:hover{border-color:var(--accent)}
@@ -188,7 +190,8 @@ details.adv:not([open]){padding-bottom:10px}
   </div>
   <span class="grow"></span>
   <span class="stats" id="stats"></span>
-  <button id="btnHelp" class="icon" title="Quick tour" aria-label="Quick tour">?</button>
+  <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour">?</button>
+  <button id="btnSettings" class="icon round" title="Backup &amp; storage" aria-label="Backup and storage">⚙</button>
   <button id="btnPdf" class="primary print-only" title="Download a print-ready PDF">Export PDF</button>
   <button id="btnXml" class="primary order-only" title="Download the order (.zip) and see how to place it">Export order</button>
 </header>
@@ -200,7 +203,6 @@ details.adv:not([open]){padding-bottom:10px}
       <button data-tab="presets" class="print-only">Printer</button>
       <button data-tab="cutting" class="print-only">Cutting</button>
       <button data-tab="order" class="order-only">Order</button>
-      <button data-tab="data">Data</button>
     </div>
 
     <div class="pane on" id="tab-cards">
@@ -380,6 +382,7 @@ details.adv:not([open]){padding-bottom:10px}
     </div>
 
     <div class="pane" id="tab-data">
+      <h3 class="row" style="justify-content:space-between"><span>Backup &amp; storage</span><button class="icon" id="dataClose">Close</button></h3>
       <h3>Backup</h3>
       <p class="hint">Decks, presets, settings and uploaded images are saved in this browser (IndexedDB). They never leave your computer. Export a backup to move them to another browser.</p>
       <div class="row">
@@ -1066,7 +1069,7 @@ function mpcOfflineHtml() {
   if (location.protocol.startsWith('http')) return `<div class="warn">Couldn't reach the online art search. It may be down or busy, so try again in a minute.</div>`;
   return `<div class="warn">Online art search needs the server, because the art database only accepts searches from its own site.<br>
     Run <code>python3 proxy-press-server.py</code> in the folder with this page, then open <b>http://localhost:8642</b>.</div>
-    <p class="hint">Your decks are stored per address, so use Data → Export backup here and import it there to bring them across.</p>`;
+    <p class="hint">Your decks are stored per address, so use ⚙ → Export backup here and import it there to bring them across.</p>`;
 }
 
 const localIndex = [];
@@ -1415,7 +1418,38 @@ function orderStepsHtml() {
     <li><b>Answer its questions.</b> Pressing Enter for each one is fine: browser <b>Chrome</b>, site <b>MakePlayingCards</b>, auto-save <b>yes</b>, shrink large images <b>yes</b>.</li>
     <li><b>Log in when Chrome opens.</b> The tool creates the project and uploads every image from <code>cards</code>, so nothing needs downloading.</li>
     <li><b>Check the project, then add it to your cart</b> and check out on MakePlayingCards.com. If the tool stops part-way, run it again from the same folder.</li>
-  </ol>`;
+  </ol>
+  <details class="adv"><summary>Linux: running the tool from a terminal</summary>
+    <p class="hint" style="margin-top:8px">Needs a desktop session (the tool opens a visible browser window), an x86-64 PC, and Google Chrome, Brave or Microsoft Edge installed normally, not as a Flatpak or Snap.</p>
+    <ol class="steps">
+      <li><b>Set up the folder</b> (adjust the file names to your downloads):
+<pre>mkdir -p ~/proxy-order &amp;&amp; cd ~/proxy-order
+unzip ~/Downloads/autofill-linux.zip
+unzip ~/Downloads/"My deck (print order).zip"
+chmod +x autofill-linux.bin</pre></li>
+      <li><b>Run it.</b> With no options it asks its questions. Any option skips them and uses defaults for the rest:
+<pre>./autofill-linux.bin
+./autofill-linux.bin --browser chrome --site MakePlayingCards --auto-save --max-dpi 800</pre></li>
+      <li><b>Sign in</b> on the MakePlayingCards page that opens. The tool carries on by itself once you're signed in. A mistyped password shows a site pop-up that can stop the tool; just run it again.</li>
+      <li><b>Adding to an existing project:</b> choose that option when asked, open the project from <i>My saved projects</i> → <i>Continue to edit</i>, then press Enter in the terminal.</li>
+    </ol>
+    <table class="drv">
+      <tr><th><code>-d DIR</code></th><td>Folder with the order <code>.xml</code> and <code>cards</code> (default: current folder)</td></tr>
+      <tr><th><code>--browser</code></th><td><code>chrome</code>, <code>brave</code> or <code>edge</code></td></tr>
+      <tr><th><code>--max-dpi N</code></th><td>Shrink images above N DPI before upload (100–1200, default 800)</td></tr>
+      <tr><th><code>--no-image-post-processing</code></th><td>Upload images untouched (slower)</td></tr>
+      <tr><th><code>--no-auto-save</code></th><td>Don't save the project while uploading</td></tr>
+      <tr><th><code>--no-combine-orders</code></th><td>Each XML in the folder becomes its own project</td></tr>
+      <tr><th><code>--exportpdf</code></th><td>Make a PDF of the images instead of a project</td></tr>
+      <tr><th><code>--allowsleep</code></th><td>Let the PC sleep during long uploads</td></tr>
+      <tr><th><code>--write-debug-logs</code></th><td>Write <code>autofill_log.txt</code> for troubleshooting</td></tr>
+    </table>
+    <p class="hint"><b>Immutable distros</b> (Fedora Atomic, Bazzite, SteamOS) <b>or Flatpak-only browsers:</b> the tool can't control a Flatpak browser. Run it in a distrobox with Chrome installed instead; it shares your home folder and screen:</p>
+<pre>distrobox create --name autofill --image fedora:latest
+distrobox enter autofill -- sudo dnf install -y https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+distrobox enter autofill -- bash -c 'cd ~/proxy-order &amp;&amp; ./autofill-linux.bin'</pre>
+    <p class="hint"><b>Troubleshooting:</b> "Permission denied": run <code>chmod +x autofill-linux.bin</code>. "Exec format error": the Linux build is x86-64 only. Chrome not found or glibc errors: use the distrobox route above. The tool's <code>--binary-location</code> option doesn't work in the current release, so install the browser where the tool can find it instead.</p>
+  </details>`;
 }
 function showOrderSteps(done) {
   openModal(`<div class="hd"><b>Your order is ready</b><button data-close>Close</button></div>
@@ -1831,6 +1865,12 @@ function openTour(at = 0) {
   };
 }
 $('#btnHelp').onclick = () => openTour(0);
+$('#btnSettings').onclick = () => {
+  $$('.tabs button').forEach(x => x.classList.remove('on'));
+  $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'tab-data'));
+  renderStorage();
+};
+$('#dataClose').onclick = () => $('.tabs button[data-tab=cards]').click();
 
 /* ---------- right-click menu ---------- */
 async function removeEntry(e) {
@@ -2353,7 +2393,7 @@ async function renderStorage() {
 $$('.tabs button').forEach(b => b.onclick = () => {
   $$('.tabs button').forEach(x => x.classList.toggle('on', x === b));
   $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'tab-' + b.dataset.tab));
-  if (b.dataset.tab === 'data') renderStorage();
+
 });
 let toastT;
 function toast(msg, ms = 3000) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', ms); }

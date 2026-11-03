@@ -29,4 +29,4 @@ The page is served on port 8642, published on `127.0.0.1` unless you set `PROXY_
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | Interface to listen on |
 | `PORT` | `8642` | Port |
 
-Saved decks belong to the browser and the address they were made on. Use **Data → Export backup** to move them between browsers or addresses.
+Saved decks belong to the browser and the address they were made on. Use **⚙ (top right) → Export backup** to move them between browsers or addresses.
