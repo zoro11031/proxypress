@@ -17,17 +17,16 @@ No server? **Use local image folder** (Cards tab) searches a folder of MPC-style
 ## Host with Docker / Podman
 
 ```sh
-cp .env.example .env    # set PROXY_PRESS_AUTH=user:password
+cp .env.example .env    # optional: PROXY_PRESS_AUTH=user:password
 docker compose up -d    # or: podman compose up -d
 ```
 
-The page is served on port 8642 behind a login, published on `127.0.0.1` unless you set `PROXY_PRESS_BIND` (for example to the server's LAN IP). Put it behind a reverse proxy with HTTPS (Caddy, Traefik, nginx); without HTTPS the login is sent unencrypted.
+The page is served on port 8642, published on `127.0.0.1` unless you set `PROXY_PRESS_BIND` (for example to the server's LAN IP). A login is optional; set one if the page is reachable beyond your home network, and put it behind HTTPS (Caddy, Traefik, nginx) so the login isn't sent unencrypted.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `BASIC_AUTH` | — | `user:password` login (required unless `HOST` is local) |
+| `BASIC_AUTH` | — | Optional `user:password` login |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | Interface to listen on |
 | `PORT` | `8642` | Port |
-| `ALLOW_NO_AUTH` | — | `1` to skip the login when a proxy in front already handles it |
 
 Saved decks belong to the browser and the address they were made on. Use **Data → Export backup** to move them between browsers or addresses.
