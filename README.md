@@ -25,7 +25,8 @@ The page is served on port 8642, published on `127.0.0.1` unless you set `PROXY_
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `BASIC_AUTH` | — | Optional `user:password` login |
+| `PASSWORD` | — | Optional sign-in page password (`PROXY_PRESS_PASSWORD` in `.env`) |
+| `BASIC_AUTH` | — | Optional `user:password` browser login prompt instead |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | Interface to listen on |
 | `PORT` | `8642` | Port |
 
