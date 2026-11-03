@@ -10,8 +10,7 @@ Usage: python3 proxy-press-server.py [port]   (default 8642)
 Environment:
   HOST           interface to listen on (default 127.0.0.1)
   PORT           port (default 8642)
-  BASIC_AUTH     "user:password" to require a login
-  ALLOW_NO_AUTH  set to 1 to listen on a non-local interface without a login
+  BASIC_AUTH     "user:password" to require a login (optional)
   NO_BROWSER     set to 1 to skip opening a browser on start
 """
 import base64
@@ -39,7 +38,7 @@ CSP = "; ".join([
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://cards.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
+    "img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
     "connect-src 'self' data: blob: https://api.scryfall.com https://img.mpcautofill.com https://cdn.mpcautofill.com",
     "object-src 'none'",
     "base-uri 'none'",
@@ -125,9 +124,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    if HOST not in LOCAL_HOSTS and not AUTH and not os.environ.get("ALLOW_NO_AUTH"):
-        sys.exit("Refusing to listen on %s without a login. Set BASIC_AUTH=user:password "
-                 "(or ALLOW_NO_AUTH=1 if something in front of this already handles it)." % (HOST or "all interfaces"))
+    if HOST not in LOCAL_HOSTS and not AUTH:
+        print("No login set: anyone who can reach this address can use it. Set BASIC_AUTH=user:password to require one.", flush=True)
     if AUTH and ":" not in AUTH:
         sys.exit("BASIC_AUTH must look like user:password")
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))

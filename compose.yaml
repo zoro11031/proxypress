@@ -7,7 +7,7 @@ services:
     ports:
       - "${PROXY_PRESS_BIND:-127.0.0.1}:${PROXY_PRESS_PORT:-8642}:8642"
     environment:
-      BASIC_AUTH: "${PROXY_PRESS_AUTH:?Set PROXY_PRESS_AUTH=user:password in .env (see .env.example)}"
+      BASIC_AUTH: "${PROXY_PRESS_AUTH:-}"
     read_only: true
     cap_drop:
       - ALL
