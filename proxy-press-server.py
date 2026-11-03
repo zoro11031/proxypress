@@ -131,8 +131,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
     sys_version = ""
 
     def client_ip(self):
-        forwarded = self.headers.get("X-Forwarded-For", "")
-        return forwarded.split(",")[0].strip() or self.client_address[0]
+        cf = self.headers.get("CF-Connecting-IP", "").strip()
+        forwarded = self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        return cf or forwarded or self.client_address[0]
+
+    def https(self):
+        return self.headers.get("X-Forwarded-Proto") == "https"
 
     def send(self, status, body, ctype, extra=()):
         self.send_response(status)
@@ -142,7 +146,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        if self.https():
+            self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
         for k, v in extra:
@@ -187,7 +192,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(413, b"Too large", "text/plain")
         given = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", "replace")).get("password", [""])[0]
         if hmac.compare_digest(given.encode(), PASSWORD.encode()):
-            secure = "; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""
+            secure = "; Secure" if self.https() else ""
             cookie = f"{COOKIE}={make_session()}; Max-Age={SESSION_DAYS * 86400}; Path=/; HttpOnly; SameSite=Lax{secure}"
             return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", cookie)])
         record_failure(ip)
