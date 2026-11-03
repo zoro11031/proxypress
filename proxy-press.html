@@ -2160,6 +2160,7 @@ async function openCardMaker(target) {
     <div class="bd"><div class="cc">
       <div><canvas id="ccCanvas" aria-label="Card preview"></canvas><p class="hint">Drag the art to move it, scroll to zoom.</p></div>
       <div>
+        <div class="field" style="margin-bottom:10px"><label>Start from a real card</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccSet" placeholder="Set" style="width:64px" aria-label="Set code (optional)"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Fill</button></div></div>
         <div class="row" style="margin-bottom:8px"><button class="primary" id="ccArt">${art ? 'Change art…' : 'Choose your art…'}</button><input type="file" id="ccFile" accept="image/*" hidden></div>
         <div class="grid2">
           <div class="field"><label>Art zoom</label><input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}"></div>
@@ -2178,7 +2179,6 @@ async function openCardMaker(target) {
           ${F.map(([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label>${label}</label>${k === 'text' || k === 'flavor' ? `<textarea data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`).join('')}
           <details class="adv full" style="grid-column:1/-1"><summary>Fonts</summary><div id="ccFontList"></div>
             <input type="file" id="ccFontFile" accept=".ttf,.otf,.woff,.woff2" hidden><input type="file" id="ccFontMulti" accept=".ttf,.otf,.woff,.woff2" multiple hidden></details>
-          <div class="field full"><label>Fill the text from another card</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1"><button id="ccFill">Fill</button></div></div>
         </div>
         <div class="row" style="margin-top:12px"><button class="primary" id="ccSave">Save card</button><span class="hint">Saved at print quality with bleed, for printing and orders.</span></div>
       </div>
@@ -2306,15 +2306,20 @@ async function openCardMaker(target) {
   cv.onpointerup = cv.onpointercancel = () => { drag = null; };
   cv.onwheel = ev => { ev.preventDefault(); t.zoom = Math.max(1, Math.min(4, (t.zoom || 1) * (1 - ev.deltaY * 0.0015))); $('#ccZoom').value = t.zoom; draw(); };
   $('#ccFill').onclick = async () => {
-    const q = $('#ccLookup').value.trim(); if (!q) return;
+    const q = $('#ccLookup').value.trim(), set = $('#ccSet').value.trim().toLowerCase(), num = $('#ccNum').value.trim();
+    if (!q && !(set && num)) return toast('Type a card name, or a set and collector number.');
     try {
-      Object.assign(t, fromScryfall(await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}`), null));
+      const c = set && num ? await sf(`${SF}/cards/${encodeURIComponent(set)}/${encodeURIComponent(num)}`)
+        : num ? (await sf(`${SF}/cards/search?unique=prints&q=${encodeURIComponent(`!"${q}" cn:"${num}"`)}`)).data[0]
+        : await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}${set ? '&set=' + encodeURIComponent(set) : ''}`);
+      Object.assign(t, fromScryfall(c, c.card_faces?.[0]?.image_uris ? 0 : null));
       $$('[data-cc]', bd).forEach(el => { el.value = t[el.dataset.cc] || ''; });
       $('#ccManaText').value = t.mana || ''; syncManaGrid();
       if (!manaCounts(t.mana).simple && !$('#ccManaAdv').checked) { $('#ccManaAdv').checked = true; $('#ccManaGrid').hidden = true; $('#ccManaText').hidden = false; }
       draw();
     } catch (err) { toast('Card not found: ' + err.message, 5000); }
   };
+  ['#ccLookup', '#ccSet', '#ccNum'].forEach(id => { $(id).onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); }; });
   $('#ccSave').onclick = async () => {
     if (!art) return toast('Choose your art first.');
     busy(true, 'Rendering your card…');
