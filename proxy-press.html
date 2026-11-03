@@ -52,7 +52,9 @@ h3:first-child{margin-top:2px}
 .card img{width:46px;height:64px;object-fit:cover;border-radius:3px;cursor:pointer;background:#000}
 .card .nm{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .meta{font-size:11.5px;color:var(--muted)}
-.card .ctl{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.card .ctl{display:flex;gap:6px;align-items:center}
+.card .more{font-size:16px;line-height:1;padding:4px 9px}
+.card .meta{margin-top:2px;line-height:1.6}
 .qty{display:flex;align-items:center;gap:2px}
 .qty input{width:42px;text-align:center;padding:3px}
 .tag.bad{background:#4a2321;color:#ff9c95}
@@ -97,10 +99,15 @@ h3:first-child{margin-top:2px}
 .pg img{cursor:context-menu}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
+.sum{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:6px;display:flex;flex-direction:column;gap:2px}
+.sum span{color:var(--muted);font-size:12px}
 .pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pick button{text-align:left;padding:10px;border-radius:9px;display:flex;flex-direction:column;gap:3px;white-space:normal}
 .pick button span{color:var(--muted);font-size:12px}
 .pick button.on{border-color:var(--accent);background:#2d2618}
+.pick button{position:relative}
+.pick .del{position:absolute;top:6px;right:8px;font-style:normal;color:var(--muted);font-size:12px;padding:0 3px}
+.pick .del:hover{color:var(--danger)}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
 .round{width:30px;height:30px;padding:0;border-radius:50%;font-weight:700}
@@ -254,17 +261,15 @@ details.adv:not([open]){padding-bottom:10px}
     <div class="pane" id="tab-layout"><div id="settingsForm"></div></div>
 
     <div class="pane" id="tab-presets">
+      <h3>Presets</h3>
+      <div class="pick presets" id="presetGrid"></div>
+      <div class="row" style="margin-top:8px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
       <h3>Your printer</h3>
       <select id="printerSel" aria-label="Printer"></select>
       <div id="printerGuide"></div>
       <h3>Calibrate</h3>
       <div class="row"><button id="btnCal" title="Print once on your paper, measure, and enter the results under Layout → Advanced">Calibration sheet</button><button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button></div>
       <p class="hint">Print each once on your paper so cards are exactly 63 × 88 mm and backs line up.</p>
-      <details class="adv" id="morePresets">
-        <summary>Other layouts &amp; saved presets</summary>
-        <div class="row" style="margin-top:10px"><select id="presetSel" style="flex:1" aria-label="Preset"></select><button id="presetApply">Apply</button></div>
-        <div class="row" style="margin-top:8px"><button id="presetSave">Save current settings…</button><button id="presetDel" class="danger" style="display:none">Delete</button></div>
-      </details>
     </div>
 
     <div class="pane" id="tab-cutting">
@@ -364,7 +369,8 @@ details.adv:not([open]){padding-bottom:10px}
       </ul>
       </details>
       <details class="adv"><summary>Cutting machine (Silhouette Cameo)</summary>
-        <p class="hint" style="margin-top:8px">Turn on registration marks under Layout → Silhouette Cameo, print the PDF, then load this cut file in Silhouette Studio.</p>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="regToggle"> Print registration marks on the PDF</label>
+        <p class="hint">Print the PDF, then load this cut file in Silhouette Studio. Mark size and inset are under Layout → Advanced.</p>
         <div class="row"><button id="btnSvg" title="Cut lines for Silhouette Studio">Download cut file (SVG)</button></div>
       </details>
     </div>
@@ -1545,19 +1551,15 @@ async function renderCards() {
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; return; }
   list.innerHTML = d.entries.map(e => `
     <div class="card" data-uid="${esc(e.uid)}">
-      <img data-act="art" alt="" title="${e.custom && !e.mpc ? 'Replace image' : 'Change art'}">
+      <img data-act="art" alt="" title="${e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
       <div style="min-width:0">
         <div class="nm" title="${esc(e.name)}">${esc(e.name)}</div>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
           ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(f => f.drive && !f.custom) ? '<span class="tag">high-res art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Scryfall placeholder · not for print</span>' : ''}</div>
-        <div class="row" style="margin-top:4px">
-          <button class="icon" data-act="mpc" title="Browse more art for this card (or right-click the card)">Change art</button>
-          <button class="icon" data-act="upload" title="Use your own image for this card">Upload</button>
-        </div>
       </div>
       <div class="ctl">
-        <div class="qty"><button class="icon" data-act="dec">−</button><input type="number" min="0" value="${e.qty}" data-act="qty"><button class="icon" data-act="inc">+</button></div>
-        <button class="icon danger" data-act="del" title="Remove">✕</button>
+        <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity"><button class="icon" data-act="inc" aria-label="More">+</button></div>
+        <button class="icon more" data-act="more" title="Change art, custom card, upload, remove" aria-label="Card options">⋯</button>
       </div>
     </div>`).join('');
   for (const e of d.entries) {
@@ -1578,6 +1580,7 @@ $('#cardList').addEventListener('click', async ev => {
     $('#fileFace').click(); return;
   }
   else if (act === 'mpc') { openMpcPicker({e, i:0}); return; }
+  else if (act === 'more') { ev.stopPropagation(); const r = ev.target.getBoundingClientRect(); openCtx(r.left, r.bottom + 4, e, 0); return; }
   save(); renderAll();
 });
 $('#cardList').addEventListener('change', ev => {
@@ -1935,18 +1938,17 @@ addEventListener('blur', closeCtx);
 
 /* ---------- settings form ---------- */
 const FIELDS = [
-  {sec:'Paper'},
+  {sec:'Paper & card'},
   {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4'],['a3','A3'],['custom','Custom']]},
   {k:'orientation', label:'Orientation', type:'select', opts:[['portrait','Portrait'],['landscape','Landscape']]},
   {k:'pageW', label:'Page width (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
   {k:'pageH', label:'Page height (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
-  {sec:'Card'},
-  {k:'cardPreset', label:'Card size', type:'select', opts:[['mtg','MTG / Pokémon 63×88'],['poker','Poker 2.5×3.5 in'],['japanese','Japanese 59×86'],['tarot','Tarot 70×120'],['custom','Custom']]},
+  {k:'cardPreset', label:'Card size', type:'select', full:true, opts:[['mtg','MTG / Pokémon 63×88'],['poker','Poker 2.5×3.5 in'],['japanese','Japanese 59×86'],['tarot','Tarot 70×120'],['custom','Custom']]},
   {k:'cardRotation', adv:true, label:'Card direction', type:'select', opts:[['auto','Auto (most cards per page)'],['upright','Always upright'],['rotated','Always sideways']]},
   {k:'cornerRadius', adv:true, label:'Corner radius (cut SVG, mm)', type:'num', step:0.1},
   {k:'cardW', label:'Card width (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
-  {sec:'Bleed & spacing'},
+  {sec:'Bleed & cut guides'},
   {k:'bleed', label:'Bleed (mm)', type:'num', step:0.1, min:0},
   {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border colour']]},
   {k:'gap', label:'Gap between cards (mm)', type:'num', step:0.1, min:0},
@@ -1954,8 +1956,7 @@ const FIELDS = [
   {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
   {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
   {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
-  {sec:'Cut guides'},
-  {k:'guides', label:'Guides', type:'select', opts:[['margin','Lines in page margin'],['corners','Corner marks'],['both','Margin lines + corners'],['none','None']]},
+  {k:'guides', label:'Cut guides', type:'select', full:true, opts:[['margin','Lines in page margin'],['corners','Corner marks'],['both','Margin lines + corners'],['none','None']]},
   {k:'guideColor', adv:true, label:'Colour', type:'color'},
   {k:'guideWidth', adv:true, label:'Line width (mm)', type:'num', step:0.05, min:0.05},
   {k:'guideLen', adv:true, label:'Corner mark length (mm)', type:'num', step:0.5, min:0.5},
@@ -1974,11 +1975,11 @@ const FIELDS = [
   {k:'backOffsetX', adv:true, label:'Back offset X (mm)', type:'num', step:0.1},
   {k:'backOffsetY', adv:true, label:'Back offset Y (mm)', type:'num', step:0.1},
   {sec:'Export quality'},
-  {k:'dpi', label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
+  {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
   {sec:'Silhouette Cameo'},
-  {k:'silhouette', label:'Print registration marks (Type 1)', type:'check'},
+  {k:'silhouette', adv:true, label:'Print registration marks (Type 1)', type:'check'},
   {k:'regInset', adv:true, label:'Mark inset (mm)', type:'num', step:0.5, show:s => s.silhouette},
   {k:'regLen', adv:true, label:'Mark length (mm)', type:'num', step:0.5, show:s => s.silhouette},
 ];
@@ -2033,9 +2034,12 @@ function renderSettings() {
     return h ? `<h3>${g.sec}</h3><div class="grid2">${h}</div>` : '';
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
+  const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  html = `<div class="sum"><b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
+    <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${s.dfcMode === 'duplex' || s.backs ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span></div>` + html;
   html += block(false);
   html += `<details class="adv" ${S.advOpen ? 'open' : ''}><summary>Advanced${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
-  html += `<p class="hint" style="margin-top:14px">Grid: ${L.cols}×${L.rows} = ${L.per} cards per page${L.rot ? ' (cards turned sideways)' : ''} · margins ${L.x0.toFixed(1)} mm side, ${L.y0.toFixed(1)} mm top/bottom.</p>`;
+
   const form = $('#settingsForm'), st = form.closest('.pane').scrollTop;
   form.innerHTML = html;
   form.closest('.pane').scrollTop = st;
@@ -2087,38 +2091,32 @@ function renderPrinter() {
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
     <p class="hint" style="margin-top:6px">Paper: ${esc(pr.paper)}</p>
-    <h3>Layout</h3>
-    <div class="pick">${presets.map((p, n) => {
-      const L = presetPer(p), land = L.W > L.H;
-      return `<button data-preset="${p.id}" class="${p.id === S.activePreset ? 'on' : ''}" aria-pressed="${p.id === S.activePreset}">
-        <b>${land ? 'Landscape' : 'Portrait'} ${L.cols}×${L.rows}${n === 0 ? ' <span class="tag">recommended</span>' : ''}</b>
-        <span>${L.per} cards per sheet${land && !L.rot ? ', cards upright' : ''}</span></button>`;
-    }).join('')}</div>
     <h3>Print dialog settings</h3>
     <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
     ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
     <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>`;
 }
 $('#printerSel').onchange = e => { S.printer = e.target.value; save(); renderPrinter(); };
-$('#printerGuide').onclick = ev => {
-  const b = ev.target.closest('[data-preset]'); if (!b) return;
-  applyPreset(BUILTIN_PRESETS.find(p => p.id === b.dataset.preset)); save(); renderAll();
-};
+
 function renderPresets() {
-  const opt = p => `<option value="${esc(p.id)}" ${p.id === S.activePreset ? 'selected' : ''}>${esc(p.name)}</option>`;
-  $('#presetSel').innerHTML = `${S.activePreset ? '' : '<option value="">Custom settings (not saved)</option>'}
-    <optgroup label="Built-in layouts">${BUILTIN_PRESETS.map(opt).join('')}</optgroup>
-    ${S.presets.length ? `<optgroup label="Your presets">${S.presets.map(opt).join('')}</optgroup>` : ''}`;
-  $('#presetDel').style.display = S.presets.some(p => p.id === $('#presetSel').value) ? '' : 'none';
+  const card = (p, mine) => {
+    const parts = p.name.split(' · '), L = presetPer(p);
+    const title = mine ? p.name : parts.length > 1 ? parts.slice(0, -1).join(' · ') : p.name, sub = mine ? 'Your preset' : parts.length > 1 ? parts.at(-1) : '';
+    return `<button data-preset="${esc(p.id)}" class="${p.id === S.activePreset ? 'on' : ''}" aria-pressed="${p.id === S.activePreset}">
+      <b>${esc(title)}</b><span>${esc(sub)}${sub ? ' · ' : ''}${L.per} per sheet</span>
+      ${mine ? `<i class="del" data-del="${esc(p.id)}" title="Delete preset" role="button" aria-label="Delete preset">✕</i>` : ''}</button>`;
+  };
+  $('#presetGrid').innerHTML = BUILTIN_PRESETS.map(p => card(p, false)).join('') + S.presets.map(p => card(p, true)).join('');
 }
-$('#presetSel').onchange = () => { $('#presetDel').style.display = S.presets.some(p => p.id === $('#presetSel').value) ? '' : 'none'; };
-$('#presetApply').onclick = () => {
-  const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === $('#presetSel').value); if (!p) return;
-  applyPreset(p); save(); renderAll();
-};
-$('#presetDel').onclick = () => {
-  const p = S.presets.find(x => x.id === $('#presetSel').value); if (!p || !confirm(`Delete preset "${p.name}"?`)) return;
-  S.presets = S.presets.filter(x => x !== p); if (S.activePreset === p.id) S.activePreset = null; save(); renderAll();
+$('#presetGrid').onclick = ev => {
+  const del = ev.target.closest('[data-del]');
+  if (del) {
+    const p = S.presets.find(x => x.id === del.dataset.del);
+    if (p && confirm(`Delete preset "${p.name}"?`)) { S.presets = S.presets.filter(x => x !== p); if (S.activePreset === p.id) S.activePreset = null; save(); renderAll(); }
+    return;
+  }
+  const b = ev.target.closest('[data-preset]'); if (!b) return;
+  applyPreset([...BUILTIN_PRESETS, ...S.presets].find(p => p.id === b.dataset.preset)); save(); renderAll();
 };
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
 $('#presetSave').onclick = () => {
@@ -2450,8 +2448,10 @@ function bestCutBleed() {
   s.bleed = cur;
   return Math.max(best, Math.min(cur, 2));
 }
+$('#regToggle').onchange = ev => { S.settings.silhouette = ev.target.checked; S.activePreset = null; save(); renderAll(); };
 function renderCutStatus() {
   const s = S.settings, el = $('#cutStatus'); if (!el) return;
+  $('#regToggle').checked = !!s.silhouette;
   const best = bestCutBleed(), ok = s.guides === 'both' && s.bleed >= best;
   el.innerHTML = ok ? '<p class="hint">✓ Your current layout is set up for rotary cutting.</p>'
     : `<div class="warn">Your layout isn't set up for rotary cutting yet${s.guides !== 'both' ? ' (needs margin lines + corner marks)' : ''}${s.bleed < best ? ` (${best} mm bleed fits without losing a card)` : ''}.</div><div class="row"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
