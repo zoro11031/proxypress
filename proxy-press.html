@@ -104,6 +104,31 @@ h3:first-child{margin-top:2px}
 .pg img{cursor:context-menu}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
+#mbar{display:none}
+@media (max-width:820px){
+  html,body{height:100dvh}
+  body{overflow:hidden}
+  main{grid-template-columns:1fr;min-height:0;flex:1}
+  aside{border:0;min-height:0;max-height:none}
+  .pane{max-height:none;padding-bottom:80px}
+  #stage{padding:12px 8px 80px}
+  body.m-preview aside{display:none}
+  body:not(.m-preview) #stage{display:none}
+  #mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--panel);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:6px}
+  #mbar button{flex:1;min-height:42px;font-size:15px;border-radius:9px}
+  #mbar button.on{background:var(--accent);color:#1b1407;border-color:var(--accent);font-weight:600}
+  .tabs{overflow-x:auto;scrollbar-width:none}
+  .tabs button{flex:1 0 auto;padding:11px 12px}
+  button{min-height:36px}
+  button.icon{min-height:32px}
+  input,select,textarea{font-size:16px}
+  #overlay{align-items:stretch}
+  .modal{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border:0}
+  .modal .hd{position:sticky;top:0;background:var(--panel);z-index:2}
+  #ctx button{padding:11px 12px;font-size:15px}
+  #toast{bottom:72px}
+  .card{grid-template-columns:44px 1fr auto}
+}
 .mana-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .mana-grid[hidden]{display:none}
 .mana-grid .mg{display:grid;grid-template-columns:22px 1fr;grid-template-rows:auto auto;gap:2px 6px;align-items:center;background:#111317;border:1px solid var(--line);border-radius:8px;padding:5px 7px}
@@ -262,7 +287,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="btnMpc" title="Open an order XML file as a new deck">Open order XML…</button>
       </div>
       <div id="importNote"></div>
-      <p class="hint">High-res art is picked for every card automatically. Right-click any card to change it.</p>
+      <p class="hint">High-res art is picked for every card automatically. Right-click (or long-press) any card to change it.</p>
       <details class="adv" id="moreSources">
         <summary>Local images &amp; order files</summary>
         <div class="row" style="margin-top:8px">
@@ -464,6 +489,7 @@ details.adv:not([open]){padding-bottom:10px}
 <div id="toast" role="status" aria-live="polite" title="Click to dismiss"></div>
 <div id="drop">Drop images or a decklist (.txt)</div>
 <div id="ctx" role="menu"></div>
+<nav id="mbar" aria-label="View"><button data-mview="edit" class="on">Edit</button><button data-mview="preview">Preview <span id="mbarCount"></span></button></nav>
 
 <script>
 const $ = (s, r = document) => r.querySelector(s);
@@ -2384,6 +2410,26 @@ function openCtx(x, y, e, i) {
     else if (c === 'del' && confirm(`Remove ${e.name}?`)) removeEntry(e);
   };
 }
+function longPress(root, run) {
+  let timer = null, start = null;
+  root.addEventListener('pointerdown', ev => {
+    if (ev.pointerType !== 'touch') return;
+    start = [ev.clientX, ev.clientY];
+    timer = setTimeout(() => { timer = null; root.dataset.pressed = '1'; run(ev); }, 500);
+  });
+  const cancel = ev => { if (timer && (!start || ev.type !== 'pointermove' || Math.hypot(ev.clientX - start[0], ev.clientY - start[1]) > 10)) { clearTimeout(timer); timer = null; } };
+  ['pointerup', 'pointercancel', 'pointermove'].forEach(t => root.addEventListener(t, cancel));
+  root.addEventListener('click', ev => { if (root.dataset.pressed) { ev.preventDefault(); ev.stopPropagation(); delete root.dataset.pressed; } }, true);
+  root.addEventListener('contextmenu', ev => { if (ev.pointerType === 'touch' || root.dataset.pressed) ev.preventDefault(); });
+}
+longPress($('#cardList'), ev => {
+  const row = ev.target.closest('.card'); if (!row || ev.target.closest('.ctl')) return;
+  const e = deck().entries.find(x => x.uid === row.dataset.uid); if (e) openCtx(ev.clientX, ev.clientY, e, 0);
+});
+longPress($('#pages'), ev => {
+  const im = ev.target.closest('img[data-uid]'); if (!im) return;
+  const e = deck().entries.find(x => x.uid === im.dataset.uid); if (e) openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face);
+});
 $('#cardList').addEventListener('contextmenu', ev => {
   const row = ev.target.closest('.card'); if (!row) return;
   const e = deck().entries.find(x => x.uid === row.dataset.uid); if (!e) return;
@@ -2707,12 +2753,20 @@ function renderStats() {
   if (S.mode === 'order') {
     const o = buildMpcOrder(true), miss = o.skipped.length + o.noBack.length;
     $('#stats').textContent = `${o.slot} card${o.slot === 1 ? '' : 's'} in order${miss ? ` · ${miss} need art` : ''}`;
+    $('#mbarCount').textContent = o.slot ? `· ${o.slot} cards` : '';
     return;
   }
   const slots = buildSlots(), L = layout(), pages = Math.ceil(slots.length / L.per);
   const backs = slots.some(x => x.back);
   $('#stats').textContent = `${slots.length} cards · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
+  $('#mbarCount').textContent = slots.length ? `· ${pages} sheet${pages === 1 ? '' : 's'}` : '';
 }
+$$('#mbar button').forEach(b => b.onclick = () => {
+  const preview = b.dataset.mview === 'preview';
+  document.body.classList.toggle('m-preview', preview);
+  $$('#mbar button').forEach(x => x.classList.toggle('on', x === b));
+  if (preview) { if (innerWidth < 820) $('#zoomFit').click(); else renderPreview(); }
+});
 $('#zoom').oninput = e => { S.zoom = +e.target.value; save(); renderPreview(); };
 $('#zoomFit').onclick = () => {
   const avail = $('#stage').clientWidth - 56, width = S.mode === 'order' ? 63 * 0.75 * 1.6 * 4 + 90 : layout().W;
