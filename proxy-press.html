@@ -127,7 +127,7 @@ details.adv:not([open]){padding-bottom:10px}
   <span class="grow"></span>
   <span class="stats" id="stats"></span>
   <button id="btnCal" title="Print once to calibrate scale and offsets">Calibration sheet</button>
-  <button id="btnXml" title="Order file for MPC Autofill / MakePlayingCards">MPC XML</button>
+  <button id="btnXml" title="Order for MakePlayingCards via MPC Autofill (XML, or XML + images)">MPC export</button>
   <button id="btnSvg" title="Cut file for Silhouette Studio">Cut SVG</button>
   <button id="btnPdf" class="primary">Export PDF</button>
 </header>
@@ -892,7 +892,8 @@ $('#fileMpcImgs').onchange = ev => { attachMpcImages([...ev.target.files]); ev.t
 $('#fileMpcDir').onchange = ev => { attachMpcImages([...ev.target.files]); ev.target.value = ''; };
 
 /* ---------- MPC Autofill search (mpcfill.com) ---------- */
-const MPC_DEFAULTS = {minDpi:300, preferDpi:800, maxDpi:1500, maxMb:30, lang:'', fuzzy:false, nsfw:false};
+const MPC_DEFAULTS = {minDpi:300, preferDpi:800, maxDpi:1500, maxMb:30, lang:'', fuzzy:false, nsfw:false, stock:'(S30) Standard Smooth', foil:false};
+const MPC_STOCKS = ['(S27) Smooth', '(S30) Standard Smooth', '(S33) Superior Smooth', '(M31) Linen', '(P10) Plastic'];
 const MPC_BRACKETS = [18, 36, 55, 72, 90, 108, 126, 144, 162, 180, 198, 216, 234, 396, 504, 612];
 const mpcDetails = new Map();
 let mpcBaseP = null, mpcSources = null, mpcLangs = null;
@@ -1134,34 +1135,172 @@ function autoSummary(r, missedOnly = false) {
   return missedOnly ? fromFolder + missed : ` MPC art picked for ${r.picked} of ${r.total}.` + fromFolder + missed;
 }
 
-function exportMpcXml() {
-  const d = deck(), fronts = new Map(), backs = new Map(); let slot = 0, skipped = 0, noBack = 0;
-  const add = (map, f, i) => { if (!map.has(f.drive)) map.set(f.drive, {f, slots:[]}); map.get(f.drive).slots.push(i); };
+function buildMpcOrder(withImages) {
+  const d = deck(), fronts = new Map(), backs = new Map(), skipped = [], noBack = [];
+  const usable = f => f && (f.drive || (withImages && f.custom));
+  const add = (map, f, i) => { const k = f.custom || f.drive; if (!map.has(k)) map.set(k, {f, slots:[]}); map.get(k).slots.push(i); };
+  let slot = 0;
   for (const e of d.entries) for (let q = 0; q < e.qty; q++) {
     const f = e.faces[0];
-    if (!f?.drive) { skipped++; continue; }
+    if (!usable(f)) { skipped.push(e.name); continue; }
     add(fronts, f, slot);
-    if (e.faces[1]) { if (e.faces[1].drive) add(backs, e.faces[1], slot); else noBack++; }
+    if (e.faces[1]) { if (usable(e.faces[1])) add(backs, e.faces[1], slot); else noBack.push(e.name); }
     slot++;
   }
-  if (!slot) return toast('No cards with MPC Autofill art yet. Use "Auto MPC art" or "Change art" first.', 6000);
-  const x = v => esc(v);
-  const cardXml = ({f, slots}) => `    <card>\n      <id>${x(f.drive)}</id>\n      <slots>${slots.join(',')}</slots>\n      <name>${x(f.file || (f.mpcName || f.name) + '.png')}</name>\n      <query>${x(mpcQuery(f.name))}</query>\n    </card>\n`;
-  const bracket = MPC_BRACKETS.find(b => b >= slot) || MPC_BRACKETS[MPC_BRACKETS.length - 1];
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<order>\n  <details>\n    <quantity>${slot}</quantity>\n    <bracket>${bracket}</bracket>\n    <stock>(S30) Standard Smooth</stock>\n    <foil>false</foil>\n  </details>\n  <fronts>\n${[...fronts.values()].map(cardXml).join('')}  </fronts>\n`;
-  if (backs.size) xml += `  <backs>\n${[...backs.values()].map(cardXml).join('')}  </backs>\n`;
-  if (d.cardback?.drive) xml += `  <cardback>${x(d.cardback.drive)}</cardback>\n`;
-  xml += '</order>\n';
-  download(new Blob([xml], {type:'application/xml'}), `${d.name.replace(/[^\w\- ]+/g, '').trim() || 'deck'}.xml`);
-  const notes = [];
-  if (skipped) notes.push(`${skipped} card${skipped === 1 ? '' : 's'} without MPC art skipped`);
-  if (noBack) notes.push(`${noBack} double-faced back${noBack === 1 ? '' : 's'} without MPC art`);
-  if (!d.cardback?.drive) notes.push('no MPC cardback chosen');
-  if (slot > 612) notes.push('over 612 cards, so split the order in the MPC Autofill desktop tool');
-  toast(`Exported ${slot} cards.` + (notes.length ? ' Note: ' + notes.join('; ') + '.' : ''), notes.length ? 9000 : 4000);
+  const cb = S.settings.backImage ? {name:'Card back', custom:S.settings.backImage} : d.cardback;
+  return {d, fronts, backs, slot, skipped, noBack, cardback:usable(cb) ? {f:cb, slots:[]} : null};
 }
-$('#btnMpcAuto').onclick = mpcAutofill;
-$('#btnXml').onclick = exportMpcXml;
+// Same rules as the desktop tool's sanitize-filename, so names in the zip match the paths it looks for.
+const WIN_RESERVED = ['CON', 'PRN', 'AUX', 'NUL', 'CONIN$', 'CONOUT$', ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap(n => ['COM' + n, 'LPT' + n])];
+function toolSanitize(name) {
+  let f = String(name).normalize('NFKD').replace(/[\\/:*?"<>|\0]/g, '').replace(/[\p{Cc}\p{Cs}]/gu, '').trim().replace(/[\s.]+$/, '');
+  if (/^\.*$/.test(f)) f = '__' + f;
+  if (WIN_RESERVED.includes(f.split('.')[0].trimEnd().toUpperCase())) f = '__' + f;
+  const chars = [...f];
+  if (chars.length > 255) {
+    const m = f.match(/(\.[^.]*)$/), ext = m ? m[1] : '';
+    f = [...f.slice(0, f.length - ext.length)].slice(0, 255 - ext.length).join('') + ext;
+  }
+  return f;
+}
+const siteQuery = q => String(q || '').toLowerCase().trim().replace(/[~`!@#$%^&*(){}\[\];:"'’<,.>?/\\|_+=]/g, '').replace(/ +(?= )/g, '').trim();
+const splitExt = n => { const m = String(n).match(/^(.*)\.([^.]+)$/); return m ? [m[1], m[2]] : [String(n), 'png']; };
+const orderName = d => toolSanitize(d.name.replace(/[^\w\- ]+/g, '')) || 'deck';
+
+async function mpcCardInfo(order) {
+  const ids = [...order.fronts.values(), ...order.backs.values(), ...(order.cardback ? [order.cardback] : [])].map(c => c.f.drive).filter(Boolean);
+  if (ids.length && await mpcBase()) { try { await mpcCards([...new Set(ids)]); } catch {} }
+  return f => {
+    const c = f.drive && mpcDetails.get(f.drive);
+    return {
+      file:c ? `${c.name}.${c.extension}` : f.file || null,
+      query:c ? (c.cardType === 'TOKEN' ? 't:' : '') + c.searchq : siteQuery(f.name),
+    };
+  };
+}
+function mpcXml(order, entryOf) {
+  const x = v => esc(v);
+  const card = c => { const m = entryOf(c); return `        <card>\n            <id>${x(m.id)}</id>\n            <slots>${[...c.slots].sort((a, b) => a - b).join(',')}</slots>\n            <name>${x(m.name)}</name>\n            <query>${x(m.query)}</query>\n        </card>\n`; };
+  const bracket = MPC_BRACKETS.find(b => b >= order.slot) || MPC_BRACKETS[MPC_BRACKETS.length - 1];
+  const stock = MPC_STOCKS.includes(S.mpc.stock) ? S.mpc.stock : MPC_DEFAULTS.stock, foil = !!S.mpc.foil && stock !== '(P10) Plastic';
+  let xml = `<order>\n    <details>\n        <quantity>${order.slot}</quantity>\n        <bracket>${bracket}</bracket>\n        <stock>${x(stock)}</stock>\n        <foil>${foil}</foil>\n    </details>\n    <fronts>\n${[...order.fronts.values()].map(card).join('')}    </fronts>\n`;
+  if (order.backs.size) xml += `    <backs>\n${[...order.backs.values()].map(card).join('')}    </backs>\n`;
+  if (order.cardback) xml += `    <cardback>${x(entryOf(order.cardback).id)}</cardback>\n`;
+  return xml + '</order>\n';
+}
+function mpcNotes(order) {
+  const n = [];
+  if (order.skipped.length) n.push(`${order.skipped.length} card${order.skipped.length === 1 ? '' : 's'} without MPC or uploaded art left out`);
+  if (order.noBack.length) n.push(`${order.noBack.length} double-faced back${order.noBack.length === 1 ? '' : 's'} left out`);
+  if (!order.cardback) n.push('no cardback chosen');
+  if (order.slot > 612) n.push('over 612 cards, so split the order in the MPC Autofill desktop tool');
+  return n.length ? ' Note: ' + n.join('; ') + '.' : '';
+}
+
+async function exportMpcXml() {
+  const order = buildMpcOrder(false);
+  if (!order.slot) return toast('No cards with MPC Autofill art yet. Use "Auto MPC art" or "Change art" first.', 6000);
+  busy(true, 'Preparing order…');
+  const info = await mpcCardInfo(order);
+  busy(false);
+  const xml = mpcXml(order, c => { const i = info(c.f); return {id:c.f.drive, name:i.file || toolSanitize(c.f.mpcName || c.f.name) + '.png', query:i.query}; });
+  download(new Blob([xml], {type:'application/xml'}), `${orderName(order.d)}.xml`);
+  toast(`Exported ${order.slot} cards.` + mpcNotes(order), 9000);
+}
+
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(buf) { let c = 0xffffffff; for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  for (const {name, data} of files) {
+    const n = enc.encode(name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [12, 0x21, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, n.length, 2]]
+      .forEach(([o, v, w]) => w === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true));
+    const c = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [14, 0x21, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, n.length, 2], [42, offset, 4]]
+      .forEach(([o, v, w]) => w === 4 ? c.setUint32(o, v, true) : c.setUint16(o, v, true));
+    parts.push(h, n, data); central.push(c, n);
+    offset += 30 + n.length + data.length;
+    if (offset > 0xffffffff) throw new Error('Order is over 4 GB. Split it into smaller decks.');
+  }
+  const size = central.reduce((t, p) => t + p.byteLength, 0), end = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [8, files.length, 2], [10, files.length, 2], [12, size, 4], [16, offset, 4]]
+    .forEach(([o, v, w]) => w === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true));
+  return new Blob([...parts, ...central, end], {type:'application/zip'});
+}
+
+async function exportMpcZip() {
+  const order = buildMpcOrder(true);
+  if (!order.slot) return toast('No cards with MPC or uploaded art yet. Use "Auto MPC art" or "Change art" first.', 6000);
+  const all = [...order.fronts.values(), ...order.backs.values(), ...(order.cardback ? [order.cardback] : [])];
+  const unique = [...new Map(all.map(c => [c.f.custom || c.f.drive, c])).values()];
+  const files = [], meta = new Map(), used = new Set();
+  busy(true, 'Preparing order…');
+  try {
+    const info = await mpcCardInfo(order);
+    for (const [n, c] of unique.entries()) {
+      busyProgress(n / unique.length, `Downloading image ${n + 1} of ${unique.length}…`);
+      const f = c.f, key = f.custom || f.drive, i = info(f);
+      const blob = f.custom ? await store.get('images', f.custom)
+        : await (await fetch(`https://cdn.mpcautofill.com/images/google_drive/full/${f.drive}.jpg?dpi=1500&jpgQuality=100`)).blob();
+      if (!blob?.size) throw new Error(`Couldn't get the image for ${f.name}`);
+      const typeExt = /png/.test(blob.type) ? 'png' : /webp/.test(blob.type) ? 'webp' : 'jpg';
+      let entry;
+      if (f.drive && !f.custom) {
+        // The tool saves Drive images as "<name> (<id>).<ext>" in cards/, so name them that way and keep the Drive ID.
+        const [base, ext] = splitExt(i.file || `${f.mpcName || f.name}.${typeExt}`);
+        const path = toolSanitize(`${base} (${f.drive}).${ext}`);
+        const byPath = c === order.cardback && !i.file;
+        entry = {id:byPath ? `cards/${path}` : f.drive, name:i.file || `${base}.${ext}`, query:i.query, path};
+      } else {
+        const [base] = splitExt(f.localName || f.name);
+        let path = toolSanitize(`${base} (${key.replace(/^img-/, '')}).${typeExt}`);
+        for (let k = 2; used.has(path.toLowerCase()); k++) path = path.replace(/(\.\w+)$/, ` ${k}$1`);
+        entry = {id:`cards/${path}`, name:path, query:siteQuery(f.name), path};
+      }
+      used.add(entry.path.toLowerCase());
+      meta.set(key, entry);
+      files.push({name:`cards/${entry.path}`, data:new Uint8Array(await blob.arrayBuffer())});
+    }
+    const xml = mpcXml(order, c => meta.get(c.f.custom || c.f.drive));
+    busyProgress(1, 'Packing zip…'); await sleep(30);
+    const base = orderName(order.d);
+    download(makeZip([{name:`${base}.xml`, data:new TextEncoder().encode(xml)}, ...files]), `${base} (MPC Autofill).zip`);
+    toast(`Exported ${order.slot} cards and ${files.length} images.` + mpcNotes(order), 9000);
+  } catch (err) { toast('Export failed: ' + err.message, 8000); }
+  busy(false);
+}
+
+$('#btnMpcAuto').onclick = () => mpcAutofill();
+$('#btnXml').onclick = () => {
+  openModal(`<div class="hd"><b>Export for MPC Autofill</b><button data-close>Close</button></div>
+    <div class="bd">
+      <p class="hint">Makes an order for MakePlayingCards.com, placed with the MPC Autofill desktop tool.</p>
+      <div class="grid2" style="max-width:420px;margin:10px 0">
+        <div class="field"><label>Cardstock</label><select id="xStock">${MPC_STOCKS.map(v => `<option ${v === S.mpc.stock ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
+        <label class="check" style="grid-column:auto;align-self:end"><input type="checkbox" id="xFoil" ${S.mpc.foil ? 'checked' : ''}> Foil</label>
+      </div>
+      <div class="row" style="margin:10px 0"><button class="primary" data-x="zip">XML + images (.zip)</button><button data-x="xml">XML only</button></div>
+      <ul class="tips hint" style="padding-left:18px">
+        <li><b>XML + images:</b> the order file plus a <code>cards</code> folder with every image, named the way the tool saves its downloads. Extract it next to the desktop tool and run the tool there. It uses those images instead of downloading them.</li>
+        <li><b>XML only:</b> a small file. The tool downloads the MPC images itself, and uploaded images are left out.</li>
+      </ul>
+    </div>`);
+  const bd = $('#modal .bd');
+  bd.onchange = () => {
+    S.mpc.stock = $('#xStock').value;
+    S.mpc.foil = $('#xFoil').checked && S.mpc.stock !== '(P10) Plastic';
+    $('#xFoil').checked = S.mpc.foil; $('#xFoil').disabled = S.mpc.stock === '(P10) Plastic';
+    save();
+  };
+  bd.onchange();
+  bd.onclick = ev => {
+    const x = ev.target.dataset.x; if (!x) return;
+    closeModal(); x === 'zip' ? exportMpcZip() : exportMpcXml();
+  };
+};
 
 /* ---------- UI: deck header ---------- */
 function renderDeckSel() {
