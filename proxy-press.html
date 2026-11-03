@@ -86,7 +86,7 @@ h3:first-child{margin-top:2px}
 #busy.on{display:flex}
 #busy .bar{width:280px;height:6px;background:#333;border-radius:3px;overflow:hidden}
 #busy .bar i{display:block;height:100%;background:var(--accent);width:0}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#2a2f37;border:1px solid var(--line);padding:9px 14px;border-radius:8px;display:none;z-index:70;max-width:90vw}
+#toast{cursor:pointer;position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#2a2f37;border:1px solid var(--line);padding:9px 14px;border-radius:8px;display:none;z-index:70;max-width:90vw}
 #drop{position:fixed;inset:0;border:3px dashed var(--accent);background:rgba(224,163,58,.08);display:none;z-index:40;align-items:center;justify-content:center;font-size:20px;pointer-events:none}
 #drop.on{display:flex}
 #ctx{position:fixed;z-index:80;display:none;min-width:190px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
@@ -96,6 +96,38 @@ h3:first-child{margin-top:2px}
 #ctx button:hover{background:var(--panel2)}
 .pg img{cursor:context-menu}
 .tips li{margin-bottom:6px}
+.hint a{color:var(--accent2)}
+body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:none !important}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#111317}
+.seg button{border:0;border-radius:0;background:none;color:var(--muted);padding:6px 12px}
+.seg button.on{background:var(--accent);color:#1b1407;font-weight:600}
+.deckbar{display:flex;align-items:center;gap:4px}
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--panel2);user-select:none}
+.menu summary::-webkit-details-marker{display:none}
+.menu-list{position:absolute;z-index:60;top:calc(100% + 4px);left:0;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.menu-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px}
+.menu-list button:hover{background:var(--panel2)}
+.kbd{margin-left:auto}
+.empty{max-width:460px;margin:60px auto;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 26px;color:var(--text)}
+.empty h2{margin:0 0 12px;font-size:18px}
+.empty ol{margin:0;padding-left:20px;color:var(--muted)}
+.empty li{margin-bottom:8px}
+.empty b{color:var(--text)}
+.gal{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+.gal .tile{position:relative;display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
+.gal img{display:block;border-radius:4%/3%;background:#000;cursor:context-menu}
+.gal .lowres{position:absolute;z-index:2;left:10px;top:10px;background:rgba(226,97,90,.92);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;pointer-events:none}
+.gal .noback{align-self:flex-end;display:flex;align-items:center;justify-content:center;text-align:center;border:1px dashed var(--line);border-radius:4%/3%;color:var(--muted);font-size:11px;padding:4px;cursor:pointer}
+.gal .qty{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;padding:1px 6px;border-radius:9px}
+.osum{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.osum dt{color:var(--muted)}
+.osum dd{margin:0}
+.steps{padding-left:20px;font-size:13px}
+.steps li{margin-bottom:8px}
+.dl{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.dl a{color:var(--accent2);border:1px solid var(--line);border-radius:6px;padding:4px 9px;text-decoration:none;font-size:12.5px}
+.dl a:hover{border-color:var(--accent)}
 #printerSel{margin-bottom:8px}
 table.drv{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 10px}
 table.drv th,table.drv td{text-align:left;vertical-align:top;padding:5px 6px;border-bottom:1px solid var(--line)}
@@ -119,62 +151,76 @@ details.adv:not([open]){padding-bottom:10px}
 <body>
 <header>
   <h1>Proxy<span>Press</span></h1>
-  <select id="deckSel" title="Saved decks"></select>
-  <button id="deckNew">New</button>
-  <button id="deckRename">Rename</button>
-  <button id="deckDup">Duplicate</button>
-  <button id="deckDel" class="danger">Delete</button>
+  <div class="seg" id="modeSeg" role="tablist" aria-label="Mode">
+    <button data-mode="print" role="tab" title="Make a PDF to print and cut yourself">Print at home</button>
+    <button data-mode="order" role="tab" title="Make an order file for MakePlayingCards.com">Order prints</button>
+  </div>
+  <div class="deckbar">
+    <select id="deckSel" title="Your saved decks" aria-label="Deck"></select>
+    <details class="menu" id="deckMenu">
+      <summary title="Deck options" aria-label="Deck options">⋯</summary>
+      <div class="menu-list">
+        <button id="deckNew">New deck</button>
+        <button id="deckRename">Rename deck</button>
+        <button id="deckDup">Duplicate deck</button>
+        <button id="btnCopyList">Copy decklist</button>
+        <button id="btnClear" class="danger">Remove all cards</button>
+        <button id="deckDel" class="danger">Delete deck</button>
+      </div>
+    </details>
+  </div>
   <span class="grow"></span>
   <span class="stats" id="stats"></span>
-  <button id="btnCal" title="Print once to calibrate scale and offsets">Calibration sheet</button>
-  <button id="btnXml" title="Print order for MakePlayingCards.com (XML, or XML + images)">Order export</button>
-  <button id="btnSvg" title="Cut file for Silhouette Studio">Cut SVG</button>
-  <button id="btnPdf" class="primary">Export PDF</button>
+  <button id="btnPdf" class="primary print-only" title="Download a print-ready PDF">Export PDF</button>
+  <button id="btnXml" class="primary order-only" title="Download the order (.zip) and see how to place it">Export order</button>
 </header>
 <main>
   <aside>
     <div class="tabs">
       <button data-tab="cards" class="on">Cards</button>
-      <button data-tab="layout">Layout</button>
-      <button data-tab="presets">Presets</button>
-      <button data-tab="cutting">Cutting</button>
+      <button data-tab="layout" class="print-only">Layout</button>
+      <button data-tab="presets" class="print-only">Printer</button>
+      <button data-tab="cutting" class="print-only">Cutting</button>
+      <button data-tab="order" class="order-only">Order</button>
       <button data-tab="data">Data</button>
     </div>
 
     <div class="pane on" id="tab-cards">
-      <h3>Import decklist</h3>
-      <textarea id="listIn" placeholder="4 Lightning Bolt&#10;1 Sol Ring (CMM) 400&#10;1x Delver of Secrets // Insectile Aberration&#10;&#10;Accepts Moxfield / Archidekt / MTGA / MTGO text exports."></textarea>
+      <h3>Add cards</h3>
+      <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
       <div class="row" style="margin-top:6px">
-        <button id="btnImport" class="primary">Add to deck</button>
-        <button id="btnReplace">Replace deck</button>
-        <button id="btnTokens" title="Add tokens and emblems created by cards in this deck">+ Tokens</button>
-        <button id="btnMpcAuto" title="Pick the best high-res art for every card">Auto fill art</button>
+        <button id="btnImport" class="primary" title="Add these cards (Ctrl+Enter)">Add to deck</button>
+        <button id="btnReplace" title="Replace every card in this deck with this list">Replace deck</button>
+        <span class="hint kbd">Ctrl+Enter</span>
       </div>
-      <p class="hint">Cards get print-quality art automatically. Scryfall images are only placeholders: they're low resolution and print soft.</p>
-      <h3>Custom images</h3>
-      <div class="row">
-        <button id="btnUpload">Upload images…</button>
-        <span class="hint">or drag &amp; drop anywhere</span>
+      <div class="row" style="margin-top:8px">
+        <button id="btnTokens" title="Add the tokens and emblems your cards make">+ Tokens</button>
+        <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
+        <button id="btnMpc" title="Open an order XML file as a new deck">Open order XML…</button>
       </div>
+      <p class="hint">High-res art is picked for every card automatically. Right-click any card to change it.</p>
+      <p class="hint">Making your own card? Design it on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>, export it at 63 × 88 mm (at least 744 × 1039 px), then upload it here or right-click a card → <b>Upload image…</b></p>
+      <details class="adv" id="moreSources">
+        <summary>Local images &amp; order files</summary>
+        <div class="row" style="margin-top:8px">
+          <button id="btnLocalDir" title="Search a folder of card images on this computer">Use local image folder…</button>
+          <span class="hint" id="localStatus"></span>
+        </div>
+        <p class="hint">Images in the folder that match a card's name are used first and saved into the browser. Works without the server.</p>
+        <div class="row">
+          <button id="btnMpcFiles" title="Images downloaded by the autofill desktop tool">Attach images…</button>
+          <button id="btnMpcFolder">Attach folder…</button>
+        </div>
+        <p class="hint">Only needed for order XMLs that point to image files on your computer. Online art search needs the server (<code>python3 proxy-press-server.py</code> or Docker).</p>
+      </details>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
-      <h3>Order files &amp; local images</h3>
-      <div class="row">
-        <button id="btnMpc">Import XML…</button>
-        <button id="btnMpcFiles" title="Images downloaded by the autofill desktop tool">Attach images…</button>
-        <button id="btnMpcFolder">Attach folder…</button>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <button id="btnLocalDir" title="Search a folder of card images on this computer">Use local image folder…</button>
-        <span class="hint" id="localStatus"></span>
-      </div>
-      <p class="hint">An imported XML opens as a new deck, and its images load automatically. Only orders that point to files on your computer need <b>Attach</b>. Online art search needs the server (<code>python3 proxy-press-server.py</code> or Docker). A <b>local image folder</b> works anywhere: matching images are used first and saved into the browser.</p>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
       <input type="file" id="fileMpcImgs" accept="image/*" multiple hidden>
       <input type="file" id="fileMpcDir" webkitdirectory multiple hidden>
       <input type="file" id="fileLocalDir" webkitdirectory multiple hidden>
       <input type="file" id="fileFace" accept="image/*" hidden>
-      <h3 class="row" style="justify-content:space-between"><span>Deck <span id="deckCount"></span></span>
-        <span class="row"><button class="icon" id="btnCopyList" title="Copy decklist">Copy list</button><button class="icon danger" id="btnClear">Clear</button></span></h3>
+      <h3 class="row" style="justify-content:space-between;align-items:center"><span>Deck <span id="deckCount"></span></span>
+        <span class="row"><span id="deckHealth" class="hint"></span><button class="icon" id="btnMpcAuto" title="Pick the best high-res art for every card that still needs it">Auto fill art</button></span></h3>
       <div class="cards" id="cardList"></div>
     </div>
 
@@ -184,12 +230,18 @@ details.adv:not([open]){padding-bottom:10px}
       <h3>Presets</h3>
       <div id="presetList"></div>
       <div class="row" style="margin-top:8px"><button id="presetSave" class="primary">Save current as preset</button></div>
+      <h3>Calibrate once</h3>
+      <div class="row"><button id="btnCal" title="Print once on your paper, measure, and enter the results under Layout → Advanced">Print calibration sheet</button><button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Print double-sided test</button></div>
+      <p class="hint">The calibration sheet makes cards come out exactly 63 × 88 mm. The double-sided test checks that backs line up behind fronts.</p>
       <h3>Printer settings guide</h3>
       <select id="printerSel"></select>
       <div id="printerGuide"></div>
     </div>
 
     <div class="pane" id="tab-cutting">
+      <h3>Cutting machine</h3>
+      <div class="row"><button id="btnSvg" title="Cut lines for Silhouette Studio">Download cut file (SVG)</button></div>
+      <p class="hint">For a Silhouette Cameo: turn on registration marks under Layout → Silhouette Cameo, print the PDF, then load this file in Silhouette Studio.</p>
       <h3>Cutting with a rotary trimmer</h3>
       <p class="hint">No Silhouette Cameo? A rotary paper trimmer (for example a Dahle 507) and a 3 mm corner rounder cut cards just as cleanly. It takes about 2 minutes per sheet once you're used to it.</p>
       <div id="cutStatus"></div>
@@ -281,6 +333,33 @@ details.adv:not([open]){padding-bottom:10px}
       </ul>
     </div>
 
+    <div class="pane" id="tab-order">
+      <h3>Order settings</h3>
+      <div class="grid2">
+        <div class="field full"><label for="oStock">Cardstock</label><select id="oStock"></select></div>
+        <label class="check"><input type="checkbox" id="oFoil"> Foil</label>
+      </div>
+      <h3>Cardback</h3>
+      <div class="row">
+        <img id="oBackThumb" alt="" style="width:46px;height:64px;object-fit:cover;border-radius:3px;background:#000;display:none">
+        <button id="oBackBrowse">Browse cardbacks…</button>
+        <button id="oBackUpload">Upload…</button>
+        <button id="oBackClear" class="danger" style="display:none">Remove</button>
+      </div>
+      <input type="file" id="fileOrderBack" accept="image/*" hidden>
+      <p class="hint" id="oBackHint"></p>
+      <h3>Summary</h3>
+      <div id="orderSummary"></div>
+      <h3>Export</h3>
+      <div class="row">
+        <button class="primary" id="oZip" title="Order file plus every image, ready for the desktop tool">Download order (.zip)</button>
+        <button id="oXml" title="Just the order file. The tool downloads images itself; your uploads are left out.">XML only</button>
+      </div>
+      <p class="hint">The .zip has the order file and a <code>cards</code> folder with every image, including your uploads and cardback.</p>
+      <h3>Placing the order</h3>
+      <div id="orderSteps"></div>
+    </div>
+
     <div class="pane" id="tab-data">
       <h3>Backup</h3>
       <p class="hint">Decks, presets, settings and uploaded images are saved in this browser (IndexedDB). They never leave your computer. Export a backup to move them to another browser.</p>
@@ -297,17 +376,18 @@ details.adv:not([open]){padding-bottom:10px}
 
   <section id="stage">
     <div class="toolbar">
-      <label>Zoom <input type="range" id="zoom" min="1" max="5" step="0.1" value="2.4"></label>
-      <label class="row"><input type="checkbox" id="showBacks" checked style="width:auto"> Show back pages</label>
-      <label class="row" title="Screen only, not printed"><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines</label>
+      <label>Zoom <input type="range" id="zoom" min="1" max="5" step="0.1" value="2.4" aria-label="Zoom"></label>
+      <label class="row print-only"><input type="checkbox" id="showBacks" checked style="width:auto"> Show back pages</label>
+      <label class="row print-only" title="Screen only, not printed"><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines</label>
+      <span class="order-only">Fronts with their backs, as they'll be printed. Right-click a card to change its art.</span>
     </div>
     <div id="pages"></div>
   </section>
 </main>
 
-<div id="overlay"><div class="modal" id="modal"></div></div>
+<div id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div id="busy"><div id="busyText">Working…</div><div class="bar"><i id="busyBar"></i></div></div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite" title="Click to dismiss"></div>
 <div id="drop">Drop images or a decklist (.txt)</div>
 <div id="ctx" role="menu"></div>
 
@@ -328,7 +408,7 @@ const DEFAULTS = {
   guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, scaleX:100, scaleY:100,
   dpi:600, jpeg:92, brightness:100, customSrcBleed:0,
-  dfcMode:'separate', backs:false, backImage:null,
+  dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regInset:10, regLen:20
 };
 
@@ -386,6 +466,7 @@ const LASER_TIPS = [
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
   'Run the <b>Calibration sheet</b> once and enter the results under Layout → Advanced.',
+  'Double-faced cards and card backs print on the back of the sheet. After you export, you get step-by-step re-feed instructions.',
 ];
 const EPSON_INKJET = [
   ['Paper source', 'Rear paper feed'],
@@ -491,7 +572,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, mpc:S.mpc, showCuts:S.showCuts});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -502,7 +583,7 @@ async function load() {
   const ui = await store.get('kv', 'ui');
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts;
+    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print';
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -582,9 +663,11 @@ async function renderFace(face, dpi, hi, rot = 0) {
   }
   x.filter = 'none';
   if (!rot) return c;
-  const r = document.createElement('canvas'); r.width = H; r.height = W;
+  const half = rot === 180, r = document.createElement('canvas');
+  [r.width, r.height] = half ? [W, H] : [H, W];
   const y = r.getContext('2d');
-  y.translate(rot > 0 ? H : 0, rot > 0 ? 0 : W); y.rotate(rot * Math.PI / 180); y.drawImage(c, 0, 0);
+  if (half) y.translate(W, H); else y.translate(rot > 0 ? H : 0, rot > 0 ? 0 : W);
+  y.rotate(rot * Math.PI / 180); y.drawImage(c, 0, 0);
   return r;
 }
 
@@ -617,13 +700,20 @@ function layout() {
   const up = fit(s.cardW, s.cardH), side = fit(s.cardH, s.cardW);
   const useSide = s.cardRotation === 'rotated' || (s.cardRotation === 'auto' && side.fits && (!up.fits || side.per > up.per));
   const g = useSide ? side : up;
-  return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2};
+  const flip = s.duplexMethod === 'auto' ? s.duplexFlip : 'long';
+  return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2, mirrorX:(W <= H) === (flip === 'long')};
 }
 function slotPos(L, i, back) {
   const s = S.settings, c = i % L.cols, r = Math.floor(i / L.cols);
-  let x = L.x0 + c*(L.sw + s.gap); const y = L.y0 + r*(L.sh + s.gap);
-  if (back) x = L.W - x - L.sw;
+  let x = L.x0 + c*(L.sw + s.gap), y = L.y0 + r*(L.sh + s.gap);
+  if (back && L.mirrorX) x = L.W - x - L.sw;
+  else if (back) y = L.H - y - L.sh;
   return {x, y};
+}
+// Rotation of a card image so its back reads the right way up after the sheet is turned over.
+function faceRot(L, back) {
+  if (!back) return L.rot ? 90 : 0;
+  return L.mirrorX ? (L.rot ? -90 : 0) : (L.rot ? 90 : 180);
 }
 function makeT(L, back) {
   const s = S.settings, kx = s.scaleX/100, ky = s.scaleY/100;
@@ -754,15 +844,20 @@ async function importList(text, replace) {
   if (!items.length) return toast('No cards found in that list.');
   busy(true, 'Looking up cards on Scryfall…');
   try {
-    const ids = items.map(it => ({...it, id: it.set && it.cn ? {set:it.set, collector_number:it.cn} : it.set ? {name:it.name, set:it.set} : {name:it.name}}));
+    const front = n => n.split(' // ')[0].trim();
+    const ids = items.map((it, idx) => ({...it, idx, id: it.set && it.cn ? {set:it.set, collector_number:it.cn} : it.set ? {name:front(it.name), set:it.set} : {name:front(it.name)}}));
     let {found, missing} = await fetchCollection(ids, (i, n) => busyProgress(i / n));
+    const nameOk = (req, card) => [card.name, ...(card.card_faces || []).map(f => f.name)].some(n => normName(n) === normName(front(req.name)));
+    const wrong = found.filter(x => !nameOk(x.req, x.card));
+    if (wrong.length) { found = found.filter(x => !wrong.includes(x)); missing = missing.concat(wrong.map(x => ({...x.req, cn:undefined}))); }
     const retry = missing.filter(m => m.set);
     if (retry.length) {
-      const r = await fetchCollection(retry.map(m => ({...m, id:{name:m.name}})));
+      const r = await fetchCollection(retry.map(m => ({...m, id:{name:front(m.name)}})));
       found = found.concat(r.found); missing = missing.filter(m => !m.set).concat(r.missing);
     }
     const d = deck();
     if (replace) d.entries = [];
+    found.sort((a, b) => a.req.idx - b.req.idx);
     for (const {req, card} of found) {
       const ex = d.entries.find(e => e.scryId === card.id);
       if (ex) ex.qty += req.qty; else d.entries.push(toEntry(card, req.qty));
@@ -967,7 +1062,7 @@ function localSearch(name) {
 }
 async function useLocalFile(f, file) {
   const old = f.custom;
-  for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi']) delete f[k];
+  for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'auto']) delete f[k];
   Object.assign(f, {custom:await storeImage(file), srcBleed:MPC_BLEED, localName:file.name});
   await removeImageIfUnused(old);
 }
@@ -984,8 +1079,16 @@ $('#fileLocalDir').onchange = async ev => {
   }
   renderLocalStatus();
   if (!localIndex.length) return toast('No PNG, JPG or WebP images found in that folder.');
+  busy(true, 'Matching images from your folder…');
+  let replaced = 0;
+  for (const e of deck().entries) if (!e.mpc) for (const f of e.faces) {
+    if (!f.auto || f.custom) continue;
+    const hit = localSearch(f.name).find(x => x.key === normName(f.name));
+    if (hit) { await useLocalFile(f, hit.file); replaced++; }
+  }
+  busy(false); if (replaced) { save(); renderAll(); }
   const auto = await mpcAutofill({auto:true});
-  toast(`Indexed ${localIndex.length} images.` + autoSummary(auto), 6000);
+  toast(`Indexed ${localIndex.length} images.` + (replaced ? ` Used ${replaced} folder image${replaced === 1 ? '' : 's'} in place of automatic picks.` : '') + autoSummary(auto), 7000);
 };
 
 async function openMpcPicker(target) {
@@ -1012,6 +1115,7 @@ async function openMpcPicker(target) {
           <label class="check"><input type="checkbox" data-m="nsfw" ${S.mpc.nsfw ? 'checked' : ''}> Include NSFW art</label>
         </div>
       </details>
+      ${isBack ? '' : `<p class="hint">Your own art: <button class="icon" id="mpcOwn">Upload image…</button> · make a custom card on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>.</p>`}
       <p class="hint" id="mpcStatus"></p>
       <div class="prints" id="mpcGrid"></div>
       <div class="row" style="justify-content:center;margin-top:12px"><button id="mpcMore" style="display:none">Load more</button></div>
@@ -1052,6 +1156,7 @@ async function openMpcPicker(target) {
     if (fb) { faceIdx = +fb.dataset.face; $$('[data-face]', bd).forEach(b => b.classList.toggle('primary', b === fb)); $('#mpcQ').value = face().name; return run(); }
     if (ev.target.id === 'mpcGo') return run();
     if (ev.target.id === 'mpcMore') return page();
+    if (ev.target.id === 'mpcOwn') { faceTarget = {e, i:faceIdx}; closeModal(); return $('#fileFace').click(); }
     const fig = ev.target.closest('figure'); if (!fig) return;
     if (fig.dataset.local !== undefined) {
       await useLocalFile(face(), localHits[+fig.dataset.local].file);
@@ -1066,7 +1171,7 @@ async function openMpcPicker(target) {
       toast('Cardback set. Back pages are on.');
     } else {
       const f = face(), old = f.custom;
-      delete f.custom; Object.assign(f, mpcArt(card));
+      delete f.custom; delete f.auto; Object.assign(f, mpcArt(card));
       await removeImageIfUnused(old);
     }
     closeModal(); save(); renderAll();
@@ -1114,7 +1219,7 @@ async function mpcAutofill({auto = false} = {}) {
     await mpcCards([...new Set(uniq.flatMap(q => (res.get(q.query + '|' + q.cardType) || []).slice(0, 40)))]);
     for (const t of targets) {
       const c = mpcDetails.get(mpcRank(hits(t).slice(0, 40))[0]);
-      if (c) { Object.assign(t.f, mpcArt(c)); result.picked++; } else result.missed.push(t.f.name);
+      if (c) { Object.assign(t.f, mpcArt(c), {auto:true}); result.picked++; } else result.missed.push(t.f.name);
     }
     save(); renderAll();
     if (!auto) toast(`High-res art picked for ${result.picked} of ${result.total}.` + autoSummary(result, true), result.missed.length ? 9000 : 4000);
@@ -1136,12 +1241,13 @@ function autoSummary(r, missedOnly = false) {
 }
 
 function buildMpcOrder(withImages) {
-  const d = deck(), fronts = new Map(), backs = new Map(), skipped = [], noBack = [];
-  const usable = f => f && (f.drive || (withImages && f.custom));
+  const d = deck(), fronts = new Map(), backs = new Map(), skipped = [], noBack = [], uploads = [];
+  const usable = f => f && (withImages ? f.custom || f.drive : f.drive && !f.custom);
   const add = (map, f, i) => { const k = f.custom || f.drive; if (!map.has(k)) map.set(k, {f, slots:[]}); map.get(k).slots.push(i); };
   let slot = 0;
   for (const e of d.entries) for (let q = 0; q < e.qty; q++) {
     const [f, b] = e.faces;
+    if (!withImages && (f?.custom || b?.custom)) { uploads.push(e.name); continue; }
     if (!usable(f)) { skipped.push(e.name); continue; }
     if (b && !usable(b)) { noBack.push(e.name); continue; }
     add(fronts, f, slot);
@@ -1149,7 +1255,7 @@ function buildMpcOrder(withImages) {
     slot++;
   }
   const cb = S.settings.backImage ? {name:'Card back', custom:S.settings.backImage} : d.cardback;
-  return {d, fronts, backs, slot, skipped, noBack, cardback:usable(cb) ? {f:cb, slots:[]} : null};
+  return {d, fronts, backs, slot, skipped, noBack, uploads, cardback:usable(cb) ? {f:cb, slots:[]} : null};
 }
 // Same rules as the desktop tool's sanitize-filename, so names in the zip match the paths it looks for.
 const WIN_RESERVED = ['CON', 'PRN', 'AUX', 'NUL', 'CONIN$', 'CONOUT$', ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap(n => ['COM' + n, 'LPT' + n])];
@@ -1191,7 +1297,8 @@ function mpcXml(order, entryOf) {
 }
 function mpcNotes(order) {
   const n = [];
-  if (order.skipped.length) n.push(`${order.skipped.length} card${order.skipped.length === 1 ? '' : 's'} without high-res or uploaded art left out`);
+  if (order.uploads.length) n.push(`${order.uploads.length} card${order.uploads.length === 1 ? '' : 's'} with your own uploaded art left out (the .zip includes them)`);
+  if (order.skipped.length) n.push(`${order.skipped.length} card${order.skipped.length === 1 ? '' : 's'} without high-res art left out`);
   if (order.noBack.length) n.push(`${order.noBack.length} double-faced card${order.noBack.length === 1 ? '' : 's'} left out because the back has no high-res art (${[...new Set(order.noBack)].slice(0, 3).join(', ')})`);
   if (!order.cardback) n.push('no cardback chosen');
   if (order.slot > 612) n.push('over 612 cards, so split the order in the desktop tool');
@@ -1269,39 +1376,71 @@ async function exportMpcZip() {
     busyProgress(1, 'Packing zip…'); await sleep(30);
     const base = orderName(order.d);
     download(makeZip([{name:`${base}.xml`, data:new TextEncoder().encode(xml)}, ...files]), `${base} (print order).zip`);
-    toast(`Exported ${order.slot} cards and ${files.length} images.` + mpcNotes(order), 9000);
+    busy(false);
+    showOrderSteps(`Downloaded ${order.slot} cards and ${files.length} images.` + mpcNotes(order));
+    return true;
   } catch (err) { toast('Export failed: ' + err.message, 8000); }
   busy(false);
+  return false;
 }
 
 $('#btnMpcAuto').onclick = () => mpcAutofill();
-$('#btnXml').onclick = () => {
-  openModal(`<div class="hd"><b>Export print order</b><button data-close>Close</button></div>
-    <div class="bd">
-      <p class="hint">Makes an order file for MakePlayingCards.com, placed with the autofill desktop tool.</p>
-      <div class="grid2" style="max-width:420px;margin:10px 0">
-        <div class="field"><label>Cardstock</label><select id="xStock">${MPC_STOCKS.map(v => `<option ${v === S.mpc.stock ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
-        <label class="check" style="grid-column:auto;align-self:end"><input type="checkbox" id="xFoil" ${S.mpc.foil ? 'checked' : ''}> Foil</label>
-      </div>
-      <div class="row" style="margin:10px 0"><button class="primary" data-x="zip">XML + images (.zip)</button><button data-x="xml">XML only</button></div>
-      <ul class="tips hint" style="padding-left:18px">
-        <li><b>XML + images:</b> the order file plus a <code>cards</code> folder with every image, named the way the tool saves its downloads. Extract it next to the desktop tool and run the tool there. It uses those images instead of downloading them.</li>
-        <li><b>XML only:</b> a small file. The tool downloads the images itself, and uploaded images are left out.</li>
-      </ul>
-    </div>`);
-  const bd = $('#modal .bd');
-  bd.onchange = () => {
-    S.mpc.stock = $('#xStock').value;
-    S.mpc.foil = $('#xFoil').checked && S.mpc.stock !== '(P10) Plastic';
-    $('#xFoil').checked = S.mpc.foil; $('#xFoil').disabled = S.mpc.stock === '(P10) Plastic';
-    save();
-  };
-  bd.onchange();
-  bd.onclick = ev => {
-    const x = ev.target.dataset.x; if (!x) return;
-    closeModal(); x === 'zip' ? exportMpcZip() : exportMpcXml();
-  };
+const TOOL_DL = 'https://github.com/chilli-axe/mpc-autofill/releases/latest/download/';
+function orderStepsHtml() {
+  return `<ol class="steps">
+    <li><b>Get the desktop tool</b> (needs Google Chrome):
+      <div class="dl"><a href="${TOOL_DL}autofill-windows.zip" target="_blank" rel="noopener">Windows</a><a href="${TOOL_DL}autofill-macos-arm.zip" target="_blank" rel="noopener">macOS (Apple silicon)</a><a href="${TOOL_DL}autofill-macos-intel.zip" target="_blank" rel="noopener">macOS (Intel)</a><a href="${TOOL_DL}autofill-linux.zip" target="_blank" rel="noopener">Linux</a></div></li>
+    <li><b>Make a new folder.</b> Unzip the tool into it, then unzip your order into the same folder. It should hold the tool, your <code>.xml</code> file and a <code>cards</code> folder.</li>
+    <li><b>Run the tool from that folder.</b> Windows: double-click it. macOS: right-click → Open the first time. Linux: open a terminal in the folder and run it.</li>
+    <li><b>Answer its questions.</b> Pressing Enter for each one is fine: browser <b>Chrome</b>, site <b>MakePlayingCards</b>, auto-save <b>yes</b>, shrink large images <b>yes</b>.</li>
+    <li><b>Log in when Chrome opens.</b> The tool creates the project and uploads every image from <code>cards</code>, so nothing needs downloading.</li>
+    <li><b>Check the project, then add it to your cart</b> and check out on MakePlayingCards.com. If the tool stops part-way, run it again from the same folder.</li>
+  </ol>`;
+}
+function showOrderSteps(done) {
+  openModal(`<div class="hd"><b>Your order is ready</b><button data-close>Close</button></div>
+    <div class="bd">${done ? `<p class="hint">${esc(done)}</p>` : ''}${orderStepsHtml()}</div>`);
+}
+function renderOrder() {
+  const order = buildMpcOrder(true), d = order.d;
+  const sel = $('#oStock');
+  sel.innerHTML = MPC_STOCKS.map(v => `<option ${v === S.mpc.stock ? 'selected' : ''}>${esc(v)}</option>`).join('');
+  const plastic = S.mpc.stock === '(P10) Plastic';
+  $('#oFoil').checked = !!S.mpc.foil && !plastic; $('#oFoil').disabled = plastic;
+  const cb = S.settings.backImage ? {custom:S.settings.backImage} : d.cardback;
+  $('#oBackThumb').style.display = cb ? '' : 'none';
+  $('#oBackClear').style.display = cb ? '' : 'none';
+  if (cb) thumbSrc(cb).then(u => { if (u) $('#oBackThumb').src = u; });
+  $('#oBackHint').textContent = cb ? '' : 'No cardback yet. Every card gets this on the back, except double-faced cards.';
+  const missing = [...order.skipped, ...order.noBack];
+  const bracket = MPC_BRACKETS.find(b => b >= order.slot) || MPC_BRACKETS[MPC_BRACKETS.length - 1];
+  const dfc = order.backs.size ? [...order.backs.values()].reduce((n, c) => n + c.slots.length, 0) : 0;
+  $('#orderSummary').innerHTML = `<dl class="osum">
+      <dt>Cards</dt><dd>${order.slot}${order.slot > 612 ? ' <span class="tag bad">over 612: split the order</span>' : ''}</dd>
+      <dt>Order size</dt><dd>${order.slot ? `${bracket}-card bracket` : '—'}</dd>
+      <dt>Double-faced</dt><dd>${dfc}</dd>
+      <dt>Unique images</dt><dd>${new Set([...order.fronts.keys(), ...order.backs.keys()]).size}</dd>
+    </dl>
+    ${missing.length ? `<div class="warn">${missing.length} card${missing.length === 1 ? ' needs' : 's need'} high-res art and will be left out: ${esc([...new Set(missing)].slice(0, 4).join(', '))}${missing.length > 4 ? '…' : ''}.</div><div class="row"><button id="oFix">Auto fill art</button></div>` : ''}`;
+  const fix = $('#oFix'); if (fix) fix.onclick = () => mpcAutofill();
+  $('#orderSteps').innerHTML = orderStepsHtml();
+}
+$('#oStock').onchange = e => { S.mpc.stock = e.target.value; if (S.mpc.stock === '(P10) Plastic') S.mpc.foil = false; save(); renderOrder(); };
+$('#oFoil').onchange = e => { S.mpc.foil = e.target.checked; save(); };
+$('#oBackBrowse').onclick = () => openMpcPicker({cardback:true});
+$('#oBackUpload').onclick = () => $('#fileOrderBack').click();
+$('#fileOrderBack').onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  const old = S.settings.backImage; S.settings.backImage = await storeImage(f); S.activePreset = null;
+  await removeImageIfUnused(old); save(); renderAll();
 };
+$('#oBackClear').onclick = async () => {
+  const old = S.settings.backImage; S.settings.backImage = null; if (!old) deck().cardback = null;
+  await removeImageIfUnused(old); save(); renderAll();
+};
+$('#oZip').onclick = () => exportMpcZip();
+$('#oXml').onclick = () => exportMpcXml();
+$('#btnXml').onclick = () => exportMpcZip();
 
 /* ---------- UI: deck header ---------- */
 function renderDeckSel() {
@@ -1332,6 +1471,9 @@ async function renderCards() {
   const d = deck(), list = $('#cardList');
   const total = d.entries.reduce((a, e) => a + e.qty, 0);
   $('#deckCount').textContent = `(${total})`;
+  const need = d.entries.filter(e => !e.mpc && e.faces.some(isPreview)).length;
+  $('#deckHealth').innerHTML = need ? `<span style="color:#ff9c95">${need} need${need === 1 ? 's' : ''} art</span>` : '';
+  $('#btnMpcAuto').classList.toggle('primary', need > 0);
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; return; }
   list.innerHTML = d.entries.map(e => `
     <div class="card" data-uid="${esc(e.uid)}">
@@ -1379,7 +1521,7 @@ $('#fileFace').onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ''; if (!f || !faceTarget) return;
   const {e, i} = faceTarget, old = e.faces[i].custom;
   e.faces[i].custom = await storeImage(f);
-  delete e.faces[i].srcBleed;
+  for (const k of ['srcBleed', 'drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto']) delete e.faces[i][k];
   if (e.custom) e.faces[i].name = e.name;
   await removeImageIfUnused(old);
   save(); renderAll();
@@ -1404,10 +1546,14 @@ $('#btnCopyList').onclick = async () => {
   try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
 };
 
-function openModal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('on'); }
+function openModal(html) {
+  $('#modal').innerHTML = html; $('#overlay').classList.add('on');
+  ($('#modal input, #modal select, #modal .bd button') || $('#modal [data-close]'))?.focus();
+}
+$('#toast').onclick = () => { $('#toast').style.display = 'none'; };
 function closeModal() { $('#overlay').classList.remove('on'); }
 $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttribute('data-close')) closeModal(); };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(); $('#deckMenu').removeAttribute('open'); } });
 
 /* ---------- right-click menu ---------- */
 async function removeEntry(e) {
@@ -1441,6 +1587,7 @@ $('#cardList').addEventListener('contextmenu', ev => {
   const e = deck().entries.find(x => x.uid === row.dataset.uid); if (!e) return;
   ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, 0);
 });
+$('#pages').addEventListener('click', ev => { if (ev.target.closest('.noback')) { $('.tabs button[data-tab=order]').click(); $('#oBackBrowse').focus(); } });
 $('#pages').addEventListener('contextmenu', ev => {
   const im = ev.target.closest('img[data-uid]'); if (!im) return;
   const e = deck().entries.find(x => x.uid === im.dataset.uid); if (!e) return;
@@ -1477,7 +1624,10 @@ const FIELDS = [
   {k:'guideWidth', adv:true, label:'Line width (mm)', type:'num', step:0.05, min:0.05},
   {k:'guideLen', adv:true, label:'Corner mark length (mm)', type:'num', step:0.5, min:0.5},
   {sec:'Double-faced cards & backs'},
-  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, opts:[['separate','Print both faces as separate cards'],['front','Front face only'],['duplex','Back face on back of page (double-sided)']]},
+  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
+  {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.dfcMode === 'duplex' || s.backs, opts:[['manual','I re-feed the paper by hand (step-by-step instructions)'],['auto','My printer prints double-sided automatically']],
+    hint:'Most home printers can\'t run 300gsm cardstock through their duplexer. Re-feeding by hand works on any printer.'},
+  {k:'duplexFlip', label:'Double-sided flip (in your print dialog)', type:'select', full:true, show:s => (s.dfcMode === 'duplex' || s.backs) && s.duplexMethod === 'auto', opts:[['long','Flip on long edge'],['short','Flip on short edge']]},
   {k:'backs', label:'Print card backs on back pages', type:'check'},
   {k:'backImage', type:'backimg'},
   {sec:'Calibration (from calibration sheet)'},
@@ -1635,7 +1785,14 @@ function renderPreview() { clearTimeout(previewTimer); previewTimer = setTimeout
 async function drawPreview() {
   const gen = ++previewGen, s = S.settings, L = layout(), z = S.zoom;
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
-  if (!slots.length) { wrap.innerHTML = '<div class="empty">Your sheets will appear here.<br>Add cards on the left to get started.</div>'; return; }
+  if (!slots.length) {
+    wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order prints in three steps' : 'Print proxies in three steps'}</h2><ol>
+      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>.</li>
+      <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
+      <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Export order</b>.' : 'Pick your printer in the <b>Printer</b> tab, then press <b>Export PDF</b>.'}</li></ol></div>`;
+    return;
+  }
+  if (S.mode === 'order') return drawGallery(gen, wrap, z);
   const frag = document.createDocumentFragment(), jobs = [];
   const hasBacks = slots.some(x => x.back);
   pages.forEach((page, pi) => {
@@ -1649,7 +1806,7 @@ async function drawPreview() {
         const p = slotPos(L, i, back), im = document.createElement('img');
         im.dataset.uid = slot.e.uid; im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
         Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
-        const rot = L.rot ? (back ? -90 : 90) : 0;
+        const rot = faceRot(L, back);
         if (isPreview(face)) {
           const tag = document.createElement('span'); tag.className = 'lowres'; tag.textContent = 'Placeholder';
           Object.assign(tag.style, {left:T.x(p.x)*z + 4 + 'px', top:T.y(p.y)*z + 4 + 'px'});
@@ -1659,7 +1816,8 @@ async function drawPreview() {
           if (gen !== previewGen || !u) return;
           if (u.startsWith('raw:')) {
             u = u.slice(4);
-            if (rot) {
+            if (rot === 180) im.style.transform = 'rotate(180deg)';
+            else if (rot) {
               const w = T.w(L.sw)*z, h = T.h(L.sh)*z;
               Object.assign(im.style, {width:h + 'px', height:w + 'px', left:T.x(p.x)*z + (w-h)/2 + 'px', top:T.y(p.y)*z + (h-w)/2 + 'px', transform:`rotate(${rot}deg)`});
             }
@@ -1683,7 +1841,37 @@ async function drawPreview() {
   });
   wrap.replaceChildren(frag);
 }
+async function drawGallery(gen, wrap, z) {
+  const d = deck(), cb = S.settings.backImage ? {name:'Card back', custom:S.settings.backImage} : d.cardback;
+  const w = Math.round(63 * z * 0.75), h = Math.round(w * 88 / 63);
+  const frag = document.createElement('div'); frag.className = 'gal';
+  for (const e of d.entries) {
+    if (!e.qty || !e.faces.length) continue;
+    const tile = document.createElement('div'); tile.className = 'tile';
+    const sides = [[e.faces[0], 0], [e.faces[1] || cb, e.faces[1] ? 1 : 'back']];
+    for (const [f, i] of sides) {
+      if (!f) {
+        tile.insertAdjacentHTML('beforeend', `<div class="noback" data-uid="${esc(e.uid)}" style="width:${Math.round(w * 0.6)}px;height:${Math.round(h * 0.6)}px">No cardback yet</div>`);
+        continue;
+      }
+      const im = document.createElement('img'); im.width = i === 0 ? w : Math.round(w * 0.6); im.height = i === 0 ? h : Math.round(h * 0.6);
+      im.alt = f ? f.name : 'No cardback'; im.title = i === 'back' ? 'Cardback' : f?.name || '';
+      im.dataset.uid = e.uid; im.dataset.face = i; im.style.alignSelf = 'flex-end';
+      if (f) thumbSrc(f).then(u => { if (gen === previewGen && u) im.src = u; });
+      tile.appendChild(im);
+    }
+    if (isPreview(e.faces[0]) || (e.faces[1] && isPreview(e.faces[1]))) tile.insertAdjacentHTML('beforeend', '<span class="lowres">Needs art</span>');
+    if (e.qty > 1) tile.insertAdjacentHTML('beforeend', `<span class="qty">×${e.qty}</span>`);
+    frag.appendChild(tile);
+  }
+  wrap.replaceChildren(frag);
+}
 function renderStats() {
+  if (S.mode === 'order') {
+    const o = buildMpcOrder(true), miss = o.skipped.length + o.noBack.length;
+    $('#stats').textContent = `${o.slot} card${o.slot === 1 ? '' : 's'} in order${miss ? ` · ${miss} need art` : ''}`;
+    return;
+  }
   const slots = buildSlots(), L = layout(), pages = Math.ceil(slots.length / L.per);
   const backs = slots.some(x => x.back);
   $('#stats').textContent = `${slots.length} cards · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
@@ -1716,6 +1904,7 @@ async function exportPDF() {
   }
   const pages = paginate(slots, L.per), hasBacks = slots.some(x => x.back);
   const total = slots.length * (hasBacks ? 2 : 1);
+  let done = false;
   busy(true, 'Rendering cards…');
   try {
     const doc = newDoc(L), cache = new Map(); let n = 0, first = true;
@@ -1735,7 +1924,7 @@ async function exportPDF() {
           n++; busyProgress(n / total, `Rendering card ${n} of ${total}…`);
           if (!face) continue;
           const p = slotPos(L, i, back);
-          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), L.rot ? (back ? -90 : 90) : 0);
+          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back));
           await sleep(0);
         }
         if (!back) {
@@ -1750,15 +1939,58 @@ async function exportPDF() {
     busyProgress(1, 'Saving PDF…'); await sleep(30);
     doc.save(`${deck().name.replace(/[^\w\- ]+/g, '').trim() || 'proxies'}.pdf`);
     for (const k of [...imgCache.keys()]) if (k.includes('/google_drive/full/') || k.includes('/png/')) imgCache.delete(k);
-    toast('PDF exported. Print it at Actual size / 100%.', 5000);
+    done = true;
   } catch (e) {
     console.error(e);
     toast('Export failed: ' + e.message, 8000);
   }
   busy(false);
+  if (done) hasBacks ? showBackSteps(pages.length) : toast('PDF exported. Print it at Actual size / 100%.', 5000);
+}
+function backStepsHtml(sheets) {
+  const s = S.settings, L = layout();
+  if (s.duplexMethod === 'auto') return `<ol class="steps">
+    <li>Open the PDF and print it at <b>Actual size / 100%</b>.</li>
+    <li>Turn on <b>double-sided printing</b> and choose <b>flip on ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>, matching Layout → How the backs get printed.</li>
+    <li>Hold the first sheet up to a light. If the backs are shifted, print the <b>double-sided test</b> (Printer tab) and adjust <b>Back offset X / Y</b> under Layout → Advanced.</li>
+  </ol><p class="hint">If heavy cardstock jams or scuffs in the duplexer, switch to re-feeding by hand.</p>`;
+  return `<p class="hint">Print one sheet at a time. Every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
+  <ol class="steps">
+    <li><b>Print the front.</b> In the print dialog choose <b>Pages: 1</b> and <b>Actual size / 100%</b>. Load the blank sheet the way you normally do.</li>
+    <li><b>Let it dry.</b> Inkjet: at least 10 minutes. Laser: right away.</li>
+    <li><b>Turn the sheet over along its long edge</b>, like turning the page of a book: the left side becomes the right side. <b>Don't rotate it.</b> The edge that went into the printer first must go in first again.</li>
+    <li><b>Put it back with the printed side facing the other way.</b> If your printer printed on the side facing you, the printed side now faces away from you, and the blank side faces you.</li>
+    <li><b>Print the back.</b> Choose <b>Pages: 2</b>, same settings. Repeat for each sheet${sheets > 1 ? ': pages 3 then 4, and so on' : ''}.</li>
+    <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted, print the <b>double-sided test</b> (Printer tab) and adjust <b>Back offset X / Y</b> under Layout → Advanced.</li>
+  </ol>
+  <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.${L.W > L.H ? ' Landscape sheets come out on the paper sideways. Follow these steps with the paper itself, not the picture on screen.' : ''}</p>`;
+}
+function showBackSteps(sheets) {
+  openModal(`<div class="hd"><b>PDF ready: printing the backs</b><button data-close>Close</button></div><div class="bd">${backStepsHtml(sheets)}</div>`);
 }
 $('#btnPdf').onclick = exportPDF;
 
+$('#btnDuplexTest').onclick = () => {
+  if (!window.jspdf) return toast('PDF library failed to load.');
+  const s = S.settings, L = layout(), doc = newDoc(L);
+  for (const back of [false, true]) {
+    if (back) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
+    const T = makeT(L, back);
+    doc.setDrawColor(back ? '#c0392b' : '#000000'); doc.setLineWidth(0.3);
+    for (let i = 0; i < L.per; i++) {
+      const p = slotPos(L, i, back);
+      doc.rect(T.x(p.x + s.bleed), T.y(p.y + s.bleed), T.w(L.cw), T.h(L.ch));
+      const cx = T.x(p.x + L.sw / 2), cy = T.y(p.y + L.sh / 2);
+      doc.line(cx - 6, cy, cx + 6, cy); doc.line(cx, cy - 6, cx, cy + 6);
+    }
+    doc.setFontSize(14); doc.setTextColor(back ? '#c0392b' : '#000000');
+    doc.text(back ? 'BACK' : 'FRONT', L.W / 2, L.H / 2 - 10, {align:'center'});
+    doc.setFontSize(9);
+    doc.text(back ? 'Hold the sheet up to a light: the red outlines should sit exactly behind the black ones.'
+      : 'Print this page, turn the sheet over along its long edge, re-feed the same edge first, then print page 2.', L.W / 2, L.H / 2 + 14, {align:'center'});
+  }
+  doc.save('double-sided-test.pdf');
+};
 $('#btnCal').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
   const s = S.settings, L = layout(), doc = newDoc(L), T = makeT(L, false);
@@ -1883,10 +2115,22 @@ function renderCutStatus() {
     S.activePreset = null; save(); renderAll(); toast('Cut guides set to margin lines + corners.');
   };
 }
-function renderAll() { renderCutStatus(); renderDeckSel(); renderCards(); renderSettings(); renderPresets(); renderPrinter(); renderPreview(); renderStats(); }
+function applyMode() {
+  document.body.dataset.mode = S.mode;
+  $$('#modeSeg button').forEach(b => { const on = b.dataset.mode === S.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  const active = $('.tabs button.on');
+  if (!active || getComputedStyle(active).display === 'none') $('.tabs button[data-tab=cards]').click();
+}
+$$('#modeSeg button').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; save(); applyMode(); renderAll(); });
+$$('#deckMenu .menu-list button').forEach(b => b.addEventListener('click', () => $('#deckMenu').removeAttribute('open')));
+addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckMenu').removeAttribute('open'); });
+$('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
+function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); renderCards(); renderSettings(); renderPresets(); renderPrinter(); renderPreview(); renderStats(); }
 
 (async () => {
   await load();
+  S.mode = S.mode || 'print'; applyMode();
+  if (innerWidth < 820) S.zoom = Math.max(1, Math.min(S.zoom, (innerWidth - 40) / layout().W));
   $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks; $('#showCuts').checked = !!S.showCuts;
   renderAll();
 })();

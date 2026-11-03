@@ -40,7 +40,7 @@ CSP = "; ".join([
     "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://cards.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
-    "connect-src 'self' data: blob: https://api.scryfall.com",
+    "connect-src 'self' data: blob: https://api.scryfall.com https://img.mpcautofill.com https://cdn.mpcautofill.com",
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
