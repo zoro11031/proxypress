@@ -32,6 +32,8 @@ import urllib.request
 import webbrowser
 
 PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "proxy-press.html")
+OG_IMAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "og.png")
+OG_DESCRIPTION = "Turn a decklist into print-ready Magic proxies. Print at home with bleed and cut guides, or order from MakePlayingCards."
 UPSTREAM = "https://mpcfill.com/"
 ALLOWED = {"2/editorSearch/", "2/cards/", "2/sources/", "2/cardbacks/", "2/languages/", "2/DFCPairs/"}
 MAX_BODY = 256 * 1024
@@ -122,7 +124,7 @@ def page_csp(page_bytes):
 
 LOGIN_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Proxy Press · Sign in</title>
-<meta name="theme-color" content="#14161a"><style>
+<meta name="theme-color" content="#14161a"><!--head--><style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#14161a;color:#e7e9ee;font:15px/1.4 system-ui,sans-serif}
 form{background:#1c1f25;border:1px solid #2f343d;border-radius:12px;padding:26px;width:min(340px,calc(100vw - 32px));box-sizing:border-box}
 h1{font-size:19px;margin:0 0 4px}h1 span{color:#e0a33a}p{color:#9aa1ad;font-size:13px;margin:0 0 16px}
@@ -132,7 +134,7 @@ button{margin-top:12px;width:100%%;background:#e0a33a;color:#1b1407;border:0;bor
 <form method="post" action="/login"><h1>Proxy<span>Press</span></h1><p>Enter the password to continue.</p>
 <input type="password" name="password" autocomplete="current-password" aria-label="Password" autofocus required>
 <button type="submit">Sign in</button>%s</form></body></html>"""
-LOGIN_CSP = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+LOGIN_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
 
 
 class Server(http.server.ThreadingHTTPServer):
@@ -179,7 +181,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         if self.https():
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        if not any(k == "Cross-Origin-Resource-Policy" for k, _ in extra):
+            self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
         for k, v in extra:
             self.send_header(k, v)
@@ -187,8 +190,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def preview_tags(self):
+        host = self.headers.get("Host", "")
+        base = ("https" if self.https() else "http") + "://" + host if re.fullmatch(r"[A-Za-z0-9.-]+(:\d{1,5})?", host) else ""
+        tags = [("og:type", "website"), ("og:site_name", "Proxy Press"), ("og:title", "Proxy Press"), ("og:description", OG_DESCRIPTION),
+                ("og:image", base + "/og.png"), ("og:image:width", "1200"), ("og:image:height", "630"), ("og:url", base + "/")]
+        return ("\n".join(f'<meta property="{k}" content="{v}">' for k, v in tags)
+                + f'\n<meta name="description" content="{OG_DESCRIPTION}">\n<meta name="twitter:card" content="summary_large_image">')
+
     def login_page(self, status, error=""):
-        self.send(status, (LOGIN_PAGE % error).encode(), "text/html; charset=utf-8", [("Content-Security-Policy", LOGIN_CSP)])
+        icon = ""
+        try:
+            with open(PAGE, encoding="utf-8") as f:
+                m = re.search(r'<link rel="icon"[^>]*>', f.read(8192))
+                icon = m.group(0) if m else ""
+        except OSError:
+            pass
+        page = (LOGIN_PAGE % error).replace("<!--head-->", self.preview_tags() + icon)
+        self.send(status, page.encode(), "text/html; charset=utf-8", [("Content-Security-Policy", LOGIN_CSP)])
 
     def signed_in(self):
         if PASSWORD:
@@ -260,6 +279,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         route = self.path.split("?")[0]
         if route == "/healthz":
             return self.send(200, b"ok", "text/plain")
+        if route == "/og.png" and os.path.isfile(OG_IMAGE):
+            with open(OG_IMAGE, "rb") as f:
+                return self.send(200, f.read(), "image/png", [("Cache-Control", "public, max-age=86400"), ("Cross-Origin-Resource-Policy", "cross-origin")])
         if route == "/logout":
             return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax")])
         if not self.signed_in():
@@ -277,7 +299,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if route in ("/", "/proxy-press.html"):
             with open(PAGE, "rb") as f:
                 body = f.read()
-            return self.send(200, body, "text/html; charset=utf-8", [("Content-Security-Policy", page_csp(body))])
+            csp = page_csp(body)
+            body = body.replace(b"</title>", b"</title>\n" + self.preview_tags().encode(), 1)
+            return self.send(200, body, "text/html; charset=utf-8", [("Content-Security-Policy", csp)])
         self.send(404, b"Not found", "text/plain")
 
     do_HEAD = do_GET
