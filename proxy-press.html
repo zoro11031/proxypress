@@ -1141,10 +1141,11 @@ function buildMpcOrder(withImages) {
   const add = (map, f, i) => { const k = f.custom || f.drive; if (!map.has(k)) map.set(k, {f, slots:[]}); map.get(k).slots.push(i); };
   let slot = 0;
   for (const e of d.entries) for (let q = 0; q < e.qty; q++) {
-    const f = e.faces[0];
+    const [f, b] = e.faces;
     if (!usable(f)) { skipped.push(e.name); continue; }
+    if (b && !usable(b)) { noBack.push(e.name); continue; }
     add(fronts, f, slot);
-    if (e.faces[1]) { if (usable(e.faces[1])) add(backs, e.faces[1], slot); else noBack.push(e.name); }
+    if (b) add(backs, b, slot);
     slot++;
   }
   const cb = S.settings.backImage ? {name:'Card back', custom:S.settings.backImage} : d.cardback;
@@ -1191,7 +1192,7 @@ function mpcXml(order, entryOf) {
 function mpcNotes(order) {
   const n = [];
   if (order.skipped.length) n.push(`${order.skipped.length} card${order.skipped.length === 1 ? '' : 's'} without high-res or uploaded art left out`);
-  if (order.noBack.length) n.push(`${order.noBack.length} double-faced back${order.noBack.length === 1 ? '' : 's'} left out`);
+  if (order.noBack.length) n.push(`${order.noBack.length} double-faced card${order.noBack.length === 1 ? '' : 's'} left out because the back has no high-res art (${[...new Set(order.noBack)].slice(0, 3).join(', ')})`);
   if (!order.cardback) n.push('no cardback chosen');
   if (order.slot > 612) n.push('over 612 cards, so split the order in the desktop tool');
   return n.length ? ' Note: ' + n.join('; ') + '.' : '';
