@@ -1,0 +1,1642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proxy Press</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+:root{
+  --bg:#14161a;--panel:#1c1f25;--panel2:#23272e;--line:#2f343d;--text:#e7e9ee;--muted:#9aa1ad;
+  --accent:#e0a33a;--accent2:#f2c26b;--danger:#e2615a;--ok:#5cc27a;--desk:#0f1114;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:#4a515c}
+button.primary{background:var(--accent);color:#1b1407;border-color:var(--accent);font-weight:600}
+button.primary:hover{background:var(--accent2)}
+button.danger{color:var(--danger)}
+button.icon{padding:3px 7px;font-size:13px}
+input[type=number],input[type=text],select,textarea{background:#111317;border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%}
+input[type=color]{width:100%;height:30px;background:#111317;border:1px solid var(--line);border-radius:6px;padding:2px}
+textarea{resize:vertical;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+header{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 8px 0 0;letter-spacing:.3px}
+header h1 span{color:var(--accent)}
+header .grow{flex:1}
+header select{width:auto;min-width:160px}
+.stats{color:var(--muted);font-size:13px}
+main{flex:1;display:grid;grid-template-columns:400px 1fr;min-height:0}
+aside{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-radius:0;background:none;padding:10px 4px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+.pane{flex:1;overflow:auto;padding:12px 14px;display:none}
+.pane.on{display:block}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:16px 0 8px}
+h3:first-child{margin-top:2px}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.row>*{flex:0 0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.field.full{grid-column:1/-1}
+.check{display:flex;align-items:center;gap:8px;grid-column:1/-1;font-size:13px}
+.check input{width:auto}
+.hint{font-size:12px;color:var(--muted);margin:6px 0}
+.warn{font-size:12.5px;color:#1b1407;background:var(--accent2);border-radius:6px;padding:7px 9px;margin:8px 0}
+.cards{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.card{display:grid;grid-template-columns:46px 1fr auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px}
+.card img{width:46px;height:64px;object-fit:cover;border-radius:3px;cursor:pointer;background:#000}
+.card .nm{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .meta{font-size:11.5px;color:var(--muted)}
+.card .ctl{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.qty{display:flex;align-items:center;gap:2px}
+.qty input{width:42px;text-align:center;padding:3px}
+.tag{display:inline-block;font-size:10px;padding:0 5px;border-radius:4px;background:#3a3020;color:var(--accent2);margin-left:4px}
+.preset{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--panel2)}
+.preset .nm{flex:1;font-size:13px}
+.preset.active{border-color:var(--accent)}
+#stage{overflow:auto;background:var(--desk);padding:24px;min-width:0}
+#pages{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-start}
+.pg{position:relative;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.5);flex:0 0 auto}
+.pg img{position:absolute;display:block}
+.pg svg{position:absolute;inset:0;pointer-events:none}
+.pg .lbl{position:absolute;top:-19px;left:0;font-size:11px;color:var(--muted)}
+.toolbar{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:16px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.toolbar input[type=range]{width:160px}
+.empty{color:var(--muted);text-align:center;margin-top:80px}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+#overlay.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column}
+.modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.modal .hd b{flex:1}
+.modal .bd{overflow:auto;padding:14px}
+.prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.prints figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px}
+.prints figure.sel{border-color:var(--accent)}
+.prints figure:hover{border-color:#4a515c}
+.prints img{width:100%;border-radius:5px;display:block}
+.prints figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:3px}
+#busy{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:60;flex-direction:column;gap:10px}
+#busy.on{display:flex}
+#busy .bar{width:280px;height:6px;background:#333;border-radius:3px;overflow:hidden}
+#busy .bar i{display:block;height:100%;background:var(--accent);width:0}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#2a2f37;border:1px solid var(--line);padding:9px 14px;border-radius:8px;display:none;z-index:70;max-width:90vw}
+#drop{position:fixed;inset:0;border:3px dashed var(--accent);background:rgba(224,163,58,.08);display:none;z-index:40;align-items:center;justify-content:center;font-size:20px;pointer-events:none}
+#drop.on{display:flex}
+.tips li{margin-bottom:6px}
+#printerSel{margin-bottom:8px}
+table.drv{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 10px}
+table.drv th,table.drv td{text-align:left;vertical-align:top;padding:5px 6px;border-bottom:1px solid var(--line)}
+table.drv th{color:var(--muted);font-weight:500;width:44%}
+details.adv{margin-top:18px;border:1px solid var(--line);border-radius:8px;padding:0 12px 12px;background:var(--panel2)}
+details.adv summary{cursor:pointer;padding:10px 0 2px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary::before{content:'▸';color:var(--muted);transition:transform .15s}
+details.adv[open] summary::before{transform:rotate(90deg)}
+details.adv:not([open]){padding-bottom:10px}
+@media (max-width:820px){
+  body{overflow:auto}
+  main{grid-template-columns:1fr}
+  aside{border-right:0;border-bottom:1px solid var(--line);max-height:none}
+  .pane{max-height:60vh}
+  #stage{padding:16px}
+}
+@media print{body>*:not(#stage){display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Proxy<span>Press</span></h1>
+  <select id="deckSel" title="Saved decks"></select>
+  <button id="deckNew">New</button>
+  <button id="deckRename">Rename</button>
+  <button id="deckDup">Duplicate</button>
+  <button id="deckDel" class="danger">Delete</button>
+  <span class="grow"></span>
+  <span class="stats" id="stats"></span>
+  <button id="btnCal" title="Print once to calibrate scale and offsets">Calibration sheet</button>
+  <button id="btnXml" title="Order file for MPC Autofill / MakePlayingCards">MPC XML</button>
+  <button id="btnSvg" title="Cut file for Silhouette Studio">Cut SVG</button>
+  <button id="btnPdf" class="primary">Export PDF</button>
+</header>
+<main>
+  <aside>
+    <div class="tabs">
+      <button data-tab="cards" class="on">Cards</button>
+      <button data-tab="layout">Layout</button>
+      <button data-tab="presets">Presets</button>
+      <button data-tab="cutting">Cutting</button>
+      <button data-tab="data">Data</button>
+    </div>
+
+    <div class="pane on" id="tab-cards">
+      <h3>Import decklist</h3>
+      <textarea id="listIn" placeholder="4 Lightning Bolt&#10;1 Sol Ring (CMM) 400&#10;1x Delver of Secrets // Insectile Aberration&#10;&#10;Accepts Moxfield / Archidekt / MTGA / MTGO text exports."></textarea>
+      <div class="row" style="margin-top:6px">
+        <button id="btnImport" class="primary">Add to deck</button>
+        <button id="btnReplace">Replace deck</button>
+        <button id="btnTokens" title="Add tokens and emblems created by cards in this deck">+ Tokens</button>
+        <button id="btnMpcAuto" title="Use the top MPC Autofill art for every card">Auto MPC art</button>
+      </div>
+      <h3>Custom images</h3>
+      <div class="row">
+        <button id="btnUpload">Upload images…</button>
+        <span class="hint">or drag &amp; drop anywhere</span>
+      </div>
+      <input type="file" id="fileUpload" accept="image/*" multiple hidden>
+      <h3>MPC Autofill</h3>
+      <div class="row">
+        <button id="btnMpc">Import XML…</button>
+        <button id="btnMpcFiles" title="Images downloaded by the MPC Autofill desktop tool">Attach images…</button>
+        <button id="btnMpcFolder">Attach folder…</button>
+      </div>
+      <p class="hint">An imported XML opens as a new deck, and its images load automatically. Only orders that point to files on your computer need <b>Attach</b>. To search MPC art (the <b>MPC art</b> and <b>Auto MPC art</b> buttons), open this page with <code>python3 proxy-press-server.py</code>.</p>
+      <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
+      <input type="file" id="fileMpcImgs" accept="image/*" multiple hidden>
+      <input type="file" id="fileMpcDir" webkitdirectory multiple hidden>
+      <input type="file" id="fileFace" accept="image/*" hidden>
+      <h3 class="row" style="justify-content:space-between"><span>Deck <span id="deckCount"></span></span>
+        <span class="row"><button class="icon" id="btnCopyList" title="Copy decklist">Copy list</button><button class="icon danger" id="btnClear">Clear</button></span></h3>
+      <div class="cards" id="cardList"></div>
+    </div>
+
+    <div class="pane" id="tab-layout"><div id="settingsForm"></div></div>
+
+    <div class="pane" id="tab-presets">
+      <h3>Presets</h3>
+      <div id="presetList"></div>
+      <div class="row" style="margin-top:8px"><button id="presetSave" class="primary">Save current as preset</button></div>
+      <h3>Printer settings guide</h3>
+      <select id="printerSel"></select>
+      <div id="printerGuide"></div>
+    </div>
+
+    <div class="pane" id="tab-cutting">
+      <h3>Cutting with a rotary trimmer</h3>
+      <p class="hint">No Silhouette Cameo? A rotary paper trimmer (for example a Dahle 507) and a 3 mm corner rounder cut cards just as cleanly. It takes about 2 minutes per sheet once you're used to it.</p>
+      <div id="cutStatus"></div>
+      <h3>1 · Set up the sheet</h3>
+      <ul class="tips hint" style="padding-left:18px">
+        <li>Use <b>Margin lines + corners</b> for cut guides. Margin lines guide the first cuts, and corner marks stay on every strip after the sheet is cut apart.</li>
+        <li>Use as much bleed as fits, with a <b>0 mm gap</b>: <b>2 mm</b> on landscape 4×2, <b>1 mm</b> on portrait 3×3. A cut can be off by that much without showing a white edge.</li>
+        <li>Print the <b>Calibration sheet</b> first so the marks land exactly where the PDF says.</li>
+      </ul>
+      <h3>2 · Before you cut</h3>
+      <ul class="tips hint" style="padding-left:18px">
+        <li>Let the sheet dry. Laser prints are ready right away. Inkjet needs at least 10 minutes, and overnight is better if the ProxyJak stock feels soft.</li>
+        <li>Trim a scrap first and check which edge of the cut-line indicator the blade actually cuts on.</li>
+        <li>Cut face up so you can see the marks, and hold the sheet flat under the clamp bar.</li>
+      </ul>
+      <h3>Where to line up the blade</h3>
+      <svg viewBox="0 0 340 190" style="width:100%;height:auto;background:#fff;border-radius:8px;margin-bottom:6px" role="img" aria-label="Diagram of cut guides">
+        <rect x="40" y="40" width="130" height="150" fill="#9aa7b8"/><rect x="170" y="40" width="130" height="150" fill="#b8a99a"/>
+        <rect x="50" y="50" width="110" height="140" fill="#3d5a80"/><rect x="180" y="50" width="110" height="140" fill="#7a5c3d"/>
+        <g stroke="#000" stroke-width="1.2">
+          <line x1="50" y1="0" x2="50" y2="40"/><line x1="160" y1="0" x2="160" y2="40"/><line x1="180" y1="0" x2="180" y2="40"/><line x1="290" y1="0" x2="290" y2="40"/>
+          <line x1="0" y1="50" x2="40" y2="50"/><line x1="300" y1="50" x2="340" y2="50"/>
+          <line x1="160" y1="50" x2="170" y2="50"/><line x1="170" y1="50" x2="180" y2="50"/>
+          <line x1="40" y1="50" x2="50" y2="50"/><line x1="50" y1="40" x2="50" y2="50"/><line x1="290" y1="40" x2="290" y2="50"/><line x1="290" y1="50" x2="300" y2="50"/>
+        </g>
+        <line x1="160" y1="0" x2="160" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <line x1="180" y1="0" x2="180" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <g font-size="10" font-family="system-ui,sans-serif">
+          <text x="54" y="22" fill="#000">margin tick</text>
+          <text x="196" y="72" fill="#fff">corner mark ↖</text>
+          <text x="58" y="120" fill="#fff">card</text><text x="188" y="120" fill="#fff">card</text>
+          <text x="128" y="182" fill="#e2615a">cut</text><text x="184" y="182" fill="#e2615a">cut</text>
+          <text x="58" y="160" fill="#fff" font-size="9">light band = bleed</text>
+        </g>
+      </svg>
+      <ul class="tips hint" style="padding-left:18px">
+        <li><b>Margin ticks</b> are thin black lines in the page margin, one at every card edge. They show where the first cuts go.</li>
+        <li><b>Corner marks</b> are short lines at every card corner, in the bleed. They stay on each strip after the margins are gone.</li>
+        <li>Every cut goes <b>exactly through a line</b>. Put the line under your trimmer's cutting indicator (the thin guide strip or line on the rail) at <b>both ends</b> before you cut.</li>
+        <li>Turn on <b>Show cut lines</b> above the preview to see every cut as a red dashed line. It only shows on screen, not in the print.</li>
+      </ul>
+      <h3>3 · Cut the columns</h3>
+      <ol class="tips hint" style="padding-left:18px">
+        <li>Line the blade up with the <b>tick marks in the top and bottom margins</b>. Check both ends before every cut.</li>
+        <li>Trim the left margin off, then work across the sheet. Between two cards there are <b>two lines</b>, one for each card's edge, with both cards' bleed in between. Cut both and throw away the bleed strip.</li>
+        <li>You now have one tall strip per column.</li>
+      </ol>
+      <h3>4 · Cut the rows</h3>
+      <ol class="tips hint" style="padding-left:18px">
+        <li>Turn each strip 90° and line the blade up with the <b>corner marks</b> on both sides of the strip.</li>
+        <li>Again, cut both lines between cards and throw away the bleed strip.</li>
+        <li>Cut <b>one strip at a time</b>. Stacked strips drift, and black-core stock can split if forced.</li>
+      </ol>
+      <h3>5 · Finish</h3>
+      <ul class="tips hint" style="padding-left:18px">
+        <li>Hold the first card against a real card. If it's off, fix your blade alignment before cutting the rest.</li>
+        <li>Round the corners. See <b>Corner cutting</b> below.</li>
+        <li>Sleeve the cards. Sleeves hide small size differences, and the ProxyJak inkjet stock needs them because it has no varnish.</li>
+        <li>Fuzzy or torn edges mean the blade is dull. Rotate or replace it.</li>
+        <li>Double-sided sheets: print the backs before cutting. All cuts follow the front marks.</li>
+      </ul>
+      <h3>Corner cutting</h3>
+      <p class="hint">Real Magic cards have corners of roughly 3 mm (about 1/8 in) radius. Pick a tool that matches that.</p>
+      <div class="preset" style="display:block">
+        <b>Your tool: Sun-Star Kadomaru Pro</b>
+        <ul class="tips hint" style="padding-left:18px;margin:6px 0 0">
+          <li>Use the <b>3 mm</b> slot (the smallest). 5 mm and 8 mm are too round.</li>
+          <li>One card per punch. Proxy stock is thicker than it's rated for, so press firmly and evenly.</li>
+          <li>Test on an offcut first. If it crushes or won't cut cleanly, the <b>Kadomaru Pro Neo</b> is rated for 0.4 mm.</li>
+          <li>Empty the scrap tray in the base often, or corners stop cutting cleanly.</li>
+        </ul>
+      </div>
+      <table class="drv">
+        <tr><th>Corner rounder punch, R3 / 3 mm</th><td>Cheapest and most common. Best for a few cards at a time. Skip R2 (too square) and R4/R5 (too round).</td></tr>
+        <tr><th>Heavy-duty desktop corner cutter</th><td>A lever cutter with fixed guides. Worth it for 300gsm and heavier stock, black core, or hundreds of cards.</td></tr>
+        <tr><th>Card die cutter</th><td>Cuts the whole card, corners included, in one press. Fastest for big batches, but you have to line up the die with the print.</td></tr>
+        <tr><th>Fine nail file / 400+ grit</th><td>Touch-ups only. Smooths a small nub or a slightly uneven corner.</td></tr>
+      </table>
+      <ul class="tips hint" style="padding-left:18px">
+        <li>Round corners <b>after</b> trimming cards to their final size and <b>before</b> sleeving.</li>
+        <li>Practise on the bleed slivers and offcuts from trimming before you touch a real card.</li>
+        <li>Push the card firmly into <b>both</b> guide walls for every punch. Most lopsided corners come from a card that wasn't fully seated.</li>
+        <li>Punch <b>face up</b>. The blade pushes any burr to the back of the card, where it won't show.</li>
+        <li>On 300gsm+ and black-core stock, punch <b>one card at a time</b>. Stacks drift, and the layers can split.</li>
+        <li>Turn the card the same way after each punch (for example clockwise) so all four corners come out the same.</li>
+        <li>Inkjet prints must be fully dry, or the coating can crack or smudge at the corner.</li>
+        <li>Fuzzy edges, a visible core, or split layers mean the blade is dull. Clean out the coating build-up, punch a few times through wax paper to lubricate it, or replace the blade.</li>
+        <li>Check your first card against a real one. The corners should sit exactly on top of each other.</li>
+      </ul>
+    </div>
+
+    <div class="pane" id="tab-data">
+      <h3>Backup</h3>
+      <p class="hint">Decks, presets, settings and uploaded images are saved in this browser (IndexedDB). They never leave your computer. Export a backup to move them to another browser.</p>
+      <div class="row">
+        <button id="backupOut">Export backup (.json)</button>
+        <button id="backupIn">Import backup…</button>
+        <input type="file" id="fileBackup" accept=".json,application/json" hidden>
+      </div>
+      <h3>Storage</h3>
+      <p class="hint" id="storageInfo"></p>
+      <div class="row"><button id="wipe" class="danger">Erase all local data</button></div>
+    </div>
+  </aside>
+
+  <section id="stage">
+    <div class="toolbar">
+      <label>Zoom <input type="range" id="zoom" min="1" max="5" step="0.1" value="2.4"></label>
+      <label class="row"><input type="checkbox" id="showBacks" checked style="width:auto"> Show back pages</label>
+      <label class="row" title="Screen only, not printed"><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines</label>
+    </div>
+    <div id="pages"></div>
+  </section>
+</main>
+
+<div id="overlay"><div class="modal" id="modal"></div></div>
+<div id="busy"><div id="busyText">Working…</div><div class="bar"><i id="busyBar"></i></div></div>
+<div id="toast"></div>
+<div id="drop">Drop images or a decklist (.txt)</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PAGE_SIZES = {letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], a4:[210,297], a3:[297,420]};
+const CARD_SIZES = {mtg:[63,88], poker:[63.5,88.9], japanese:[59,86], tarot:[70,120]};
+
+const DEFAULTS = {
+  pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
+  cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
+  bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+  guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, scaleX:100, scaleY:100,
+  dpi:600, jpeg:92, brightness:100, customSrcBleed:0,
+  dfcMode:'separate', backs:false, backImage:null,
+  silhouette:false, regInset:10, regLen:20
+};
+
+const BUILTIN_PRESETS = [
+  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 upright (recommended)', builtin:true, settings:{
+    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'upright',
+    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+    guides:'both', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    dpi:600, jpeg:92, brightness:100, silhouette:false}},
+  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait 3×3', builtin:true, settings:{
+    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+    guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    dpi:600, jpeg:92, brightness:100, silhouette:false}},
+  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2', builtin:true, settings:{
+    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'upright',
+    bleed:2, bleedMode:'extend', gap:0, margin:5, cols:0, rows:0,
+    guides:'both', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    dpi:600, jpeg:92, brightness:100, silhouette:false}},
+  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait 3×3', builtin:true, settings:{
+    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:0.5, bleedMode:'extend', gap:0, margin:5, cols:0, rows:0,
+    guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    dpi:600, jpeg:92, brightness:100, silhouette:false}},
+  {id:'b-letter', name:'Letter · Portrait no bleed', builtin:true, settings:{
+    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:0, gap:0, margin:5, cols:0, rows:0, guides:'both', dpi:600, silhouette:false}},
+  {id:'b-letter-land', name:'Letter · Landscape, most cards per sheet', builtin:true, settings:{
+    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:600, silhouette:false}},
+  {id:'b-a4', name:'A4 · Portrait with 1 mm bleed', builtin:true, settings:{
+    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'margin', dpi:600, silhouette:false}},
+  {id:'b-a4-land', name:'A4 · Landscape with 1 mm bleed', builtin:true, settings:{
+    pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:600, silhouette:false}},
+  {id:'b-cameo', name:'Silhouette Cameo · Letter landscape', builtin:true, settings:{
+    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    bleed:1.5, bleedMode:'extend', gap:3, margin:16, cols:0, rows:0, guides:'none', dpi:600,
+    silhouette:true, regInset:10, regLen:20}},
+];
+
+const INKJET_STOCK_TIPS = [
+  'Use ProxyJak <b>INKJET</b> semi-gloss. Their black-core stock is laser only.',
+  'Feed from the <b>rear slot</b>, one sheet at a time. It jams in the cassette.',
+  '<b>Landscape 4×2</b> feels most like a real card. Portrait 3×3 is floppier.',
+  'Dry overnight if sheets feel soft. Play them sleeved.',
+];
+const LASER_TIPS = [
+  'Always feed from the <b>multipurpose / bypass tray</b>, the straightest paper path.',
+  'Use the heaviest coated paper type so the toner fuses properly.',
+  'Stock: <b>310gsm / 300µm</b> feels most like a real card. Use <b>300gsm / 280µm</b> if your printer is rated under 300gsm or the toner rubs off.',
+  'Don\'t set the paper guides too tight.',
+];
+const COMMON_TIPS = [
+  'Print at <b>Actual size / 100%</b>, not "Fit to page".',
+  'Run the <b>Calibration sheet</b> once and enter the results under Layout → Advanced.',
+];
+const EPSON_INKJET = [
+  ['Paper source', 'Rear paper feed'],
+  ['Paper size', 'Letter'],
+  ['Paper type', 'Premium Photo Paper Semi-Gloss (or Glossy for punchier colour)'],
+  ['Quality', 'High'],
+  ['Orientation', 'Match the preset'],
+];
+const PRINTERS = [
+  {id:'et8500', name:'Epson EcoTank ET-8500 / ET-8550 (inkjet)', kind:'Inkjet',
+    paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
+    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS},
+  {id:'et2800', name:'Epson EcoTank ET-2800 / ET-2803 (inkjet)', kind:'Inkjet',
+    paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
+    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS},
+  {id:'mf753', name:'Canon Color imageCLASS MF753Cdw / MF753Cdw II (laser)', kind:'Laser',
+    paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
+    settings:[
+      ['Paper source', 'Multi-Purpose Tray'],
+      ['Paper type (driver)', '2-sided Coated 3 [151-200g/m2]'],
+      ['Paper type (printer panel)', 'Heavy 3 (61lb Cover-65 Cover)'],
+      ['Resolution', '1200 dpi'],
+      ['Items to Prioritize', 'Images'],
+      ['Toner Save', 'Off'],
+      ['Toner Density', 'Adjust: Max 3, all colours'],
+    ],
+    more:[
+      ['Pattern Position Correction', 'Off'], ['Pattern Resolution', '600dpi'],
+      ['Gray Compensation', 'Text and Graphics'], ['Gradation Smoothing', 'Smooth 2'],
+      ['Print Diagonal Lines at High Speed', 'On'], ['Special 1 BPP Mode', 'Off'],
+      ['Grayscale Conversion', 'NTSC'], ['Use Driver Grayscale Conversion', 'Off'],
+      ['Correction Processing', 'On'], ['CanoFine', 'On'], ['Rendering Rate', '24 BPP'],
+      ['Gradation', 'Standard'], ['Halftones', 'Gradation'],
+      ['Uniform Printing of Diagonal Lines', 'On'], ['Advanced Smoothing', 'Smooth 2'],
+      ['Toner Volume Correction', 'Gradation Priority'], ['Line Control', 'Gradation Priority'],
+      ['Sharpness (Photo)', '3'], ['Accelerated Image Processing', 'Max'],
+      ['Compressed Image Data Processing', 'By Host'], ['Process Images Collectively', 'On'],
+    ],
+    tips:LASER_TIPS},
+  {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
+    paper:'Inkjet-coated cardstock, e.g. ProxyJak INKJET semi-gloss', presets:['b-inkjet-land', 'b-inkjet-port'],
+    settings:[
+      ['Paper source', 'Rear / manual feed'],
+      ['Paper type', 'Photo paper, semi-gloss or glossy'],
+      ['Quality', 'High / Best'],
+    ],
+    tips:INKJET_STOCK_TIPS},
+  {id:'laser', name:'Other laser printers', kind:'Laser',
+    paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
+    settings:[
+      ['Paper source', 'Bypass / multipurpose tray'],
+      ['Paper type', 'Heaviest coated option (Heavy Glossy, Cardstock, Coated 3 / Heavy 4)'],
+      ['Resolution', 'Highest available'],
+      ['Toner save', 'Off'],
+    ],
+    tips:LASER_TIPS},
+];
+
+/* ---------- storage (IndexedDB, falls back to memory) ---------- */
+const store = (() => {
+  const mem = {kv:new Map(), images:new Map()};
+  let dbp = null, ok = true;
+  function open() {
+    if (!dbp) dbp = new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open('proxy-press', 1);
+        r.onupgradeneeded = () => { r.result.createObjectStore('kv'); r.result.createObjectStore('images'); };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+    return dbp;
+  }
+  async function op(name, mode, fn) {
+    if (ok) {
+      try {
+        const d = await open();
+        return await new Promise((res, rej) => {
+          const t = d.transaction(name, mode); const req = fn(t.objectStore(name));
+          t.oncomplete = () => res(req.result); t.onerror = () => rej(t.error);
+        });
+      } catch (e) { ok = false; console.warn('IndexedDB unavailable, using memory', e); }
+    }
+    return null;
+  }
+  return {
+    async get(n, k) { const v = await op(n, 'readonly', s => s.get(k)); return ok ? v : mem[n].get(k); },
+    async set(n, k, v) { await op(n, 'readwrite', s => s.put(v, k)); if (!ok) mem[n].set(k, v); },
+    async del(n, k) { await op(n, 'readwrite', s => s.delete(k)); if (!ok) mem[n].delete(k); },
+    async keys(n) { const v = await op(n, 'readonly', s => s.getAllKeys()); return ok ? v : [...mem[n].keys()]; },
+    async clear() { for (const n of ['kv','images']) await op(n, 'readwrite', s => s.clear()); mem.kv.clear(); mem.images.clear(); },
+    get persistent() { return ok; }
+  };
+})();
+
+/* ---------- state ---------- */
+const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, zoom:2.4, showBacks:true };
+const deck = () => S.decks.find(d => d.id === S.deckId);
+
+let saveTimer;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const d = deck(); if (d) d.updated = Date.now();
+    await store.set('kv', 'decks', S.decks);
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, mpc:S.mpc, showCuts:S.showCuts});
+    await store.set('kv', 'presets', S.presets);
+  }, 250);
+}
+
+async function load() {
+  S.decks = (await store.get('kv', 'decks')) || [];
+  S.presets = (await store.get('kv', 'presets')) || [];
+  const ui = await store.get('kv', 'ui');
+  if (ui) {
+    S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
+    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts;
+  } else {
+    S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
+  }
+  if (!S.decks.length) S.decks.push({id:uid(), name:'My deck', entries:[], updated:Date.now()});
+  if (!deck()) S.deckId = S.decks[0].id;
+}
+
+/* ---------- images ---------- */
+const blobUrls = new Map();
+async function customUrl(key) {
+  if (!key) return null;
+  if (!blobUrls.has(key)) {
+    const b = await store.get('images', key);
+    if (!b) return null;
+    blobUrls.set(key, URL.createObjectURL(b));
+  }
+  return blobUrls.get(key);
+}
+const imgCache = new Map();
+function loadImage(src) {
+  if (!imgCache.has(src)) imgCache.set(src, new Promise((res, rej) => {
+    const i = new Image(); i.crossOrigin = 'anonymous'; i.decoding = 'async';
+    i.onload = () => res(i); i.onerror = () => { imgCache.delete(src); rej(new Error('Image failed: ' + src)); };
+    i.src = src;
+  }));
+  return imgCache.get(src);
+}
+async function faceSrc(face, hi) {
+  if (face.custom) return customUrl(face.custom);
+  if (face.drive) return hi ? `https://cdn.mpcautofill.com/images/google_drive/full/${face.drive}.jpg?dpi=${Math.min(S.settings.dpi, 1200)}&jpgQuality=100`
+    : `https://img.mpcautofill.com/${face.drive}-large-google_drive`;
+  return hi ? face.png : face.normal;
+}
+async function thumbSrc(face) {
+  if (face.custom) return customUrl(face.custom);
+  if (face.drive) return `https://img.mpcautofill.com/${face.drive}-small-google_drive`;
+  return face.normal;
+}
+function sampleBorder(img) {
+  try {
+    const c = document.createElement('canvas'); c.width = 50; c.height = 70;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 50, 70);
+    const d = x.getImageData(1, 35, 1, 1).data;
+    if (d[3] < 128) return '#000';
+    return `rgb(${d[0]},${d[1]},${d[2]})`;
+  } catch { return '#000'; }
+}
+const borderCache = new WeakMap();
+
+async function renderFace(face, dpi, hi, rot = 0) {
+  const s = S.settings;
+  const url = await faceSrc(face, hi);
+  if (!url) throw new Error(`No image for "${face.name}"`);
+  const img = await loadImage(url);
+  const k = dpi / 25.4, b = s.bleed;
+  const W = Math.round((s.cardW + 2*b) * k), H = Math.round((s.cardH + 2*b) * k);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  if (!borderCache.has(img)) borderCache.set(img, sampleBorder(img));
+  x.fillStyle = borderCache.get(img); x.fillRect(0, 0, W, H);
+  if (s.brightness !== 100) x.filter = `brightness(${s.brightness}%)`;
+  const sb = face.srcBleed ?? (face.custom ? s.customSrcBleed : 0);
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const sx = iw / (s.cardW + 2*sb), sy = ih / (s.cardH + 2*sb);
+  const e = Math.min(b, sb);
+  const src = [(sb-e)*sx, (sb-e)*sy, (s.cardW+2*e)*sx, (s.cardH+2*e)*sy];
+  const dst = [(b-e)*k, (b-e)*k, (s.cardW+2*e)*k, (s.cardH+2*e)*k];
+  x.drawImage(img, ...src, ...dst);
+  if (b > e && s.bleedMode === 'extend') {
+    const ext = (b - e) * k, inset = Math.max(1, iw * 0.004), strip = Math.max(1, iw * 0.003);
+    const [s0, t0, sw, sh] = src, [d0, u0, dw, dh] = dst;
+    x.drawImage(img, s0 + inset, t0, strip, sh, 0, u0, ext, dh);
+    x.drawImage(img, s0 + sw - inset - strip, t0, strip, sh, d0 + dw, u0, ext, dh);
+    x.drawImage(img, s0, t0 + inset, sw, strip, d0, 0, dw, ext);
+    x.drawImage(img, s0, t0 + sh - inset - strip, sw, strip, d0, u0 + dh, dw, ext);
+  }
+  x.filter = 'none';
+  if (!rot) return c;
+  const r = document.createElement('canvas'); r.width = H; r.height = W;
+  const y = r.getContext('2d');
+  y.translate(rot > 0 ? H : 0, rot > 0 ? 0 : W); y.rotate(rot * Math.PI / 180); y.drawImage(c, 0, 0);
+  return r;
+}
+
+const previewCache = new Map();
+function settingsSig() {
+  const s = S.settings;
+  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.customSrcBleed].join(',');
+}
+async function previewUrl(face, rot = 0) {
+  const key = (face.custom || face.drive || face.normal) + '|' + settingsSig() + '|' + rot;
+  if (!previewCache.has(key)) previewCache.set(key, (async () => {
+    try { return (await renderFace(face, 110, false, rot)).toDataURL('image/jpeg', 0.85); }
+    catch { const u = await faceSrc(face, false); return u ? 'raw:' + u : null; }
+  })());
+  return previewCache.get(key);
+}
+
+/* ---------- layout ---------- */
+function layout() {
+  const s = S.settings;
+  let [W, H] = s.pageSize === 'custom' ? [+s.pageW, +s.pageH] : PAGE_SIZES[s.pageSize];
+  if (s.orientation === 'landscape') [W, H] = [H, W];
+  const fit = (cw, ch) => {
+    const sw = cw + 2*s.bleed, sh = ch + 2*s.bleed;
+    const cols = s.cols > 0 ? s.cols : Math.max(1, Math.floor((W - 2*s.margin + s.gap) / (sw + s.gap)));
+    const rows = s.rows > 0 ? s.rows : Math.max(1, Math.floor((H - 2*s.margin + s.gap) / (sh + s.gap)));
+    const gw = cols*sw + (cols-1)*s.gap, gh = rows*sh + (rows-1)*s.gap, edge = 2*Math.min(s.margin, 3);
+    return {cw, ch, sw, sh, cols, rows, per:cols*rows, gw, gh, fits: gw <= W - edge + 0.01 && gh <= H - edge + 0.01};
+  };
+  const up = fit(s.cardW, s.cardH), side = fit(s.cardH, s.cardW);
+  const useSide = s.cardRotation === 'rotated' || (s.cardRotation === 'auto' && side.fits && (!up.fits || side.per > up.per));
+  const g = useSide ? side : up;
+  return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2};
+}
+function slotPos(L, i, back) {
+  const s = S.settings, c = i % L.cols, r = Math.floor(i / L.cols);
+  let x = L.x0 + c*(L.sw + s.gap); const y = L.y0 + r*(L.sh + s.gap);
+  if (back) x = L.W - x - L.sw;
+  return {x, y};
+}
+function makeT(L, back) {
+  const s = S.settings, kx = s.scaleX/100, ky = s.scaleY/100;
+  const ox = back ? s.backOffsetX : s.offsetX, oy = back ? s.backOffsetY : s.offsetY;
+  const cx = L.W/2, cy = L.H/2;
+  return {x: v => cx + (v-cx)*kx + ox, y: v => cy + (v-cy)*ky + oy, w: v => v*kx, h: v => v*ky};
+}
+function guideLines(L, n) {
+  const s = S.settings, out = [];
+  if (s.guides === 'none' || !n) return out;
+  const usedCols = Math.min(L.cols, n), usedRows = Math.ceil(n / L.cols);
+  const xs = new Set(), ys = new Set();
+  for (let c = 0; c < usedCols; c++) { const x = L.x0 + c*(L.sw+s.gap) + s.bleed; xs.add(+x.toFixed(3)); xs.add(+(x + L.cw).toFixed(3)); }
+  for (let r = 0; r < usedRows; r++) { const y = L.y0 + r*(L.sh+s.gap) + s.bleed; ys.add(+y.toFixed(3)); ys.add(+(y + L.ch).toFixed(3)); }
+  const gx1 = L.x0, gy1 = L.y0, gx2 = L.x0 + usedCols*L.sw + (usedCols-1)*s.gap, gy2 = L.y0 + usedRows*L.sh + (usedRows-1)*s.gap;
+  if (s.guides === 'margin' || s.guides === 'both') {
+    for (const x of xs) { out.push([x, 0, x, gy1]); out.push([x, gy2, x, L.H]); }
+    for (const y of ys) { out.push([0, y, gx1, y]); out.push([gx2, y, L.W, y]); }
+  }
+  if (s.guides === 'corners' || s.guides === 'both') {
+    const len = s.guideLen;
+    for (let i = 0; i < n; i++) {
+      const p = slotPos(L, i, false), x1 = p.x + s.bleed, y1 = p.y + s.bleed, x2 = x1 + L.cw, y2 = y1 + L.ch;
+      const c = i % L.cols, r = Math.floor(i / L.cols), room = Math.min(len, 2*s.bleed + s.gap);
+      const lf = c > 0 ? room : len, rt = c < L.cols - 1 && i + 1 < n ? room : len;
+      const up = r > 0 ? room : len, dn = i + L.cols < n ? room : len;
+      out.push(...[[x1-lf, y1, x1, y1], [x1, y1-up, x1, y1], [x2, y1, x2+rt, y1], [x2, y1-up, x2, y1],
+                   [x1-lf, y2, x1, y2], [x1, y2, x1, y2+dn], [x2, y2, x2+rt, y2], [x2, y2, x2, y2+dn]]
+        .filter(([a, b, c2, d]) => a !== c2 || b !== d));
+    }
+  }
+  return out;
+}
+function regMarks(L) {
+  const s = S.settings; if (!s.silhouette) return {rects:[], lines:[]};
+  const i = s.regInset, len = s.regLen, t = 0.5;
+  return {
+    rects: [[i, i, 5, 5]],
+    lines: [[L.W-i-len, i, L.W-i, i], [L.W-i, i, L.W-i, i+len],
+            [i, L.H-i, i+len, L.H-i], [i, L.H-i-len, i, L.H-i],
+            [L.W-i-len, L.H-i, L.W-i, L.H-i], [L.W-i, L.H-i-len, L.W-i, L.H-i]],
+    width: t
+  };
+}
+function regConflict(L) {
+  const s = S.settings; if (!s.silhouette) return false;
+  const keep = s.regInset + 6;
+  return L.x0 < keep || L.y0 < keep;
+}
+
+/* ---------- slots ---------- */
+function buildSlots() {
+  const d = deck(), s = S.settings, out = [];
+  const backFace = !s.backs ? null : s.backImage ? {name:'Card back', custom:s.backImage} : d.cardback || null;
+  for (const e of d.entries) {
+    if (!e.faces.length) continue;
+    for (let q = 0; q < e.qty; q++) {
+      if (e.faces.length > 1) {
+        if (s.dfcMode === 'separate') e.faces.forEach(f => out.push({front:f, back:backFace}));
+        else if (s.dfcMode === 'front') out.push({front:e.faces[0], back:backFace});
+        else out.push({front:e.faces[0], back:e.faces[1]});
+      } else out.push({front:e.faces[0], back:backFace});
+    }
+  }
+  return out;
+}
+function paginate(slots, per) { const p = []; for (let i = 0; i < slots.length; i += per) p.push(slots.slice(i, i + per)); return p; }
+
+/* ---------- Scryfall ---------- */
+const SF = 'https://api.scryfall.com';
+let lastCall = 0;
+async function sf(url, opts = {}) {
+  const wait = 110 - (Date.now() - lastCall); if (wait > 0) await sleep(wait);
+  lastCall = Date.now();
+  const r = await fetch(url, {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
+  const j = await r.json();
+  if (!r.ok && j.object === 'error') throw new Error(j.details);
+  return j;
+}
+function toEntry(card, qty) {
+  const pick = o => ({png:o.image_uris.png, normal:o.image_uris.normal});
+  const faces = card.image_uris ? [{name:card.name, ...pick(card)}]
+    : (card.card_faces || []).filter(f => f.image_uris).map(f => ({name:f.name, ...pick(f)}));
+  return {
+    uid:uid(), qty, name:card.name, set:card.set, cn:card.collector_number, scryId:card.id,
+    oracleId:card.oracle_id || card.card_faces?.[0]?.oracle_id, faces,
+    kind:/token|emblem/.test(card.layout) ? 'TOKEN' : 'CARD',
+    tokens:(card.all_parts || []).filter(p => p.id !== card.id && (p.component === 'token' || /Emblem/.test(p.type_line || ''))).map(p => p.id)
+  };
+}
+function parseList(text) {
+  const out = [];
+  for (let line of text.split(/\r?\n/)) {
+    line = line.trim();
+    if (!line || /^(\/\/|#)/.test(line)) continue;
+    if (/^(deck|sideboard|commander|companion|maybeboard|mainboard|about|name\b)/i.test(line) && !/^\d/.test(line)) continue;
+    line = line.replace(/^SB:\s*/i, '');
+    if (/\([A-Za-z0-9]{2,6}\)/.test(line)) line = line.replace(/\s+\[[^\]]*\]\s*(\^[^^]*\^)?\s*$/, '');
+    line = line.replace(/\s+\*[A-Za-z]+\*/g, '');
+    const m = line.match(/^(?:(\d+)\s*[xX]?\s+)?(.+?)(?:\s+[\(\[]([A-Za-z0-9]{2,6})[\)\]](?:\s+([A-Za-z0-9\-★☆]+))?)?\s*$/);
+    if (!m) continue;
+    out.push({qty:+(m[1] || 1), name:m[2].replace(/\s*\/\/?\s*/g, m[2].includes('/') ? ' // ' : ''), set:m[3]?.toLowerCase(), cn:m[4]});
+  }
+  return out;
+}
+function matches(card, id) {
+  if (id.id) return card.id === id.id;
+  if (id.collector_number) return card.set === id.set && card.collector_number === id.collector_number;
+  const n = id.name.toLowerCase(), names = [card.name, ...(card.card_faces || []).map(f => f.name)].map(x => x.toLowerCase());
+  return names.includes(n) && (!id.set || card.set === id.set);
+}
+async function fetchCollection(ids, progress) {
+  const found = [], missing = [];
+  for (let i = 0; i < ids.length; i += 75) {
+    const chunk = ids.slice(i, i + 75);
+    progress?.(i, ids.length);
+    const j = await sf(SF + '/cards/collection', {method:'POST', body:JSON.stringify({identifiers:chunk.map(c => c.id)})});
+    const pool = [...(j.data || [])];
+    for (const c of chunk) {
+      const k = pool.findIndex(card => matches(card, c.id));
+      if (k >= 0) found.push({req:c, card:pool.splice(k, 1)[0]}); else missing.push(c);
+    }
+  }
+  return {found, missing};
+}
+async function importList(text, replace) {
+  const items = parseList(text);
+  if (!items.length) return toast('No cards found in that list.');
+  busy(true, 'Looking up cards on Scryfall…');
+  try {
+    const ids = items.map(it => ({...it, id: it.set && it.cn ? {set:it.set, collector_number:it.cn} : it.set ? {name:it.name, set:it.set} : {name:it.name}}));
+    let {found, missing} = await fetchCollection(ids, (i, n) => busyProgress(i / n));
+    const retry = missing.filter(m => m.set);
+    if (retry.length) {
+      const r = await fetchCollection(retry.map(m => ({...m, id:{name:m.name}})));
+      found = found.concat(r.found); missing = missing.filter(m => !m.set).concat(r.missing);
+    }
+    const d = deck();
+    if (replace) d.entries = [];
+    for (const {req, card} of found) {
+      const ex = d.entries.find(e => e.scryId === card.id);
+      if (ex) ex.qty += req.qty; else d.entries.push(toEntry(card, req.qty));
+    }
+    save(); renderAll();
+    toast(`Added ${found.length} card${found.length === 1 ? '' : 's'}` + (missing.length ? `. Not found: ${missing.map(m => m.name).join(', ')}` : '.'), missing.length ? 8000 : 3000);
+    if (!missing.length) $('#listIn').value = '';
+  } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
+  busy(false);
+}
+async function addTokens() {
+  const d = deck(), have = new Set(d.entries.map(e => e.scryId));
+  const ids = [...new Set(d.entries.flatMap(e => e.tokens || []))].filter(id => !have.has(id));
+  if (!ids.length) return toast('No new tokens or emblems found for this deck.');
+  busy(true, 'Fetching tokens…');
+  try {
+    const {found} = await fetchCollection(ids.map(id => ({qty:1, id:{id}})));
+    for (const {card} of found) d.entries.push(toEntry(card, 1));
+    save(); renderAll(); toast(`Added ${found.length} token/emblem card${found.length === 1 ? '' : 's'}.`);
+  } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
+  busy(false);
+}
+
+/* ---------- uploads ---------- */
+async function storeImage(file) { const key = 'img-' + uid(); await store.set('images', key, file); return key; }
+async function uploadImages(files) {
+  const d = deck(); let n = 0;
+  for (const f of files) {
+    if (!f.type.startsWith('image/')) continue;
+    const key = await storeImage(f);
+    const name = f.name.replace(/\.[^.]+$/, '');
+    d.entries.push({uid:uid(), qty:1, name, custom:true, faces:[{name, custom:key}], tokens:[]});
+    n++;
+  }
+  save(); renderAll(); if (n) toast(`Added ${n} custom image${n === 1 ? '' : 's'}.`);
+}
+async function removeImageIfUnused(key) {
+  if (!key) return;
+  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key))) || S.settings.backImage === key;
+  if (!used) { await store.del('images', key); blobUrls.delete(key); }
+}
+
+/* ---------- MPC Autofill ---------- */
+const MPC_BLEED = 3.048;
+function mpcFace(card) {
+  const id = card.id, file = card.name || '';
+  const name = (file || card.query || id.split(/[\\/]/).pop()).replace(/\.[a-z0-9]{2,5}$/i, '');
+  if (!/^[\w-]{10,}$/.test(id)) return {name, file:id.split(/[\\/]/).pop(), srcBleed:MPC_BLEED};
+  return {name, file, drive:id, srcBleed:MPC_BLEED};
+}
+function slotsOf(text) {
+  const out = [];
+  for (const part of String(text || '').replace(/[\[\]]/g, '').split(',')) {
+    const r = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (r) for (let i = +r[1]; i <= +(r[2] ?? r[1]); i++) out.push(i);
+  }
+  return out;
+}
+async function importMpcXml(text, fileName) {
+  const xml = new DOMParser().parseFromString(text, 'application/xml');
+  const order = xml.querySelector('order');
+  if (xml.querySelector('parsererror') || !order) { toast(`${fileName}: not a valid MPC Autofill XML file.`, 6000); return false; }
+  const val = (el, tag) => el.querySelector(tag)?.textContent.trim().replace(/^["']|["']$/g, '') || '';
+  const read = sec => [...(order.querySelector(sec)?.children || [])].map(c => ({id:val(c, 'id'), slots:slotsOf(val(c, 'slots')), name:val(c, 'name'), query:val(c, 'query')})).filter(c => c.id);
+  const fronts = read('fronts'), backs = read('backs');
+  const front = new Map(), back = new Map();
+  for (const c of fronts) for (const i of c.slots) front.set(i, c);
+  for (const c of backs) for (const i of c.slots) back.set(i, c);
+  const n = Math.max(+val(order, 'details > quantity') || 0, ...[...front.keys()].map(i => i + 1));
+  const groups = new Map();
+  for (let i = 0; i < n; i++) {
+    const f = front.get(i); if (!f) continue;
+    const b = back.get(i), key = f.id + '|' + (b?.id || '');
+    if (groups.has(key)) groups.get(key).qty++; else groups.set(key, {f, b, qty:1});
+  }
+  if (!groups.size) { toast(`${fileName}: no cards found in this order.`, 6000); return false; }
+  const entries = [...groups.values()].map(({f, b, qty}) => {
+    const faces = [mpcFace(f)]; if (b) faces.push(mpcFace(b));
+    return {uid:uid(), qty, name:faces[0].name, custom:true, mpc:true, faces, tokens:[]};
+  });
+  const cb = val(order, 'cardback');
+  const d = {id:uid(), name:fileName.replace(/\.xml$/i, ''), entries, updated:Date.now(), cardback: cb ? {...mpcFace({id:cb, name:'Card back'}), name:'Card back'} : null};
+  S.decks.push(d); S.deckId = d.id;
+  if (cb && !S.settings.backs) { S.settings.backs = true; S.activePreset = null; }
+  save(); renderAll();
+  toast(`Imported ${entries.reduce((a, e) => a + e.qty, 0)} cards from ${fileName}${cb ? ' (card back included, so back pages are on)' : ''}.`, 6000);
+  return true;
+}
+async function attachMpcImages(files) {
+  const d = deck();
+  const faces = [...d.entries.flatMap(e => e.faces), ...(d.cardback ? [d.cardback] : [])].filter(f => f.drive || f.file);
+  if (!faces.length) return toast('This deck has no MPC Autofill cards to match.');
+  const imgs = files.filter(f => f.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(f.name));
+  const base = n => n.replace(/\.[a-z0-9]{2,5}$/i, '').toLowerCase();
+  busy(true, 'Matching images…');
+  let matched = 0; const done = new Map();
+  for (const face of faces) {
+    const file = imgs.find(f => face.drive && f.name.includes(face.drive))
+      || imgs.find(f => face.file && f.name.toLowerCase() === face.file.toLowerCase())
+      || imgs.find(f => face.file && base(f.name) === base(face.file));
+    if (!file) continue;
+    if (!done.has(file)) done.set(file, await storeImage(file));
+    const old = face.custom; face.custom = done.get(file);
+    if (old && old !== face.custom) await removeImageIfUnused(old);
+    matched++;
+  }
+  busy(false); save(); renderAll();
+  toast(`Matched ${matched} of ${faces.length} MPC images.`, 5000);
+}
+async function checkFaces(slots) {
+  const faces = new Map();
+  for (const sl of slots) for (const f of [sl.front, sl.back]) if (f) faces.set(f.custom || f.drive || f.png || f.name, f);
+  const bad = [];
+  for (const f of faces.values()) {
+    if (!f.custom && !f.png && !f.drive) bad.push(f);
+  }
+  return bad;
+}
+$('#btnMpc').onclick = () => $('#fileMpc').click();
+$('#btnMpcFiles').onclick = () => $('#fileMpcImgs').click();
+$('#btnMpcFolder').onclick = () => $('#fileMpcDir').click();
+$('#fileMpc').onchange = async ev => { for (const f of ev.target.files) await importMpcXml(await f.text(), f.name); ev.target.value = ''; };
+$('#fileMpcImgs').onchange = ev => { attachMpcImages([...ev.target.files]); ev.target.value = ''; };
+$('#fileMpcDir').onchange = ev => { attachMpcImages([...ev.target.files]); ev.target.value = ''; };
+
+/* ---------- MPC Autofill search (mpcfill.com) ---------- */
+const MPC_DEFAULTS = {minDpi:300, preferDpi:800, maxDpi:1500, maxMb:30, lang:'', fuzzy:false, nsfw:false};
+const MPC_BRACKETS = [18, 36, 55, 72, 90, 108, 126, 144, 162, 180, 198, 216, 234, 396, 504, 612];
+const mpcDetails = new Map();
+let mpcBaseP = null, mpcSources = null, mpcLangs = null;
+function mpcBase() {
+  if (!mpcBaseP) mpcBaseP = (async () => {
+    if (location.protocol.startsWith('http')) {
+      try { const r = await fetch('/mpc/2/sources/'); if (r.ok) { mpcSources = (await r.json()).results; return '/mpc/'; } } catch {}
+    }
+    mpcBaseP = null; return null;
+  })();
+  return mpcBaseP;
+}
+async function mpcApi(path, body) {
+  const base = await mpcBase();
+  if (!base) throw new Error('MPC_OFFLINE');
+  const r = await fetch(base + path, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.message || j.name || 'HTTP ' + r.status);
+  return j;
+}
+async function mpcSettings() {
+  await mpcBase();
+  const m = S.mpc;
+  return {
+    searchTypeSettings:{fuzzySearch:!!m.fuzzy, filterCardbacks:false},
+    sourceSettings:{sources:Object.values(mpcSources || {}).map(x => [x.pk, true])},
+    filterSettings:{minimumDPI:+m.minDpi || 0, maximumDPI:+m.maxDpi || 1500, maximumSize:+m.maxMb || 30, languages:m.lang ? [m.lang] : [], includesTags:[], excludesTags:m.nsfw ? [] : ['NSFW']}
+  };
+}
+const mpcQuery = n => String(n || '').toLowerCase().trim();
+async function mpcSearch(queries) {
+  const out = new Map(), searchSettings = await mpcSettings();
+  for (let i = 0; i < queries.length; i += 300) {
+    const chunk = queries.slice(i, i + 300);
+    const j = await mpcApi('2/editorSearch/', {searchSettings, queries:chunk});
+    for (const q of chunk) out.set(q.query + '|' + q.cardType, j.results?.[q.query]?.[q.cardType] || []);
+  }
+  return out;
+}
+async function mpcCards(ids) {
+  const need = ids.filter(id => !mpcDetails.has(id));
+  for (let i = 0; i < need.length; i += 1000) {
+    const j = await mpcApi('2/cards/', {cardIdentifiers:need.slice(i, i + 1000)});
+    for (const [k, v] of Object.entries(j.results || {})) mpcDetails.set(k, v);
+  }
+  return ids.map(id => mpcDetails.get(id)).filter(Boolean);
+}
+function mpcRank(ids) {
+  const pref = +S.mpc.preferDpi || 0, hi = id => (mpcDetails.get(id)?.dpi || 0) >= pref ? 0 : 1;
+  return pref ? ids.map((id, i) => [id, i]).sort((a, b) => hi(a[0]) - hi(b[0]) || a[1] - b[1]).map(x => x[0]) : ids;
+}
+function mpcArt(card) {
+  return {drive:card.identifier, srcBleed:MPC_BLEED, file:`${card.name}.${card.extension || 'png'}`, mpcName:card.name, mpcSource:card.sourceName, mpcDpi:card.dpi};
+}
+function clearMpcArt(f) { for (const k of ['drive', 'srcBleed', 'file', 'mpcName', 'mpcSource', 'mpcDpi']) delete f[k]; }
+function mpcOfflineHtml() {
+  if (location.protocol.startsWith('http')) return `<div class="warn">Couldn't reach MPC Autofill search. mpcfill.com may be down or busy, so try again in a minute.</div>`;
+  return `<div class="warn">Search needs the local helper, because mpcfill.com only accepts searches from its own site.<br>
+    Run <code>python3 proxy-press-server.py</code> in the folder with this page, then open <b>http://localhost:8642</b>.</div>
+    <p class="hint">Your decks are stored per address, so use Data → Export backup here and import it there to bring them across.</p>`;
+}
+
+async function openMpcPicker(target) {
+  let faceIdx = target.i || 0, ids = [], shown = 0;
+  const e = target.e, isBack = !!target.cardback;
+  const face = () => e?.faces[faceIdx];
+  const current = () => isBack ? deck().cardback?.drive : face()?.drive;
+  openModal(`<div class="hd"><b>${isBack ? 'Choose a cardback' : esc(e.name) + ' · MPC Autofill art'}</b><button data-close>Close</button></div>
+    <div class="bd">
+      ${!isBack && e.faces.length > 1 ? `<div class="row" style="margin-bottom:8px">${e.faces.map((f, i) => `<button class="icon ${i === faceIdx ? 'primary' : ''}" data-face="${i}">${esc(f.name)}</button>`).join('')}</div>` : ''}
+      ${isBack ? '' : `<div class="row" style="margin-bottom:8px">
+        <input type="text" id="mpcQ" style="flex:1;min-width:180px" value="${esc(face().name)}">
+        <select id="mpcType" style="width:auto"><option value="CARD">Card</option><option value="TOKEN" ${e.kind === 'TOKEN' ? 'selected' : ''}>Token</option></select>
+        <button class="primary" id="mpcGo">Search</button>
+        ${e.scryId ? '<button id="mpcPrints">Scryfall prints</button>' : ''}
+      </div>`}
+      <details class="adv" style="margin:0 0 10px"><summary>Search filters</summary>
+        <div class="grid2" style="margin-top:8px">
+          <div class="field"><label>Min DPI</label><input type="number" data-m="minDpi" value="${S.mpc.minDpi}"></div>
+          <div class="field"><label>Show first: DPI ≥ (0 = off)</label><input type="number" data-m="preferDpi" value="${S.mpc.preferDpi}"></div>
+          <div class="field"><label>Max DPI</label><input type="number" data-m="maxDpi" value="${S.mpc.maxDpi}"></div>
+          <div class="field"><label>Max file size (MB)</label><input type="number" data-m="maxMb" value="${S.mpc.maxMb}"></div>
+          <div class="field"><label>Language</label><select data-m="lang" id="mpcLang"><option value="">Any</option></select></div>
+          <label class="check"><input type="checkbox" data-m="fuzzy" ${S.mpc.fuzzy ? 'checked' : ''}> Fuzzy search</label>
+          <label class="check"><input type="checkbox" data-m="nsfw" ${S.mpc.nsfw ? 'checked' : ''}> Include NSFW art</label>
+        </div>
+      </details>
+      <p class="hint" id="mpcStatus"></p>
+      <div class="prints" id="mpcGrid"></div>
+      <div class="row" style="justify-content:center;margin-top:12px"><button id="mpcMore" style="display:none">Load more</button></div>
+    </div>`);
+  const status = t => $('#mpcStatus').innerHTML = t;
+  async function page() {
+    const batch = ids.slice(shown, shown + 60); shown += batch.length;
+    const cards = await mpcCards(batch);
+    $('#mpcGrid').insertAdjacentHTML('beforeend', cards.map(c => `<figure data-id="${esc(c.identifier)}" class="${c.identifier === current() ? 'sel' : ''}">
+      <img loading="lazy" src="https://img.mpcautofill.com/${esc(c.identifier)}-small-google_drive" alt="">
+      <figcaption>${esc(c.name)}<br>${esc(c.sourceName)} · ${S.mpc.preferDpi && c.dpi >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+c.dpi} DPI</b>` : +c.dpi + ' DPI'} · ${(+c.size / 1048576).toFixed(1)} MB</figcaption></figure>`).join(''));
+    $('#mpcMore').style.display = shown < ids.length ? '' : 'none';
+  }
+  async function run() {
+    $('#mpcGrid').innerHTML = ''; shown = 0; status('Searching MPC Autofill…');
+    try {
+      if (isBack) ids = (await mpcApi('2/cardbacks/', {searchSettings:await mpcSettings()})).cardbacks || [];
+      else {
+        const q = {query:mpcQuery($('#mpcQ').value), cardType:$('#mpcType').value};
+        ids = (await mpcSearch([q])).get(q.query + '|' + q.cardType);
+      }
+      await mpcCards(ids); ids = mpcRank(ids);
+      const nHi = S.mpc.preferDpi ? ids.filter(id => mpcDetails.get(id)?.dpi >= S.mpc.preferDpi).length : 0;
+      status(ids.length ? `${ids.length} result${ids.length === 1 ? '' : 's'}${S.mpc.preferDpi ? `, ${nHi} at ${S.mpc.preferDpi}+ DPI shown first` : ', best matches first'}.` : 'No results. Try another name, fuzzy search, or lower the min DPI.');
+      if (ids.length) await page();
+    } catch (err) { status(err.message === 'MPC_OFFLINE' ? mpcOfflineHtml() : 'Search failed: ' + esc(err.message)); }
+  }
+  const bd = $('#modal .bd');
+  bd.addEventListener('click', async ev => {
+    const fb = ev.target.closest('[data-face]');
+    if (fb) { faceIdx = +fb.dataset.face; $$('[data-face]', bd).forEach(b => b.classList.toggle('primary', b === fb)); $('#mpcQ').value = face().name; return run(); }
+    if (ev.target.id === 'mpcGo') return run();
+    if (ev.target.id === 'mpcMore') return page();
+    if (ev.target.id === 'mpcPrints') return openPrints(e);
+    const fig = ev.target.closest('figure'); if (!fig) return;
+    const card = mpcDetails.get(fig.dataset.id); if (!card) return;
+    if (isBack) {
+      const old = S.settings.backImage;
+      deck().cardback = {name:'Card back', ...mpcArt(card)};
+      S.settings.backs = true; S.settings.backImage = null; S.activePreset = null;
+      await removeImageIfUnused(old);
+      toast('Cardback set. Back pages are on.');
+    } else {
+      const f = face(), old = f.custom;
+      delete f.custom; Object.assign(f, mpcArt(card));
+      await removeImageIfUnused(old);
+    }
+    closeModal(); save(); renderAll();
+  });
+  $('#mpcQ')?.addEventListener('keydown', ev => { if (ev.key === 'Enter') run(); });
+  bd.addEventListener('change', ev => {
+    const k = ev.target.dataset.m; if (!k) return;
+    S.mpc[k] = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.type === 'number' ? +ev.target.value : ev.target.value;
+    save(); run();
+  });
+  mpcApi('2/languages/').then(j => {
+    mpcLangs = j.languages || [];
+    const sel = $('#mpcLang'); if (!sel) return;
+    sel.insertAdjacentHTML('beforeend', mpcLangs.map(l => `<option value="${esc(l.code)}" ${l.code === S.mpc.lang ? 'selected' : ''}>${esc(l.name)}</option>`).join(''));
+  }).catch(() => {});
+  run();
+}
+
+async function mpcAutofill() {
+  const d = deck(), targets = [];
+  for (const e of d.entries) e.faces.forEach(f => { if (!e.mpc && !f.custom && !f.drive) targets.push({f, q:{query:mpcQuery(f.name), cardType:e.kind || 'CARD'}}); });
+  if (!targets.length) return toast('Every card already has MPC or custom art.');
+  busy(true, `Searching MPC Autofill for ${targets.length} card face${targets.length === 1 ? '' : 's'}…`);
+  try {
+    const uniq = [...new Map(targets.map(t => [t.q.query + '|' + t.q.cardType, t.q])).values()];
+    const res = await mpcSearch(uniq);
+    const hits = t => res.get(t.q.query + '|' + t.q.cardType) || [];
+    await mpcCards([...new Set(uniq.flatMap(q => (res.get(q.query + '|' + q.cardType) || []).slice(0, 40)))]);
+    const best = t => mpcRank(hits(t).slice(0, 40))[0];
+    const missed = [];
+    for (const t of targets) { const c = mpcDetails.get(best(t)); if (c) Object.assign(t.f, mpcArt(c)); else missed.push(t.f.name); }
+    save(); renderAll();
+    toast(`MPC art picked for ${targets.length - missed.length} of ${targets.length}.` + (missed.length ? ` Kept Scryfall art for: ${missed.slice(0, 6).join(', ')}${missed.length > 6 ? '…' : ''}` : ''), missed.length ? 9000 : 4000);
+  } catch (err) {
+    if (err.message === 'MPC_OFFLINE') { busy(false); return openModal(`<div class="hd"><b>MPC Autofill search</b><button data-close>Close</button></div><div class="bd">${mpcOfflineHtml()}</div>`); }
+    toast('MPC search failed: ' + err.message, 6000);
+  }
+  busy(false);
+}
+
+function exportMpcXml() {
+  const d = deck(), fronts = new Map(), backs = new Map(); let slot = 0, skipped = 0, noBack = 0;
+  const add = (map, f, i) => { if (!map.has(f.drive)) map.set(f.drive, {f, slots:[]}); map.get(f.drive).slots.push(i); };
+  for (const e of d.entries) for (let q = 0; q < e.qty; q++) {
+    const f = e.faces[0];
+    if (!f?.drive) { skipped++; continue; }
+    add(fronts, f, slot);
+    if (e.faces[1]) { if (e.faces[1].drive) add(backs, e.faces[1], slot); else noBack++; }
+    slot++;
+  }
+  if (!slot) return toast('No cards with MPC Autofill art yet. Use "Auto MPC art" or the MPC art button first.', 6000);
+  const x = v => esc(v);
+  const cardXml = ({f, slots}) => `    <card>\n      <id>${x(f.drive)}</id>\n      <slots>${slots.join(',')}</slots>\n      <name>${x(f.file || (f.mpcName || f.name) + '.png')}</name>\n      <query>${x(mpcQuery(f.name))}</query>\n    </card>\n`;
+  const bracket = MPC_BRACKETS.find(b => b >= slot) || MPC_BRACKETS[MPC_BRACKETS.length - 1];
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<order>\n  <details>\n    <quantity>${slot}</quantity>\n    <bracket>${bracket}</bracket>\n    <stock>(S30) Standard Smooth</stock>\n    <foil>false</foil>\n  </details>\n  <fronts>\n${[...fronts.values()].map(cardXml).join('')}  </fronts>\n`;
+  if (backs.size) xml += `  <backs>\n${[...backs.values()].map(cardXml).join('')}  </backs>\n`;
+  if (d.cardback?.drive) xml += `  <cardback>${x(d.cardback.drive)}</cardback>\n`;
+  xml += '</order>\n';
+  download(new Blob([xml], {type:'application/xml'}), `${d.name.replace(/[^\w\- ]+/g, '').trim() || 'deck'}.xml`);
+  const notes = [];
+  if (skipped) notes.push(`${skipped} card${skipped === 1 ? '' : 's'} without MPC art skipped`);
+  if (noBack) notes.push(`${noBack} double-faced back${noBack === 1 ? '' : 's'} without MPC art`);
+  if (!d.cardback?.drive) notes.push('no MPC cardback chosen');
+  if (slot > 612) notes.push('over 612 cards, so split the order in the MPC Autofill desktop tool');
+  toast(`Exported ${slot} cards.` + (notes.length ? ' Note: ' + notes.join('; ') + '.' : ''), notes.length ? 9000 : 4000);
+}
+$('#btnMpcAuto').onclick = mpcAutofill;
+$('#btnXml').onclick = exportMpcXml;
+
+/* ---------- UI: deck header ---------- */
+function renderDeckSel() {
+  $('#deckSel').innerHTML = S.decks.slice().sort((a, b) => a.name.localeCompare(b.name))
+    .map(d => `<option value="${esc(d.id)}" ${d.id === S.deckId ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
+}
+$('#deckSel').onchange = e => { S.deckId = e.target.value; save(); renderAll(); };
+$('#deckNew').onclick = () => {
+  const name = prompt('Deck name', 'New deck'); if (!name) return;
+  const d = {id:uid(), name, entries:[], updated:Date.now()}; S.decks.push(d); S.deckId = d.id; save(); renderAll();
+};
+$('#deckRename').onclick = () => { const d = deck(); const n = prompt('Rename deck', d.name); if (n) { d.name = n; save(); renderDeckSel(); } };
+$('#deckDup').onclick = () => {
+  const d = deck(); const c = JSON.parse(JSON.stringify(d)); c.id = uid(); c.name = d.name + ' (copy)';
+  c.entries.forEach(e => e.uid = uid()); S.decks.push(c); S.deckId = c.id; save(); renderAll();
+};
+$('#deckDel').onclick = async () => {
+  const d = deck(); if (!confirm(`Delete deck "${d.name}"? This cannot be undone.`)) return;
+  S.decks = S.decks.filter(x => x !== d);
+  for (const e of d.entries) for (const f of e.faces) await removeImageIfUnused(f.custom);
+  if (!S.decks.length) S.decks.push({id:uid(), name:'My deck', entries:[], updated:Date.now()});
+  S.deckId = S.decks[0].id; save(); renderAll();
+};
+
+/* ---------- UI: card list ---------- */
+let faceTarget = null;
+async function renderCards() {
+  const d = deck(), list = $('#cardList');
+  const total = d.entries.reduce((a, e) => a + e.qty, 0);
+  $('#deckCount').textContent = `(${total})`;
+  if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; return; }
+  list.innerHTML = d.entries.map(e => `
+    <div class="card" data-uid="${esc(e.uid)}">
+      <img data-act="art" alt="" title="${e.custom ? 'Replace image' : 'Choose printing'}">
+      <div style="min-width:0">
+        <div class="nm" title="${esc(e.name)}">${esc(e.name)}</div>
+        <div class="meta">${e.mpc ? 'MPC Autofill' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
+          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(f => f.drive && !f.custom) ? '<span class="tag">MPC art</span>' : ''}</div>
+        <div class="row" style="margin-top:4px">
+          ${e.custom ? '' : '<button class="icon" data-act="art">Prints</button>'}
+          <button class="icon" data-act="mpc" title="Search MPC Autofill art">MPC art</button>
+          <button class="icon" data-act="upload" title="Use your own image for this card">Upload</button>
+          ${!e.custom && e.faces.some(f => f.custom || f.drive) ? '<button class="icon" data-act="reset">Reset art</button>' : ''}
+        </div>
+      </div>
+      <div class="ctl">
+        <div class="qty"><button class="icon" data-act="dec">−</button><input type="number" min="0" value="${e.qty}" data-act="qty"><button class="icon" data-act="inc">+</button></div>
+        <button class="icon danger" data-act="del" title="Remove">✕</button>
+      </div>
+    </div>`).join('');
+  for (const e of d.entries) {
+    const img = list.querySelector(`[data-uid="${CSS.escape(e.uid)}"] img`);
+    const f = e.faces[0]; if (f) thumbSrc(f).then(u => { if (u) img.src = u; });
+  }
+}
+$('#cardList').addEventListener('click', async ev => {
+  const act = ev.target.dataset.act; if (!act || act === 'qty') return;
+  const row = ev.target.closest('.card'), d = deck(), e = d.entries.find(x => x.uid === row.dataset.uid);
+  if (act === 'inc') e.qty++;
+  else if (act === 'dec') e.qty = Math.max(0, e.qty - 1);
+  else if (act === 'del') { d.entries = d.entries.filter(x => x !== e); for (const f of e.faces) await removeImageIfUnused(f.custom); }
+  else if (act === 'art') { if (e.custom) { faceTarget = {e, i:0}; $('#fileFace').click(); } else openPrints(e); return; }
+  else if (act === 'upload') {
+    if (e.faces.length > 1) { const i = prompt(`Which face? 1 = ${e.faces[0].name}, 2 = ${e.faces[1].name}`, '1'); if (!i) return; faceTarget = {e, i:Math.min(e.faces.length, Math.max(1, +i)) - 1}; }
+    else faceTarget = {e, i:0};
+    $('#fileFace').click(); return;
+  }
+  else if (act === 'reset') { const keys = e.faces.map(f => f.custom); e.faces.forEach(clearMpcArt); e.faces.forEach(f => delete f.custom); for (const k of keys) await removeImageIfUnused(k); }
+  else if (act === 'mpc') { openMpcPicker({e, i:0}); return; }
+  save(); renderAll();
+});
+$('#cardList').addEventListener('change', ev => {
+  if (ev.target.dataset.act !== 'qty') return;
+  const e = deck().entries.find(x => x.uid === ev.target.closest('.card').dataset.uid);
+  e.qty = Math.max(0, parseInt(ev.target.value) || 0); save(); renderAll();
+});
+$('#fileFace').onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f || !faceTarget) return;
+  const {e, i} = faceTarget, old = e.faces[i].custom;
+  e.faces[i].custom = await storeImage(f);
+  delete e.faces[i].srcBleed;
+  if (e.custom) e.faces[i].name = e.name;
+  await removeImageIfUnused(old);
+  save(); renderAll();
+};
+$('#btnImport').onclick = () => {
+  const v = $('#listIn').value;
+  if (/^\s*(<\?xml[^>]*>\s*)?<order[\s>]/.test(v)) { importMpcXml(v, 'MPC Autofill order').then(ok => { if (ok) $('#listIn').value = ''; }); return; }
+  importList(v, false);
+};
+$('#btnReplace').onclick = () => { if (!deck().entries.length || confirm('Replace every card in this deck?')) importList($('#listIn').value, true); };
+$('#btnTokens').onclick = addTokens;
+$('#btnUpload').onclick = () => $('#fileUpload').click();
+$('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
+$('#btnClear').onclick = async () => {
+  const d = deck(); if (!d.entries.length || !confirm('Remove all cards from this deck?')) return;
+  const keys = d.entries.flatMap(e => e.faces.map(f => f.custom)); d.entries = [];
+  for (const k of keys) await removeImageIfUnused(k);
+  save(); renderAll();
+};
+$('#btnCopyList').onclick = async () => {
+  const txt = deck().entries.filter(e => !e.custom).map(e => `${e.qty} ${e.name} (${(e.set || '').toUpperCase()}) ${e.cn}`).join('\n');
+  try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
+};
+
+/* ---------- print picker ---------- */
+async function openPrints(e) {
+  openModal(`<div class="hd"><b>${esc(e.name)} · choose a printing</b><button data-close>Close</button></div><div class="bd"><p class="hint">Loading printings…</p></div>`);
+  try {
+    let url = `${SF}/cards/search?q=${encodeURIComponent('oracleid:' + e.oracleId)}&unique=prints&order=released&dir=desc&include_extras=true`;
+    const cards = [];
+    for (let p = 0; url && p < 6; p++) { const j = await sf(url); cards.push(...j.data); url = j.has_more ? j.next_page : null; }
+    const usable = cards.filter(c => c.image_uris || c.card_faces?.[0]?.image_uris);
+    $('#modal .bd').innerHTML = `<div class="prints">${usable.map((c, i) => {
+      const im = c.image_uris || c.card_faces[0].image_uris;
+      return `<figure data-i="${i}" class="${c.id === e.scryId ? 'sel' : ''}"><img loading="lazy" src="${esc(im.normal)}" alt=""><figcaption>${esc(c.set_name)}<br>${esc(c.set.toUpperCase())} #${esc(c.collector_number)}${c.lang !== 'en' ? ' · ' + esc(c.lang) : ''}</figcaption></figure>`;
+    }).join('')}</div>`;
+    $('#modal .prints').onclick = async ev => {
+      const fig = ev.target.closest('figure'); if (!fig) return;
+      const n = toEntry(usable[+fig.dataset.i], e.qty), old = e.faces.map(f => f.custom);
+      Object.assign(e, {name:n.name, set:n.set, cn:n.cn, scryId:n.scryId, faces:n.faces, tokens:n.tokens});
+      for (const k of old) await removeImageIfUnused(k);
+      closeModal(); save(); renderAll();
+    };
+  } catch (err) { $('#modal .bd').innerHTML = `<p class="hint">Couldn't load printings: ${esc(err.message)}</p>`; }
+}
+function openModal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('on'); }
+function closeModal() { $('#overlay').classList.remove('on'); }
+$('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttribute('data-close')) closeModal(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ---------- settings form ---------- */
+const FIELDS = [
+  {sec:'Paper'},
+  {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4'],['a3','A3'],['custom','Custom']]},
+  {k:'orientation', label:'Orientation', type:'select', opts:[['portrait','Portrait'],['landscape','Landscape']]},
+  {k:'pageW', label:'Page width (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
+  {k:'pageH', label:'Page height (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
+  {sec:'Card'},
+  {k:'cardPreset', label:'Card size', type:'select', opts:[['mtg','MTG / Pokémon 63×88'],['poker','Poker 2.5×3.5 in'],['japanese','Japanese 59×86'],['tarot','Tarot 70×120'],['custom','Custom']]},
+  {k:'cardRotation', adv:true, label:'Card direction', type:'select', opts:[['auto','Auto (most cards per page)'],['upright','Always upright'],['rotated','Always sideways']]},
+  {k:'cornerRadius', adv:true, label:'Corner radius (cut SVG, mm)', type:'num', step:0.1},
+  {k:'cardW', label:'Card width (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
+  {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
+  {sec:'Bleed & spacing'},
+  {k:'bleed', label:'Bleed (mm)', type:'num', step:0.1, min:0},
+  {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border colour']]},
+  {k:'gap', label:'Gap between cards (mm)', type:'num', step:0.1, min:0},
+  {k:'margin', adv:true, label:'Min. page margin (mm)', type:'num', step:0.1, min:0},
+  {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
+  {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
+  {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'MPC-style images usually include about 3.05 mm (0.12 in).'},
+  {sec:'Cut guides'},
+  {k:'guides', label:'Guides', type:'select', opts:[['margin','Lines in page margin'],['corners','Corner marks'],['both','Margin lines + corners'],['none','None']]},
+  {k:'guideColor', adv:true, label:'Colour', type:'color'},
+  {k:'guideWidth', adv:true, label:'Line width (mm)', type:'num', step:0.05, min:0.05},
+  {k:'guideLen', adv:true, label:'Corner mark length (mm)', type:'num', step:0.5, min:0.5},
+  {sec:'Double-faced cards & backs'},
+  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, opts:[['separate','Print both faces as separate cards'],['front','Front face only'],['duplex','Back face on back of page (double-sided)']]},
+  {k:'backs', label:'Print card backs on back pages', type:'check'},
+  {k:'backImage', type:'backimg'},
+  {sec:'Calibration (from calibration sheet)'},
+  {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01},
+  {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
+  {k:'offsetX', adv:true, label:'Front offset X (mm)', type:'num', step:0.1},
+  {k:'offsetY', adv:true, label:'Front offset Y (mm)', type:'num', step:0.1},
+  {k:'backOffsetX', adv:true, label:'Back offset X (mm)', type:'num', step:0.1},
+  {k:'backOffsetY', adv:true, label:'Back offset Y (mm)', type:'num', step:0.1},
+  {sec:'Export quality'},
+  {k:'dpi', label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
+  {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
+  {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
+  {sec:'Silhouette Cameo'},
+  {k:'silhouette', label:'Print registration marks (Type 1)', type:'check'},
+  {k:'regInset', adv:true, label:'Mark inset (mm)', type:'num', step:0.5, show:s => s.silhouette},
+  {k:'regLen', adv:true, label:'Mark length (mm)', type:'num', step:0.5, show:s => s.silhouette},
+];
+const ADV_KEYS = FIELDS.filter(f => f.adv).map(f => f.k);
+const SELECT_OPTS = Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))]));
+function cleanSettings(raw) {
+  const out = {...DEFAULTS};
+  for (const [k, def] of Object.entries(DEFAULTS)) {
+    const v = raw?.[k];
+    if (v === undefined) continue;
+    if (typeof def === 'number') { const n = Number(v); if (Number.isFinite(n)) out[k] = n; }
+    else if (typeof def === 'boolean') out[k] = !!v;
+    else if (k === 'backImage') out[k] = typeof v === 'string' ? v : null;
+    else if (k === 'guideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
+    else if (SELECT_OPTS[k]?.includes(String(v))) out[k] = String(v);
+  }
+  return out;
+}
+function cleanDeck(raw) {
+  const face = f => f && typeof f === 'object' ? f : null;
+  return {
+    id:String(raw?.id || uid()), name:String(raw?.name || 'Imported deck'), updated:+raw?.updated || Date.now(),
+    cardback:face(raw?.cardback),
+    entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => ({
+      ...e, uid:String(e.uid || uid()), name:String(e.name ?? ''), qty:Math.max(0, Math.floor(+e.qty) || 0),
+      faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(String) : []
+    }))
+  };
+}
+function renderSettings() {
+  const s = S.settings, L = layout();
+  let html = '';
+  if (!L.fits) html += `<div class="warn">This grid (${L.cols}×${L.rows}) is bigger than the printable area. Reduce bleed, gap or margin, or set fewer columns/rows.</div>`;
+  if (regConflict(L)) html += `<div class="warn">The cards overlap the Silhouette registration marks. Increase the page margin.</div>`;
+  const fieldHtml = f => {
+    if (f.type === 'check') return `<label class="check"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
+    if (f.type === 'backimg') {
+      if (!s.backs) return '';
+      const has = s.backImage || deck().cardback;
+      return `<div class="field full"><label>Card back image</label><div class="row"><img id="backThumb" style="width:40px;height:56px;object-fit:cover;border-radius:3px;background:#000;${has ? '' : 'display:none'}"><button data-backup>Upload back…</button><button data-mpcback>MPC cardback…</button>${has ? '<button class="danger" data-backclear>Remove</button>' : ''}</div>${has ? '' : '<p class="hint">Upload a back image or choose one from MPC Autofill.</p>'}<input type="file" accept="image/*" hidden id="fileBack"></div>`;
+    }
+    let input;
+    if (f.type === 'select') input = `<select data-k="${f.k}" ${f.num ? 'data-num' : ''}>${f.opts.map(([v, t]) => `<option value="${v}" ${String(s[f.k]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+    else if (f.type === 'color') input = `<input type="color" data-k="${f.k}" value="${esc(s[f.k])}">`;
+    else input = `<input type="number" data-k="${f.k}" data-num value="${esc(s[f.k])}" step="${f.step ?? 1}" ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}>`;
+    return `<div class="field ${f.full || f.hint ? 'full' : ''}"><label>${f.label}</label>${input}${f.hint ? `<div class="hint">${f.hint}</div>` : ''}</div>`;
+  };
+  const groups = [];
+  for (const f of FIELDS) { if (f.sec) groups.push({sec:f.sec, fields:[]}); else groups.at(-1).fields.push(f); }
+  const block = adv => groups.map(g => {
+    const h = g.fields.filter(f => !!f.adv === adv && (!f.show || f.show(s))).map(fieldHtml).join('');
+    return h ? `<h3>${g.sec}</h3><div class="grid2">${h}</div>` : '';
+  }).join('');
+  const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
+  html += block(false);
+  html += `<details class="adv" ${S.advOpen ? 'open' : ''}><summary>Advanced${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
+  html += `<p class="hint" style="margin-top:14px">Grid: ${L.cols}×${L.rows} = ${L.per} cards per page${L.rot ? ' (cards turned sideways)' : ''} · margins ${L.x0.toFixed(1)} mm side, ${L.y0.toFixed(1)} mm top/bottom.</p>`;
+  const form = $('#settingsForm'), st = form.closest('.pane').scrollTop;
+  form.innerHTML = html;
+  form.closest('.pane').scrollTop = st;
+  const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
+  if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
+}
+$('#settingsForm').addEventListener('change', async ev => {
+  const t = ev.target, k = t.dataset.k; if (!k) return;
+  const s = S.settings;
+  s[k] = t.type === 'checkbox' ? t.checked : t.hasAttribute('data-num') ? (parseFloat(t.value) || 0) : t.value;
+  if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
+  if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
+  if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) s.cols = s.rows = 0;
+  S.activePreset = null; save(); renderSettings(); renderPresets(); renderCutStatus(); renderPreview(); renderStats();
+});
+$('#settingsForm').addEventListener('toggle', ev => {
+  if (ev.target.classList.contains('adv')) { S.advOpen = ev.target.open; save(); }
+}, true);
+$('#settingsForm').addEventListener('click', ev => {
+  if (ev.target.hasAttribute('data-advreset')) {
+    if (!confirm('Reset all advanced settings (calibration included) to defaults?')) return;
+    for (const k of ADV_KEYS) S.settings[k] = DEFAULTS[k];
+    S.activePreset = null; save(); renderAll(); return;
+  }
+  if (ev.target.hasAttribute('data-backup')) $('#fileBack').click();
+  if (ev.target.hasAttribute('data-mpcback')) openMpcPicker({cardback:true});
+  if (ev.target.hasAttribute('data-backclear')) { const old = S.settings.backImage; S.settings.backImage = null; if (!old) deck().cardback = null; removeImageIfUnused(old); save(); renderAll(); }
+});
+$('#settingsForm').addEventListener('change', async ev => {
+  if (ev.target.id !== 'fileBack' || !ev.target.files[0]) return;
+  const old = S.settings.backImage; S.settings.backImage = await storeImage(ev.target.files[0]);
+  await removeImageIfUnused(old); save(); renderAll();
+});
+
+/* ---------- presets ---------- */
+const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+function applyPreset(p) {
+  S.settings = {...cleanSettings(p.settings), backImage:S.settings.backImage}; S.activePreset = p.id; toast(`Applied "${p.name}".`);
+}
+function renderPrinter() {
+  const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
+  $('#printerSel').innerHTML = PRINTERS.map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+  const presets = pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id));
+  $('#printerGuide').innerHTML = `
+    <p class="hint"><span class="tag">${pr.kind}</span> ${esc(pr.paper)}</p>
+    <div class="row" style="margin:8px 0">${presets.map(p => `<button class="icon ${p.id === S.activePreset ? 'primary' : ''}" data-preset="${p.id}">Apply: ${esc(p.name.split(' · ').pop())}</button>`).join('')}</div>
+    <table class="drv">${pr.settings.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>
+    ${pr.more ? `<details class="adv" style="margin:0 0 10px"><summary>More driver settings</summary><table class="drv">${pr.more.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table></details>` : ''}
+    <ul class="tips hint" style="padding-left:18px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul>`;
+}
+$('#printerSel').onchange = e => { S.printer = e.target.value; save(); renderPrinter(); };
+$('#printerGuide').onclick = ev => {
+  const id = ev.target.dataset.preset; if (!id) return;
+  applyPreset(BUILTIN_PRESETS.find(p => p.id === id)); save(); renderAll();
+};
+function renderPresets() {
+  const all = [...BUILTIN_PRESETS, ...S.presets];
+  $('#presetList').innerHTML = all.map(p => `
+    <div class="preset ${p.id === S.activePreset ? 'active' : ''}" data-id="${esc(p.id)}">
+      <span class="nm">${esc(p.name)}${p.builtin ? ' <span class="tag">built-in</span>' : ''}</span>
+      <button class="icon" data-act="apply">Apply</button>
+      ${p.builtin ? '' : '<button class="icon" data-act="update" title="Overwrite with current settings">Update</button><button class="icon danger" data-act="del">✕</button>'}
+    </div>`).join('');
+}
+$('#presetList').onclick = ev => {
+  const act = ev.target.dataset.act; if (!act) return;
+  const id = ev.target.closest('.preset').dataset.id;
+  const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === id);
+  if (act === 'apply') applyPreset(p);
+  if (act === 'update') { p.settings = pickSettings(); S.activePreset = id; toast('Preset updated.'); }
+  if (act === 'del') { if (!confirm(`Delete preset "${p.name}"?`)) return; S.presets = S.presets.filter(x => x !== p); if (S.activePreset === id) S.activePreset = null; }
+  save(); renderAll();
+};
+function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
+$('#presetSave').onclick = () => {
+  const name = prompt('Preset name'); if (!name) return;
+  const p = {id:uid(), name, settings:pickSettings()}; S.presets.push(p); S.activePreset = p.id; save(); renderPresets();
+};
+
+/* ---------- preview ---------- */
+let previewGen = 0, previewTimer;
+function renderPreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 60); }
+async function drawPreview() {
+  const gen = ++previewGen, s = S.settings, L = layout(), z = S.zoom;
+  const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
+  if (!slots.length) { wrap.innerHTML = '<div class="empty">Your sheets will appear here.<br>Add cards on the left to get started.</div>'; return; }
+  const frag = document.createDocumentFragment(), jobs = [];
+  const hasBacks = slots.some(x => x.back);
+  pages.forEach((page, pi) => {
+    const sides = hasBacks && S.showBacks ? [false, true] : [false];
+    for (const back of sides) {
+      const T = makeT(L, back), el = document.createElement('div');
+      el.className = 'pg'; el.style.width = L.W*z + 'px'; el.style.height = L.H*z + 'px';
+      el.innerHTML = `<span class="lbl">Page ${pi + 1}${back ? ' · back' : ''}</span>`;
+      page.forEach((slot, i) => {
+        const face = back ? slot.back : slot.front; if (!face) return;
+        const p = slotPos(L, i, back), im = document.createElement('img');
+        Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
+        const rot = L.rot ? (back ? -90 : 90) : 0;
+        el.appendChild(im); jobs.push(previewUrl(face, rot).then(u => {
+          if (gen !== previewGen || !u) return;
+          if (u.startsWith('raw:')) {
+            u = u.slice(4);
+            if (rot) {
+              const w = T.w(L.sw)*z, h = T.h(L.sh)*z;
+              Object.assign(im.style, {width:h + 'px', height:w + 'px', left:T.x(p.x)*z + (w-h)/2 + 'px', top:T.y(p.y)*z + (h-w)/2 + 'px', transform:`rotate(${rot}deg)`});
+            }
+          }
+          im.src = u;
+        }));
+      });
+      const lines = back ? [] : guideLines(L, page.length), reg = back ? {rects:[], lines:[]} : regMarks(L);
+      const sw = Math.max(0.6, s.guideWidth*z);
+      let svg = `<svg width="${L.W*z}" height="${L.H*z}">`;
+      for (const [a, b, c, d] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"/>`;
+      for (const [x, y, w, h] of reg.rects) svg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
+      for (const [a, b, c, d] of reg.lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
+      if (S.showCuts && !back) page.forEach((_, i) => {
+        const p = slotPos(L, i, false);
+        svg += `<rect x="${T.x(p.x + s.bleed)*z}" y="${T.y(p.y + s.bleed)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" fill="none" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+      });
+      el.insertAdjacentHTML('beforeend', svg + '</svg>');
+      frag.appendChild(el);
+    }
+  });
+  wrap.replaceChildren(frag);
+}
+function renderStats() {
+  const slots = buildSlots(), L = layout(), pages = Math.ceil(slots.length / L.per);
+  const backs = slots.some(x => x.back);
+  $('#stats').textContent = `${slots.length} cards · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
+}
+$('#zoom').oninput = e => { S.zoom = +e.target.value; save(); renderPreview(); };
+$('#showBacks').onchange = e => { S.showBacks = e.target.checked; save(); renderPreview(); };
+$('#showCuts').onchange = e => { S.showCuts = e.target.checked; save(); renderPreview(); };
+
+/* ---------- PDF export ---------- */
+function newDoc(L) {
+  const {jsPDF} = window.jspdf;
+  return new jsPDF({unit:'mm', format:[L.W, L.H], orientation:L.W > L.H ? 'l' : 'p', compress:true});
+}
+function pdfLines(doc, T, lines, color, width) {
+  doc.setDrawColor(color); doc.setLineWidth(width);
+  for (const [a, b, c, d] of lines) doc.line(T.x(a), T.y(b), T.x(c), T.y(d));
+}
+async function exportPDF() {
+  if (!window.jspdf) return toast('PDF library failed to load. Check your connection and reload the page.', 6000);
+  const s = S.settings, L = layout(), slots = buildSlots();
+  if (!slots.length) return toast('Add some cards first.');
+  if (s.backs && !s.backImage && !deck().cardback) return toast('Upload a card back image, or turn off "Print card backs".');
+  const missing = await checkFaces(slots);
+  if (missing.length) {
+    toast(`${missing.length} image${missing.length === 1 ? '' : 's'} can't be loaded for printing (${missing.slice(0, 3).map(f => f.name).join(', ')}${missing.length > 3 ? '…' : ''}). For MPC Autofill decks, use Attach images/folder.`, 10000);
+    return;
+  }
+  const pages = paginate(slots, L.per), hasBacks = slots.some(x => x.back);
+  const total = slots.length * (hasBacks ? 2 : 1);
+  busy(true, 'Rendering cards…');
+  try {
+    const doc = newDoc(L), cache = new Map(); let n = 0, first = true;
+    const addFace = async (face, x, y, w, h, rot) => {
+      const key = (face.custom || face.drive || face.png) + '|' + rot;
+      if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot)).toDataURL('image/jpeg', s.jpeg/100)});
+      const c = cache.get(key);
+      doc.addImage(c.data, 'JPEG', x, y, w, h, c.alias, 'NONE');
+    };
+    for (const page of pages) {
+      for (const back of hasBacks ? [false, true] : [false]) {
+        if (!first) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
+        first = false;
+        const T = makeT(L, back);
+        for (let i = 0; i < page.length; i++) {
+          const face = back ? page[i].back : page[i].front;
+          n++; busyProgress(n / total, `Rendering card ${n} of ${total}…`);
+          if (!face) continue;
+          const p = slotPos(L, i, back);
+          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), L.rot ? (back ? -90 : 90) : 0);
+          await sleep(0);
+        }
+        if (!back) {
+          pdfLines(doc, T, guideLines(L, page.length), s.guideColor, s.guideWidth);
+          const reg = regMarks(L);
+          doc.setFillColor('#000000');
+          for (const [x, y, w, h] of reg.rects) doc.rect(T.x(x), T.y(y), T.w(w), T.h(h), 'F');
+          pdfLines(doc, T, reg.lines, '#000000', reg.width || 0.5);
+        }
+      }
+    }
+    busyProgress(1, 'Saving PDF…'); await sleep(30);
+    doc.save(`${deck().name.replace(/[^\w\- ]+/g, '').trim() || 'proxies'}.pdf`);
+    for (const k of [...imgCache.keys()]) if (k.includes('/google_drive/full/') || k.includes('/png/')) imgCache.delete(k);
+    toast('PDF exported. Print it at Actual size / 100%.', 5000);
+  } catch (e) {
+    console.error(e);
+    toast('Export failed: ' + e.message, 8000);
+  }
+  busy(false);
+}
+$('#btnPdf').onclick = exportPDF;
+
+$('#btnCal').onclick = () => {
+  if (!window.jspdf) return toast('PDF library failed to load.');
+  const s = S.settings, L = layout(), doc = newDoc(L), T = makeT(L, false);
+  const cx = L.W/2, cy = L.H/2;
+  doc.setDrawColor('#000000'); doc.setLineWidth(0.2);
+  doc.line(T.x(cx-50), T.y(cy-60), T.x(cx+50), T.y(cy-60));
+  for (let i = 0; i <= 100; i += 1) { const h = i % 10 ? 1.5 : 4; doc.line(T.x(cx-50+i), T.y(cy-60), T.x(cx-50+i), T.y(cy-60-h)); }
+  doc.line(T.x(cx-70), T.y(cy-40), T.x(cx-70), T.y(cy+60));
+  for (let i = 0; i <= 100; i += 1) { const w = i % 10 ? 1.5 : 4; doc.line(T.x(cx-70), T.y(cy-40+i), T.x(cx-70-w), T.y(cy-40+i)); }
+  doc.rect(T.x(cx-s.cardW/2+10), T.y(cy-30), T.w(s.cardW), T.h(s.cardH));
+  for (const [a, b, c, d] of [[10,0,10,25],[0,10,25,10],[L.W-10,0,L.W-10,25],[L.W-25,10,L.W,10],[10,L.H-25,10,L.H],[0,L.H-10,25,L.H-10],[L.W-10,L.H-25,L.W-10,L.H],[L.W-25,L.H-10,L.W,L.H-10]])
+    doc.line(T.x(a), T.y(b), T.x(c), T.y(d));
+  doc.setFontSize(9);
+  const txt = [
+    'Calibration sheet. Print at Actual size / 100% on the paper you will use.',
+    '1. The horizontal and vertical rulers should both measure exactly 100 mm.',
+    '   If not, set Scale = current scale × 100 / measured length.',
+    `2. The rectangle should measure ${s.cardW} × ${s.cardH} mm.`,
+    '3. Each corner cross should sit exactly 10 mm from both page edges.',
+    '   If the left crosses are at 11 mm, set Front offset X to -1 (Y works the same way).',
+    '4. For backs: print this page again on the reverse side and adjust the Back offsets.'
+  ];
+  txt.forEach((t, i) => doc.text(t, T.x(cx-70), T.y(cy+70+i*5)));
+  doc.save('calibration.pdf');
+};
+
+$('#btnSvg').onclick = () => {
+  const s = S.settings, L = layout(), T = makeT(L, false), n = Math.min(L.per, buildSlots().length || L.per);
+  let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${L.W}mm" height="${L.H}mm" viewBox="0 0 ${L.W} ${L.H}">\n`;
+  for (let i = 0; i < n; i++) {
+    const p = slotPos(L, i, false);
+    svg += `<rect x="${T.x(p.x + s.bleed).toFixed(3)}" y="${T.y(p.y + s.bleed).toFixed(3)}" width="${T.w(L.cw).toFixed(3)}" height="${T.h(L.ch).toFixed(3)}" rx="${s.cornerRadius}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
+  }
+  svg += '</svg>\n';
+  download(new Blob([svg], {type:'image/svg+xml'}), 'cut-lines.svg');
+  if (!s.silhouette) toast('Tip: turn on registration marks under Layout → Silhouette Cameo so the cutter can align.', 6000);
+};
+
+/* ---------- backup ---------- */
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+const blobToData = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
+$('#backupOut').onclick = async () => {
+  busy(true, 'Packing backup…');
+  const images = {};
+  for (const k of await store.keys('images')) { const b = await store.get('images', k); if (b) images[k] = await blobToData(b); }
+  const data = {app:'proxy-press', version:1, exported:new Date().toISOString(), decks:S.decks, presets:S.presets, settings:S.settings, images};
+  download(new Blob([JSON.stringify(data)], {type:'application/json'}), `proxy-press-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  busy(false);
+};
+$('#backupIn').onclick = () => $('#fileBackup').click();
+$('#fileBackup').onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app !== 'proxy-press') throw new Error('Not a Proxy Press backup');
+    busy(true, 'Restoring…');
+    for (const [k, v] of Object.entries(data.images || {})) if (typeof v === 'string' && v.startsWith('data:image/')) await store.set('images', k, await (await fetch(v)).blob());
+    const ids = new Set(S.decks.map(d => d.id));
+    for (const raw of Array.isArray(data.decks) ? data.decks : []) { const d = cleanDeck(raw); if (ids.has(d.id)) { d.id = uid(); d.name += ' (imported)'; } S.decks.push(d); }
+    const pids = new Set(S.presets.map(p => p.id));
+    for (const p of Array.isArray(data.presets) ? data.presets : []) if (p && !pids.has(String(p.id))) S.presets.push({id:String(p.id || uid()), name:String(p.name || 'Imported preset'), settings:cleanSettings(p.settings)});
+    if (data.settings && confirm('Also restore the layout settings from this backup?')) S.settings = cleanSettings(data.settings);
+    save(); renderAll(); toast(`Imported ${data.decks?.length || 0} deck(s).`);
+  } catch (e) { toast('Import failed: ' + e.message, 6000); }
+  busy(false);
+};
+$('#wipe').onclick = async () => {
+  if (!confirm('Erase every deck, preset, setting and uploaded image stored by this page?')) return;
+  await store.clear(); location.reload();
+};
+async function renderStorage() {
+  let txt = store.persistent ? 'Saved in IndexedDB.' : 'IndexedDB is unavailable (private window?). Changes last only until you close the tab.';
+  try { const e = await navigator.storage?.estimate(); if (e) txt += ` About ${(e.usage/1048576).toFixed(1)} MB used.`; } catch {}
+  $('#storageInfo').textContent = txt;
+}
+
+/* ---------- misc UI ---------- */
+$$('.tabs button').forEach(b => b.onclick = () => {
+  $$('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'tab-' + b.dataset.tab));
+  if (b.dataset.tab === 'data') renderStorage();
+});
+let toastT;
+function toast(msg, ms = 3000) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', ms); }
+function busy(on, text) { $('#busy').classList.toggle('on', on); if (text) $('#busyText').textContent = text; $('#busyBar').style.width = '0'; }
+function busyProgress(f, text) { $('#busyBar').style.width = (f*100).toFixed(1) + '%'; if (text) $('#busyText').textContent = text; }
+
+let dragDepth = 0;
+addEventListener('dragenter', e => { if (e.dataTransfer?.types.includes('Files')) { dragDepth++; $('#drop').classList.add('on'); } });
+addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('#drop').classList.remove('on'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', async e => {
+  e.preventDefault(); dragDepth = 0; $('#drop').classList.remove('on');
+  const files = [...(e.dataTransfer?.files || [])];
+  const xmls = files.filter(f => /\.xml$/i.test(f.name));
+  for (const x of xmls) await importMpcXml(await x.text(), x.name);
+  const txt = files.find(f => /\.(txt|dec|dek|csv)$/i.test(f.name) || f.type === 'text/plain');
+  if (txt) { $('#listIn').value = await txt.text(); importList($('#listIn').value, false); }
+  const imgs = files.filter(f => f.type.startsWith('image/'));
+  if (imgs.length) uploadImages(imgs);
+});
+
+function bestCutBleed() {
+  const s = S.settings, cur = s.bleed, per = layout().per;
+  let best = 0;
+  for (const b of [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5]) { s.bleed = b; const L = layout(); if (L.fits && L.per >= per) { best = b; break; } }
+  s.bleed = cur;
+  return Math.max(best, Math.min(cur, 2));
+}
+function renderCutStatus() {
+  const s = S.settings, el = $('#cutStatus'); if (!el) return;
+  const best = bestCutBleed(), ok = s.guides === 'both' && s.bleed >= best;
+  el.innerHTML = ok ? '<p class="hint">✓ Your current layout is set up for rotary cutting.</p>'
+    : `<div class="warn">Your layout isn't set up for rotary cutting yet${s.guides !== 'both' ? ' (needs margin lines + corner marks)' : ''}${s.bleed < best ? ` (${best} mm bleed fits without losing a card)` : ''}.</div><div class="row"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
+  const b = $('#cutApply');
+  if (b) b.onclick = () => {
+    Object.assign(S.settings, {guides:'both', guideLen:Math.max(S.settings.guideLen, 3)});
+    S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
+    S.activePreset = null; save(); renderAll(); toast('Cut guides set to margin lines + corners.');
+  };
+}
+function renderAll() { renderCutStatus(); renderDeckSel(); renderCards(); renderSettings(); renderPresets(); renderPrinter(); renderPreview(); renderStats(); }
+
+(async () => {
+  await load();
+  $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks; $('#showCuts').checked = !!S.showCuts;
+  renderAll();
+})();
+</script>
+</body>
+</html>

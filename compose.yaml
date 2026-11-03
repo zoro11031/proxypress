@@ -1,0 +1,20 @@
+services:
+  proxy-press:
+    build: .
+    image: proxy-press:latest
+    container_name: proxy-press
+    restart: unless-stopped
+    ports:
+      - "8642:8642"
+    environment:
+      BASIC_AUTH: "${PROXY_PRESS_AUTH:?Set PROXY_PRESS_AUTH=user:password in .env (see .env.example)}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/healthz', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
