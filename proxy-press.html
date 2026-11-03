@@ -98,6 +98,7 @@ h3:first-child{margin-top:2px}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
 .round{width:30px;height:30px;padding:0;border-radius:50%;font-weight:700}
+#dataSlot .pane{display:block;padding:0;overflow:visible}
 .modal.narrow{width:min(600px,calc(100vw - 32px))}
 .tour p{margin:0 0 10px;line-height:1.5}
 .tour-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
@@ -382,7 +383,6 @@ details.adv:not([open]){padding-bottom:10px}
     </div>
 
     <div class="pane" id="tab-data">
-      <h3 class="row" style="justify-content:space-between"><span>Backup &amp; storage</span><button class="icon" id="dataClose">Close</button></h3>
       <h3>Backup</h3>
       <p class="hint">Decks, presets, settings and uploaded images are saved in this browser (IndexedDB). They never leave your computer. Export a backup to move them to another browser.</p>
       <div class="row">
@@ -1601,11 +1601,12 @@ $('#btnCopyList').onclick = async () => {
 };
 
 function openModal(html) {
+  parkData();
   $('#modal').innerHTML = html; $('#modal').classList.remove('narrow'); $('#overlay').classList.add('on');
   ($('#modal input, #modal select, #modal .bd button') || $('#modal [data-close]'))?.focus();
 }
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
-function closeModal() { $('#overlay').classList.remove('on'); }
+function closeModal() { parkData(); $('#overlay').classList.remove('on'); }
 $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttribute('data-close')) closeModal(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(); $('#deckMenu').removeAttribute('open'); } });
 
@@ -1866,11 +1867,13 @@ function openTour(at = 0) {
 }
 $('#btnHelp').onclick = () => openTour(0);
 $('#btnSettings').onclick = () => {
-  $$('.tabs button').forEach(x => x.classList.remove('on'));
-  $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'tab-data'));
+  openModal(`<div class="hd"><b>Backup &amp; storage</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
+  $('#modal').classList.add('narrow');
+  const d = $('#tab-data'); d.classList.add('on'); $('#dataSlot').appendChild(d);
   renderStorage();
 };
-$('#dataClose').onclick = () => $('.tabs button[data-tab=cards]').click();
+// The backup panel lives in the sidebar (hidden) and is shown inside the dialog while it's open.
+function parkData() { const d = $('#tab-data'); if (d.closest('#modal')) { d.classList.remove('on'); $('aside').appendChild(d); } }
 
 /* ---------- right-click menu ---------- */
 async function removeEntry(e) {
