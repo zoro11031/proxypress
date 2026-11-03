@@ -431,6 +431,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="backupIn">Import backup…</button>
         <input type="file" id="fileBackup" accept=".json,application/json" hidden>
       </div>
+      <p class="hint" id="signOut" hidden><a href="/logout">Sign out</a> of this site on this browser.</p>
       <h3>Storage</h3>
       <p class="hint" id="storageInfo"></p>
       <div class="row"><button id="wipe" class="danger">Erase all local data</button></div>
@@ -2031,14 +2032,31 @@ function cleanSettings(raw) {
   }
   return out;
 }
+// Backups are untrusted: rebuild decks from known fields with checked types.
 function cleanDeck(raw) {
-  const face = f => f && typeof f === 'object' ? f : null;
+  const str = v => typeof v === 'string' ? v.slice(0, 500) : undefined;
+  const num = v => Number.isFinite(+v) && v !== null && v !== '' ? +v : undefined;
+  const url = v => typeof v === 'string' && /^https:\/\/(cards|svgs)\.scryfall\.io\//.test(v) ? v : undefined;
+  const id = v => typeof v === 'string' && /^[\w-]{10,64}$/.test(v) ? v : undefined;
+  const key = v => typeof v === 'string' && /^[\w-]{1,64}$/.test(v) ? v : undefined;
+  const pick = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+  const tpl = t => t && typeof t === 'object' ? pick({
+    name:str(t.name), mana:str(t.mana), type:str(t.type), text:str(t.text), flavor:str(t.flavor), pt:str(t.pt), artist:str(t.artist),
+    color:CC_COLORS.some(c => c[0] === t.color) ? t.color : undefined, artKey:key(t.artKey), zoom:num(t.zoom), ox:num(t.ox), oy:num(t.oy),
+    fullArt:!!t.fullArt, colors:Array.isArray(t.colors) ? t.colors.filter(c => /^[WUBRGC]$/.test(c)) : []
+  }) : undefined;
+  const face = f => f && typeof f === 'object' ? pick({
+    name:str(f.name) ?? '', png:url(f.png), normal:url(f.normal), custom:key(f.custom), drive:id(f.drive), file:str(f.file),
+    mpcName:str(f.mpcName), mpcSource:str(f.mpcSource), mpcDpi:num(f.mpcDpi), localName:str(f.localName), srcBleed:num(f.srcBleed),
+    auto:f.auto ? true : undefined, template:tpl(f.template)
+  }) : null;
   return {
-    id:String(raw?.id || uid()), name:String(raw?.name || 'Imported deck'), updated:+raw?.updated || Date.now(),
+    id:String(raw?.id || uid()).slice(0, 64), name:String(raw?.name || 'Imported deck').slice(0, 200), updated:+raw?.updated || Date.now(),
     cardback:face(raw?.cardback),
-    entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => ({
-      ...e, uid:String(e.uid || uid()), name:String(e.name ?? ''), qty:Math.max(0, Math.floor(+e.qty) || 0),
-      faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(String) : []
+    entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => pick({
+      uid:String(e.uid || uid()).slice(0, 64), name:String(e.name ?? '').slice(0, 300), qty:Math.min(999, Math.max(0, Math.floor(+e.qty) || 0)),
+      set:str(e.set), cn:str(e.cn), scryId:id(e.scryId), kind:e.kind === 'TOKEN' ? 'TOKEN' : 'CARD', custom:e.custom ? true : undefined, mpc:e.mpc ? true : undefined,
+      faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(id).filter(Boolean) : []
     }))
   };
 }
@@ -2459,6 +2477,7 @@ $('#wipe').onclick = async () => {
   await store.clear(); location.reload();
 };
 async function renderStorage() {
+  $('#signOut').hidden = !location.protocol.startsWith('http') || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   let txt = store.persistent ? 'Saved in IndexedDB.' : 'IndexedDB is unavailable (private window?). Changes last only until you close the tab.';
   try { const e = await navigator.storage?.estimate(); if (e) txt += ` About ${(e.usage/1048576).toFixed(1)} MB used.`; } catch {}
   $('#storageInfo').textContent = txt;
