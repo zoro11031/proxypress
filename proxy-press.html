@@ -1722,8 +1722,8 @@ const CC_RETRO = {
   C:['#8a684b', '#463224', '#e3d5c6', '#fff'], L:['#8a6e4c', '#463525', '#e6dbcb', '#fff']};
 const serverSets = [], serverFonts = {};
 const allSets = () => [...serverSets, ...(S.frameSets || [])];
-const FRAME_PRIMARY = ['magic-new', 'magic-old', 'magic-m15classic-hires'];
-const FRAME_LABELS = {'magic-new':'Modern', 'magic-old':'Retro', 'magic-m15classic-hires':'M15', 'magic-m15classic-nyx':'Nyx (enchantment)',
+const FRAME_PRIMARY = ['magic-new', 'magic-old', 'magic-m15'];
+const FRAME_LABELS = {'magic-new':'Modern', 'magic-old':'Retro', 'magic-m15':'M15', 'magic-m15classic-hires':'M15 Classic', 'magic-m15classic-nyx':'Nyx (enchantment)',
   'magic-m15-commander':'Commander', 'magic-m15-bigtext':'Big text', 'magic-extended-art':'Text over art (classic)', 'magic-new-promo':'Promo',
   'magic-new-miracle':'Miracle', 'magic-future':'Future Sight', 'magic-tenth':'Tenth Edition', 'magic-new-japanese':'Japanese',
   'magic-planeshifted':'Planeshifted', 'magic-classicshifted':'Timeshifted', 'magic-old-abu':'Alpha / Beta / Unlimited', 'magic-veryold':'Very old', 'magic-nouveau':'Nouveau'};
@@ -1742,7 +1742,8 @@ async function loadServerAssets() {
       if (!layout.image || !layout.text.box) return null;
       const images = {};
       for (const file of fr.files) { const m = file.match(/^([a-z]{1,3}(?:card|pt))\.(jpe?g|png)$/i); if (m) images[m[1].toLowerCase()] = base + encodeURIComponent(file); }
-      return {id:'srv-' + fr.name.replace(/[^\w-]/g, '_'), name:fr.name.replace(/\.mse-style$/i, ''), w:layout.w, h:layout.h, layout, images, server:true};
+      const mask = layout.imageMask && fr.files.includes(layout.imageMask) ? base + encodeURIComponent(layout.imageMask) : null;
+      return {id:'srv-' + fr.name.replace(/[^\w-]/g, '_'), name:fr.name.replace(/\.mse-style$/i, ''), w:layout.w, h:layout.h, layout, images, mask, server:true};
     } catch { return null; }
   }));
   serverSets.push(...sets.filter(Boolean));
@@ -1787,15 +1788,18 @@ function parseMseStyle(text) {
     if (te) return Math.min(+te[1], +te[2]);
     const m = String(v).match(/-?\d+(\.\d+)?/); return m ? +m[0] : undefined;
   };
-  const fields = {}, body = text.slice(text.indexOf('card style:'));
-  let cur = null, font = null;
-  for (const line of body.split('\n').slice(1)) {
-    if (/^\S/.test(line)) break;
-    const m = line.match(/^(\t+)([a-z ]+?)\s*:\s*(.*?)\s*$/); if (!m) continue;
-    const depth = m[1].length, key = m[2], val = m[3];
-    if (depth === 1) { cur = fields[key] = {}; font = null; }
-    else if (depth === 2 && cur) { if (key === 'font') font = cur.font = {}; else { cur[key] = val; font = null; } }
-    else if (depth === 3 && font) font[key] = val;
+  const fields = {};
+  for (const sec of [/^card style:/m, /^extra card style:/m]) {
+    const at = text.search(sec); if (at < 0) continue;
+    let cur = null, font = null;
+    for (const line of text.slice(at).split('\n').slice(1)) {
+      if (/^\S/.test(line)) break;
+      const m = line.match(/^(\t+)([a-z ]+?)\s*:\s*(.*?)\s*$/); if (!m) continue;
+      const depth = m[1].length, key = m[2], val = m[3];
+      if (depth === 1) { cur = fields[key] ||= {}; font = null; }
+      else if (depth === 2 && cur) { if (key === 'font') font = cur.font = {}; else { cur[key] = val; font = null; } }
+      else if (depth === 3 && font) font[key] = val;
+    }
   }
   const box = f => {
     if (!f) return null;
@@ -1810,11 +1814,26 @@ function parseMseStyle(text) {
   return {
     w:num(text.match(/^card width:\s*(.+)$/m)?.[1]) || 375, h:num(text.match(/^card height:\s*(.+)$/m)?.[1]) || 523,
     name:part('name'), type:part('type'), text:part('text'), pt:part('pt'), illus:part('illustrator'), copy:part('copyright line'),
-    image:box(fields.image), ptbox:box(fields['pt box']),
+    image:box(fields.image), imageMask:(fields.image?.mask || '').trim() || null, ptbox:box(fields['pt box']),
     border:{l:num(fields['border color']?.['left width']) || 17, r:num(fields['border color']?.['right width']) || 17, t:num(fields['border color']?.['top width']) || 17}, cost:cc ? {right:num(cc.right), top:num(cc.top), h:num(cc.height)} : null,
     whiteText:/font_colors_white\s*:=\s*\{\s*input\s*!=\s*"w"/.test(text)
   };
 }
+const maskCache = new Map();
+// MSE masks are greyscale; turn luminance into alpha so they can cut the art window.
+function alphaMask(url) {
+  if (!maskCache.has(url)) maskCache.set(url, loadImage(url).then(im => {
+    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height); for (let i = 0; i < d.data.length; i += 4) d.data[i + 3] = d.data[i];
+    g.putImageData(d, 0, 0); return c;
+  }).catch(() => null));
+  return maskCache.get(url);
+}
+const edgeColor = im => {
+  const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d');
+  g.drawImage(im, im.naturalWidth / 2, 3, 1, 1, 0, 0, 1, 1); const [r, gg, bb] = g.getImageData(0, 0, 1, 1).data; return `rgb(${r},${gg},${bb})`;
+};
 function setImageKey(set, key, land, pt) {
   const c = {W:'w', U:'u', B:'b', R:'r', G:'g', M:'m', C:'a', L:'c'}[key] || 'c', kind = pt ? 'pt' : 'card';
   return [`${c}${land ? 'l' : ''}${kind}`, `${c}${kind}`, `c${kind}`, `a${kind}`].map(n => set.images[n]).find(Boolean);
@@ -1920,21 +1939,28 @@ async function renderCustomCard(t, art, k) {
   const fit = (str, X, cy, maxW, size, font, ink, shadow) => {
     let fs = size; x.font = `${font.w} ${fs}px ${font.f}`;
     while (fs > size * 0.55 && x.measureText(str).width > maxW) { fs -= 0.05; x.font = `${font.w} ${fs}px ${font.f}`; }
-    x.textBaseline = 'middle';
+    x.textBaseline = 'alphabetic'; cy += x.measureText('H').actualBoundingBoxAscent / 2;
     if (shadow) { x.fillStyle = 'rgba(0,0,0,.8)'; x.fillText(str, X + fs * 0.05, cy + fs * 0.06); }
     x.fillStyle = ink; x.fillText(str, X, cy);
   };
-  const drawArt = rect => {
-    x.save(); rr(...rect, 0); x.clip(); x.fillStyle = '#2a2a2a'; x.fillRect(...rect);
+  const paintArt = (c, rect) => {
+    c.save(); c.beginPath(); c.rect(...rect); c.clip(); c.fillStyle = '#2a2a2a'; c.fillRect(...rect);
     if (art) {
       const [bx, by, bw, bh] = rect, sc = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
       const dw = art.naturalWidth * sc, dh = art.naturalHeight * sc, mx = (dw - bw) / 2, my = (dh - bh) / 2;
-      x.drawImage(art, bx - mx - (t.ox || 0) * mx, by - my - (t.oy || 0) * my, dw, dh);
+      c.drawImage(art, bx - mx - (t.ox || 0) * mx, by - my - (t.oy || 0) * my, dw, dh);
     } else {
-      x.fillStyle = '#8f8f8f'; x.font = `400 3px ${CC_FONT.rules}`; x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillText('Choose your art', rect[0] + rect[2] / 2, rect[1] + rect[3] / 2); x.textAlign = 'left';
+      c.fillStyle = '#8f8f8f'; c.font = `400 3px ${CC_FONT.rules}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('Choose your art', rect[0] + rect[2] / 2, rect[1] + rect[3] / 2); c.textAlign = 'left';
     }
-    x.restore();
+    c.restore();
+  };
+  const drawArt = (rect, mask) => {
+    if (!mask) return paintArt(x, rect);
+    const off = document.createElement('canvas'); off.width = Math.max(1, Math.round(rect[2] * k)); off.height = Math.max(1, Math.round(rect[3] * k));
+    const o = off.getContext('2d'); o.scale(k, k); o.translate(-rect[0], -rect[1]); paintArt(o, rect);
+    o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'destination-in'; o.drawImage(mask, 0, 0, off.width, off.height);
+    x.drawImage(off, ...rect);
   };
   const manaRow = (right, cy, d, shadow) => {
     for (const tok of ((t.mana || '').match(/\{[^}]+\}|\/\//g) || []).reverse()) {
@@ -1980,9 +2006,10 @@ async function renderCustomCard(t, art, k) {
     const nameBar = nb0 && {l:nb0.l - 12, t:nb0.t - 7, w:costRight + 9 - (nb0.l - 12), h:nb0.h + 13};
     const typeBar = tb0 && {l:tb0.l - 12, t:tb0.t - 5, w:set.w - 2 * (tb0.l - 12), h:tb0.h + 9};
     const textBox = xb0 && {l:xb0.l - 6, t:xb0.t - 4, w:xb0.w + 12, h:xb0.h + 8};
+    if (frameImg) { x.fillStyle = edgeColor(frameImg); x.fillRect(-b, -b, W, H); }
     if (mode === 'normal' || mode === 'extended') {
-      if (frameImg) x.drawImage(frameImg, 0, 0, 63, 88);
-      drawArt(geo.art);
+      if (frameImg) { x.save(); rr(0, 0, 63, 88, 3.2); x.clip(); x.drawImage(frameImg, 0, 0, 63, 88); x.restore(); }
+      drawArt(geo.art, mode === 'normal' && set.mask ? await alphaMask(set.mask) : null);
       if (mode === 'extended') piece(nameBar, 10);
     } else {
       drawArt(geo.art);
@@ -2005,7 +2032,7 @@ async function renderCustomCard(t, art, k) {
     if (tb) fit(t.type || '', tb[0], tb[1] + tb[3] / 2, tb[2], sizeOf(L.type.font, 13), fontOf(L.type.font), rgb(L.type.font, light ? '#fff' : '#111'), !!L.type.font?.shadow || light);
     const pb = R(L.pt.box);
     if (t.pt && pb) { x.textAlign = 'center'; fit(t.pt, pb[0] + pb[2] / 2, pb[1] + pb[3] / 2, pb[2], sizeOf(L.pt.font, 16), fontOf(L.pt.font), rgb(L.pt.font, light ? '#fff' : '#111'), !!L.pt.font?.shadow || light); x.textAlign = 'left'; }
-    const ib = R(L.illus.box), credit = light || !L.illus.font?.color ? '#fff' : rgb(L.illus.font, '#fff');
+    const ib = R(L.illus.box) || [4.9, 82.2, 40, 2.2], credit = light || !L.illus.font?.color ? '#fff' : rgb(L.illus.font, '#fff');
     if (ib && t.artist) fit(`Illus. ${t.artist}`, ib[0], ib[1] + ib[3] / 2, ib[2], sizeOf(L.illus.font, 9), fontOf(L.illus.font), credit, true);
     const cb = R(L.copy.box) || (ib && [ib[0], ib[1] + ib[3], ib[2], 1.8]);
     if (cb) fit('Proxy · not for sale', cb[0], cb[1] + cb[3] / 2, cb[2], 1.3, {w:400, f:CC_FONT.rules}, credit, true);
@@ -2160,7 +2187,8 @@ async function openCardMaker(target) {
     <div class="bd"><div class="cc">
       <div><canvas id="ccCanvas" aria-label="Card preview"></canvas><p class="hint">Drag the art to move it, scroll to zoom.</p></div>
       <div>
-        <div class="field" style="margin-bottom:10px"><label>Start from a real card</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccSet" placeholder="Set" style="width:64px" aria-label="Set code (optional)"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Fill</button></div></div>
+        <div class="field" style="margin-bottom:10px"><label>Start from a real card</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Fill</button></div>
+          <select id="ccSet" style="margin-top:6px" aria-label="Printing" hidden></select></div>
         <div class="row" style="margin-bottom:8px"><button class="primary" id="ccArt">${art ? 'Change art…' : 'Choose your art…'}</button><input type="file" id="ccFile" accept="image/*" hidden></div>
         <div class="grid2">
           <div class="field"><label>Art zoom</label><input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}"></div>
@@ -2306,20 +2334,27 @@ async function openCardMaker(target) {
   cv.onpointerup = cv.onpointercancel = () => { drag = null; };
   cv.onwheel = ev => { ev.preventDefault(); t.zoom = Math.max(1, Math.min(4, (t.zoom || 1) * (1 - ev.deltaY * 0.0015))); $('#ccZoom').value = t.zoom; draw(); };
   $('#ccFill').onclick = async () => {
-    const q = $('#ccLookup').value.trim(), set = $('#ccSet').value.trim().toLowerCase(), num = $('#ccNum').value.trim();
-    if (!q && !(set && num)) return toast('Type a card name, or a set and collector number.');
+    const q = $('#ccLookup').value.trim(), num = $('#ccNum').value.trim();
+    if (!q) return toast('Type a card name.');
     try {
-      const c = set && num ? await sf(`${SF}/cards/${encodeURIComponent(set)}/${encodeURIComponent(num)}`)
-        : num ? (await sf(`${SF}/cards/search?unique=prints&q=${encodeURIComponent(`!"${q}" cn:"${num}"`)}`)).data[0]
-        : await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}${set ? '&set=' + encodeURIComponent(set) : ''}`);
-      Object.assign(t, fromScryfall(c, c.card_faces?.[0]?.image_uris ? 0 : null));
-      $$('[data-cc]', bd).forEach(el => { el.value = t[el.dataset.cc] || ''; });
-      $('#ccManaText').value = t.mana || ''; syncManaGrid();
-      if (!manaCounts(t.mana).simple && !$('#ccManaAdv').checked) { $('#ccManaAdv').checked = true; $('#ccManaGrid').hidden = true; $('#ccManaText').hidden = false; }
-      draw();
+      const c = num ? (await sf(`${SF}/cards/search?unique=prints&q=${encodeURIComponent(`!"${q}" cn:"${num}"`)}`)).data[0]
+        : await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}`);
+      fillFrom(c); $('#ccLookup').value = c.name;
+      const prints = await sf(`${SF}/cards/search?unique=prints&order=released&q=${encodeURIComponent(`!"${c.name}"`)}`).then(j => j.data || []).catch(() => [c]);
+      $('#ccSet').innerHTML = prints.map(p => `<option value="${esc(p.id)}" ${p.id === c.id ? 'selected' : ''}>${esc(p.set_name)} (${esc(p.set.toUpperCase())}) · #${esc(p.collector_number)} · ${esc((p.released_at || '').slice(0, 4))}</option>`).join('');
+      $('#ccSet').hidden = false; ccPrints = prints;
     } catch (err) { toast('Card not found: ' + err.message, 5000); }
   };
-  ['#ccLookup', '#ccSet', '#ccNum'].forEach(id => { $(id).onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); }; });
+  let ccPrints = [];
+  $('#ccSet').onchange = ev => { const c = ccPrints.find(p => p.id === ev.target.value); if (c) { fillFrom(c); $('#ccNum').value = c.collector_number; } };
+  const fillFrom = c => {
+    Object.assign(t, fromScryfall(c, c.card_faces?.[0]?.image_uris ? 0 : null));
+    $$('[data-cc]', bd).forEach(el => { el.value = t[el.dataset.cc] || ''; });
+    $('#ccManaText').value = t.mana || ''; syncManaGrid();
+    if (!manaCounts(t.mana).simple && !$('#ccManaAdv').checked) { $('#ccManaAdv').checked = true; $('#ccManaGrid').hidden = true; $('#ccManaText').hidden = false; }
+    draw();
+  };
+  ['#ccLookup', '#ccNum'].forEach(id => { $(id).onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); }; });
   $('#ccSave').onclick = async () => {
     if (!art) return toast('Choose your art first.');
     busy(true, 'Rendering your card…');
