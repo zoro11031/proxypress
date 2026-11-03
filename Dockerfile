@@ -1,7 +1,7 @@
 FROM python:3.13-alpine
 
 WORKDIR /app
-COPY proxy-press.html proxy-press-server.py ./
+COPY proxy-press.html proxy-press-server.py og.png ./
 
 RUN adduser -D -H -u 10001 proxypress
 USER proxypress
