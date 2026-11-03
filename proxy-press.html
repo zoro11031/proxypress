@@ -493,6 +493,7 @@ const BUILTIN_PRESETS = [
     silhouette:true, regInset:10, regLen:20}},
 ];
 
+for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : p.id.startsWith('b-laser') ? 'Laser' : null;
 const INKJET_STOCK_TIPS = [
   'Use ProxyJak <b>INKJET</b> semi-gloss. Their black-core stock is laser only.',
   'Feed from the <b>rear slot</b>, one sheet at a time. It jams in the cassette.',
@@ -614,7 +615,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -625,7 +626,7 @@ async function load() {
   const ui = await store.get('kv', 'ui');
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed;
+    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -2096,7 +2097,15 @@ function renderPrinter() {
     ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
     <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>`;
 }
-$('#printerSel').onchange = e => { S.printer = e.target.value; save(); renderPrinter(); };
+// Presets made for a printer type pick that type's printer, and a printer picks its recommended layout.
+const printerOf = id => PRINTERS.find(x => x.id === id) || PRINTERS[0];
+$('#printerSel').onchange = e => {
+  S.printer = e.target.value;
+  const pr = printerOf(S.printer), cur = BUILTIN_PRESETS.find(p => p.id === S.activePreset);
+  S.printerByKind = {...S.printerByKind, [pr.kind]:pr.id};
+  if (!cur || (cur.kind && cur.kind !== pr.kind)) applyPreset(BUILTIN_PRESETS.find(p => p.id === pr.presets[0]));
+  save(); renderAll();
+};
 
 function renderPresets() {
   const card = (p, mine) => {
@@ -2116,7 +2125,10 @@ $('#presetGrid').onclick = ev => {
     return;
   }
   const b = ev.target.closest('[data-preset]'); if (!b) return;
-  applyPreset([...BUILTIN_PRESETS, ...S.presets].find(p => p.id === b.dataset.preset)); save(); renderAll();
+  const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === b.dataset.preset);
+  applyPreset(p);
+  if (p.kind && printerOf(S.printer).kind !== p.kind) S.printer = S.printerByKind?.[p.kind] || (p.kind === 'Laser' ? 'mf753' : 'et2800');
+  save(); renderAll();
 };
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
 $('#presetSave').onclick = () => {
