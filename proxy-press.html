@@ -1214,14 +1214,17 @@ async function exportMpcZip() {
       const blob = f.custom ? await store.get('images', f.custom)
         : await (await fetch(`https://cdn.mpcautofill.com/images/google_drive/full/${f.drive}.jpg?dpi=1500&jpgQuality=100`)).blob();
       if (!blob?.size) throw new Error(`Couldn't get the image for ${f.name}`);
-      const ext = /png/.test(blob.type) ? 'png' : /webp/.test(blob.type) ? 'webp' : 'jpg';
+      const ext = f.file?.match(/\.(\w{2,5})$/)?.[1].toLowerCase() || (/png/.test(blob.type) ? 'png' : /webp/.test(blob.type) ? 'webp' : 'jpg');
       let name = `${safeFile(f.mpcName || f.localName?.replace(/\.[^.]+$/, '') || f.name)} (${f.drive || key.replace(/^img-/, '')}).${ext}`;
       for (let k = 2; used.has(name.toLowerCase()); k++) name = name.replace(/(\.\w+)$/, ` ${k}$1`);
       used.add(name.toLowerCase());
       meta.set(key, {id:f.drive || `cards/${name}`, name});
       files.push({name:`cards/${name}`, data:new Uint8Array(await blob.arrayBuffer())});
     }
-    const xml = mpcXml(order, c => meta.get(c.f.custom || c.f.drive));
+    const xml = mpcXml(order, c => {
+      const m = meta.get(c.f.custom || c.f.drive);
+      return c === order.cardback ? {...m, id:`cards/${m.name}`} : m;
+    });
     busyProgress(1, 'Packing zip…'); await sleep(30);
     const base = orderName(order.d);
     download(makeZip([{name:`${base}.xml`, data:new TextEncoder().encode(xml)}, ...files]), `${base} (MPC Autofill).zip`);
