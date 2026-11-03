@@ -1002,7 +1002,7 @@ async function uploadImages(files) {
 }
 async function removeImageIfUnused(key) {
   if (!key) return;
-  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key) || (S.frameSets || []).some(f => Object.values(f.images || {}).includes(key));
+  const used = S.decks.some(d => d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key) || (S.frameSets || []).some(f => Object.values(f.images || {}).includes(key));
   if (!used) { await store.del('images', key); blobUrls.delete(key); }
 }
 
@@ -1701,15 +1701,16 @@ const CC_COLORS = [['auto', 'Auto (card colours)'], ['W', 'White'], ['U', 'Blue'
 const CC_BASE = {name:'"Spectral", "Palatino Linotype", Georgia, serif', type:'"Spectral", "Palatino Linotype", Georgia, serif', rules:'"Crimson Text", "Palatino Linotype", Georgia, serif',
   italic:'"Crimson Text", "Palatino Linotype", Georgia, serif', rname:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif',
   rtype:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif', rrules:'"Crimson Text", "Palatino Linotype", Georgia, serif',
-  bold:'"Crimson Text", "Palatino Linotype", Georgia, serif', relay:'"Helvetica Neue", Arial, sans-serif'};
+  bold:'"Crimson Text", "Palatino Linotype", Georgia, serif', relay:'"Helvetica Neue", Arial, sans-serif',
+  future:'"Eurostile", "Microgramma", "Futura", "Century Gothic", "Trebuchet MS", sans-serif'};
 const CC_SLOTS = [['name', 'Modern name'], ['type', 'Modern type line & P/T'], ['rules', 'Rules text'], ['italic', 'Flavor & reminder (italic)'],
-  ['rname', 'Retro name'], ['rrules', 'Retro type, rules & P/T'], ['rtype', 'Matrix (8th Edition frames)'], ['bold', 'Plantin Bold'], ['relay', 'Relay (collector line)']];
+  ['rname', 'Retro name'], ['rrules', 'Retro type, rules & P/T'], ['rtype', 'Matrix (8th Edition frames)'], ['bold', 'Plantin Bold'], ['relay', 'Relay (collector line)'], ['future', 'Future Sight (Eurostile)']];
 // For each slot, the font file names to look for, best first.
 const FONT_PREFER = {
   name:[/^beleren\s*2016/i, /^beleren-?bold/i, /^beleren(?!.*small)/i], type:[/beleren.*small/i],
   rules:[/plantin.*pro.*rg\.(ttf|otf)$/i, /^mplantin\.(ttf|otf)$/i, /plantin(?!.*(it|bold))/i], italic:[/plantin.*rgit/i, /plantin.*ital/i, /^mplantinit/i],
   rname:[/magmed|magic.?medieval/i], rrules:[], rtype:[/^matrix.?bold\.ttf$/i, /^matrixb\.ttf$/i],
-  bold:[/plantin.*pro.*bold/i, /plantin.*bold/i], relay:[/^relay/i, /gotham/i]};
+  bold:[/plantin.*pro.*bold/i, /plantin.*bold/i], relay:[/^relay/i, /gotham/i], future:[/eurostile|microgramma/i, /futura/i]};
 // Era typography in points on a 63 x 88 mm card (252 pt tall). order: 'scale' compresses width before shrinking, 'size' shrinks first.
 const PT_MM = 88 / 252;
 const ERA_TYPE = {
@@ -1722,6 +1723,17 @@ const ERA_TYPE = {
   m15:{shadow:null,
     title:{slot:'name', size:9.9, min:8, sx:0.88, order:'size', floor:7, floorSx:0.85}, type:{slot:'name', size:8.3, min:6.5, sx:0.88, order:'size'},
     rules:{size:9.5, min:6.5}, pt:{slot:'name', size:11.25, min:9.5}, loyalty:{slot:'name', size:9.25, min:7}, artist:{slot:'type', size:4.8}, copy:{slot:'relay', size:4.5, track:0.1}, notice:{slot:'rules', size:4.9}}};
+// Sub-eras: Alpha/Beta/Unlimited, Revised, Tenth Edition, Planar Chaos and Future Sight.
+ERA_TYPE.abu = {shadow:'hard', ink:'#E6E1D6', illus:true,
+  title:{slot:'rname', size:11.5, min:9, sx:0.82, track:-0.02, order:'scale', dy:1.5}, type:{slot:'rrules', size:9.5, min:7.5, sx:0.85, order:'scale'},
+  rules:{size:10, min:6, top:4, noBar:true}, pt:{slot:'rname', size:12, min:10, slash:true}, artist:{slot:'rname', size:7.5, center:true}, copy:{slot:'rules', size:4.5}};
+ERA_TYPE.retro.illus = true;
+ERA_TYPE.revised = {...ERA_TYPE.retro};
+ERA_TYPE.tenth = {...ERA_TYPE.modern_8ed, centerShort:true, copy:{slot:'rules', size:4.5}};
+ERA_TYPE.planar_chaos = {...ERA_TYPE.modern_8ed, ink:'#fff', shadow:'glow'};
+ERA_TYPE.futureshift = {shadow:null,
+  title:{slot:'future', size:10.5, min:8, sx:0.85, track:0.03, order:'size', caps:true}, type:{slot:'future', size:8.5, min:6.5, sx:0.85, track:0.03, order:'size', caps:true},
+  rules:{size:9, min:6.5}, pt:{slot:'future', size:12, min:10}, artist:{slot:'rtype', size:7}, copy:{slot:'rules', size:4.75}};
 // Planeswalker abilities: "+1: …", "−2: …", "0: …"; lines without a cost are static abilities.
 const parsePw = t => {
   const rows = (t.text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
@@ -1732,7 +1744,8 @@ const parsePw = t => {
 };
 const eraOf = t => {
   const n = setOf(t)?.name || '';
-  if (n) return /m15/.test(n) ? 'm15' : /magic-(old|veryold|classicshifted)/.test(n) ? 'retro' : 'modern_8ed';
+  if (n) return /m15/.test(n) ? 'm15' : /old-abu/.test(n) ? 'abu' : /veryold/.test(n) ? 'revised' : /magic-(old|classicshifted)/.test(n) ? 'retro'
+    : /tenth/.test(n) ? 'tenth' : /planeshifted/.test(n) ? 'planar_chaos' : /magic-future/.test(n) ? 'futureshift' : 'modern_8ed';
   return t.style === 'retro' ? 'retro' : 'm15';
 };
 const assignFonts = names => Object.fromEntries(Object.entries(FONT_PREFER).map(([slot, res]) => [slot, res.map(re => names.find(n => re.test(n))).find(Boolean)]).filter(([, n]) => n));
@@ -1795,12 +1808,13 @@ async function upgradeDrawnCards() {
   if (done) { save(); renderAll(); toast(`Updated ${done} custom card${done === 1 ? '' : 's'} to your Modern and Retro frames.`, 5000); }
 }
 const setRect = (set, b, fallback) => b ? [b.l * 63 / set.w, b.t * 88 / set.h, b.w * 63 / set.w, b.h * 88 / set.h] : fallback;
+const artModeOf = t => { const m = t.artMode || 'normal', pw = setOf(t)?.layout.pw; return pw && m !== 'borderless' ? 'normal' : m; };
 const ccGeom = t => {
   const set = setOf(t);
   if (set) {
-    const L = set.layout, b = L.border || {l:17, r:17, t:17}, mode = L.pw ? 'normal' : t.artMode || 'normal', typeTop = (L.type.box?.t ?? set.h * 0.57) - 6;
-    const art = mode === 'extended' ? setRect(set, {l:b.l, t:b.t, w:set.w - b.l - b.r, h:typeTop - b.t})
-      : mode === 'borderless' || mode === 'full' ? [0, 0, 63, 88] : setRect(set, L.image, [4.7, 9.7, 53.6, 39.3]);
+    const L = set.layout, mode = artModeOf(t), B = MPC_BLEED;
+    const art = mode === 'extended' ? [-B, -B, 63 + 2 * B, 152 * PT_MM + B]
+      : mode === 'normal' ? setRect(set, L.image, [4.7, 9.7, 53.6, 39.3]) : [-B, -B, 63 + 2 * B, 88 + 2 * B];
     return {art, box:setRect(set, L.text.box, [4.7, 54.9, 53.6, 25.6])};
   }
   return t.style === 'retro'
@@ -1859,6 +1873,10 @@ function alphaMask(url) {
   }).catch(() => null));
   return maskCache.get(url);
 }
+const lumAt = (im, fx, fy) => {
+  const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d');
+  g.drawImage(im, im.naturalWidth * fx, im.naturalHeight * fy, 1, 1, 0, 0, 1, 1); const [r, gg, bb] = g.getImageData(0, 0, 1, 1).data; return 0.299 * r + 0.587 * gg + 0.114 * bb;
+};
 const edgeColor = im => {
   const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d');
   g.drawImage(im, im.naturalWidth / 2, 3, 1, 1, 0, 0, 1, 1); const [r, gg, bb] = g.getImageData(0, 0, 1, 1).data; return `rgb(${r},${gg},${bb})`;
@@ -1968,13 +1986,14 @@ async function renderCustomCard(t, art, k) {
     if (shadow) { x.fillStyle = 'rgba(0,0,0,.8)'; x.fillText(str, X + fs * 0.05, cy + fs * 0.06); }
     x.fillStyle = ink; x.fillText(str, X, cy);
   };
-  const paintArt = (c, rect) => {
-    c.save(); c.beginPath(); c.rect(...rect); c.clip(); c.fillStyle = '#2a2a2a'; c.fillRect(...rect);
+  const paintArt = (c, rect, im = art, bare = false) => {
+    const art = im;
+    c.save(); c.beginPath(); c.rect(...rect); c.clip(); if (!bare) { c.fillStyle = '#2a2a2a'; c.fillRect(...rect); }
     if (art) {
       const [bx, by, bw, bh] = rect, sc = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
       const dw = art.naturalWidth * sc, dh = art.naturalHeight * sc, mx = (dw - bw) / 2, my = (dh - bh) / 2;
       c.drawImage(art, bx - mx - (t.ox || 0) * mx, by - my - (t.oy || 0) * my, dw, dh);
-    } else {
+    } else if (!bare) {
       c.fillStyle = '#8f8f8f'; c.font = `400 3px ${CC_FONT.rules}`; c.textAlign = 'center'; c.textBaseline = 'middle';
       c.fillText('Choose your art', rect[0] + rect[2] / 2, rect[1] + rect[3] / 2); c.textAlign = 'left';
     }
@@ -1995,12 +2014,14 @@ async function renderCustomCard(t, art, k) {
     return right;
   };
   const geo = ccGeom(t), E = ERA_TYPE[eraOf(t)];
-  let ink, textColor = null, textShadow = false, ptCut = null, pwRows = null;
+  let ink, textColor = null, textShadow = null, ptCut = null, pwRows = null, skipRules = false;
   // One line of title / type / P/T / footer text, fitted to maxW by the era's compress-or-shrink order.
   const fitLine = (str, X, cy, maxW, spec, color, shadow, align = 'left') => {
     if (!str) return 0;
+    if (spec.slash) str = str.replace('/', '\u200a/\u200a');
+    cy += (spec.dy || 0) * PT_MM;
     const fam = CC_FONT[spec.slot], wt = fam !== CC_BASE[spec.slot] ? 400 : spec.slot === 'rules' || spec.slot === 'rrules' || spec.slot === 'rname' ? 400 : 700;
-    const use = (pt, track) => { x.font = `${wt} ${pt * PT_MM}px ${fam}`; if ('letterSpacing' in x) x.letterSpacing = `${(track || 0) * pt * PT_MM}px`; };
+    const use = (pt, track) => { x.font = `${wt} ${pt * PT_MM}px ${fam}`; if ('letterSpacing' in x) x.letterSpacing = `${(track || 0) * pt * PT_MM}px`; if ('fontVariantCaps' in x) x.fontVariantCaps = spec.caps ? 'small-caps' : 'normal'; };
     let pt = spec.size, sx = spec.sx0 || 1, track = spec.track > 0 ? spec.track : 0;
     const width = () => { use(pt, track); return x.measureText(str).width * sx; };
     const scaleDown = lo => { while (width() > maxW && sx > lo + 1e-6) { sx = Math.max(lo, sx - 0.01); if (spec.track) track = spec.track; } };
@@ -2012,9 +2033,12 @@ async function renderCustomCard(t, art, k) {
     const by0 = cy + x.measureText('H').actualBoundingBoxAscent / 2, dx = align === 'center' ? -x.measureText(str).width * sx / 2 : align === 'right' ? -x.measureText(str).width * sx : 0;
     x.save(); x.translate(X + dx, by0); x.scale(sx, 1); x.textAlign = 'left'; x.textBaseline = 'alphabetic';
     if (shadow === 'hard') { x.fillStyle = '#000'; x.fillText(str, 0.0847 / sx, 0.127); }
+    else if (shadow === 'glass') { x.save(); x.shadowColor = 'rgba(0,0,0,.9)'; x.shadowOffsetY = 1.25 * PT_MM * k; x.shadowBlur = 2 * PT_MM * k; x.lineJoin = 'round'; x.lineWidth = 0.7 * PT_MM; x.strokeStyle = '#000'; x.strokeText(str, 0, 0); x.restore(); }
+    else if (shadow === 'glow') { x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 0.5 * PT_MM * 2 * k; }
     else if (shadow) { x.fillStyle = 'rgba(0,0,0,.8)'; x.fillText(str, pt * PT_MM * 0.05 / sx, pt * PT_MM * 0.06); }
     x.fillStyle = color; x.fillText(str, 0, 0); const drawn = x.measureText(str).width * sx; x.restore();
     if ('letterSpacing' in x) x.letterSpacing = '0px';
+    if ('fontVariantCaps' in x) x.fontVariantCaps = 'normal';
     return drawn;
   };
 
@@ -2045,40 +2069,63 @@ async function renderCustomCard(t, art, k) {
   } else if (set) {
     const L = set.layout, land = /Land/.test(t.type || ''), R = b => setRect(set, b, null);
     const img = async k => k ? loadImage(k.startsWith('/') ? k : await customUrl(k)).catch(() => null) : null;
-    const pwInfo = L.pw ? parsePw(t) : null, mode = pwInfo ? 'normal' : t.artMode || 'normal', onArt = mode === 'full';
+    const pwInfo = L.pw ? parsePw(t) : null, mode = artModeOf(t), framed = mode === 'normal' || mode === 'extended', dark = !framed;
     const pwCode = {W:'w', U:'u', B:'b', R:'r', G:'g', M:'m', C:'a', L:'c'}[key] || 'c';
     const frameUrl = pwInfo ? set.images[pwCode + 'card' + (pwInfo.four ? '2' : '')] || setImageKey(set, key, false, false) : setImageKey(set, key, land, false);
     const pwMask = pwInfo && set.files?.[pwInfo.four ? 'imagemask_4abil.png' : 'imagemask.png'];
-    const frameImg = onArt ? null : await img(frameUrl), ptImg = t.pt && L.ptbox && !onArt ? await img(setImageKey(set, key, land, true)) : null;
+    const frameImg = framed ? await img(frameUrl) : null, ptImg = t.pt && L.ptbox && framed ? await img(setImageKey(set, key, land, true)) : null;
     const piece = (b, r) => { if (!frameImg || !b) return; x.save(); rr(...R(b), r * 63 / set.w); x.clip(); x.drawImage(frameImg, 0, 0, 63, 88); x.restore(); };
-    const nb0 = L.name.box, tb0 = L.type.box, xb0 = L.text.box, costRight = L.cost?.right ?? (nb0 ? nb0.l + nb0.w : set.w - 30);
+    const nb0 = L.name.box, tb0 = pwInfo && L.type.box ? {...L.type.box, t:pwInfo.four ? 261 : 296} : L.type.box, xb0 = L.text.box, costRight = L.cost?.right ?? (nb0 ? nb0.l + nb0.w : set.w - 30);
     const nameBar = nb0 && {l:nb0.l - 12, t:nb0.t - 7, w:costRight + 9 - (nb0.l - 12), h:nb0.h + 13};
     const typeBar = tb0 && {l:tb0.l - 12, t:tb0.t - 5, w:set.w - 2 * (tb0.l - 12), h:tb0.h + 9};
     const textBox = xb0 && {l:xb0.l - 6, t:xb0.t - 4, w:xb0.w + 12, h:xb0.h + 8};
+    const shade = (x0, y0, x1, y1, rect, a0, a1) => { const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, `rgba(0,0,0,${a0})`); g.addColorStop(1, `rgba(0,0,0,${a1})`); x.fillStyle = g; x.fillRect(...rect); };
+    const pin = {W:'#efe7c8', U:'#3d8fd9', B:'#8c8580', R:'#e2492f', G:'#33a05a', M:'#D4AF37', C:'#C0C5CE', L:'#b59c70'}[key] || '#C0C5CE';
+    // Smoked-glass plate: translucent fill, colour pinline, thin black outer stroke.
+    const glass = (box, r, fill) => {
+      if (!box) return; const rc = Array.isArray(box) ? box : R(box);
+      x.save(); rr(...rc, r); x.fillStyle = fill; x.fill(); x.lineWidth = 3.25 * PT_MM; x.strokeStyle = 'rgba(0,0,0,.9)'; x.stroke(); x.lineWidth = 1.25 * PT_MM; x.strokeStyle = pin; x.stroke(); x.restore();
+    };
+    // Floating frame bar with a dark bezel shadow so it detaches from the art behind it.
+    const floatBar = (box, r) => {
+      if (!box || !frameImg) return; const rc = R(box), rad = r * 63 / set.w;
+      x.save(); x.shadowColor = 'rgba(0,0,0,.85)'; x.shadowBlur = 2.5 * PT_MM * k; x.shadowOffsetY = 0.7 * PT_MM * k; rr(...rc, rad); x.fillStyle = '#000'; x.fill(); x.restore(); piece(box, r);
+    };
     if (frameImg) { x.fillStyle = edgeColor(frameImg); x.fillRect(-b, -b, W, H); }
-    if (mode === 'normal' || mode === 'extended') {
+    if (mode === 'normal') {
       if (frameImg) { x.save(); rr(0, 0, 63, 88, 3.2); x.clip(); x.drawImage(frameImg, 0, 0, 63, 88); x.restore(); }
-      drawArt(geo.art, mode === 'normal' && (pwMask || set.mask) ? await alphaMask(pwMask || set.mask) : null);
-      if (mode === 'extended') piece(nameBar, 10);
+      drawArt(geo.art, pwMask || set.mask ? await alphaMask(pwMask || set.mask) : null);
+    } else if (mode === 'extended') {
+      x.fillStyle = '#000'; x.fillRect(-b, -b, W, H);
+      drawArt(geo.art);
+      const v = 4 * PT_MM, bottom = geo.art[1] + geo.art[3];
+      shade(0, 0, 0, v, [-b, -b, W, v + b], 0.55, 0); shade(0, 0, v, 0, [-b, -b, v + b, bottom + b], 0.55, 0); shade(63, 0, 63 - v, 0, [63 - v, -b, v + b, bottom + b], 0.55, 0);
+      shade(0, 145 * PT_MM, 0, 165 * PT_MM, [-b, 145 * PT_MM, W, 20 * PT_MM], 0, 1);
+      x.save(); x.globalAlpha = 0.9; piece(textBox, 4); x.restore();
+      floatBar(nameBar, 10); floatBar(typeBar, 8);
     } else {
       drawArt(geo.art);
-      if (mode === 'borderless') { piece(nameBar, 10); piece(typeBar, 8); piece(textBox, 4); }
-      else {
-        const top = x.createLinearGradient(0, 0, 0, 16); top.addColorStop(0, 'rgba(0,0,0,.6)'); top.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = top; x.fillRect(0, 0, 63, 16);
-        const y0 = (tb0?.t ?? set.h * 0.57) * 88 / set.h - 8, low = x.createLinearGradient(0, y0, 0, 88);
-        low.addColorStop(0, 'rgba(0,0,0,0)'); low.addColorStop(0.25, 'rgba(0,0,0,.6)'); low.addColorStop(1, 'rgba(0,0,0,.78)'); x.fillStyle = low; x.fillRect(0, y0, 63, 88 - y0);
+      if (mode === 'full') { shade(0, 0, 0, 16, [-b, -b, W, 16 + b], 0.55, 0); }
+      shade(0, 222 * PT_MM, 0, 88, [-b, 222 * PT_MM, W, 88 - 222 * PT_MM + b], 0, 0.85);
+      if (mode !== 'full') {
+        glass(nameBar, 1.6, 'rgba(15,15,15,.6)');
+        if (mode === 'borderless') { glass(typeBar, 1.4, 'rgba(15,15,15,.6)'); if (!pwInfo) glass(textBox, 1, 'rgba(10,10,10,.58)'); }
+        if (t.pt && !pwInfo && L.pt.box) glass(R({l:L.pt.box.l - 5, t:L.pt.box.t - 2, w:L.pt.box.w + 10, h:L.pt.box.h + 4}), 1, 'rgba(20,20,20,.75)');
       }
+      skipRules = mode === 'textless';
     }
     if (ptImg) x.drawImage(ptImg, ...R(L.ptbox));
-    const light = onArt || (L.whiteText && key !== 'W'), rgb = (f, d) => onArt ? '#fff' : f?.color ? `rgb(${f.color.join(',')})` : d;
-    const isDark = c => /^#1|rgb\((\d{1,2}|1[0-2]\d),/.test(c), shadowFor = c => onArt ? 'soft' : E.shadow && !isDark(c) ? E.shadow : null;
+    if (E === ERA_TYPE.futureshift && framed && typeBar) { x.save(); rr(...R(typeBar), 1); x.fillStyle = 'rgba(255,255,255,.55)'; x.fill(); x.restore(); }
+    if (t.popKey && mode !== 'normal') { const pop = await img(t.popKey); if (pop) paintArt(x, geo.art, pop, true); }
+    const light = dark || !!E.ink || (L.whiteText && key !== 'W'), rgb = (f, d) => dark ? '#fff' : E.ink || (f?.color ? `rgb(${f.color.join(',')})` : d);
+    const isDark = c => /^#1|rgb\((\d{1,2}|1[0-2]\d),/.test(c), shadowFor = c => dark ? 'glass' : E.shadow && !isDark(c) ? E.shadow : null;
     ink = () => rgb(L.name.font, light ? '#fff' : '#111');
     let right = 57.5;
     if (L.cost?.right != null) right = manaRow(L.cost.right * 63 / set.w, ((L.cost.top || 0) + (L.cost.h || 22) / 2) * 88 / set.h, Math.min(3.4, (L.cost.h || 22) * 88 / set.h * 0.78), !light);
     const nb = R(L.name.box), nameInk = rgb(L.name.font, light ? '#fff' : '#111');
     if (nb) fitLine(t.name || '', nb[0], nb[1] + nb[3] / 2, Math.min(nb[2], right - nb[0] - 0.8), E.title, nameInk, shadowFor(nameInk));
-    const tb = R(pwInfo && L.type.box ? {...L.type.box, t:pwInfo.four ? 261 : 296} : L.type.box), typeInk = rgb(L.type.font, light ? '#fff' : '#111');
-    if (tb) fitLine(t.type || '', tb[0], tb[1] + tb[3] / 2, tb[2], E.type, typeInk, shadowFor(typeInk));
+    const tb = R(tb0), typeInk = rgb(L.type.font, light ? '#fff' : '#111');
+    if (tb && mode !== 'textless') fitLine(t.type || '', tb[0], tb[1] + tb[3] / 2, tb[2], E.type, typeInk, shadowFor(typeInk));
     const pb = R(L.pt.box), ptInk = rgb(L.pt.font, light ? '#fff' : '#111');
     if (t.pt && pb && !pwInfo) fitLine(t.pt, pb[0] + pb[2] / 2, pb[1] + pb[3] / 2, pb[2], E.pt, ptInk, shadowFor(ptInk), 'center');
     ptCut = t.pt && !pwInfo ? R(L.ptbox) || pb : null;
@@ -2088,19 +2135,22 @@ async function renderCustomCard(t, art, k) {
       const pic = f => set.files?.[f] ? loadImage(set.files[f]).catch(() => null) : null;
       const [up, down, naught, shield] = await Promise.all(['loyaltyup.png', 'loyaltydown.png', 'loyaltynaught.png', 'loyalty.png'].map(pic));
       const rows = pwInfo.rows.length > n ? [...pwInfo.rows.slice(0, n - 1), {cost:pwInfo.rows[n - 1].cost, text:pwInfo.rows.slice(n - 1).map((r, j) => (j && r.cost ? r.cost + ': ' : '') + r.text).join(' ')}] : pwInfo.rows;
+      if (dark) rows.forEach((r, i) => { x.fillStyle = i % 2 ? 'rgba(0,0,0,.68)' : 'rgba(0,0,0,.5)'; x.fillRect(...U(28, textTop + i * bandH, 320, bandH)); });
       pwRows = rows.map((r, i) => {
         if (r.cost) {
-          const bx0 = U(18, tops[i], 42, 40), badge = /^\+/.test(r.cost) ? up : /^\u2212/.test(r.cost) ? down : naught;
+          const bx0 = U(18, tops[i], 42, 40), badge = /^\+/.test(r.cost) ? up : /^−/.test(r.cost) ? down : naught;
           if (badge) x.drawImage(badge, ...bx0);
           const nudge = badge === up ? 0.35 : badge === down ? -0.35 : 0;
           fitLine(r.cost, bx0[0] + bx0[2] / 2, bx0[1] + bx0[3] / 2 + nudge, bx0[2] * 0.7, E.loyalty || E.pt, '#fff', null, 'center');
-          fitLine(':', U(60, 0, 5, 0)[0], bx0[1] + bx0[3] / 2, 2, {slot:'rules', size:9.5}, '#111', null);
+          fitLine(':', U(60, 0, 5, 0)[0], bx0[1] + bx0[3] / 2, 2, {slot:'rules', size:9.5}, dark ? '#fff' : '#111', dark ? 'glass' : null);
         }
         return {rect:U(63, textTop + i * bandH, 282, bandH), text:r.text};
       });
       if (pwInfo.loyalty) { const lb = U(302, 460, 60, 38); if (shield) x.drawImage(shield, ...lb); fitLine(pwInfo.loyalty, lb[0] + lb[2] / 2, lb[1] + lb[3] / 2, lb[2] * 0.6, E.loyalty || E.pt, '#fff', null, 'center'); }
     }
-    const ib = R(L.illus.box) || [4.9, 83.2, 40, 2.2], credit = light || !L.illus.font?.color ? '#fff' : rgb(L.illus.font, '#fff'), creditShadow = onArt ? 'soft' : E.shadow && !isDark(credit) ? E.shadow : null;
+    const ib = R(L.illus.box) || [4.9, 83.2, 40, 2.2];
+    const behind = frameImg && E !== ERA_TYPE.m15 && ib ? lumAt(frameImg, (ib[0] + 6) / 63, (ib[1] + ib[3] / 2) / 88) : 0;
+    const credit = behind > 150 ? '#111' : light || !L.illus.font?.color ? (E.ink && !dark ? E.ink : '#fff') : rgb(L.illus.font, '#fff'), creditShadow = dark ? 'soft' : E.shadow && !isDark(credit) ? E.shadow : null;
     if (E === ERA_TYPE.m15) {
       // Current-frame footer: rarity + number, then set · language, brush and artist; proxy notice where the copyright goes.
       const y1 = 82.85, y2 = 84.55, L0 = 4.0;
@@ -2113,11 +2163,13 @@ async function renderCustomCard(t, art, k) {
       }
       fitLine('Proxy · not for sale', 59, y2, 24, E.notice, credit, creditShadow, 'right');
     } else {
-      if (ib && t.artist) fitLine(E === ERA_TYPE.retro ? `Illus. ${t.artist}` : t.artist, ib[0], ib[1] + ib[3] / 2, ib[2], E.artist, credit, creditShadow);
+      const artistText = E.illus ? `Illus. ${t.artist}` : t.artist;
+      if (ib && t.artist) E.artist.center ? fitLine(artistText, 31.5, ib[1] + ib[3] / 2, 50, E.artist, credit, creditShadow, 'center') : fitLine(artistText, ib[0], ib[1] + ib[3] / 2, ib[2], E.artist, credit, creditShadow);
       const cb = R(L.copy.box) || (ib && [ib[0], ib[1] + ib[3], ib[2], 1.9]);
-      if (cb) fitLine('Proxy · not for sale', cb[0], cb[1] + cb[3] / 2, cb[2], E.copy, credit, creditShadow);
+      if (cb) fitLine('Proxy · not for sale', E.artist.center ? 31.5 : cb[0], cb[1] + cb[3] / 2, cb[2], E.copy, credit, creditShadow, E.artist.center ? 'center' : 'left');
     }
-    textColor = rgb(L.text.font, '#111'); textShadow = onArt;
+    textColor = dark ? '#fff' : L.text.font?.color ? `rgb(${L.text.font.color.join(',')})` : '#111';
+    textShadow = mode === 'full' ? {ox:0, oy:0.6, blur:2.5, a:0.9, stroke:0.5, track:0.015} : dark ? {ox:0.5, oy:0.75, blur:1.25, a:0.85, track:0.015} : null;
   } else if (custom) {
     ink = () => '#111';
     const frameImg = t.frameKey ? await loadImage(await customUrl(t.frameKey)).catch(() => null) : null;
@@ -2179,8 +2231,14 @@ async function renderCustomCard(t, art, k) {
   const flavor = curly(t.flavor || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:true}));
   const pad = 1.4, maxW = bw - pad * 2, baseH = bh - pad * 2 - (t.pt && !retro && !set ? 1.6 : 0);
   const divGap = 2 * PT_MM, ruleH = 0.22;
-  const layout = (fs, lhF, psF, P = paras, F = flavor, W = maxW) => {
-    const lines = [], sp = fs * 0.26, sd = fs * 0.82;
+  const RS = E.rules, fx = textShadow;
+  if ('letterSpacing' in x) x.letterSpacing = '0px';
+  // nar narrows lines whose bottom passes nar.y (measured from the block top), e.g. beside the P/T box.
+  const layout = (fs, lhF, psF, P = paras, F = flavor, W = maxW, nar = null) => {
+    const lines = [], sp = fs * 0.26, sd = fs * 0.82, lh = fs * lhF;
+    if ('letterSpacing' in x) x.letterSpacing = fx?.track ? `${fx.track * fs}px` : '0px';
+    let yAcc = 0;
+    const width = () => nar && yAcc + lh > nar.y ? nar.w : W;
     const run = list => list.forEach((p, n) => {
       let line = [], w = 0, italic = p.italic;
       for (const tok of p.text.match(/\{[^}]+\}|[^\s{]+/g) || []) {
@@ -2188,39 +2246,44 @@ async function renderCustomCard(t, art, k) {
         let tw;
         if (/^\{[^}]+\}$/.test(tok)) tw = sd;
         else { x.font = rf(italic, fs); tw = x.measureText(tok).width; }
-        if (line.length && w + sp + tw > W) { lines.push({toks:line, w, gap:0}); line = []; w = 0; }
+        if (line.length && w + sp + tw > width()) { lines.push({toks:line, w, gap:0}); yAcc += lh; line = []; w = 0; }
         line.push({tok, italic, w:tw}); w += (line.length > 1 ? sp : 0) + tw;
         if (tok.endsWith(')') && !p.italic) italic = false;
       }
-      lines.push({toks:line, w, gap:n < list.length - 1 ? fs * psF : 0});
+      const gap = n < list.length - 1 ? fs * psF : 0;
+      lines.push({toks:line, w, gap}); yAcc += lh + gap;
     });
     run(P);
-    if (P.length && F.length) { lines[lines.length - 1].gap = divGap; lines.push({rule:true, gap:divGap}); }
+    if (P.length && F.length) {
+      if (RS.noBar) { lines.at(-1).gap = fs * 0.35; yAcc += fs * 0.35; }
+      else { lines.at(-1).gap = divGap; lines.push({rule:true, gap:divGap}); yAcc += 2 * divGap + ruleH; }
+    }
     run(F);
     x.font = rf(false, fs);
-    const lh = fs * lhF, cap = x.measureText('H').actualBoundingBoxAscent, height = lines.reduce((h, l) => h + (l.rule ? ruleH : lh) + l.gap, 0) - (lines.at(-1)?.gap || 0);
+    const cap = x.measureText('H').actualBoundingBoxAscent, height = lines.reduce((h, l) => h + (l.rule ? ruleH : lh) + l.gap, 0) - (lines.at(-1)?.gap || 0);
     return {lines, lh, sp, sd, fs, cap, height};
   };
-  const RS = E.rules, steps = [[RS.size, 1.05, 0.35], [RS.size, 1.0, 0.2]];
+  const steps = [[RS.size, 1.05, 0.35], [RS.size, 1.0, 0.2]];
   for (let p = RS.size - 0.25; p >= RS.min - 1e-6; p -= 0.25) steps.push([p, 1.0, 0.2]);
   steps.push([RS.min, 0.94, 0.12]);
   for (let p = RS.min - 0.25; p >= 4; p -= 0.25) steps.push([p, 0.94, 0.12]);
-  const fitTo = h => { let r; for (const [p, lh, ps] of steps) { r = layout(p * PT_MM, lh, ps); if (r.height <= h) break; } return r; };
+  const fitTo = (h, nar) => { let r; for (const [p, lh, ps] of steps) { r = layout(p * PT_MM, lh, ps, paras, flavor, maxW, nar); if (r.height <= h) break; } return r; };
   const drawBlock = (T, X0, y) => {
     for (const line of T.lines) {
       if (line.rule) {
-        const g = x.createLinearGradient(bx + 6, 0, bx + bw - 6, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, full || textShadow ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        const g = x.createLinearGradient(bx + 6, 0, bx + bw - 6, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, full || fx ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
         x.fillStyle = g; x.fillRect(bx + 6, y, bw - 12, ruleH); y += ruleH + line.gap; continue;
       }
       const base = y + T.lh / 2 + T.cap / 2;
-      let X = X0;
+      let X = T.center ? bx + (bw - line.w) / 2 : X0;
       for (const [n, tk] of line.toks.entries()) {
         if (n) X += T.sp;
         if (/^\{[^}]+\}$/.test(tk.tok)) sym(tk.tok, X, base + T.fs * 0.08 - T.sd, T.sd, false);
         else {
           x.font = rf(tk.italic, T.fs); x.fillStyle = textInk; x.textBaseline = 'alphabetic';
-          if (textShadow) { x.shadowColor = 'rgba(0,0,0,.9)'; x.shadowBlur = 0.5 * k; x.shadowOffsetY = 0.12 * k; }
-          x.fillText(tk.tok, X, base); x.shadowColor = 'transparent';
+          if (fx) { x.shadowColor = `rgba(0,0,0,${fx.a})`; x.shadowBlur = fx.blur * PT_MM * k; x.shadowOffsetX = fx.ox * PT_MM * k; x.shadowOffsetY = fx.oy * PT_MM * k; }
+          if (fx?.stroke) { x.lineJoin = 'round'; x.lineWidth = fx.stroke * 2 * PT_MM; x.strokeStyle = '#000'; x.strokeText(tk.tok, X, base); }
+          x.fillText(tk.tok, X, base); x.shadowColor = 'transparent'; x.shadowOffsetX = x.shadowOffsetY = 0;
         }
         X += tk.w;
       }
@@ -2231,15 +2294,28 @@ async function renderCustomCard(t, art, k) {
     const one = (r, st) => layout(st[0] * PT_MM, st[1], st[2], [{text:curly(r.text), italic:false}], [], r.rect[2] - pad * 2);
     const st = steps.find(st => pwRows.every(r => one(r, st).height <= r.rect[3] - 0.8)) || steps.at(-1);
     for (const r of pwRows) { const Tr = one(r, st); drawBlock(Tr, r.rect[0] + pad, r.rect[1] + (r.rect[3] - Tr.height) / 2); }
+    if ('letterSpacing' in x) x.letterSpacing = '0px';
     return cv;
   }
-  let T = fitTo(baseH), availH = baseH;
-  if (ptCut) {
-    const reach = by + pad + baseH - ptCut[1], last = T.lines.at(-1);
-    const bottom = by + pad + Math.max(0, (baseH - T.height) / 2) + T.height;
-    if (reach > 0 && bottom > ptCut[1] && last?.toks && bx + pad + last.w > ptCut[0]) { availH = baseH - reach; T = fitTo(availH); }
+  if (skipRules) return cv;
+  const topOf = h => RS.top != null ? by + RS.top * PT_MM : by + pad + Math.max(0, (baseH - h) / 2);
+  let T = fitTo(baseH, null);
+  // Short, flavourless text is set larger and centred (Tenth Edition, full-art promos).
+  if ((E.centerShort || t.artMode === 'full') && !flavor.length && T.lines.length <= 3) {
+    for (const [p, max] of [[11, 1], [10, 3]]) { const r = layout(p * PT_MM, 1.05, 0.35); if (r.lines.length <= max && r.height <= baseH) { T = r; break; } }
+    T.center = true;
   }
-  drawBlock(T, bx + pad, by + pad + Math.max(0, (availH - T.height) / 2));
+  if (ptCut && !T.center && ptCut[0] < bx + bw && ptCut[1] < by + bh) {
+    for (let i = 0; i < 3; i++) T = fitTo(baseH, {y:ptCut[1] - topOf(T.height), w:ptCut[0] - bx - pad - 0.6});
+  }
+  const y0 = topOf(T.height);
+  if (t.artMode === 'full' && set && T.lines.length) {
+    const off = 10000;
+    x.save(); x.shadowColor = 'rgba(0,0,0,.65)'; x.shadowBlur = 8 * PT_MM * k; x.shadowOffsetX = off; x.fillStyle = '#000';
+    x.fillRect(bx - off / k, y0 - 1, bw, T.height + 2); x.restore();
+  }
+  drawBlock(T, bx + pad, y0);
+  if ('letterSpacing' in x) x.letterSpacing = '0px';
   return cv;
 }
 
@@ -2304,8 +2380,9 @@ async function openCardMaker(target) {
               <option value="more" ${isMore ? 'selected' : ''} hidden>From More frames</option></select>
             ${more.length ? `<select id="ccMore" style="margin-top:6px" aria-label="More frames"><option value="">More frames…</option>${more.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')}</select>` : ''}
             <div class="row" style="margin-top:4px"><button class="icon" id="ccSetBtn" title="Choose a Magic Set Editor style folder from your own frame pack">Load frame set…</button><input type="file" id="ccSetDir" webkitdirectory multiple hidden></div></div>
-          <div class="field"><label>Art</label><select id="ccArtMode">${[['normal', 'Normal'], ['extended', 'Extended art'], ['borderless', 'Borderless'], ['full', 'Full art (text on art)']]
-              .map(([v, n]) => `<option value="${v}" ${(t.artMode || (t.fullArt ? 'full' : 'normal')) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+          <div class="field"><label>Art</label><select id="ccArtMode">${[['normal', 'Normal'], ['extended', 'Extended art'], ['borderless', 'Borderless'], ['full', 'Full art (text on art)'], ['textless', 'Textless']]
+              .map(([v, n]) => `<option value="${v}" ${(t.artMode || (t.fullArt ? 'full' : 'normal')) === v ? 'selected' : ''}>${n}</option>`).join('')}</select>
+            <div class="row" id="ccPopRow" style="margin-top:6px" ${(t.artMode || 'normal') === 'normal' ? 'hidden' : ''}><button class="icon" id="ccPopBtn" title="A PNG of the art with its background removed, drawn over the frame and under the text">${t.popKey ? 'Change pop-out…' : 'Pop-out layer…'}</button>${t.popKey ? '<button class="icon" id="ccPopClear">Remove</button>' : ''}<input type="file" id="ccPopFile" accept="image/png,image/webp" hidden></div></div>
           <div class="field full" id="ccFrameRow" ${t.style === 'custom' ? '' : 'hidden'}><label>Frame image</label><div class="row"><button class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame…' : 'Upload frame…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp,image/svg+xml,.svg" hidden></div>
             <p class="hint">A card-sized PNG or SVG (e.g. 744 × 1039 px) that's transparent where the art shows. Text is placed in the modern positions.</p></div>
           ${F.map(([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label>${label}</label>${k === 'text' || k === 'flavor' ? `<textarea data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`).join('')}
@@ -2344,8 +2421,11 @@ async function openCardMaker(target) {
     draw();
   });
   $('#ccColor').onchange = ev => { t.color = ev.target.value; draw(); };
-  const artModes = () => { const isSet = !!setOf(t), pw = !!setOf(t)?.layout.pw; $$('#ccArtMode option', bd).forEach(o => { o.disabled = pw ? o.value !== 'normal' : !isSet && !(o.value === 'normal' || (o.value === 'full' && t.style === 'modern')); }); if ($('#ccArtMode').selectedOptions[0]?.disabled) { $('#ccArtMode').value = 'normal'; t.artMode = 'normal'; t.fullArt = false; } };
-  $('#ccArtMode').onchange = ev => { t.artMode = ev.target.value; t.fullArt = t.artMode === 'full'; t.ox = t.oy = 0; draw(); };
+  const artModes = () => { const isSet = !!setOf(t), pw = !!setOf(t)?.layout.pw; $$('#ccArtMode option', bd).forEach(o => { o.disabled = pw ? !(o.value === 'normal' || o.value === 'borderless') : !isSet && !(o.value === 'normal' || (o.value === 'full' && t.style === 'modern')); }); if ($('#ccArtMode').selectedOptions[0]?.disabled) { $('#ccArtMode').value = 'normal'; t.artMode = 'normal'; t.fullArt = false; } };
+  $('#ccArtMode').onchange = ev => { t.artMode = ev.target.value; t.fullArt = t.artMode === 'full'; t.ox = t.oy = 0; $('#ccPopRow').hidden = t.artMode === 'normal'; draw(); };
+  $('#ccPopBtn').onclick = () => $('#ccPopFile').click();
+  $('#ccPopFile').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; t.popKey = await storeImage(f); $('#ccPopBtn').textContent = 'Change pop-out…'; draw(); };
+  bd.addEventListener('click', ev => { if (ev.target.id === 'ccPopClear') { delete t.popKey; ev.target.remove(); $('#ccPopBtn').textContent = 'Pop-out layer…'; draw(); } });
   $('#ccMore')?.addEventListener('change', ev => { if (!ev.target.value) return; $('#ccStyle').value = 'more'; $('#ccStyle').onchange({target:{value:ev.target.value}, fromMore:true}); });
   $('#ccStyle').onchange = ev => {
     if (ev.target.value === 'more') return;
