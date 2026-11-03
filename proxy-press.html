@@ -55,6 +55,8 @@ h3:first-child{margin-top:2px}
 .card .ctl{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
 .qty{display:flex;align-items:center;gap:2px}
 .qty input{width:42px;text-align:center;padding:3px}
+.tag.bad{background:#4a2321;color:#ff9c95}
+.pg .lowres{position:absolute;z-index:2;background:rgba(226,97,90,.92);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;pointer-events:none;white-space:nowrap}
 .tag{display:inline-block;font-size:10px;padding:0 5px;border-radius:4px;background:#3a3020;color:var(--accent2);margin-left:4px}
 .preset{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--panel2)}
 .preset .nm{flex:1;font-size:13px}
@@ -142,6 +144,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="btnTokens" title="Add tokens and emblems created by cards in this deck">+ Tokens</button>
         <button id="btnMpcAuto" title="Use the top MPC Autofill art for every card">Auto MPC art</button>
       </div>
+      <p class="hint">Cards get print-quality MPC Autofill art automatically. Scryfall images are only placeholders: they're low resolution and print soft.</p>
       <h3>Custom images</h3>
       <div class="row">
         <button id="btnUpload">Upload images…</button>
@@ -694,7 +697,7 @@ function toEntry(card, qty) {
     : (card.card_faces || []).filter(f => f.image_uris).map(f => ({name:f.name, ...pick(f)}));
   return {
     uid:uid(), qty, name:card.name, set:card.set, cn:card.collector_number, scryId:card.id,
-    oracleId:card.oracle_id || card.card_faces?.[0]?.oracle_id, faces,
+    faces,
     kind:/token|emblem/.test(card.layout) ? 'TOKEN' : 'CARD',
     tokens:(card.all_parts || []).filter(p => p.id !== card.id && (p.component === 'token' || /Emblem/.test(p.type_line || ''))).map(p => p.id)
   };
@@ -753,8 +756,9 @@ async function importList(text, replace) {
       if (ex) ex.qty += req.qty; else d.entries.push(toEntry(card, req.qty));
     }
     save(); renderAll();
-    toast(`Added ${found.length} card${found.length === 1 ? '' : 's'}` + (missing.length ? `. Not found: ${missing.map(m => m.name).join(', ')}` : '.'), missing.length ? 8000 : 3000);
     if (!missing.length) $('#listIn').value = '';
+    const auto = await mpcAutofill({auto:true});
+    toast(`Added ${found.length} card${found.length === 1 ? '' : 's'}.` + autoSummary(auto) + (missing.length ? ` Not found: ${missing.map(m => m.name).join(', ')}` : ''), missing.length || auto?.missed?.length || auto?.offline ? 9000 : 4000);
   } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
   busy(false);
 }
@@ -766,7 +770,9 @@ async function addTokens() {
   try {
     const {found} = await fetchCollection(ids.map(id => ({qty:1, id:{id}})));
     for (const {card} of found) d.entries.push(toEntry(card, 1));
-    save(); renderAll(); toast(`Added ${found.length} token/emblem card${found.length === 1 ? '' : 's'}.`);
+    save(); renderAll();
+    const auto = await mpcAutofill({auto:true});
+    toast(`Added ${found.length} token/emblem card${found.length === 1 ? '' : 's'}.` + autoSummary(auto), 6000);
   } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
   busy(false);
 }
@@ -929,7 +935,6 @@ function mpcRank(ids) {
 function mpcArt(card) {
   return {drive:card.identifier, srcBleed:MPC_BLEED, file:`${card.name}.${card.extension || 'png'}`, mpcName:card.name, mpcSource:card.sourceName, mpcDpi:card.dpi};
 }
-function clearMpcArt(f) { for (const k of ['drive', 'srcBleed', 'file', 'mpcName', 'mpcSource', 'mpcDpi']) delete f[k]; }
 function mpcOfflineHtml() {
   if (location.protocol.startsWith('http')) return `<div class="warn">Couldn't reach MPC Autofill search. mpcfill.com may be down or busy, so try again in a minute.</div>`;
   return `<div class="warn">Search needs the local helper, because mpcfill.com only accepts searches from its own site.<br>
@@ -949,7 +954,6 @@ async function openMpcPicker(target) {
         <input type="text" id="mpcQ" style="flex:1;min-width:180px" value="${esc(face().name)}">
         <select id="mpcType" style="width:auto"><option value="CARD">Card</option><option value="TOKEN" ${e.kind === 'TOKEN' ? 'selected' : ''}>Token</option></select>
         <button class="primary" id="mpcGo">Search</button>
-        ${e.scryId ? '<button id="mpcPrints">Scryfall prints</button>' : ''}
       </div>`}
       <details class="adv" style="margin:0 0 10px"><summary>Search filters</summary>
         <div class="grid2" style="margin-top:8px">
@@ -995,7 +999,6 @@ async function openMpcPicker(target) {
     if (fb) { faceIdx = +fb.dataset.face; $$('[data-face]', bd).forEach(b => b.classList.toggle('primary', b === fb)); $('#mpcQ').value = face().name; return run(); }
     if (ev.target.id === 'mpcGo') return run();
     if (ev.target.id === 'mpcMore') return page();
-    if (ev.target.id === 'mpcPrints') return openPrints(e);
     const fig = ev.target.closest('figure'); if (!fig) return;
     const card = mpcDetails.get(fig.dataset.id); if (!card) return;
     if (isBack) {
@@ -1025,26 +1028,42 @@ async function openMpcPicker(target) {
   run();
 }
 
-async function mpcAutofill() {
+const isPreview = f => !f.custom && !f.drive;
+async function mpcAutofill({auto = false} = {}) {
   const d = deck(), targets = [];
-  for (const e of d.entries) e.faces.forEach(f => { if (!e.mpc && !f.custom && !f.drive) targets.push({f, q:{query:mpcQuery(f.name), cardType:e.kind || 'CARD'}}); });
-  if (!targets.length) return toast('Every card already has MPC or custom art.');
-  busy(true, `Searching MPC Autofill for ${targets.length} card face${targets.length === 1 ? '' : 's'}…`);
+  for (const e of d.entries) e.faces.forEach(f => { if (!e.mpc && isPreview(f)) targets.push({f, q:{query:mpcQuery(f.name), cardType:e.kind || 'CARD'}}); });
+  const result = {total:targets.length, picked:0, missed:[]};
+  if (!targets.length) { if (!auto) toast('Every card already has MPC or custom art.'); return result; }
+  if (!(await mpcBase())) {
+    if (!auto) openModal(`<div class="hd"><b>MPC Autofill search</b><button data-close>Close</button></div><div class="bd">${mpcOfflineHtml()}</div>`);
+    return {...result, offline:true};
+  }
+  busy(true, `Finding MPC art for ${targets.length} card face${targets.length === 1 ? '' : 's'}…`);
   try {
     const uniq = [...new Map(targets.map(t => [t.q.query + '|' + t.q.cardType, t.q])).values()];
     const res = await mpcSearch(uniq);
     const hits = t => res.get(t.q.query + '|' + t.q.cardType) || [];
     await mpcCards([...new Set(uniq.flatMap(q => (res.get(q.query + '|' + q.cardType) || []).slice(0, 40)))]);
-    const best = t => mpcRank(hits(t).slice(0, 40))[0];
-    const missed = [];
-    for (const t of targets) { const c = mpcDetails.get(best(t)); if (c) Object.assign(t.f, mpcArt(c)); else missed.push(t.f.name); }
+    for (const t of targets) {
+      const c = mpcDetails.get(mpcRank(hits(t).slice(0, 40))[0]);
+      if (c) { Object.assign(t.f, mpcArt(c)); result.picked++; } else result.missed.push(t.f.name);
+    }
     save(); renderAll();
-    toast(`MPC art picked for ${targets.length - missed.length} of ${targets.length}.` + (missed.length ? ` Kept Scryfall art for: ${missed.slice(0, 6).join(', ')}${missed.length > 6 ? '…' : ''}` : ''), missed.length ? 9000 : 4000);
+    if (!auto) toast(`MPC art picked for ${result.picked} of ${result.total}.` + autoSummary(result, true), result.missed.length ? 9000 : 4000);
   } catch (err) {
-    if (err.message === 'MPC_OFFLINE') { busy(false); return openModal(`<div class="hd"><b>MPC Autofill search</b><button data-close>Close</button></div><div class="bd">${mpcOfflineHtml()}</div>`); }
-    toast('MPC search failed: ' + err.message, 6000);
+    result.error = err.message;
+    if (!auto) toast('MPC search failed: ' + err.message, 6000);
   }
   busy(false);
+  return result;
+}
+function autoSummary(r, missedOnly = false) {
+  if (!r?.total) return '';
+  const list = n => n.slice(0, 5).join(', ') + (n.length > 5 ? '…' : '');
+  if (r.offline) return ' Showing Scryfall placeholders (not print quality). MPC art is picked automatically when the page runs from the server or Docker container.';
+  if (r.error) return ' MPC search failed, so Scryfall placeholders are shown (not print quality). Try "Auto MPC art" again shortly.';
+  const missed = r.missed.length ? ` No MPC match for ${list(r.missed)}, so ${r.missed.length === 1 ? 'it uses a' : 'they use'} Scryfall placeholder${r.missed.length === 1 ? '' : 's'}.` : '';
+  return missedOnly ? missed : ` MPC art picked for ${r.picked} of ${r.total}.` + missed;
 }
 
 function exportMpcXml() {
@@ -1108,16 +1127,14 @@ async function renderCards() {
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; return; }
   list.innerHTML = d.entries.map(e => `
     <div class="card" data-uid="${esc(e.uid)}">
-      <img data-act="art" alt="" title="${e.custom ? 'Replace image' : 'Choose printing'}">
+      <img data-act="art" alt="" title="${e.custom && !e.mpc ? 'Replace image' : 'Choose MPC art'}">
       <div style="min-width:0">
         <div class="nm" title="${esc(e.name)}">${esc(e.name)}</div>
         <div class="meta">${e.mpc ? 'MPC Autofill' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
-          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(f => f.drive && !f.custom) ? '<span class="tag">MPC art</span>' : ''}</div>
+          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(f => f.drive && !f.custom) ? '<span class="tag">MPC art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Choose MPC art before printing.">Scryfall placeholder · not for print</span>' : ''}</div>
         <div class="row" style="margin-top:4px">
-          ${e.custom ? '' : '<button class="icon" data-act="art">Prints</button>'}
           <button class="icon" data-act="mpc" title="Search MPC Autofill art">MPC art</button>
           <button class="icon" data-act="upload" title="Use your own image for this card">Upload</button>
-          ${!e.custom && e.faces.some(f => f.custom || f.drive) ? '<button class="icon" data-act="reset">Reset art</button>' : ''}
         </div>
       </div>
       <div class="ctl">
@@ -1136,13 +1153,12 @@ $('#cardList').addEventListener('click', async ev => {
   if (act === 'inc') e.qty++;
   else if (act === 'dec') e.qty = Math.max(0, e.qty - 1);
   else if (act === 'del') { d.entries = d.entries.filter(x => x !== e); for (const f of e.faces) await removeImageIfUnused(f.custom); }
-  else if (act === 'art') { if (e.custom) { faceTarget = {e, i:0}; $('#fileFace').click(); } else openPrints(e); return; }
+  else if (act === 'art') { if (e.custom && !e.mpc) { faceTarget = {e, i:0}; $('#fileFace').click(); } else openMpcPicker({e, i:0}); return; }
   else if (act === 'upload') {
     if (e.faces.length > 1) { const i = prompt(`Which face? 1 = ${e.faces[0].name}, 2 = ${e.faces[1].name}`, '1'); if (!i) return; faceTarget = {e, i:Math.min(e.faces.length, Math.max(1, +i)) - 1}; }
     else faceTarget = {e, i:0};
     $('#fileFace').click(); return;
   }
-  else if (act === 'reset') { const keys = e.faces.map(f => f.custom); e.faces.forEach(clearMpcArt); e.faces.forEach(f => delete f.custom); for (const k of keys) await removeImageIfUnused(k); }
   else if (act === 'mpc') { openMpcPicker({e, i:0}); return; }
   save(); renderAll();
 });
@@ -1180,27 +1196,6 @@ $('#btnCopyList').onclick = async () => {
   try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
 };
 
-/* ---------- print picker ---------- */
-async function openPrints(e) {
-  openModal(`<div class="hd"><b>${esc(e.name)} · choose a printing</b><button data-close>Close</button></div><div class="bd"><p class="hint">Loading printings…</p></div>`);
-  try {
-    let url = `${SF}/cards/search?q=${encodeURIComponent('oracleid:' + e.oracleId)}&unique=prints&order=released&dir=desc&include_extras=true`;
-    const cards = [];
-    for (let p = 0; url && p < 6; p++) { const j = await sf(url); cards.push(...j.data); url = j.has_more ? j.next_page : null; }
-    const usable = cards.filter(c => c.image_uris || c.card_faces?.[0]?.image_uris);
-    $('#modal .bd').innerHTML = `<div class="prints">${usable.map((c, i) => {
-      const im = c.image_uris || c.card_faces[0].image_uris;
-      return `<figure data-i="${i}" class="${c.id === e.scryId ? 'sel' : ''}"><img loading="lazy" src="${esc(im.normal)}" alt=""><figcaption>${esc(c.set_name)}<br>${esc(c.set.toUpperCase())} #${esc(c.collector_number)}${c.lang !== 'en' ? ' · ' + esc(c.lang) : ''}</figcaption></figure>`;
-    }).join('')}</div>`;
-    $('#modal .prints').onclick = async ev => {
-      const fig = ev.target.closest('figure'); if (!fig) return;
-      const n = toEntry(usable[+fig.dataset.i], e.qty), old = e.faces.map(f => f.custom);
-      Object.assign(e, {name:n.name, set:n.set, cn:n.cn, scryId:n.scryId, faces:n.faces, tokens:n.tokens});
-      for (const k of old) await removeImageIfUnused(k);
-      closeModal(); save(); renderAll();
-    };
-  } catch (err) { $('#modal .bd').innerHTML = `<p class="hint">Couldn't load printings: ${esc(err.message)}</p>`; }
-}
 function openModal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('on'); }
 function closeModal() { $('#overlay').classList.remove('on'); }
 $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttribute('data-close')) closeModal(); };
@@ -1405,6 +1400,11 @@ async function drawPreview() {
         const p = slotPos(L, i, back), im = document.createElement('img');
         Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
         const rot = L.rot ? (back ? -90 : 90) : 0;
+        if (isPreview(face)) {
+          const tag = document.createElement('span'); tag.className = 'lowres'; tag.textContent = 'Placeholder';
+          Object.assign(tag.style, {left:T.x(p.x)*z + 4 + 'px', top:T.y(p.y)*z + 4 + 'px'});
+          el.appendChild(tag);
+        }
         el.appendChild(im); jobs.push(previewUrl(face, rot).then(u => {
           if (gen !== previewGen || !u) return;
           if (u.startsWith('raw:')) {
@@ -1456,6 +1456,9 @@ async function exportPDF() {
   const s = S.settings, L = layout(), slots = buildSlots();
   if (!slots.length) return toast('Add some cards first.');
   if (s.backs && !s.backImage && !deck().cardback) return toast('Upload a card back image, or turn off "Print card backs".');
+  if (slots.some(x => [x.front, x.back].some(f => f && isPreview(f)))) await mpcAutofill({auto:true});
+  const soft = slots.reduce((n, x) => n + [x.front, x.back].filter(f => f && isPreview(f) && f.png).length, 0);
+  if (soft && !confirm(`${soft} card image${soft === 1 ? ' is a Scryfall placeholder' : 's are Scryfall placeholders'}. They're low resolution and will print soft. Export anyway?`)) return;
   const missing = await checkFaces(slots);
   if (missing.length) {
     toast(`${missing.length} image${missing.length === 1 ? '' : 's'} can't be loaded for printing (${missing.slice(0, 3).map(f => f.name).join(', ')}${missing.length > 3 ? '…' : ''}). For MPC Autofill decks, use Attach images/folder.`, 10000);
