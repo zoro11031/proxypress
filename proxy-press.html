@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proxy Press</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='15' y='6' width='36' height='50' rx='5' fill='%238a6420' transform='rotate%2813 33 31%29'/%3E%3Crect x='12' y='8' width='36' height='50' rx='5' fill='%23e0a33a'/%3E%3Crect x='16' y='12' width='28' height='42' rx='3' fill='%2314161a'/%3E%3Cpath fill='%23f2c26b' fill-rule='evenodd' d='M24 21h9a7 7 0 0 1 0 14h-5v8h-4z M28 25v6h5a3 3 0 0 0 0-6z'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#14161a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root{
@@ -26,6 +28,8 @@ textarea{resize:vertical;min-height:140px;font-family:ui-monospace,Menlo,Consola
 header{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
 header h1{font-size:16px;margin:0 8px 0 0;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
+header h1{display:flex;align-items:center;gap:6px}
+header h1 .logo{display:block}
 header .grow{flex:1}
 header select{width:auto;min-width:160px}
 .stats{color:var(--muted);font-size:13px}
@@ -198,7 +202,7 @@ details.adv:not([open]){padding-bottom:10px}
 </head>
 <body>
 <header>
-  <h1>Proxy<span>Press</span></h1>
+  <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='15' y='6' width='36' height='50' rx='5' fill='%238a6420' transform='rotate%2813 33 31%29'/%3E%3Crect x='12' y='8' width='36' height='50' rx='5' fill='%23e0a33a'/%3E%3Crect x='16' y='12' width='28' height='42' rx='3' fill='%2314161a'/%3E%3Cpath fill='%23f2c26b' fill-rule='evenodd' d='M24 21h9a7 7 0 0 1 0 14h-5v8h-4z M28 25v6h5a3 3 0 0 0 0-6z'/%3E%3C/svg%3E" alt="" width="22" height="22" class="logo">Proxy<span>Press</span></h1>
   <div class="seg" id="modeSeg" role="tablist" aria-label="Mode">
     <button data-mode="print" role="tab" title="Make a PDF to print and cut yourself">Print at home</button>
     <button data-mode="order" role="tab" title="Make an order file for MakePlayingCards.com">Order prints</button>
