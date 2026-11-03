@@ -157,10 +157,15 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="btnMpcFiles" title="Images downloaded by the MPC Autofill desktop tool">Attach images…</button>
         <button id="btnMpcFolder">Attach folder…</button>
       </div>
-      <p class="hint">An imported XML opens as a new deck, and its images load automatically. Only orders that point to files on your computer need <b>Attach</b>. To search MPC art (the <b>MPC art</b> and <b>Auto MPC art</b> buttons), open this page with <code>python3 proxy-press-server.py</code>.</p>
+      <div class="row" style="margin-top:6px">
+        <button id="btnLocalDir" title="Search a folder of MPC-style images on this computer">Use local image folder…</button>
+        <span class="hint" id="localStatus"></span>
+      </div>
+      <p class="hint">An imported XML opens as a new deck, and its images load automatically. Only orders that point to files on your computer need <b>Attach</b>. Online MPC search needs the server (<code>python3 proxy-press-server.py</code> or Docker). A <b>local image folder</b> works anywhere: matching images are used first and saved into the browser.</p>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
       <input type="file" id="fileMpcImgs" accept="image/*" multiple hidden>
       <input type="file" id="fileMpcDir" webkitdirectory multiple hidden>
+      <input type="file" id="fileLocalDir" webkitdirectory multiple hidden>
       <input type="file" id="fileFace" accept="image/*" hidden>
       <h3 class="row" style="justify-content:space-between"><span>Deck <span id="deckCount"></span></span>
         <span class="row"><button class="icon" id="btnCopyList" title="Copy decklist">Copy list</button><button class="icon danger" id="btnClear">Clear</button></span></h3>
@@ -942,8 +947,41 @@ function mpcOfflineHtml() {
     <p class="hint">Your decks are stored per address, so use Data → Export backup here and import it there to bring them across.</p>`;
 }
 
+const localIndex = [];
+const normName = n => String(n || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .replace(/\.[a-z0-9]{2,5}$/, '').replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+function localSearch(name) {
+  const q = normName(name); if (!q) return [];
+  const words = q.split(' ');
+  return localIndex
+    .map(x => ({x, score:x.key === q ? 0 : x.key.startsWith(q + ' ') ? 1 : words.every(w => x.words.has(w)) ? 2 : 9}))
+    .filter(r => r.score < 9).sort((a, b) => a.score - b.score || a.x.key.length - b.x.key.length).map(r => r.x);
+}
+async function useLocalFile(f, file) {
+  const old = f.custom;
+  for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi']) delete f[k];
+  Object.assign(f, {custom:await storeImage(file), srcBleed:MPC_BLEED, localName:file.name});
+  await removeImageIfUnused(old);
+}
+function renderLocalStatus() {
+  $('#localStatus').textContent = localIndex.length ? `${localIndex.length} images indexed for this session` : '';
+}
+$('#btnLocalDir').onclick = () => $('#fileLocalDir').click();
+$('#fileLocalDir').onchange = async ev => {
+  const files = [...ev.target.files]; ev.target.value = '';
+  localIndex.length = 0;
+  for (const file of files) if (/\.(png|jpe?g|webp)$/i.test(file.name)) {
+    const key = normName(file.name);
+    if (key) localIndex.push({file, key, words:new Set(key.split(' '))});
+  }
+  renderLocalStatus();
+  if (!localIndex.length) return toast('No PNG, JPG or WebP images found in that folder.');
+  const auto = await mpcAutofill({auto:true});
+  toast(`Indexed ${localIndex.length} images.` + autoSummary(auto), 6000);
+};
+
 async function openMpcPicker(target) {
-  let faceIdx = target.i || 0, ids = [], shown = 0;
+  let faceIdx = target.i || 0, ids = [], shown = 0, localHits = [], thumbs = [];
   const e = target.e, isBack = !!target.cardback;
   const face = () => e?.faces[faceIdx];
   const current = () => isBack ? deck().cardback?.drive : face()?.drive;
@@ -980,7 +1018,14 @@ async function openMpcPicker(target) {
     $('#mpcMore').style.display = shown < ids.length ? '' : 'none';
   }
   async function run() {
-    $('#mpcGrid').innerHTML = ''; shown = 0; status('Searching MPC Autofill…');
+    thumbs.forEach(u => URL.revokeObjectURL(u)); thumbs = [];
+    localHits = !isBack && localIndex.length ? localSearch($('#mpcQ').value).slice(0, 30) : [];
+    $('#mpcGrid').innerHTML = localHits.map((x, i) => {
+      const u = URL.createObjectURL(x.file); thumbs.push(u);
+      return `<figure data-local="${i}"><img loading="lazy" src="${u}" alt=""><figcaption>${esc(x.file.name)}<br><b style="color:var(--accent2)">Your folder</b> · ${(x.file.size / 1048576).toFixed(1)} MB</figcaption></figure>`;
+    }).join('');
+    const local = localHits.length ? `${localHits.length} from your folder (shown first). ` : '';
+    shown = 0; status(local + 'Searching MPC Autofill…');
     try {
       if (isBack) ids = (await mpcApi('2/cardbacks/', {searchSettings:await mpcSettings()})).cardbacks || [];
       else {
@@ -989,9 +1034,9 @@ async function openMpcPicker(target) {
       }
       await mpcCards(ids); ids = mpcRank(ids);
       const nHi = S.mpc.preferDpi ? ids.filter(id => mpcDetails.get(id)?.dpi >= S.mpc.preferDpi).length : 0;
-      status(ids.length ? `${ids.length} result${ids.length === 1 ? '' : 's'}${S.mpc.preferDpi ? `, ${nHi} at ${S.mpc.preferDpi}+ DPI shown first` : ', best matches first'}.` : 'No results. Try another name, fuzzy search, or lower the min DPI.');
+      status(local + (ids.length ? `${ids.length} online result${ids.length === 1 ? '' : 's'}${S.mpc.preferDpi ? `, ${nHi} at ${S.mpc.preferDpi}+ DPI shown first` : ', best matches first'}.` : 'No online results. Try another name, fuzzy search, or lower the min DPI.'));
       if (ids.length) await page();
-    } catch (err) { status(err.message === 'MPC_OFFLINE' ? mpcOfflineHtml() : 'Search failed: ' + esc(err.message)); }
+    } catch (err) { status(local + (err.message === 'MPC_OFFLINE' ? mpcOfflineHtml() : 'Online search failed: ' + esc(err.message))); }
   }
   const bd = $('#modal .bd');
   bd.addEventListener('click', async ev => {
@@ -1000,6 +1045,10 @@ async function openMpcPicker(target) {
     if (ev.target.id === 'mpcGo') return run();
     if (ev.target.id === 'mpcMore') return page();
     const fig = ev.target.closest('figure'); if (!fig) return;
+    if (fig.dataset.local !== undefined) {
+      await useLocalFile(face(), localHits[+fig.dataset.local].file);
+      closeModal(); save(); renderAll(); return;
+    }
     const card = mpcDetails.get(fig.dataset.id); if (!card) return;
     if (isBack) {
       const old = S.settings.backImage;
@@ -1032,8 +1081,19 @@ const isPreview = f => !f.custom && !f.drive;
 async function mpcAutofill({auto = false} = {}) {
   const d = deck(), targets = [];
   for (const e of d.entries) e.faces.forEach(f => { if (!e.mpc && isPreview(f)) targets.push({f, q:{query:mpcQuery(f.name), cardType:e.kind || 'CARD'}}); });
-  const result = {total:targets.length, picked:0, missed:[]};
+  const result = {total:targets.length, picked:0, local:0, missed:[]};
   if (!targets.length) { if (!auto) toast('Every card already has MPC or custom art.'); return result; }
+  if (localIndex.length) {
+    busy(true, 'Matching images from your folder…');
+    for (const t of targets) {
+      const hit = localSearch(t.f.name).find(x => x.key === normName(t.f.name));
+      if (hit) { await useLocalFile(t.f, hit.file); result.picked++; result.local++; }
+    }
+    busy(false);
+    targets.splice(0, targets.length, ...targets.filter(t => isPreview(t.f)));
+    if (result.local) { save(); renderAll(); }
+    if (!targets.length) return result;
+  }
   if (!(await mpcBase())) {
     if (!auto) openModal(`<div class="hd"><b>MPC Autofill search</b><button data-close>Close</button></div><div class="bd">${mpcOfflineHtml()}</div>`);
     return {...result, offline:true};
@@ -1060,10 +1120,11 @@ async function mpcAutofill({auto = false} = {}) {
 function autoSummary(r, missedOnly = false) {
   if (!r?.total) return '';
   const list = n => n.slice(0, 5).join(', ') + (n.length > 5 ? '…' : '');
-  if (r.offline) return ' Showing Scryfall placeholders (not print quality). MPC art is picked automatically when the page runs from the server or Docker container.';
-  if (r.error) return ' MPC search failed, so Scryfall placeholders are shown (not print quality). Try "Auto MPC art" again shortly.';
+  const fromFolder = r.local ? ` Used ${r.local} image${r.local === 1 ? '' : 's'} from your folder.` : '';
+  if (r.offline) return fromFolder + ` ${r.local ? 'The rest show' : 'Showing'} Scryfall placeholders (not print quality). Online MPC art is picked automatically when the page runs from the server or Docker container.`;
+  if (r.error) return fromFolder + ' MPC search failed, so Scryfall placeholders are shown (not print quality). Try "Auto MPC art" again shortly.';
   const missed = r.missed.length ? ` No MPC match for ${list(r.missed)}, so ${r.missed.length === 1 ? 'it uses a' : 'they use'} Scryfall placeholder${r.missed.length === 1 ? '' : 's'}.` : '';
-  return missedOnly ? missed : ` MPC art picked for ${r.picked} of ${r.total}.` + missed;
+  return missedOnly ? fromFolder + missed : ` MPC art picked for ${r.picked} of ${r.total}.` + fromFolder + missed;
 }
 
 function exportMpcXml() {

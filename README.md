@@ -10,6 +10,8 @@ python3 proxy-press-server.py
 
 This opens http://localhost:8642. You can also open `proxy-press.html` directly; everything works except MPC Autofill art search, which needs the server because mpcfill.com only accepts searches from its own site.
 
+No server? **Use local image folder** (Cards tab) searches a folder of MPC-style images on your computer and picks exact name matches automatically.
+
 ## Host with Docker / Podman
 
 ```sh
