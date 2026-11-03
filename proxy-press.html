@@ -1676,10 +1676,10 @@ const CC_BASE = {name:'"Spectral", "Palatino Linotype", Georgia, serif', type:'"
   italic:'"Crimson Text", "Palatino Linotype", Georgia, serif', rname:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif',
   rtype:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif', rrules:'"Crimson Text", "Palatino Linotype", Georgia, serif'};
 const CC_SLOTS = [['name', 'Modern name'], ['type', 'Modern type line & P/T'], ['rules', 'Rules text'], ['italic', 'Flavor & reminder (italic)'],
-  ['rname', 'Retro name'], ['rtype', 'Retro type line & P/T'], ['rrules', 'Retro rules text']];
+  ['rname', 'Retro name'], ['rrules', 'Retro type, rules & P/T'], ['rtype', 'Matrix (8th Edition frames)']];
 // Picks a slot from a font's file name, for loading a whole folder of fonts at once.
 const FONT_MATCH = [['type', /beleren.*small/i], ['name', /beleren/i], ['italic', /mplantin.*it|plantin.*ital/i], ['rules', /^mplantin\.(ttf|otf)$|plantin(?!.*ital)/i],
-  ['rname', /magmed|magic.?medieval|goudy.*medieval/i], ['rtype', /^matrixb\.ttf$|matrix.?bold(?!.*sc)/i], ['rrules', /goudy.*old|goudyos|^goudos/i]];
+  ['rname', /magmed|magic.?medieval|goudy.*medieval/i], ['rtype', /^matrixb\.ttf$|matrix.?bold(?!.*sc)/i]];
 const CC_FONT = {...CC_BASE};
 // Modern: frame, frame shadow, bar, bar edge, text box. Retro: frame, frame shadow, text box, ink on the frame.
 const CC_MODERN = {
@@ -1910,12 +1910,12 @@ async function renderCustomCard(t, art, k) {
     x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(ax - 0.7, ay - 0.7, aw + 1.4, ah + 1.4);
     x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(ax - 0.7, ay + ah, aw + 1.4, 0.7); x.fillRect(ax + aw, ay - 0.7, 0.7, ah + 1.4);
     drawArt(geo.art);
-    fit(t.type || '', 5.6, 48.9, 51, 2.75, {w:400, f:CC_FONT.rtype}, onFrame, onFrame === '#fff');
+    fit(t.type || '', 5.6, 48.9, 51, 2.75, {w:400, f:CC_FONT.rrules}, onFrame, onFrame === '#fff');
     const [tx, ty, tw, th] = geo.box;
     rr(tx - 0.5, ty - 0.5, tw + 1, th + 1, 2); x.fillStyle = 'rgba(0,0,0,.6)'; x.fill();
     rr(tx, ty, tw, th, 1.6); x.fillStyle = paper; x.fill();
     texture(geo.box, key + 'p', 6, 0.28, 0.14, 1.6);
-    if (t.pt) { x.textAlign = 'right'; fit(t.pt, 57.8, 82.5, 20, 3.6, {w:400, f:CC_FONT.rtype}, onFrame, onFrame === '#fff'); x.textAlign = 'left'; }
+    if (t.pt) { x.textAlign = 'right'; fit(t.pt, 57.8, 82.5, 20, 3.6, {w:400, f:CC_FONT.rrules}, onFrame, onFrame === '#fff'); x.textAlign = 'left'; }
     x.font = `400 1.75px ${CC_FONT.rules}`; x.fillStyle = onFrame; x.textBaseline = 'middle';
     if (t.artist) x.fillText(`Illus. ${t.artist}`, 5.6, 82.4);
     x.font = `400 1.35px ${CC_FONT.rules}`; x.fillText('Proxy · not for sale', 5.6, 84.4);
@@ -2182,7 +2182,7 @@ async function openCardMaker(target) {
   const fontList = () => {
     $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Fonts on the server are used automatically; free lookalike fonts fill any gaps. Fonts you load here override them in this browser.</p>
       <div class="row" style="margin-bottom:6px"><button class="icon primary" data-fontmulti>Load font files…</button><span class="hint">Select several at once; each goes to the slot its file name matches.</span></div>
-      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : slot === 'rrules' && (S.ccFonts?.rules || serverFonts.rules) ? 'Same as rules text' : 'Free font'}
+      <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : slot === 'rrules' && (S.ccFonts?.rules || serverFonts.rules) ? 'Same as rules text (Plantin, as on real retro cards)' : 'Free font'}
         <button class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
   };
   fontList();
