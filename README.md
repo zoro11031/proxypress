@@ -19,7 +19,7 @@ cp .env.example .env    # set PROXY_PRESS_AUTH=user:password
 docker compose up -d    # or: podman compose up -d
 ```
 
-The page is served on port 8642 behind a login. Put it behind a reverse proxy with HTTPS (Caddy, Traefik, nginx); without HTTPS the login is sent unencrypted.
+The page is served on port 8642 behind a login, published on `127.0.0.1` unless you set `PROXY_PRESS_BIND` (for example to the server's LAN IP). Put it behind a reverse proxy with HTTPS (Caddy, Traefik, nginx); without HTTPS the login is sent unencrypted.
 
 | Variable | Default | Purpose |
 |---|---|---|
