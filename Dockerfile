@@ -3,7 +3,7 @@ FROM python:3.13-alpine
 WORKDIR /app
 COPY proxy-press.html proxy-press-server.py og.png ./
 
-RUN adduser -D -H -u 10001 proxypress
+RUN adduser -D -H -u 10001 proxypress && mkdir cache && chown proxypress cache
 USER proxypress
 
 ENV HOST=0.0.0.0 \

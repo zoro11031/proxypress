@@ -3,7 +3,8 @@
 
 mpcfill.com only accepts browser requests from its own site, so the page sends
 searches here and this script forwards them. Images load directly from the
-MPC Autofill CDN and do not pass through this script.
+MPC Autofill CDN and do not pass through this script. Scryfall card data and
+mana symbols are fetched through here too and kept, so repeat lookups are local.
 
 Usage: python3 proxy-press-server.py [port]   (default 8642)
 
@@ -14,11 +15,13 @@ Environment:
   ASSETS      folder of fonts/ and frames/<set>/ served to signed-in users (default ./assets)
   BASIC_AUTH  "user:password" for a browser login prompt instead (optional)
   NO_BROWSER  set to 1 to skip opening a browser on start
+  CACHE       folder for cached Scryfall card data (default ./cache)
 """
 import base64
 import hashlib
 import hmac
 import http.server
+import ipaddress
 import json
 import os
 import re
@@ -74,6 +77,155 @@ def asset_path(route):
     if ext not in ASSET_TYPES or (ext == "" and os.path.basename(full) != "style"):
         return None, None
     return full, ASSET_TYPES[ext]
+
+symbol_locks, symbols_lock = {}, threading.Lock()
+
+
+def symbol(name):
+    """Scryfall's symbol list and SVGs, fetched once and kept in the cache."""
+    with symbols_lock:
+        lock = symbol_locks.setdefault(name, threading.Lock())
+    with lock:
+        hit = cache_get("sym:" + name, SYMBOL_TTL)
+        if hit is not None:
+            return hit.encode()
+        try:
+            body = fetch_symbol(name)
+        except Exception:
+            with symbols_lock:
+                symbol_locks.pop(name, None)
+            raise
+        cache_put("sym:" + name, body.decode())
+        return body
+
+
+def fetch_symbol(name):
+    if name == "index.json":
+        with urllib.request.urlopen(urllib.request.Request("https://api.scryfall.com/symbology", headers={"Accept": "application/json", "User-Agent": "ProxyPress/1.0"}), timeout=30) as r:
+            data = json.loads(r.read(MAX_UPSTREAM))
+        body = json.dumps({s["symbol"]: "/sym/" + s["svg_uri"].rsplit("/", 1)[1].split("?")[0]
+                           for s in data.get("data", []) if re.fullmatch(r"https://svgs\.scryfall\.io/card-symbols/[A-Z0-9]{1,12}\.svg(\?\d+)?", s.get("svg_uri") or "")}).encode()
+    else:
+        with urllib.request.urlopen(urllib.request.Request("https://svgs.scryfall.io/card-symbols/" + name, headers={"User-Agent": "ProxyPress/1.0"}), timeout=30) as r:
+            body = r.read(256 * 1024 + 1)
+        if len(body) > 256 * 1024 or b"<svg" not in body[:2048]:
+            raise ValueError("not an svg")
+    return body
+
+
+CACHE = os.environ.get("CACHE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+CARD_TTL, SEARCH_TTL, MPC_TTL, SYMBOL_TTL = 14 * 86400, 3 * 86400, 2 * 86400, 14 * 86400
+MEM_CACHE_BYTES, DISK_CACHE_FILES = 48 * 1024 * 1024, 60000
+sf_lock, sf_last, mem_cache, mem_size, mem_lock = threading.Lock(), [0.0], {}, [0], threading.Lock()
+disk_pruned = [0.0]
+
+
+def cache_get(key, ttl):
+    with mem_lock:
+        hit = mem_cache.get(key)
+    if hit and time.time() - hit[0] < ttl:
+        return hit[1]
+    try:
+        with open(os.path.join(CACHE, hashlib.sha256(key.encode()).hexdigest() + ".json"), "rb") as f:
+            t, body = json.loads(f.read())
+        if time.time() - t < ttl:
+            cache_mem(key, t, body)
+            return body
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def cache_mem(key, t, body):
+    size = len(body if isinstance(body, str) else json.dumps(body))
+    if size > 256 * 1024:
+        return
+    with mem_lock:
+        if key in mem_cache:
+            mem_size[0] -= mem_cache[key][2]
+        while mem_cache and mem_size[0] + size > MEM_CACHE_BYTES:
+            old = min(mem_cache, key=lambda k: mem_cache[k][0])
+            mem_size[0] -= mem_cache.pop(old)[2]
+        mem_cache[key] = (t, body, size)
+        mem_size[0] += size
+
+
+def cache_put(key, body):
+    t = time.time()
+    cache_mem(key, t, body)
+    try:
+        os.makedirs(CACHE, exist_ok=True)
+        path = os.path.join(CACHE, hashlib.sha256(key.encode()).hexdigest() + ".json")
+        tmp = f"{path}.{threading.get_ident()}.tmp"
+        with open(tmp, "w") as f:
+            json.dump([t, body], f)
+        os.replace(tmp, path)
+        # Hourly: drop expired files, then the oldest while over the file limit.
+        with mem_lock:
+            due = t - disk_pruned[0] > 3600
+            if due:
+                disk_pruned[0] = t
+        if due:
+            files = sorted((os.path.getmtime(p), p) for p in (os.path.join(CACHE, n) for n in os.listdir(CACHE)))
+            for n, (m, p) in enumerate(files):
+                if t - m > CARD_TTL or len(files) - n > DISK_CACHE_FILES:
+                    os.remove(p)
+    except OSError:
+        pass
+
+
+def scryfall(path, body=None):
+    """One request to api.scryfall.com, spaced 100 ms apart as Scryfall asks."""
+    with sf_lock:
+        wait = 0.1 - (time.time() - sf_last[0])
+        if wait > 0:
+            time.sleep(wait)
+        sf_last[0] = time.time()
+    req = urllib.request.Request("https://api.scryfall.com" + path, data=json.dumps(body).encode() if body is not None else None,
+                                 method="POST" if body is not None else "GET",
+                                 headers={"Accept": "application/json", "Content-Type": "application/json", "User-Agent": "ProxyPress/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status, json.loads(r.read(MAX_UPSTREAM))
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read(64 * 1024) or b"{}")
+
+
+def ident_key(i):
+    return "id:" + json.dumps({k: str(v).lower() for k, v in i.items()}, sort_keys=True)
+
+
+def ident_match(i, c):
+    if "id" in i:
+        return c.get("id") == i["id"]
+    if "collector_number" in i:
+        return c.get("set") == str(i.get("set", "")).lower() and c.get("collector_number") == i["collector_number"]
+    names = [c.get("name", "")] + [f.get("name", "") for f in c.get("card_faces") or []]
+    return str(i.get("name", "")).lower() in [n.lower() for n in names] and ("set" not in i or c.get("set") == str(i["set"]).lower())
+
+
+def collection(identifiers):
+    """/cards/collection, answered card by card from the cache where possible."""
+    data, todo = [], []
+    for i in identifiers:
+        hit = cache_get(ident_key(i), CARD_TTL)
+        if hit is not None:
+            data.append(hit)
+        else:
+            todo.append(i)
+    not_found = []
+    if todo:
+        status, j = scryfall("/cards/collection", {"identifiers": todo})
+        if status != 200:
+            return status, j
+        fresh, not_found = j.get("data") or [], j.get("not_found") or []
+        for i in todo:
+            c = next((c for c in fresh if ident_match(i, c)), None)
+            if c is not None:
+                cache_put(ident_key(i), c)
+        data += fresh
+    return 200, {"object": "list", "not_found": not_found, "data": data}
+
 
 failures, failures_lock = {}, threading.Lock()
 
@@ -163,9 +315,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
     sys_version = ""
 
     def client_ip(self):
+        peer = self.client_address[0]
+        try:
+            behind_proxy = ipaddress.ip_address(peer).is_private
+        except ValueError:
+            behind_proxy = False
+        if not behind_proxy:
+            return peer
         cf = self.headers.get("CF-Connecting-IP", "").strip()
         forwarded = self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        return cf or forwarded or self.client_address[0]
+        return cf or forwarded or peer
 
     def https(self):
         return self.headers.get("X-Forwarded-Proto") == "https"
@@ -222,7 +381,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return True
 
     def refuse(self):
-        if self.path.startswith(("/mpc/", "/assets/", "/deck")):
+        if self.path.startswith(("/mpc/", "/assets/", "/deck", "/sym/", "/sf/")):
             return self.send(401, b'{"name":"Signed out","message":"Sign in again"}', "application/json")
         if PASSWORD:
             return self.login_page(200)
@@ -262,6 +421,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not 0 <= length <= MAX_BODY:
                 return self.send(413, b'{"name":"Too large","message":"Request body too large"}', "application/json")
             body = self.rfile.read(length)
+        key = "mpc:" + method + ":" + path + ":" + hashlib.sha256(body or b"").hexdigest()
+        hit = cache_get(key, MPC_TTL)
+        if hit is not None:
+            return self.send(200, hit.encode(), "application/json")
         req = urllib.request.Request(UPSTREAM + path, data=body, method=method, headers={
             "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "ProxyPress/1.0"})
         try:
@@ -269,6 +432,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 data = r.read(MAX_UPSTREAM + 1)
                 if len(data) > MAX_UPSTREAM:
                     return self.send(502, b'{"name":"Relay error","message":"Response too large"}', "application/json")
+                if r.status == 200:
+                    cache_put(key, data.decode("utf-8", "replace"))
                 self.send(r.status, data, "application/json")
         except urllib.error.HTTPError as e:
             self.send(e.code, e.read(64 * 1024), "application/json")
@@ -307,6 +472,38 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 lines.append(line(v.get("quantity", 1), (c.get("oracleCard") or {}).get("name", ""), (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))
         self.send(200, json.dumps({"name": j.get("name", ""), "text": "\n".join(l for l in lines if l.split(" ", 1)[1:] != [""])}).encode(), "application/json")
 
+    def sf(self, method):
+        try:
+            self.sf_cached(method)
+        except Exception:
+            self.send(502, b"Could not reach Scryfall", "text/plain")
+
+    def sf_cached(self, method):
+        path = self.path[len("/sf"):]
+        route = path.split("?")[0]
+        if method == "POST":
+            if route != "/cards/collection":
+                return self.send(404, b'{"object":"error","details":"Not relayed"}', "application/json")
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                ids = json.loads(self.rfile.read(length)).get("identifiers") if 0 < length <= MAX_BODY else None
+            except (ValueError, AttributeError):
+                ids = None
+            if not isinstance(ids, list) or not 0 < len(ids) <= 75 or not all(isinstance(i, dict) for i in ids):
+                return self.send(400, b'{"object":"error","details":"Bad identifiers"}', "application/json")
+            status, j = collection(ids)
+        else:
+            if not re.fullmatch(r"/cards/(named|search|[0-9a-f-]{36})|/symbology", route):
+                return self.send(404, b'{"object":"error","details":"Not relayed"}', "application/json")
+            ttl = SEARCH_TTL if route == "/cards/search" else CARD_TTL
+            j = cache_get("get:" + path, ttl)
+            status = 200
+            if j is None:
+                status, j = scryfall(path)
+                if status == 200:
+                    cache_put("get:" + path, j)
+        self.send(status, json.dumps(j).encode(), "application/json")
+
     def do_GET(self):
         route = self.path.split("?")[0]
         if route == "/healthz":
@@ -321,7 +518,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if route.startswith("/mpc/"):
             return self.relay("GET")
         if route == "/deck":
-            return self.deck()
+            try:
+                return self.deck()
+            except Exception:
+                return self.send(502, b'{"message":"Could not read that deck"}', "application/json")
+        if route.startswith("/sf/"):
+            return self.sf("GET")
+        if route.startswith("/sym/"):
+            name = route[len("/sym/"):]
+            if not re.fullmatch(r"index\.json|[A-Z0-9]{1,12}\.svg", name):
+                return self.send(404, b"Not found", "text/plain")
+            try:
+                body = symbol(name)
+            except Exception:
+                return self.send(502, b"Could not reach Scryfall", "text/plain")
+            if name == "index.json":
+                return self.send(200, body, "application/json", [("Cache-Control", "private, max-age=86400")])
+            return self.send(200, body, "image/svg+xml", [("Cache-Control", "private, max-age=2592000, immutable"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
         if route == "/assets/manifest.json":
             return self.send(200, json.dumps(asset_manifest()).encode(), "application/json")
         if route.startswith("/assets/"):
@@ -329,7 +542,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not full:
                 return self.send(404, b"Not found", "text/plain")
             with open(full, "rb") as f:
-                return self.send(200, f.read(), ctype, [("Cache-Control", "private, max-age=86400")])
+                return self.send(200, f.read(), ctype, [("Cache-Control", "private, max-age=86400"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
         if route in ("/", "/proxy-press.html"):
             with open(PAGE, "rb") as f:
                 body = f.read()
@@ -347,6 +560,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.refuse()
         if self.path.startswith("/mpc/"):
             return self.relay("POST")
+        if self.path.startswith("/sf/"):
+            return self.sf("POST")
         self.send(405, b"Method not allowed", "text/plain")
 
     def log_message(self, fmt, *args):

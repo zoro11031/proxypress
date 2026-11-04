@@ -12,6 +12,7 @@ services:
     read_only: true
     volumes:
       - ./assets:/app/assets:ro,z
+      - cache:/app/cache
     cap_drop:
       - ALL
     security_opt:
@@ -21,3 +22,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+volumes:
+  cache:
