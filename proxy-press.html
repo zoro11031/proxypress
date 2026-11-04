@@ -1979,7 +1979,7 @@ async function renderCustomCard(t, art, k) {
   const rr = (X, Y, w, h, r) => { x.beginPath(); x.roundRect(X, Y, w, h, r); };
   const map = await symbolMap(), syms = new Map();
   const need = new Set([...`${t.mana || ''} ${t.text || ''}`.matchAll(/\{[^}]+\}/g)].map(m => m[0]));
-  await Promise.all([...need].map(async s => { if (map[s]) try { syms.set(s, await loadImage(map[s])); } catch {} }));
+  await Promise.all([...need].map(async s => { if (map[s]) try { syms.set(s, await loadImage(map[s]).catch(() => loadImage(map[s] + (map[s].includes('?') ? '&' : '?') + 'cors'))); } catch {} }));
   const texture = (rect, seed, cells, alpha, scale, r = 0) => {
     const pat = x.createPattern(noiseCanvas(seed, cells), 'repeat'); pat.setTransform(new DOMMatrix().scale(scale));
     x.save(); rr(...rect, r); x.clip(); x.globalCompositeOperation = 'overlay'; x.globalAlpha = alpha; x.fillStyle = pat; x.fillRect(...rect); x.restore();
@@ -2442,7 +2442,7 @@ async function openCardMaker(target) {
   const mc = manaCounts(t.mana), manaAdv = !mc.simple || !!S.manaAdv;
   const manaField = () => `<div class="field full"><label>Mana cost</label>
     <div class="mana-grid" id="ccManaGrid" ${manaAdv ? 'hidden' : ''}>${MANA_KEYS.map(([k, label]) => `<label class="mg" title="${label}">
-      ${k === 'N' ? '<span class="mg-generic">#</span>' : `<img data-sym="{${k}}" alt="" width="22" height="22">`}<span>${label}</span>
+      ${k === 'N' ? '<span class="mg-generic">#</span>' : `<img data-sym="{${k}}" crossorigin="anonymous" alt="" width="22" height="22">`}<span>${label}</span>
       <input type="number" min="0" max="20" inputmode="numeric" data-mana="${k}" value="${mc.c[k] || ''}" placeholder="0" aria-label="${label}"></label>`).join('')}</div>
     <input type="text" id="ccManaText" value="${esc(t.mana || '')}" placeholder="e.g. 2UU, XR, W/U or {2}{U}{U}" ${manaAdv ? '' : 'hidden'} aria-label="Mana cost">
     <label class="check" style="margin-top:6px"><input type="checkbox" id="ccManaAdv" ${manaAdv ? 'checked' : ''}> Type it instead (hybrid, Phyrexian, split costs)</label></div>`;
