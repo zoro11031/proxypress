@@ -276,7 +276,8 @@ details.adv:not([open]){padding-bottom:10px}
 
     <div class="pane on" id="tab-cards">
       <h3>Add cards</h3>
-      <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Or paste a Moxfield or Archidekt deck link. MTGA and MTGO exports work too."></textarea>
+      <div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0;width:auto" placeholder="Moxfield or Archidekt deck link" aria-label="Deck link"><button id="btnLink" title="Add every card in that deck">Import</button></div>
+      <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
       <div class="row" style="margin-top:6px">
         <button id="btnImport" class="primary" title="Add these cards (Ctrl+Enter)">Add to deck</button>
         <button id="btnReplace" title="Replace every card in this deck with this list">Replace deck</button>
@@ -908,14 +909,21 @@ function toEntry(card, qty) {
   };
 }
 function parseList(text) {
-  const out = [];
-  for (let line of text.split(/\r?\n/)) {
-    line = line.trim();
-    if (!line || /^(\/\/|#)/.test(line)) continue;
+  const out = [], lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !/^(\/\/|#)/.test(l));
+  // Once a list uses quantities, lines without one are section headers ("Ramp", "Creatures (20)").
+  const n = lines.filter(l => /^(SB:\s*)?\d+\s*[xX]?\s/i.test(l)).length, counted = n >= 2 && n >= lines.length / 3;
+  for (let line of lines) {
     if (/^(deck|sideboard|commander|companion|maybeboard|mainboard|about|name\b)/i.test(line) && !/^\d/.test(line)) continue;
     line = line.replace(/^SB:\s*/i, '');
-    if (/\([A-Za-z0-9]{2,6}\)/.test(line)) line = line.replace(/\s+\[[^\]]*\]\s*(\^[^^]*\^)?\s*$/, '');
-    line = line.replace(/\s+\*[A-Za-z]+\*/g, '');
+    if (counted && !/^\d/.test(line)) continue;
+    // Archidekt: "1x Name (set) 123 *F* [Ramp,Maybeboard{noDeck}] ^Have,#37d67a^"; Moxfield: "... *F* #tag #!tag".
+    line = line.replace(/\s+\^[^^]*\^\s*$/, '');
+    const cats = line.match(/\s+\[([^\]]*)\]\s*$/);
+    if (cats && (/[\s,{]/.test(cats[1]) || /[a-z]/.test(cats[1]) || /\([A-Za-z0-9]{2,6}\)/.test(line))) {
+      if (/\{noDeck\}/i.test(cats[1]) && !/(^|,)\s*Sideboard\{/i.test(cats[1])) continue;
+      line = line.slice(0, cats.index);
+    }
+    line = line.replace(/(\s+#!?\S+)+\s*$/, '').replace(/\s+\*[A-Za-z]+\*/g, '');
     const m = line.match(/^(?:(\d+)\s*[xX]?\s+)?(.+?)(?:\s+[\(\[]([A-Za-z0-9]{2,6})[\)\]](?:\s+([A-Za-z0-9\-★☆]+))?)?\s*$/);
     if (!m) continue;
     out.push({qty:+(m[1] || 1), name:m[2].replace(/\s*\/\/?\s*/g, m[2].includes('/') ? ' // ' : ''), set:m[3]?.toLowerCase(), cn:m[4]});
@@ -943,12 +951,14 @@ async function fetchCollection(ids, progress) {
   return {found, missing};
 }
 async function importList(text, replace) {
+  const box = !$('#listIn').value.trim() || $('#listIn').value.trim() === text.trim();
   if (/^\s*https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+\s*$/i.test(text)) {
     busy(true, 'Fetching the deck…');
     try {
       const r = await fetch('/deck?u=' + encodeURIComponent(text.trim())), j = await r.json().catch(() => ({}));
       if (!r.ok || !j.text) throw new Error(j.message || 'Deck links need the Proxy Press server');
-      text = j.text; $('#listIn').value = text;
+      if ($('#listIn').value.trim() === text.trim()) $('#listIn').value = j.text;
+      text = j.text;
     } catch (err) { busy(false); return toast(`${err.message}. Use the site's Export → Text instead.`, 6000); }
     busy(false);
   }
@@ -976,8 +986,9 @@ async function importList(text, replace) {
     }
     save(); renderAll();
     const line = m => `${m.qty} ${m.name}${m.set ? ` (${m.set.toUpperCase()})${m.cn ? ' ' + m.cn : ''}` : ''}`;
-    $('#listIn').value = missing.map(line).join('\n');
-    $('#importNote').innerHTML = missing.length ? `<div class="warn">Couldn't find ${missing.length} card${missing.length === 1 ? '' : 's'}. ${missing.length === 1 ? 'It\'s' : 'They\'re'} left in the box above: check the spelling and press <b>Add to deck</b> again.</div>` : '';
+    if (box) $('#listIn').value = missing.map(line).join('\n');
+    $('#importNote').innerHTML = !missing.length ? '' : box ? `<div class="warn">Couldn't find ${missing.length} card${missing.length === 1 ? '' : 's'}. ${missing.length === 1 ? 'It\'s' : 'They\'re'} left in the box above: check the spelling and press <b>Add to deck</b> again.</div>`
+      : `<div class="warn">Couldn't find: ${esc(missing.map(m => m.name).join(', '))}.</div>`;
     const auto = await mpcAutofill({auto:true});
     toast(`Added ${found.length} card${found.length === 1 ? '' : 's'}.` + autoSummary(auto) + (missing.length ? ` Not found: ${missing.map(m => m.name).join(', ')}` : ''), missing.length || auto?.missed?.length || auto?.offline ? 9000 : 4000);
   } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
@@ -1683,6 +1694,12 @@ $('#btnImport').onclick = () => {
   importList(v, false);
 };
 $('#btnReplace').onclick = () => { if (!deck().entries.length || confirm('Replace every card in this deck?')) importList($('#listIn').value, true); };
+$('#btnLink').onclick = () => {
+  const v = $('#linkIn').value.trim();
+  if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link, e.g. https://moxfield.com/decks/…');
+  importList(v, false).then(() => { $('#linkIn').value = ''; });
+};
+$('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#btnLink').click(); });
 $('#btnTokens').onclick = addTokens;
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
@@ -2701,7 +2718,7 @@ const TOUR = {
       <button data-tm="print" class="${S.mode === 'print' ? 'on' : ''}"><b>Print at home</b><span>A PDF for your own printer, with bleed, cut guides and double-sided backs.</span></button>
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
     </div><p class="hint">You can switch any time with the buttons at the top.</p>`},
-  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). A Moxfield or Archidekt deck link works too, as do MTGA and MTGO exports.</p>
+  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Or paste a Moxfield or Archidekt deck link into the box above it and press <b>Import</b>. MTGA and MTGO exports work too.</p>
     <p><b>+ Tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>`},
@@ -3027,7 +3044,7 @@ async function drawPreview() {
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
   if (!slots.length) {
     wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order prints in three steps' : 'Print proxies in three steps'}</h2><ol>
-      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>.</li>
+      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or paste a Moxfield or Archidekt link and press <b>Import</b>.</li>
       <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
       <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Export order</b>.' : 'Pick your printer in the <b>Printer</b> tab, then press <b>Export PDF</b>.'}</li></ol></div>`;
     return;
