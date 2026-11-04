@@ -888,8 +888,18 @@ function paginate(slots, per) { const p = []; for (let i = 0; i < slots.length; 
 
 /* ---------- Scryfall ---------- */
 const SF = 'https://api.scryfall.com';
-let lastCall = 0;
+let lastCall = 0, sfRelay = true;
 async function sf(url, opts = {}) {
+  // The server keeps a cache of card data; without it, ask Scryfall directly.
+  if (sfRelay && url.startsWith(SF)) {
+    let j = null;
+    try {
+      const r = await fetch('/sf' + url.slice(SF.length), {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
+      if (/json/.test(r.headers.get('Content-Type') || '')) j = await r.json();
+      if (j && (r.ok || j.object === 'error')) { if (!r.ok) throw new Error(j.details); return j; }
+      if (r.status === 404 || r.status === 401) sfRelay = false;
+    } catch (err) { if (j) throw err; sfRelay = false; }
+  }
   const wait = 110 - (Date.now() - lastCall); if (wait > 0) await sleep(wait);
   lastCall = Date.now();
   const r = await fetch(url, {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
@@ -1978,7 +1988,9 @@ async function ccFonts() {
 }
 let symbolMapP = null;
 function symbolMap() {
-  if (!symbolMapP) symbolMapP = sf(SF + '/symbology').then(j => Object.fromEntries((j.data || []).map(x => [x.symbol, x.svg_uri]))).catch(() => { symbolMapP = null; return {}; });
+  // The server keeps copies of the symbols; without it they load from Scryfall.
+  if (!symbolMapP) symbolMapP = fetch('/sym/index.json').then(r => r.ok ? r.json() : Promise.reject()).then(m => Object.keys(m).length ? m : Promise.reject())
+    .catch(() => sf(SF + '/symbology').then(j => Object.fromEntries((j.data || []).map(x => [x.symbol, x.svg_uri])))).catch(() => { symbolMapP = null; return {}; });
   return symbolMapP;
 }
 const frameKey = t => t.color && t.color !== 'auto' ? t.color : (t.colors || []).length > 1 ? 'M' : (t.colors || []).length ? t.colors[0] : /Land/.test(t.type || '') ? 'L' : 'C';
@@ -2543,7 +2555,7 @@ async function openCardMaker(target) {
     g.fillStyle = 'rgba(20,20,24,.6)'; g.beginPath(); g.rect(0, 0, cv.width, cv.height); g.roundRect(b, b, 63 * s, 88 * s, 3 * s); g.fill('evenodd'); };
   const bd = $('#modal .bd');
   const syncManaGrid = () => { const c = manaCounts(t.mana).c; $$('[data-mana]', bd).forEach(el => { el.value = c[el.dataset.mana] || ''; }); };
-  symbolMap().then(map => $$('#ccManaGrid img[data-sym]', bd).forEach(im => { if (map[im.dataset.sym]) im.src = map[im.dataset.sym]; }));
+  symbolMap().then(map => $$('#ccManaGrid img[data-sym]', bd).forEach(im => { const u = map[im.dataset.sym]; if (!u) return; im.onerror = () => { im.onerror = null; im.src = u + (u.includes('?') ? '&' : '?') + 'cors'; }; im.src = u; }));
   $('#ccManaAdv').onchange = ev => {
     const adv = ev.target.checked;
     if (!adv && !manaCounts(t.mana).simple && !confirm('The boxes can only hold plain symbols. Hybrid and Phyrexian symbols in this cost will be dropped. Switch anyway?')) { ev.target.checked = true; return; }
