@@ -1725,8 +1725,8 @@ const ERA_TYPE = {
     rules:{size:9.5, min:6.5}, pt:{slot:'name', size:11.25, min:9.5}, loyalty:{slot:'name', size:9.25, min:7}, artist:{slot:'type', size:4.8}, copy:{slot:'relay', size:4.5, track:0.1}, notice:{slot:'rules', size:4.9}}};
 // Sub-eras: Alpha/Beta/Unlimited, Revised, Tenth Edition, Planar Chaos and Future Sight.
 ERA_TYPE.abu = {shadow:'hard', ink:'#E6E1D6', illus:true,
-  title:{slot:'rname', size:11.5, min:9, sx:0.82, track:-0.02, order:'scale', dy:1.5}, type:{slot:'rrules', size:9.5, min:7.5, sx:0.85, order:'scale'},
-  rules:{size:10, min:6, top:4, noBar:true}, pt:{slot:'rname', size:12, min:10, slash:true}, artist:{slot:'rname', size:7.5, center:true}, copy:{slot:'rules', size:4.5}};
+  title:{slot:'rname', size:9.75, min:8, sx:0.82, track:-0.02, order:'scale', dy:-3.4}, type:{slot:'rrules', size:8.25, min:7, sx:0.85, order:'scale'},
+  rules:{size:10, min:6, noBar:true}, pt:{slot:'rname', size:12, min:10, slash:true}, artist:{slot:'rules', size:7.75}, copy:{slot:'rules', size:4.5}};
 ERA_TYPE.retro.illus = true;
 ERA_TYPE.revised = {...ERA_TYPE.retro};
 ERA_TYPE.tenth = {...ERA_TYPE.modern_8ed, centerShort:true, copy:{slot:'rules', size:4.5}};
@@ -1734,9 +1734,22 @@ ERA_TYPE.planar_chaos = {...ERA_TYPE.modern_8ed, ink:'#fff', shadow:'glow'};
 ERA_TYPE.futureshift = {shadow:null,
   title:{slot:'future', size:10.5, min:8, sx:0.85, track:0.03, order:'size', caps:true}, type:{slot:'future', size:8.5, min:6.5, sx:0.85, track:0.03, order:'size', caps:true},
   rules:{size:9, min:6.5}, pt:{slot:'future', size:12, min:10}, artist:{slot:'rtype', size:7}, copy:{slot:'rules', size:4.75}};
+// Skinned (nickname) cards: the nickname takes the title bar and the real name sits in a bar beneath it.
+const isSkinned = t => !!(t.skin && t.skin.trim() && t.skin.trim() !== (t.name || '').trim());
+const shortName = n => (n.match(/^([^,]+),/) || n.match(/^(.+?)\s+(?:the|of)\s/i) || [])[1] || '';
+function skinRules(t) {
+  const text = t.text || '', real = (t.name || '').trim();
+  if (!isSkinned(t) || !t.selfRef || !real) return text;
+  const reEsc = v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), skin = t.skin.trim();
+  let out = text.replace(new RegExp(reEsc(real), 'gi'), '\u0001');
+  const rs = /Legendary/.test(t.type || '') && shortName(real), ss = (t.skinShort || '').trim() || shortName(skin) || skin;
+  if (rs && rs !== real) out = out.replace(new RegExp(`\\b${reEsc(rs)}\\b`, 'g'), ss);
+  let first = true;
+  return out.replace(/\u0001/g, () => { const r = t.selfRef === 'dual' && first ? `${skin} (${real})` : skin; first = false; return r; });
+}
 // Planeswalker abilities: "+1: …", "−2: …", "0: …"; lines without a cost are static abilities.
 const parsePw = t => {
-  const rows = (t.text || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+  const rows = skinRules(t).split('\n').map(l => l.trim()).filter(Boolean).map(l => {
     const m = l.match(/^([+\u2212\u2013-]?(?:\d+|X))\s*:\s*/);
     return m ? {cost:m[1].replace(/^[-\u2013]/, '\u2212'), text:l.slice(m[0].length)} : {cost:'', text:l};
   });
@@ -1858,7 +1871,7 @@ function parseMseStyle(text) {
     name:part('name'), type:part('type'), text:part('text'), pt:part('pt'), illus:part('illustrator'), copy:part('copyright line'),
     image:box(fields.image), imageMask:(fields.image?.mask || '').trim() || null, ptbox:box(fields['pt box']),
     border:{l:num(fields['border color']?.['left width']) || 17, r:num(fields['border color']?.['right width']) || 17, t:num(fields['border color']?.['top width']) || 17}, cost:cc ? {right:num(cc.right), top:num(cc.top), h:num(cc.height)} : null,
-    pw:/^\tloyalty cost 1:/m.test(text),
+    pw:/^\tloyalty cost 1:/m.test(text), overlays:['textbox', 'typeline'].map(k => box(fields[k]) && {k, box:box(fields[k])}).filter(Boolean),
     whiteText:/font_colors_white\s*:=\s*\{\s*input\s*!=\s*"w"/.test(text)
   };
 }
@@ -1879,7 +1892,7 @@ const lumAt = (im, fx, fy) => {
 };
 const edgeColor = im => {
   const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d');
-  g.drawImage(im, im.naturalWidth / 2, 3, 1, 1, 0, 0, 1, 1); const [r, gg, bb] = g.getImageData(0, 0, 1, 1).data; return `rgb(${r},${gg},${bb})`;
+  g.drawImage(im, im.naturalWidth / 2, 3, 1, 1, 0, 0, 1, 1); const [r, gg, bb] = g.getImageData(0, 0, 1, 1).data; return 0.299 * r + 0.587 * gg + 0.114 * bb < 60 ? '#000' : `rgb(${r},${gg},${bb})`;
 };
 function setImageKey(set, key, land, pt) {
   const c = {W:'w', U:'u', B:'b', R:'r', G:'g', M:'m', C:'a', L:'c'}[key] || 'c', kind = pt ? 'pt' : 'card';
@@ -2014,17 +2027,18 @@ async function renderCustomCard(t, art, k) {
     return right;
   };
   const geo = ccGeom(t), E = ERA_TYPE[eraOf(t)];
-  let ink, textColor = null, textShadow = null, ptCut = null, pwRows = null, skipRules = false;
+  let ink, textColor = null, textShadow = null, ptCut = null, pwRows = null, skipRules = false, stampTop = null;
   // One line of title / type / P/T / footer text, fitted to maxW by the era's compress-or-shrink order.
   const fitLine = (str, X, cy, maxW, spec, color, shadow, align = 'left') => {
     if (!str) return 0;
     if (spec.slash) str = str.replace('/', '\u200a/\u200a');
     cy += (spec.dy || 0) * PT_MM;
-    const fam = CC_FONT[spec.slot], wt = fam !== CC_BASE[spec.slot] ? 400 : spec.slot === 'rules' || spec.slot === 'rrules' || spec.slot === 'rname' ? 400 : 700;
-    const use = (pt, track) => { x.font = `${wt} ${pt * PT_MM}px ${fam}`; if ('letterSpacing' in x) x.letterSpacing = `${(track || 0) * pt * PT_MM}px`; if ('fontVariantCaps' in x) x.fontVariantCaps = spec.caps ? 'small-caps' : 'normal'; };
+    const fam = CC_FONT[spec.slot], base = fam === CC_BASE[spec.slot], wt = !base || /^(rules|rrules|rname|italic)$/.test(spec.slot) ? 400 : 700;
+    const use = (pt, track) => { x.font = `${spec.italic && base ? 'italic ' : ''}${wt} ${pt * PT_MM}px ${fam}`; if ('letterSpacing' in x) x.letterSpacing = `${(track || 0) * pt * PT_MM}px`; if ('fontVariantCaps' in x) x.fontVariantCaps = spec.caps ? 'small-caps' : 'normal'; };
     let pt = spec.size, sx = spec.sx0 || 1, track = spec.track > 0 ? spec.track : 0;
     const width = () => { use(pt, track); return x.measureText(str).width * sx; };
-    const scaleDown = lo => { while (width() > maxW && sx > lo + 1e-6) { sx = Math.max(lo, sx - 0.01); if (spec.track) track = spec.track; } };
+    const scaleDown = lo => { while (width() > maxW && sx > lo + 1e-6) { sx = Math.max(lo, sx - 0.01); if (spec.track < 0) track = spec.track; } };
+    if (spec.trackMin != null) while (width() > maxW && track > spec.trackMin + 1e-6) track = Math.max(spec.trackMin, track - 0.02);
     const sizeDown = lo => { while (width() > maxW && pt > lo + 1e-6) pt = Math.max(lo, pt - 0.25); };
     if (spec.order === 'scale') { scaleDown(spec.sx ?? sx); sizeDown(spec.min ?? pt); }
     else { sizeDown(spec.min ?? pt); scaleDown(spec.sx ?? sx); if (spec.floor) { sizeDown(spec.floor); scaleDown(spec.floorSx); } }
@@ -2034,6 +2048,11 @@ async function renderCustomCard(t, art, k) {
     x.save(); x.translate(X + dx, by0); x.scale(sx, 1); x.textAlign = 'left'; x.textBaseline = 'alphabetic';
     if (shadow === 'hard') { x.fillStyle = '#000'; x.fillText(str, 0.0847 / sx, 0.127); }
     else if (shadow === 'glass') { x.save(); x.shadowColor = 'rgba(0,0,0,.9)'; x.shadowOffsetY = 1.25 * PT_MM * k; x.shadowBlur = 2 * PT_MM * k; x.lineJoin = 'round'; x.lineWidth = 0.7 * PT_MM; x.strokeStyle = '#000'; x.strokeText(str, 0, 0); x.restore(); }
+    else if (shadow && typeof shadow === 'object') {
+      x.save(); x.shadowColor = `rgba(0,0,0,${shadow.a})`; x.shadowOffsetY = shadow.oy * PT_MM * k; x.shadowBlur = shadow.blur * PT_MM * k;
+      if (shadow.stroke) { x.lineJoin = 'round'; x.lineWidth = shadow.stroke * 2 * PT_MM; x.strokeStyle = '#000'; x.strokeText(str, 0, 0); } else { x.fillStyle = color; x.fillText(str, 0, 0); }
+      x.restore();
+    }
     else if (shadow === 'glow') { x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 0.5 * PT_MM * 2 * k; }
     else if (shadow) { x.fillStyle = 'rgba(0,0,0,.8)'; x.fillText(str, pt * PT_MM * 0.05 / sx, pt * PT_MM * 0.06); }
     x.fillStyle = color; x.fillText(str, 0, 0); const drawn = x.measureText(str).width * sx; x.restore();
@@ -2092,9 +2111,27 @@ async function renderCustomCard(t, art, k) {
       x.save(); x.shadowColor = 'rgba(0,0,0,.85)'; x.shadowBlur = 2.5 * PT_MM * k; x.shadowOffsetY = 0.7 * PT_MM * k; rr(...rc, rad); x.fillStyle = '#000'; x.fill(); x.restore(); piece(box, r);
     };
     if (frameImg) { x.fillStyle = edgeColor(frameImg); x.fillRect(-b, -b, W, H); }
-    if (mode === 'normal') {
-      if (frameImg) { x.save(); rr(0, 0, 63, 88, 3.2); x.clip(); x.drawImage(frameImg, 0, 0, 63, 88); x.restore(); }
+    const drawFrame = () => { if (frameImg) { x.save(); rr(0, 0, 63, 88, 3.2); x.clip(); x.drawImage(frameImg, 0, 0, 63, 88); x.restore(); } };
+    if (mode === 'normal' && /\.png$/i.test(frameUrl || '')) {
+      // Transparent PNG frames sit over the art; planeswalkers get a translucent striped ability box.
+      x.fillStyle = '#000'; x.fillRect(-b, -b, W, H); drawArt(geo.art);
+      const sm = pwInfo && set.files?.[pwInfo.four ? 'stripe_mask_four.png' : 'stripe_mask_base.png'], m = sm && await alphaMask(sm);
+      if (m) {
+        const off = document.createElement('canvas'); off.width = Math.round(63 * k); off.height = Math.round(88 * k);
+        const o = off.getContext('2d'), n = pwInfo.four ? 4 : 3, top0 = pwInfo.four ? 289 : 330, band = (pwInfo.four ? 183 : 148) / n;
+        o.fillStyle = 'rgba(255,255,255,.7)'; o.fillRect(0, 0, off.width, off.height);
+        o.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 1; i < n; i += 2) o.fillRect(0, (top0 + i * band) / set.h * off.height, off.width, band / set.h * off.height);
+        o.globalCompositeOperation = 'destination-in'; o.drawImage(m, 0, 0, off.width, off.height);
+        x.drawImage(off, 0, 0, 63, 88);
+      }
+      drawFrame();
+    } else if (mode === 'normal') {
+      drawFrame();
       drawArt(geo.art, pwMask || set.mask ? await alphaMask(pwMask || set.mask) : null);
+      for (const ov of L.overlays || []) {
+        const u = set.files?.[`${pwCode}${land ? 'l' : ''}${ov.k}.png`] || set.files?.[`${pwCode}${ov.k}.png`], im = u && await img(u);
+        if (im) x.drawImage(im, ...R(ov.box));
+      }
     } else if (mode === 'extended') {
       x.fillStyle = '#000'; x.fillRect(-b, -b, W, H);
       drawArt(geo.art);
@@ -2115,15 +2152,54 @@ async function renderCustomCard(t, art, k) {
       skipRules = mode === 'textless';
     }
     if (ptImg) x.drawImage(ptImg, ...R(L.ptbox));
-    if (E === ERA_TYPE.futureshift && framed && typeBar) { x.save(); rr(...R(typeBar), 1); x.fillStyle = 'rgba(255,255,255,.55)'; x.fill(); x.restore(); }
     if (t.popKey && mode !== 'normal') { const pop = await img(t.popKey); if (pop) paintArt(x, geo.art, pop, true); }
+    if (t.stamp && !pwInfo) {
+      const cx = 31.5, cy = 229 * PT_MM, metal = x.createLinearGradient(cx - 4, cy - 2, cx + 4, cy + 2);
+      metal.addColorStop(0, '#8e9093'); metal.addColorStop(0.45, '#f4f5f6'); metal.addColorStop(0.55, '#d9dbde'); metal.addColorStop(1, '#8a8c90');
+      x.save(); x.beginPath();
+      if (t.stamp === 'ub') { const w = 18 * PT_MM, h = 9 * PT_MM; x.moveTo(cx - w / 2, cy - h / 2); x.lineTo(cx + w / 2, cy - h / 2); x.lineTo(cx, cy + h / 2); x.closePath(); }
+      else x.ellipse(cx, cy, 3.4, 1.75, 0, 0, Math.PI * 2);
+      x.fillStyle = '#000'; x.lineWidth = 0.9; x.strokeStyle = '#000'; x.stroke(); x.fill(); x.fillStyle = metal; x.fill(); x.restore();
+      stampTop = cy - (t.stamp === 'ub' ? 4.5 * PT_MM : 1.75) - 0.45;
+    }
     const light = dark || !!E.ink || (L.whiteText && key !== 'W'), rgb = (f, d) => dark ? '#fff' : E.ink || (f?.color ? `rgb(${f.color.join(',')})` : d);
     const isDark = c => /^#1|rgb\((\d{1,2}|1[0-2]\d),/.test(c), shadowFor = c => dark ? 'glass' : E.shadow && !isDark(c) ? E.shadow : null;
     ink = () => rgb(L.name.font, light ? '#fff' : '#111');
     let right = 57.5;
     if (L.cost?.right != null) right = manaRow(L.cost.right * 63 / set.w, ((L.cost.top || 0) + (L.cost.h || 22) / 2) * 88 / set.h, Math.min(3.4, (L.cost.h || 22) * 88 / set.h * 0.78), !light);
     const nb = R(L.name.box), nameInk = rgb(L.name.font, light ? '#fff' : '#111');
-    if (nb) fitLine(t.name || '', nb[0], nb[1] + nb[3] / 2, Math.min(nb[2], right - nb[0] - 0.8), E.title, nameInk, shadowFor(nameInk));
+    const skinned = isSkinned(t), titleSpec = skinned ? {...E.title, order:'size', min:Math.min(E.title.min, 8.5), sx:0.84, floor:8, floorSx:0.84} : E.title;
+    if (nb) fitLine(skinned ? t.skin.trim() : t.name || '', nb[0], nb[1] + nb[3] / 2, Math.min(nb[2], right - nb[0] - 0.8), titleSpec, nameInk, shadowFor(nameInk));
+    if (skinned && nameBar) {
+      // Real-name bar tucked under the title bar.
+      const nr = R(nameBar), style = t.skinBar || (E.shadow === 'hard' ? 'retro' : 'ikoria'), P = PT_MM, retroBar = style === 'retro';
+      const x0 = nr[0] + (retroBar ? 8 : 6) * P, x1 = nr[0] + nr[2] - (retroBar ? 8 : 6) * P, y0 = nr[1] + nr[3] - (retroBar ? 1 : 0.5) * P, h = (retroBar ? 10 : 11) * P, c = retroBar ? 0 : 3 * P;
+      const barPin = key === 'M' ? '#C5A059' : key === 'C' ? '#B8B8B8' : pin;
+      const path = () => { x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y0); x.lineTo(x1, y0 + h - c); x.lineTo(x1 - c, y0 + h); x.lineTo(x0 + c, y0 + h); x.lineTo(x0, y0 + h - c); x.closePath(); };
+      x.save();
+      if (retroBar) {
+        const g = x.createLinearGradient(0, y0, 0, y0 + h); g.addColorStop(0, 'rgba(38,27,17,.9)'); g.addColorStop(1, 'rgba(72,54,35,.9)');
+        path(); x.fillStyle = g; x.fill();
+        x.fillStyle = 'rgba(0,0,0,.6)'; x.fillRect(x0, y0, x1 - x0, 0.3 * P); x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(x0, y0 + h - 0.3 * P, x1 - x0, 0.3 * P);
+      } else {
+        x.shadowColor = 'rgba(0,0,0,.85)'; x.shadowOffsetY = 1.5 * P * k; x.shadowBlur = 2 * P * k;
+        let fill = 'rgba(20,18,22,.85)';
+        if (style === 'ikoria') { fill = x.createLinearGradient(x0, 0, x1, 0); fill.addColorStop(0, 'rgba(10,10,10,.65)'); fill.addColorStop(0.5, 'rgba(35,35,35,.8)'); fill.addColorStop(1, 'rgba(10,10,10,.65)'); }
+        path(); x.fillStyle = fill; x.fill(); x.shadowColor = 'transparent';
+        x.lineWidth = 0.85 * P; x.strokeStyle = barPin; x.stroke();
+        if (style === 'dracula') {
+          const cy = y0 + h / 2, d = 1.1 * P;
+          for (const [ex, dir] of [[x0 + 4 * P, 1], [x1 - 4 * P, -1]]) {
+            x.beginPath(); x.moveTo(ex - d, cy); x.lineTo(ex, cy - d); x.lineTo(ex + d, cy); x.lineTo(ex, cy + d); x.closePath(); x.fillStyle = barPin; x.fill();
+            x.fillRect(Math.min(ex + dir * 1.6 * P, ex + dir * 7 * P), cy - 0.15 * P, 5.4 * P, 0.3 * P);
+          }
+        }
+      }
+      x.restore();
+      const caps = t.aliasFont === 'caps', inset = (retroBar ? 4 : 4) * P + (style === 'dracula' ? 6 * P : 0);
+      const aliasSpec = caps ? {slot:'type', size:6.75, min:5.25, track:0.18, trackMin:0.06, order:'size', sx:0.9} : {slot:'italic', size:7.5, min:5.75, sx:0.9, order:'size', track:0.02, italic:true};
+      fitLine(caps ? t.name.toUpperCase() : t.name || '', (x0 + x1) / 2, y0 + h / 2, x1 - x0 - inset * 2, aliasSpec, caps ? '#fff' : '#F0EDE6', caps ? {oy:1, blur:1.5, a:0.95} : {oy:0.75, blur:1, a:0.95, stroke:0.25}, 'center');
+    }
     const tb = R(tb0), typeInk = rgb(L.type.font, light ? '#fff' : '#111');
     if (tb && mode !== 'textless') fitLine(t.type || '', tb[0], tb[1] + tb[3] / 2, tb[2], E.type, typeInk, shadowFor(typeInk));
     const pb = R(L.pt.box), ptInk = rgb(L.pt.font, light ? '#fff' : '#111');
@@ -2227,9 +2303,9 @@ async function renderCustomCard(t, art, k) {
   const [bx, by, bw, bh] = geo.box, textInk = textColor || (full ? '#fff' : '#111'), rulesFont = retro ? CC_FONT.rrules : CC_FONT.rules;
   const hasItalic = CC_FONT.italic !== CC_BASE.italic, rf = (it, fs) => it && hasItalic ? `400 ${fs}px ${CC_FONT.italic}` : `${it ? 'italic ' : ''}400 ${fs}px ${rulesFont}`;
   const curly = v => v.replace(/(^|[\s(\u2014-])"/g, '$1\u201c').replace(/"/g, '\u201d').replace(/(^|[\s(\u2014-])'/g, '$1\u2018').replace(/'/g, '\u2019');
-  const paras = curly(t.text || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:false}));
+  const paras = curly(skinRules(t)).split('\n').filter(l => l.trim()).map(l => ({text:l, italic:false}));
   const flavor = curly(t.flavor || '').split('\n').filter(l => l.trim()).map(l => ({text:l, italic:true}));
-  const pad = 1.4, maxW = bw - pad * 2, baseH = bh - pad * 2 - (t.pt && !retro && !set ? 1.6 : 0);
+  const pad = 1.4, maxW = bw - pad * 2, baseH = Math.min(bh - pad * 2 - (t.pt && !retro && !set ? 1.6 : 0), stampTop != null ? stampTop - by - pad : Infinity);
   const divGap = 2 * PT_MM, ruleH = 0.22;
   const RS = E.rules, fx = textShadow;
   if ('letterSpacing' in x) x.letterSpacing = '0px';
@@ -2355,7 +2431,14 @@ async function openCardMaker(target) {
   busy(false);
   let art = null;
   if (t.artKey) { const u = await customUrl(t.artKey); if (u) art = await loadImage(u).catch(() => null); }
-  const F = [['name', 'Name'], ['mana', 'Mana cost'], ['type', 'Type line'], ['text', 'Rules text'], ['flavor', 'Flavor text'], ['pt', 'Power / toughness'], ['artist', 'Artist credit']];
+  const F = [['name', 'Name'], ['skin', 'Nickname'], ['mana', 'Mana cost'], ['type', 'Type line'], ['text', 'Rules text'], ['flavor', 'Flavor text'], ['pt', 'Power / toughness'], ['artist', 'Artist credit']];
+  const opts = (k, list) => `<select data-cc="${k}">${list.map(([v, n]) => `<option value="${v}" ${(t[k] || '') === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+  const skinField = () => `<div class="field full"><label>Nickname</label><input type="text" data-cc="skin" value="${esc(t.skin || '')}" placeholder="Optional, e.g. Godzilla, King of the Monsters">
+    <div class="row" id="ccSkinOpts" style="margin-top:6px;flex-wrap:wrap;gap:6px" ${isSkinned(t) ? '' : 'hidden'}>
+      ${opts('selfRef', [['', 'Rules text: real name'], ['skin', 'Rules text: nickname'], ['dual', 'Rules text: both']])}
+      ${opts('skinBar', [['', 'Name bar: auto'], ['ikoria', 'Name bar: smoked'], ['dracula', 'Name bar: ornate'], ['retro', 'Name bar: retro']])}
+      ${opts('aliasFont', [['', 'Italic'], ['caps', 'Spaced capitals']])}
+      <input type="text" data-cc="skinShort" value="${esc(t.skinShort || '')}" placeholder="Short nickname" style="width:140px" aria-label="Short nickname"></div></div>`;
   const mc = manaCounts(t.mana), manaAdv = !mc.simple || !!S.manaAdv;
   const manaField = () => `<div class="field full"><label>Mana cost</label>
     <div class="mana-grid" id="ccManaGrid" ${manaAdv ? 'hidden' : ''}>${MANA_KEYS.map(([k, label]) => `<label class="mg" title="${label}">
@@ -2383,9 +2466,10 @@ async function openCardMaker(target) {
           <div class="field"><label>Art</label><select id="ccArtMode">${[['normal', 'Normal'], ['extended', 'Extended art'], ['borderless', 'Borderless'], ['full', 'Full art (text on art)'], ['textless', 'Textless']]
               .map(([v, n]) => `<option value="${v}" ${(t.artMode || (t.fullArt ? 'full' : 'normal')) === v ? 'selected' : ''}>${n}</option>`).join('')}</select>
             <div class="row" id="ccPopRow" style="margin-top:6px" ${(t.artMode || 'normal') === 'normal' ? 'hidden' : ''}><button class="icon" id="ccPopBtn" title="A PNG of the art with its background removed, drawn over the frame and under the text">${t.popKey ? 'Change pop-out…' : 'Pop-out layer…'}</button>${t.popKey ? '<button class="icon" id="ccPopClear">Remove</button>' : ''}<input type="file" id="ccPopFile" accept="image/png,image/webp" hidden></div></div>
+          <div class="field"><label>Stamp</label>${opts('stamp', [['', 'None'], ['oval', 'Oval'], ['ub', 'Universes Beyond']])}</div>
           <div class="field full" id="ccFrameRow" ${t.style === 'custom' ? '' : 'hidden'}><label>Frame image</label><div class="row"><button class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame…' : 'Upload frame…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp,image/svg+xml,.svg" hidden></div>
             <p class="hint">A card-sized PNG or SVG (e.g. 744 × 1039 px) that's transparent where the art shows. Text is placed in the modern positions.</p></div>
-          ${F.map(([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label>${label}</label>${k === 'text' || k === 'flavor' ? `<textarea data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`).join('')}
+          ${F.map(([k, label]) => k === 'mana' ? manaField() : k === 'skin' ? skinField() : `<div class="field full"><label>${label}</label>${k === 'text' || k === 'flavor' ? `<textarea data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`).join('')}
           <details class="adv full" style="grid-column:1/-1"><summary>Fonts</summary><div id="ccFontList"></div>
             <input type="file" id="ccFontFile" accept=".ttf,.otf,.woff,.woff2" hidden><input type="file" id="ccFontMulti" accept=".ttf,.otf,.woff,.woff2" multiple hidden></details>
         </div>
@@ -2415,7 +2499,7 @@ async function openCardMaker(target) {
     }
     if (ev.target.id === 'ccManaText') { t.mana = normalizeMana(ev.target.value); return draw(); }
     const k = ev.target.dataset.cc;
-    if (k) t[k] = ev.target.value;
+    if (k) { t[k] = ev.target.value; if (k === 'skin') $('#ccSkinOpts').hidden = !isSkinned(t); }
     else if (ev.target.id === 'ccZoom') t.zoom = +ev.target.value;
     else return;
     draw();
