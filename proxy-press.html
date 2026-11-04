@@ -2752,7 +2752,7 @@ function openCtx(x, y, e, i) {
     ? `<div class="ttl">Card back</div><button data-c="back" role="menuitem">Change cardback…</button>`
     : `<div class="ttl">${esc(e.faces[i]?.name || e.name)}</div>
        <button data-c="art" role="menuitem">Change art…</button>
-       <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Make custom card with your art…'}</button>
+       <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
        <button data-c="upload" role="menuitem">Upload image…</button>
        <button data-c="del" class="danger" role="menuitem">Remove card</button>`;
   m.classList.add('on');
