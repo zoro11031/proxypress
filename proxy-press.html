@@ -44,6 +44,7 @@ aside{border-right:1px solid var(--line);background:var(--panel);display:flex;fl
 h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:16px 0 8px}
 h3:first-child{margin-top:2px}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+[hidden]{display:none!important}
 .row>*{flex:0 0 auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
@@ -177,10 +178,11 @@ h3:first-child{margin-top:2px}
 .tour-dots i.on{background:var(--accent)}
 @media (max-width:820px){.tour-modes{grid-template-columns:1fr}}
 .cc{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
+.cc>div:first-child{position:sticky;top:0}
 .cc canvas{display:block;border-radius:10px;cursor:grab;touch-action:none;max-width:100%;height:auto}
 .cc canvas:active{cursor:grabbing}
 .cc textarea{min-height:90px;font-family:inherit;font-size:13px}
-@media (max-width:820px){.cc{grid-template-columns:1fr}}
+@media (max-width:820px){.cc{grid-template-columns:1fr}.cc>div:first-child{position:static}}
 body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:none !important}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#111317}
 .seg button{border:0;border-radius:0;background:none;color:var(--muted);padding:6px 12px}
@@ -274,7 +276,7 @@ details.adv:not([open]){padding-bottom:10px}
 
     <div class="pane on" id="tab-cards">
       <h3>Add cards</h3>
-      <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
+      <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Or paste a Moxfield or Archidekt deck link. MTGA and MTGO exports work too."></textarea>
       <div class="row" style="margin-top:6px">
         <button id="btnImport" class="primary" title="Add these cards (Ctrl+Enter)">Add to deck</button>
         <button id="btnReplace" title="Replace every card in this deck with this list">Replace deck</button>
@@ -941,6 +943,15 @@ async function fetchCollection(ids, progress) {
   return {found, missing};
 }
 async function importList(text, replace) {
+  if (/^\s*https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+\s*$/i.test(text)) {
+    busy(true, 'Fetching the deck…');
+    try {
+      const r = await fetch('/deck?u=' + encodeURIComponent(text.trim())), j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.text) throw new Error(j.message || 'Deck links need the Proxy Press server');
+      text = j.text; $('#listIn').value = text;
+    } catch (err) { busy(false); return toast(`${err.message}. Use the site's Export → Text instead.`, 6000); }
+    busy(false);
+  }
   const items = parseList(text);
   if (!items.length) return toast('No cards found in that list.');
   busy(true, 'Looking up cards on Scryfall…');
@@ -1724,13 +1735,13 @@ const ERA_TYPE = {
     title:{slot:'name', size:9.9, min:8, sx:0.88, order:'size', floor:7, floorSx:0.85, dy:-1.35}, type:{slot:'name', size:8.3, min:6.5, sx:0.88, order:'size', dy:-0.8},
     rules:{size:9.2, min:6.5, lh:0.93, pad:0.45, divGap:3.5, dy:-1.35}, pt:{slot:'name', size:9.25, min:8, dx:3.6, dy:-3.55}, loyalty:{slot:'name', size:9.25, min:7}, artist:{slot:'type', size:4.8}, copy:{slot:'relay', size:4.5, track:0.1}, notice:{slot:'rules', size:4.4}}};
 // Sub-eras: Alpha/Beta/Unlimited, Revised, Tenth Edition, Planar Chaos and Future Sight.
-ERA_TYPE.abu = {shadow:'hard', ink:'#a9a9aa', inkDark:'#3a3d41', shadowDark:'emboss', illus:true,
+ERA_TYPE.abu = {shadow:'hard', centerShort:true, ink:'#a9a9aa', inkDark:'#3a3d41', shadowDark:'emboss', illus:true,
   title:{slot:'rname', size:9.75, min:8, sx:0.82, track:-0.02, order:'scale', dy:-2.1}, type:{slot:'rrules', size:8.25, min:7, sx:0.85, order:'scale'},
-  rules:{size:11.5, min:6, noBar:true, pad:2, centerBlock:true, dy:-4.8}, pt:{slot:'rules', size:10.7, min:8, dx:4.8, dy:-1.2}, artist:{slot:'rules', size:8.25, dy:2.3}, copy:{slot:'rules', size:4.5, dy:1.2}};
+  rules:{size:8.2, min:6, lh:0.98, ps:0, noBar:true, pad:2, padR:1.2, dy:-5.4, big:[[12, 4]]}, pt:{slot:'rules', size:10.7, min:8, dx:4.8, dy:-1.2}, artist:{slot:'rules', size:8.25, dy:2.3}, copy:{slot:'rules', size:4.5, dy:1.2}};
 ERA_TYPE.retro.illus = true;
 ERA_TYPE.revised = {...ERA_TYPE.retro, ink:'#cbcac5', inkDark:'#40423c', shadowDark:null, noticeBorder:true, centerShort:true,
   title:{slot:'rname', size:9.6, min:8, sx:0.82, track:-0.02, order:'scale', dx:-3, dy:-1.35}, type:{slot:'rrules', size:8.9, min:6.5, sx:0.85, order:'scale', dx:-1, dy:1.4},
-  rules:{size:8.9, min:6, noBar:true, lh:0.87, pad:0.1, centerDy:-4.9}, pt:{slot:'rules', size:10.2, min:8, dx:5.4, dy:0.5}, artist:{slot:'rules', size:8.3, dy:7.3}, copy:{slot:'rules', size:4.4}};
+  rules:{size:8.5, min:6, noBar:true, lh:0.92, ps:0, pad:0.1, dy:-3.6, centerDy:-1.3, big:[[11, 1], [10, 5]]}, pt:{slot:'rules', size:10.2, min:8, dx:5.4, dy:0.5}, artist:{slot:'rules', size:8.3, dy:7.3}, copy:{slot:'rules', size:4.4}};
 ERA_TYPE.tenth = {...ERA_TYPE.modern_8ed, centerShort:true, copy:{slot:'rules', size:4.5}};
 ERA_TYPE.planar_chaos = {...ERA_TYPE.modern_8ed, ink:'#fff', shadow:'glow', inkDark:'#fff', shadowDark:'glow', rules:{...ERA_TYPE.modern_8ed.rules, padB:0.6, dy:0}};
 ERA_TYPE.futureshift = {shadow:null, ink:'#fff', inkDark:'#111', shadowDark:null,
@@ -2351,12 +2362,12 @@ async function renderCustomCard(t, art, k) {
         if (line.length) w += sp;
         line.push(...parts); w += ww;
       }
-      const gap = n < list.length - 1 ? fs * psF : 0;
+      const gap = n < list.length - 1 ? fs * psF * (RS.ps ?? 1) : 0;
       lines.push({toks:line, w, gap}); yAcc += lh + gap;
     });
     run(P);
     if (P.length && F.length) {
-      if (RS.noBar) { lines.at(-1).gap = fs * 0.35; yAcc += fs * 0.35; }
+      if (RS.noBar) { lines.at(-1).gap = fs * 0.35 * (RS.ps ?? 1); yAcc += fs * 0.35 * (RS.ps ?? 1); }
       else { lines.at(-1).gap = divGap; lines.push({rule:true, gap:divGap}); yAcc += 2 * divGap + ruleH; }
     }
     run(F);
@@ -2405,9 +2416,11 @@ async function renderCustomCard(t, art, k) {
   const topOf = h => RS.top != null ? by + RS.top * PT_MM : by + padY + Math.max(0, (baseH - h) / 2 + (RS.dy || 0) * PT_MM);
   let T = fitTo(baseH, null);
   // Short, flavourless text is set larger and centred (Tenth Edition, full-art promos).
-  if ((E.centerShort || t.artMode === 'full') && !flavor.length && T.lines.length <= 3) {
-    for (const [p, max] of [[11, 1], [10, 3]]) { const r = layout(p * PT_MM, 1.05, 0.35); if (r.lines.length <= max && r.height <= baseH) { T = r; break; } }
-    T.center = true;
+  if ((E.centerShort || t.artMode === 'full') && !flavor.length && (RS.big || T.lines.length <= 3)) {
+    for (const [p, max] of RS.big || [[11, 1], [10, 3]]) { const r = layout(p * PT_MM, 1.05, 0.35); if (r.lines.length <= max && r.height <= baseH) { T = r; T.big = true; break; } }
+    // Alpha and Revised balance their large lines: the narrowest measure that keeps the same line count.
+    if (T.big && RS.big && T.lines.length <= 3) for (let w = maxW * 0.98; w > maxW * 0.5; w -= maxW * 0.02) { const r = layout(T.fs, 1.05, 0.35, paras, flavor, w); if (r.lines.length > T.lines.length) break; T = r; T.big = true; }
+    T.center = T.big || !RS.big;
   }
   if (ptCut && !T.center && ptCut[0] < bx + bw && ptCut[1] < by + bh) {
     for (let i = 0; i < 3; i++) T = fitTo(baseH, {y:ptCut[1] - topOf(T.height), w:ptCut[0] - bx - pad - 0.6});
@@ -2475,9 +2488,9 @@ async function openCardMaker(target) {
       <input type="number" min="0" max="20" inputmode="numeric" data-mana="${k}" value="${mc.c[k] || ''}" placeholder="0" aria-label="${label}"></label>`).join('')}</div>
     <input type="text" id="ccManaText" value="${esc(t.mana || '')}" placeholder="e.g. 2UU, XR, W/U or {2}{U}{U}" ${manaAdv ? '' : 'hidden'} aria-label="Mana cost">
     <label class="check" style="margin-top:6px"><input type="checkbox" id="ccManaAdv" ${manaAdv ? 'checked' : ''}> Type it instead (hybrid, Phyrexian, split costs)</label></div>`;
-  openModal(`<div class="hd"><b>${t.name ? esc(t.name) + ' · ' : ''}custom card</b><button data-close>Close</button></div>
+  openModal(`<div class="hd"><b>${t.name ? esc(t.name) + ' · custom card' : 'Custom card'}</b><button data-close>Close</button></div>
     <div class="bd"><div class="cc">
-      <div><canvas id="ccCanvas" aria-label="Card preview"></canvas><p class="hint">Drag the art to move it, scroll to zoom.</p></div>
+      <div><canvas id="ccCanvas" aria-label="Card preview"></canvas><p class="hint">Drag the art to move it, scroll to zoom. The shaded edge is bleed and gets cut off.</p></div>
       <div>
         <div class="field" style="margin-bottom:10px"><label>Start from a real card</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Fill</button></div>
           <select id="ccSet" style="margin-top:6px" aria-label="Printing" hidden></select></div>
@@ -2508,7 +2521,9 @@ async function openCardMaker(target) {
   const cv = $('#ccCanvas'), K = 6.2, ratio = devicePixelRatio || 1;
   cv.style.width = `${(63 + 2 * MPC_BLEED) * K}px`;
   let n = 0;
-  const draw = async () => { const me = ++n, c = await renderCustomCard(t, art, K * ratio); if (me !== n) return; cv.width = c.width; cv.height = c.height; cv.getContext('2d').drawImage(c, 0, 0); };
+  const draw = async () => { const me = ++n, c = await renderCustomCard(t, art, K * ratio); if (me !== n) return; cv.width = c.width; cv.height = c.height;
+    const g = cv.getContext('2d'), s = K * ratio, b = MPC_BLEED * s; g.drawImage(c, 0, 0);
+    g.fillStyle = 'rgba(20,20,24,.6)'; g.beginPath(); g.rect(0, 0, cv.width, cv.height); g.roundRect(b, b, 63 * s, 88 * s, 3 * s); g.fill('evenodd'); };
   const bd = $('#modal .bd');
   const syncManaGrid = () => { const c = manaCounts(t.mana).c; $$('[data-mana]', bd).forEach(el => { el.value = c[el.dataset.mana] || ''; }); };
   symbolMap().then(map => $$('#ccManaGrid img[data-sym]', bd).forEach(im => { if (map[im.dataset.sym]) im.src = map[im.dataset.sym]; }));
@@ -2634,10 +2649,14 @@ async function openCardMaker(target) {
     const q = $('#ccLookup').value.trim(), num = $('#ccNum').value.trim();
     if (!q) return toast('Type a card name.');
     try {
-      const c = num ? (await sf(`${SF}/cards/search?unique=prints&q=${encodeURIComponent(`!"${q}" cn:"${num}"`)}`)).data[0]
+      let c = num ? (await sf(`${SF}/cards/search?unique=prints&q=${encodeURIComponent(`!"${q}" cn:"${num}"`)}`)).data[0]
         : await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}`);
       fillFrom(c); $('#ccLookup').value = c.name;
       const prints = await sf(`${SF}/cards/search?unique=prints&order=released&q=${encodeURIComponent(`!"${c.name}"`)}`).then(j => j.data || []).catch(() => [c]);
+      // Prefer a regular printing over promos, Universes Beyond and showcase treatments.
+      const regular = p => !p.promo && !p.digital && !['plst', 'sld', 'spg', 'mul'].includes(p.set) && !(p.promo_types || []).includes('universesbeyond') && ['core', 'expansion', 'masters', 'draft_innovation', 'commander', 'starter'].includes(p.set_type)
+        && !p.full_art && p.border_color !== 'borderless' && !(p.frame_effects || []).some(f => ['showcase', 'extendedart', 'inverted', 'etched'].includes(f));
+      if (!num && !regular(c)) { const r = prints.find(regular); if (r) { c = r; fillFrom(c); } }
       $('#ccSet').innerHTML = prints.map(p => `<option value="${esc(p.id)}" ${p.id === c.id ? 'selected' : ''}>${esc(p.set_name)} (${esc(p.set.toUpperCase())}) · #${esc(p.collector_number)} · ${esc((p.released_at || '').slice(0, 4))}</option>`).join('');
       $('#ccSet').hidden = false; ccPrints = prints;
     } catch (err) { toast('Card not found: ' + err.message, 5000); }
@@ -2682,7 +2701,7 @@ const TOUR = {
       <button data-tm="print" class="${S.mode === 'print' ? 'on' : ''}"><b>Print at home</b><span>A PDF for your own printer, with bleed, cut guides and double-sided backs.</span></button>
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
     </div><p class="hint">You can switch any time with the buttons at the top.</p>`},
-  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Exports from Moxfield, Archidekt, MTGA and MTGO all work.</p>
+  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). A Moxfield or Archidekt deck link works too, as do MTGA and MTGO exports.</p>
     <p><b>+ Tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>`},
