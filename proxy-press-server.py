@@ -222,7 +222,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return True
 
     def refuse(self):
-        if self.path.startswith(("/mpc/", "/assets/")):
+        if self.path.startswith(("/mpc/", "/assets/", "/deck")):
             return self.send(401, b'{"name":"Signed out","message":"Sign in again"}', "application/json")
         if PASSWORD:
             return self.login_page(200)
@@ -275,6 +275,38 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except Exception:
             self.send(502, b'{"name":"Relay error","message":"Could not reach mpcfill.com"}', "application/json")
 
+    def deck(self):
+        url = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("u", [""])[0].strip()
+        m = re.match(r"https?://(?:www\.)?(moxfield|archidekt)\.com/decks/([A-Za-z0-9_-]{1,40})", url)
+        if not m:
+            return self.send(400, b'{"message":"Paste a Moxfield or Archidekt deck link"}', "application/json")
+        site, deck_id = m.groups()
+        api = f"https://api2.moxfield.com/v2/decks/all/{deck_id}" if site == "moxfield" else f"https://archidekt.com/api/decks/{deck_id}/"
+        try:
+            with urllib.request.urlopen(urllib.request.Request(api, headers={"Accept": "application/json", "User-Agent": "ProxyPress/1.0"}), timeout=30) as r:
+                j = json.loads(r.read(MAX_UPSTREAM))
+        except urllib.error.HTTPError as e:
+            msg = "Deck not found or not public" if e.code in (403, 404) else f"{site.title()} returned {e.code}"
+            return self.send(502, json.dumps({"message": msg}).encode(), "application/json")
+        except Exception:
+            return self.send(502, json.dumps({"message": f"Could not reach {site.title()}"}).encode(), "application/json")
+        line = lambda q, n, st, cn: f"{q} {n}" + (f" ({st.upper()}) {cn}" if st and cn else "")
+        lines = []
+        if site == "moxfield":
+            for board in ("commanders", "companions", "mainboard", "sideboard"):
+                for v in (j.get(board) or {}).values():
+                    c = v.get("card") or {}
+                    lines.append(line(v.get("quantity", 1), c.get("name", ""), c.get("set", ""), c.get("cn", "")))
+        else:
+            skip = {c.get("name") for c in j.get("categories") or [] if not c.get("includedInDeck") and c.get("name") != "Sideboard"}
+            for v in j.get("cards") or []:
+                cats = v.get("categories") or []
+                if cats and cats[0] in skip:
+                    continue
+                c = v.get("card") or {}
+                lines.append(line(v.get("quantity", 1), (c.get("oracleCard") or {}).get("name", ""), (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))
+        self.send(200, json.dumps({"name": j.get("name", ""), "text": "\n".join(l for l in lines if l.split(" ", 1)[1:] != [""])}).encode(), "application/json")
+
     def do_GET(self):
         route = self.path.split("?")[0]
         if route == "/healthz":
@@ -288,6 +320,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.refuse()
         if route.startswith("/mpc/"):
             return self.relay("GET")
+        if route == "/deck":
+            return self.deck()
         if route == "/assets/manifest.json":
             return self.send(200, json.dumps(asset_manifest()).encode(), "application/json")
         if route.startswith("/assets/"):
