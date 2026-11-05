@@ -569,6 +569,7 @@ const LASER_TIPS = [
 ];
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
+  'Print the PDF from a PDF app (Adobe Reader, Okular, Preview), not from the browser. Firefox\'s PDF viewer prints at about 150 DPI, so the cards come out soft.',
   'Run the <b>Calibration sheet</b> once and enter the results under Layout → Advanced.',
   'Double-faced cards and card backs print on the back of the sheet. After you export, you get step-by-step re-feed instructions.',
 ];
@@ -591,23 +592,20 @@ const PRINTERS = [
     settings:[
       ['Paper source', 'Multi-Purpose Tray'],
       ['Paper type (driver)', '2-sided Coated 3 [151-200g/m2]'],
-      ['Paper type (printer panel)', 'Heavy 3 (61lb Cover-65 Cover)'],
+      ['Paper type (printer panel)', 'Coated 3 (Multi-Purpose Tray)'],
+      ['Objective', 'High Definition Text'],
       ['Resolution', '1200 dpi'],
-      ['Items to Prioritize', 'Images'],
       ['Toner Save', 'Off'],
-      ['Toner Density', 'Adjust: Max 3, all colours'],
+      ['Toner Density', 'Printer Default'],
     ],
     more:[
-      ['Pattern Position Correction', 'Off'], ['Pattern Resolution', '600dpi'],
-      ['Gray Compensation', 'Text and Graphics'], ['Gradation Smoothing', 'Smooth 2'],
-      ['Print Diagonal Lines at High Speed', 'On'], ['Special 1 BPP Mode', 'Off'],
-      ['Grayscale Conversion', 'NTSC'], ['Use Driver Grayscale Conversion', 'Off'],
-      ['Correction Processing', 'On'], ['CanoFine', 'On'], ['Rendering Rate', '24 BPP'],
-      ['Gradation', 'Standard'], ['Halftones', 'Gradation'],
-      ['Uniform Printing of Diagonal Lines', 'On'], ['Advanced Smoothing', 'Smooth 2'],
-      ['Toner Volume Correction', 'Gradation Priority'], ['Line Control', 'Gradation Priority'],
-      ['Sharpness (Photo)', '3'], ['Accelerated Image Processing', 'Max'],
-      ['Compressed Image Data Processing', 'By Host'], ['Process Images Collectively', 'On'],
+      ['Rendering Rate', '24 BPP'], ['Gradation', 'Standard'],
+      ['Halftones', 'Printer Default'], ['Sharpness (Photo)', '2'],
+      ['Accelerated Image Processing', 'Max'], ['Grayscale Conversion', 'NTSC'],
+      ['Gray Compensation', 'Text and Graphics'], ['Pattern Resolution', '600 dpi'],
+      ['CanoFine', 'Off'], ['Special Smoothing Mode', 'Printer Default'],
+      ['Special Fine Line Processing', 'Mode 2'], ['Always Rasterize at Host', 'Off'],
+      ['EMF Spooling', 'Off'],
     ],
     tips:LASER_TIPS},
   {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
@@ -3227,16 +3225,16 @@ async function exportPDF() {
     toast('Export failed: ' + e.message, 8000);
   }
   busy(false);
-  if (done) hasBacks ? showBackSteps(pages.length) : toast('PDF exported. Print it at Actual size / 100%.', 5000);
+  if (done) hasBacks ? showBackSteps(pages.length) : toast('PDF exported. Print it from a PDF app, not the browser, at Actual size / 100%.', 6000);
 }
 function backStepsHtml(sheets) {
   const s = S.settings, L = layout();
   if (s.duplexMethod === 'auto') return `<ol class="steps">
-    <li>Open the PDF and print it at <b>Actual size / 100%</b>.</li>
+    <li>Open the PDF in a PDF app, not the browser, and print it at <b>Actual size / 100%</b>.</li>
     <li>Turn on <b>double-sided printing</b> and choose <b>flip on ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>, matching Layout → How the backs get printed.</li>
     <li>Hold the first sheet up to a light. If the backs are shifted, print the <b>double-sided test</b> (Printer tab) and adjust <b>Back offset X / Y</b> under Layout → Advanced.</li>
   </ol><p class="hint">If heavy cardstock jams or scuffs in the duplexer, switch to re-feeding by hand.</p>`;
-  return `<p class="hint">Print one sheet at a time. Every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
+  return `<p class="hint">Open the PDF in a PDF app, not the browser: Firefox's PDF viewer prints at about 150 DPI. Print one sheet at a time. Every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
   <ol class="steps">
     <li><b>Print the front.</b> In the print dialog choose <b>Pages: 1</b> and <b>Actual size / 100%</b>. Load the blank sheet the way you normally do.</li>
     <li><b>Let it dry.</b> Inkjet: at least 10 minutes. Laser: right away.</li>
