@@ -47,7 +47,6 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 864
 HOST = os.environ.get("HOST", "127.0.0.1")
 AUTH = os.environ.get("BASIC_AUTH", "")
 PASSWORD = os.environ.get("PASSWORD", "")
-SECRET = os.urandom(32)
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 COOKIE = "pp_session"
 ASSETS = os.path.realpath(os.environ.get("ASSETS") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets"))
@@ -120,6 +119,28 @@ sf_lock, sf_last, mem_cache, mem_size, mem_lock = threading.Lock(), [0.0], {}, [
 disk_pruned = [0.0]
 
 
+def session_secret():
+    """Kept in the cache volume so logins survive restarts; changing PASSWORD signs everyone out."""
+    path = os.path.join(CACHE, "session.key")
+    try:
+        with open(path, "rb") as f:
+            key = f.read()
+        if len(key) != 32:
+            raise OSError
+    except OSError:
+        key = os.urandom(32)
+        try:
+            os.makedirs(CACHE, exist_ok=True)
+            with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as f:
+                f.write(key)
+        except OSError:
+            pass
+    return hmac.new(key, PASSWORD.encode(), hashlib.sha256).digest()
+
+
+SECRET = session_secret()
+
+
 def cache_get(key, ttl):
     with mem_lock:
         hit = mem_cache.get(key)
@@ -166,7 +187,7 @@ def cache_put(key, body):
             if due:
                 disk_pruned[0] = t
         if due:
-            files = sorted((os.path.getmtime(p), p) for p in (os.path.join(CACHE, n) for n in os.listdir(CACHE)))
+            files = sorted((os.path.getmtime(p), p) for p in (os.path.join(CACHE, n) for n in os.listdir(CACHE) if n.endswith((".json", ".tmp"))))
             for n, (m, p) in enumerate(files):
                 if t - m > CARD_TTL or len(files) - n > DISK_CACHE_FILES:
                     os.remove(p)
