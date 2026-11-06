@@ -338,7 +338,7 @@ details.adv:not([open]){padding-bottom:10px}
       <h3>1 · Set up the sheet</h3>
       <ul class="tips hint" style="padding-left:18px">
         <li>Use <b>Margin lines + corners</b> for cut guides. Margin lines guide the first cuts, and corner marks stay on every strip after the sheet is cut apart.</li>
-        <li>Use as much bleed as fits, with a <b>0 mm gap</b>: <b>2 mm</b> on landscape 4×2, <b>1 mm</b> on portrait 3×3. A cut can be off by that much without showing a white edge.</li>
+        <li>Use as much bleed as fits, with a <b>0 mm gap</b>: <b>about 2 mm</b> on landscape 4×2, <b>1 mm</b> on portrait 3×3. A cut can be off by that much and still show only the card's own edge.</li>
         <li>Print the <b>Calibration sheet</b> first so the marks land exactly where the PDF says.</li>
       </ul>
       <h3>2 · Before you cut</h3>
@@ -357,11 +357,12 @@ details.adv:not([open]){padding-bottom:10px}
           <line x1="0" y1="50" x2="40" y2="50"/><line x1="300" y1="50" x2="340" y2="50"/>
           <line x1="160" y1="50" x2="170" y2="50"/><line x1="170" y1="50" x2="180" y2="50"/>
           <line x1="40" y1="50" x2="50" y2="50"/><line x1="50" y1="40" x2="50" y2="50"/><line x1="290" y1="40" x2="290" y2="50"/><line x1="290" y1="50" x2="300" y2="50"/>
+          <line x1="50" y1="34" x2="290" y2="34" stroke-dasharray="6 3"/>
         </g>
         <line x1="160" y1="0" x2="160" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
         <line x1="180" y1="0" x2="180" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
         <g font-size="10" font-family="system-ui,sans-serif">
-          <text x="54" y="22" fill="#000">margin tick</text>
+          <text x="54" y="22" fill="#000">margin tick</text><text x="196" y="30" fill="#000">square-check line</text>
           <text x="196" y="72" fill="#fff">corner mark ↖</text>
           <text x="58" y="120" fill="#fff">card</text><text x="188" y="120" fill="#fff">card</text>
           <text x="128" y="182" fill="#e2615a">cut</text><text x="184" y="182" fill="#e2615a">cut</text>
@@ -370,7 +371,9 @@ details.adv:not([open]){padding-bottom:10px}
       </svg>
       <ul class="tips hint" style="padding-left:18px">
         <li><b>Margin ticks</b> are thin black lines in the page margin, one at every card edge. They show where the first cuts go.</li>
-        <li><b>Corner marks</b> are short lines at every card corner, in the bleed. They stay on each strip after the margins are gone.</li>
+        <li><b>Corner marks</b> are short lines at every card corner, in the bleed, with a white outline so they show on black borders. They stay on each strip after the margins are gone.</li>
+        <li>The dashed <b>square-check line</b> runs across the margin at right angles to the cuts. Lay it along one of the format lines on your trimmer's base and the sheet is square to the blade.</li>
+        <li>If the blade runs right at the edge of the base (like the Dahle 507), slide the sheet until the line meets the cutting edge exactly, at both ends of the cut.</li>
         <li>Every cut goes <b>exactly through a line</b>. Put the line under your trimmer's cutting indicator (the thin guide strip or line on the rail) at <b>both ends</b> before you cut.</li>
         <li>Turn on <b>Show cut lines</b> above the preview to see every cut as a red dashed line. It only shows on screen, not in the print.</li>
       </ul>
@@ -834,6 +837,12 @@ function guideLines(L, n) {
   if (s.guides === 'margin' || s.guides === 'both') {
     for (const x of xs) { out.push([x, 0, x, gy1]); out.push([x, gy2, x, L.H]); }
     for (const y of ys) { out.push([0, y, gx1, y]); out.push([gx2, y, L.W, y]); }
+    // Square-check lines across the margins, at right angles to the cuts, to line up with the trimmer's base grid.
+    const sq = 1.5;
+    if (gy1 > sq) out.push([gx1, gy1 - sq, gx2, gy1 - sq, true]);
+    if (L.H - gy2 > sq) out.push([gx1, gy2 + sq, gx2, gy2 + sq, true]);
+    if (gx1 > sq) out.push([gx1 - sq, gy1, gx1 - sq, gy2, true]);
+    if (L.W - gx2 > sq) out.push([gx2 + sq, gy1, gx2 + sq, gy2, true]);
   }
   if (s.guides === 'corners' || s.guides === 'both') {
     const len = s.guideLen;
@@ -2888,6 +2897,7 @@ function cleanSettings(raw) {
     else if (typeof def === 'boolean') out[k] = !!v;
     else if (k === 'backImage') out[k] = typeof v === 'string' ? v : null;
     else if (k === 'guideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
+    else if (k === 'guides' && v === 'bars') out[k] = 'both';
     else if (SELECT_OPTS[k]?.includes(String(v))) out[k] = String(v);
   }
   return out;
@@ -3095,7 +3105,8 @@ async function drawPreview() {
       const lines = back ? [] : guideLines(L, page.length), reg = back ? {rects:[], lines:[]} : regMarks(L);
       const sw = Math.max(0.6, s.guideWidth*z);
       let svg = `<svg width="${L.W*z}" height="${L.H*z}">`;
-      for (const [a, b, c, d] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"/>`;
+      for (const [a, b, c, d] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#fff" stroke-width="${sw*3}"/>`;
+      for (const [a, b, c, d, dash] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
       for (const [x, y, w, h] of reg.rects) svg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
       for (const [a, b, c, d] of reg.lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
       if (S.showCuts && !back) page.forEach((_, i) => {
@@ -3167,7 +3178,8 @@ function newDoc(L) {
 }
 function pdfLines(doc, T, lines, color, width) {
   doc.setDrawColor(color); doc.setLineWidth(width);
-  for (const [a, b, c, d] of lines) doc.line(T.x(a), T.y(b), T.x(c), T.y(d));
+  for (const [a, b, c, d, dash] of lines) { doc.setLineDashPattern(dash ? [3, 1.5] : [], 0); doc.line(T.x(a), T.y(b), T.x(c), T.y(d)); }
+  doc.setLineDashPattern([], 0);
 }
 async function exportPDF() {
   if (!window.jspdf) return toast('PDF library failed to load. Check your connection and reload the page.', 6000);
@@ -3208,6 +3220,7 @@ async function exportPDF() {
           await sleep(0);
         }
         if (!back) {
+          pdfLines(doc, T, guideLines(L, page.length), '#ffffff', s.guideWidth * 3);
           pdfLines(doc, T, guideLines(L, page.length), s.guideColor, s.guideWidth);
           const reg = regMarks(L);
           doc.setFillColor('#000000');
@@ -3380,20 +3393,20 @@ addEventListener('drop', async e => {
 function bestCutBleed() {
   const s = S.settings, cur = s.bleed, per = layout().per;
   let best = 0;
-  for (const b of [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5]) { s.bleed = b; const L = layout(); if (L.fits && L.per >= per) { best = b; break; } }
+  for (const b of [3, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5]) { s.bleed = b; const L = layout(); if (L.fits && L.per >= per) { best = b; break; } }
   s.bleed = cur;
-  return Math.max(best, Math.min(cur, 2));
+  return Math.max(best, Math.min(cur, 3));
 }
 $('#regToggle').onchange = ev => { S.settings.silhouette = ev.target.checked; S.activePreset = null; save(); renderAll(); };
 function renderCutStatus() {
   const s = S.settings, el = $('#cutStatus'); if (!el) return;
   $('#regToggle').checked = !!s.silhouette;
-  const best = bestCutBleed(), ok = s.guides === 'both' && s.bleed >= best;
+  const best = bestCutBleed(), ok = s.guides === 'both' && s.guideWidth >= 0.3 && s.bleed >= best;
   el.innerHTML = ok ? '<p class="hint">✓ Your current layout is set up for rotary cutting.</p>'
     : `<div class="warn">Your layout isn't set up for rotary cutting yet${s.guides !== 'both' ? ' (needs margin lines + corner marks)' : ''}${s.bleed < best ? ` (${best} mm bleed fits without losing a card)` : ''}.</div><div class="row"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   const b = $('#cutApply');
   if (b) b.onclick = () => {
-    Object.assign(S.settings, {guides:'both', guideLen:Math.max(S.settings.guideLen, 3)});
+    Object.assign(S.settings, {guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
     S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
     S.activePreset = null; save(); renderAll(); toast('Cut guides set to margin lines + corners.');
   };
