@@ -337,8 +337,8 @@ details.adv:not([open]){padding-bottom:10px}
       <details class="adv"><summary>Before you cut (steps 1–2)</summary>
       <h3>1 · Set up the sheet</h3>
       <ul class="tips hint" style="padding-left:18px">
-        <li>Use <b>Trimmer bars</b> for cut guides. Every cut runs along the edge of a black bar, and the bars where cards meet stay on every strip after the sheet is cut apart.</li>
-        <li>Use as much bleed as fits, with a <b>0 mm gap</b>: <b>2 mm</b> on landscape 4×2, <b>1 mm</b> on portrait 3×3. A cut can be off by that much without showing a white edge.</li>
+        <li>Use <b>Trimmer bars</b> for cut guides. Every cut runs along the edge of a black bar, and small black tabs at the card corners stay on every strip after the sheet is cut apart.</li>
+        <li>Use as much bleed as fits, with a <b>0 mm gap</b>: <b>about 2 mm</b> on landscape 4×2, <b>1 mm</b> on portrait 3×3. A cut can be off by that much and still show only the card's own edge.</li>
         <li>Print the <b>Calibration sheet</b> first so the marks land exactly where the PDF says.</li>
       </ul>
       <h3>2 · Before you cut</h3>
@@ -355,9 +355,9 @@ details.adv:not([open]){padding-bottom:10px}
         <g fill="#000">
           <rect x="0" y="0" width="50" height="40"/><rect x="160" y="0" width="20" height="40"/><rect x="290" y="0" width="50" height="40"/>
           <rect x="0" y="0" width="40" height="50"/><rect x="300" y="0" width="40" height="50"/>
-          <rect x="40" y="40" width="10" height="35"/><rect x="40" y="40" width="35" height="10"/>
-          <rect x="160" y="40" width="20" height="35"/><rect x="135" y="40" width="70" height="10"/>
-          <rect x="290" y="40" width="10" height="35"/><rect x="265" y="40" width="35" height="10"/>
+          <rect x="40" y="40" width="10" height="16"/><rect x="40" y="40" width="16" height="10"/>
+          <rect x="160" y="40" width="20" height="16"/><rect x="154" y="40" width="32" height="10"/>
+          <rect x="290" y="40" width="10" height="16"/><rect x="284" y="40" width="16" height="10"/>
         </g>
         <line x1="160" y1="0" x2="160" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
         <line x1="180" y1="0" x2="180" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
@@ -371,8 +371,8 @@ details.adv:not([open]){padding-bottom:10px}
       <ul class="tips hint" style="padding-left:18px">
         <li><b>Trimmer bars</b> cover the parts you throw away: the page margins and the bleed between cards. Every cut runs exactly along the <b>edge of a bar</b>, where black meets the card.</li>
         <li>If your blade runs right at the edge of the clamp bar (like the Dahle 507), slide the sheet until the bar's edge meets the cutting edge, with the black on the waste side. Check <b>both ends</b> of the cut.</li>
-        <li>The bars where cards meet make crosses. They stay on every strip, so you can line up the row cuts after the margins are gone.</li>
-        <li>After a cut, look at the card's edge. A black sliver means the cut was a hair into the bar. A cut into the art means it was a hair too far in. Shift the next cut to match.</li>
+        <li>Where cards meet there are small black tabs, about 0.5 mm long, right at the card corners. They stay on every strip, so you can line up the row cuts after the margins are gone. The corner rounder removes them.</li>
+        <li>Black never touches a card's edge, so a slightly-off cut shows the card's own border or art from the bleed, like a real card.</li>
         <li>Turn on <b>Show cut lines</b> above the preview to see every cut as a red dashed line. It only shows on screen, not in the print.</li>
       </ul>
       </details>
@@ -385,7 +385,7 @@ details.adv:not([open]){padding-bottom:10px}
       </ol>
       <h3>4 · Cut the rows</h3>
       <ol class="tips hint" style="padding-left:18px">
-        <li>Turn each strip 90° and line the blade up with the <b>bar crosses</b> on both sides of the strip.</li>
+        <li>Turn each strip 90° and line the blade up with the <b>black tabs</b> at both ends of each cut.</li>
         <li>Again, cut along both edges of the bar between cards and throw it away.</li>
         <li>Cut <b>one strip at a time</b>. Stacked strips drift, and black-core stock can split if forced.</li>
       </ol>
@@ -851,11 +851,12 @@ function guideLines(L, n) {
   }
   return out;
 }
-// Solid bars over the waste between cuts, so each cut line is a black/white edge.
+// Solid bars over the waste between cuts, so each cut line is a black/white edge. Next to a card they only
+// reach 0.5 mm from its corners, which the 3 mm corner rounder removes, so nothing shows on the edge after a slightly-off cut.
 function guideBars(L, n) {
   const s = S.settings, rects = [], lines = [];
   if (s.guides !== 'bars' || !n) return {rects, lines};
-  const cols = Math.min(L.cols, n), rows = Math.ceil(n / L.cols), arm = Math.max(s.guideLen, 5);
+  const cols = Math.min(L.cols, n), rows = Math.ceil(n / L.cols), arm = 0.5;
   const edges = (count, o, step, size) => Array.from({length:count}, (_, i) => [o + i*step + s.bleed, o + i*step + s.bleed + size]);
   const waste = (e, max) => e.map((c, i) => [i ? e[i-1][1] : 0, c[0]]).concat([[e[e.length-1][1], max]]);
   const ex = edges(cols, L.x0, L.sw + s.gap, L.cw), ey = edges(rows, L.y0, L.sh + s.gap, L.ch);
@@ -3411,9 +3412,9 @@ addEventListener('drop', async e => {
 function bestCutBleed() {
   const s = S.settings, cur = s.bleed, per = layout().per;
   let best = 0;
-  for (const b of [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5]) { s.bleed = b; const L = layout(); if (L.fits && L.per >= per) { best = b; break; } }
+  for (const b of [3, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5]) { s.bleed = b; const L = layout(); if (L.fits && L.per >= per) { best = b; break; } }
   s.bleed = cur;
-  return Math.max(best, Math.min(cur, 2));
+  return Math.max(best, Math.min(cur, 3));
 }
 $('#regToggle').onchange = ev => { S.settings.silhouette = ev.target.checked; S.activePreset = null; save(); renderAll(); };
 function renderCutStatus() {
