@@ -512,7 +512,7 @@ const DEFAULTS = {
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
   guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
-  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, scaleX:100, scaleY:100,
+  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1
@@ -805,7 +805,7 @@ function layout() {
   const up = fit(s.cardW, s.cardH), side = fit(s.cardH, s.cardW);
   const useSide = s.cardRotation === 'rotated' || (s.cardRotation === 'auto' && side.fits && (!up.fits || side.per > up.per));
   const g = useSide ? side : up;
-  const flip = s.duplexMethod === 'auto' ? s.duplexFlip : 'long';
+  const flip = s.duplexFlip;
   return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2, mirrorX:(W <= H) === (flip === 'long')};
 }
 function slotPos(L, i, back) {
@@ -815,6 +815,24 @@ function slotPos(L, i, back) {
   else if (back) y = L.H - y - L.sh;
   return {x, y};
 }
+// Which way the sheet has to be turned over for this layout's back pages, said in
+// terms of the printed picture rather than the paper's edges. The paper's long edge
+// is the picture's long edge on a portrait sheet and its short edge on a landscape
+// one, because a landscape page comes out sideways on short-edge-fed paper, so the
+// paper-relative wording means the opposite thing in the two cases. Everything the
+// user is told comes from here.
+function duplexTurn(L) {
+  const lr = L.mirrorX;
+  return {
+    lr,
+    // A flip about the paper's long edge keeps the leading edge leading; about the
+    // short edge the opposite edge goes in first.
+    sameEdge: S.settings.duplexFlip !== 'short',
+    axis: lr ? 'left to right' : 'top to bottom',
+    keeps: lr ? 'The cards along the left edge must end up along the right edge, and the top of the picture must stay at the top.'
+              : 'The cards along the top edge must end up along the bottom edge, and the left of the picture must stay on the left.'
+  };
+}
 // Rotation of a card image so its back reads the right way up after the sheet is turned over.
 function faceRot(L, back) {
   if (!back) return L.rot ? 90 : 0;
@@ -822,7 +840,10 @@ function faceRot(L, back) {
 }
 function makeT(L, back) {
   const s = S.settings, kx = s.scaleX/100, ky = s.scaleY/100;
-  const ox = back ? s.backOffsetX : s.offsetX, oy = back ? s.backOffsetY : s.offsetY;
+  // The printer's own placement error is the same on both passes of a sheet, so the
+  // printer offset applies to fronts and backs alike. The back offset is only the
+  // extra drift the second pass adds, on top of it.
+  const ox = s.offsetX + (back ? s.backOffsetX : 0), oy = s.offsetY + (back ? s.backOffsetY : 0);
   const cx = L.W/2, cy = L.H/2;
   return {x: v => cx + (v-cx)*kx + ox, y: v => cy + (v-cy)*ky + oy, w: v => v*kx, h: v => v*ky};
 }
@@ -2889,16 +2910,17 @@ const FIELDS = [
   {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
   {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.dfcMode === 'duplex' || s.backs, opts:[['manual','I re-feed the paper by hand (step-by-step instructions)'],['auto','My printer prints double-sided automatically']],
     hint:'Most home printers can\'t run 300gsm cardstock through their duplexer. Re-feeding by hand works on any printer.'},
-  {k:'duplexFlip', label:'Double-sided flip (in your print dialog)', type:'select', full:true, show:s => (s.dfcMode === 'duplex' || s.backs) && s.duplexMethod === 'auto', opts:[['long','Flip on long edge'],['short','Flip on short edge']]},
+  {k:'duplexFlip', label:'Double-sided flip', type:'select', full:true, show:s => s.dfcMode === 'duplex' || s.backs, opts:[['long','Flip on long edge'],['short','Flip on short edge']],
+    hint:'The long edge is the tall edge of the paper itself, not of the picture on it. Printing automatically, this has to match your print dialog. Re-feeding by hand, it is the edge you turn the sheet over along — the steps after export spell out which way that is for your layout.'},
   {k:'backs', label:'Print card backs on back pages', type:'check'},
   {k:'backImage', type:'backimg'},
   {sec:'Calibration (from calibration sheet)'},
   {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01},
   {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
-  {k:'offsetX', adv:true, label:'Front offset X (mm)', type:'num', step:0.1},
-  {k:'offsetY', adv:true, label:'Front offset Y (mm)', type:'num', step:0.1},
-  {k:'backOffsetX', adv:true, label:'Back offset X (mm)', type:'num', step:0.1},
-  {k:'backOffsetY', adv:true, label:'Back offset Y (mm)', type:'num', step:0.1},
+  {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet.'},
+  {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
+  {k:'backOffsetX', adv:true, label:'Extra back-page offset X (mm)', type:'num', step:0.1, hint:'Added on top of the printer offset, on back pages only. Leave these at 0 until the fronts land right and the backs still do not.'},
+  {k:'backOffsetY', adv:true, label:'Extra back-page offset Y (mm)', type:'num', step:0.1},
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
@@ -2929,6 +2951,17 @@ function cleanSettings(raw) {
   // existed move that exact old default to 0, meaning "longest that clears".
   if (raw?.regPattern === undefined && Number(raw?.regLen) === 20) out.regLen = 0;
   if (![3, 4].includes(out.regPattern)) out.regPattern = 3;
+  // The back offset used to be absolute, with the printer offset applying to fronts
+  // only, so calibrating the fronts pushed every back out by that much. It is now a
+  // delta on top of the printer offset. Settings saved before the change measured
+  // the backs absolutely, so subtract the printer offset to land on the same place -
+  // but leave a back offset of 0 alone, because that meant the backs were never
+  // calibrated, which is the case the change fixes.
+  if (raw?.backOffsetRel === undefined) {
+    if (out.backOffsetX) out.backOffsetX = +(out.backOffsetX - out.offsetX).toFixed(3);
+    if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
+  }
+  out.backOffsetRel = true;
   return out;
 }
 // Backups are untrusted: rebuild decks from known fields with checked types.
@@ -3273,19 +3306,21 @@ function backStepsHtml(sheets) {
   const s = S.settings, L = layout();
   if (s.duplexMethod === 'auto') return `<ol class="steps">
     <li>Open the PDF in a PDF app, not the browser, and print it at <b>Actual size / 100%</b>.</li>
-    <li>Turn on <b>double-sided printing</b> and choose <b>flip on ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>, matching Layout → How the backs get printed.</li>
-    <li>Hold the first sheet up to a light. If the backs are shifted, print the <b>double-sided test</b> (Printer tab) and adjust <b>Back offset X / Y</b> under Layout → Advanced.</li>
-  </ol><p class="hint">If heavy cardstock jams or scuffs in the duplexer, switch to re-feeding by hand.</p>`;
+    <li>Turn on <b>double-sided printing</b> and choose <b>flip on ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>, matching Layout → Double-sided flip.</li>
+    <li>Hold the first sheet up to a light. If the backs are shifted by a millimetre or two, print the <b>double-sided test</b> (Printer tab) and adjust <b>Extra back-page offset X / Y</b> under Layout → Advanced.</li>
+  </ol><p class="hint">On this layout the backs are laid out for a sheet turned over ${duplexTurn(L).axis} as the cards are printed. If they come out mirrored or upside down rather than slightly off, your printer's flip is the other one: switch <b>Double-sided flip</b> to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again. If heavy cardstock jams or scuffs in the duplexer, switch to re-feeding by hand.</p>`;
+  const t = duplexTurn(L);
   return `<p class="hint">Open the PDF in a PDF app, not the browser: Firefox's PDF viewer prints at about 150 DPI. Print one sheet at a time. Every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
   <ol class="steps">
     <li><b>Print the front.</b> In the print dialog choose <b>Pages: 1</b> and <b>Actual size / 100%</b>. Load the blank sheet the way you normally do.</li>
     <li><b>Let it dry.</b> Inkjet: at least 10 minutes. Laser: right away.</li>
-    <li><b>Turn the sheet over along its long edge</b>, like turning the page of a book: the left side becomes the right side. <b>Don't rotate it.</b> The edge that went into the printer first must go in first again.</li>
+    <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b> ${t.sameEdge ? 'The edge that went into the printer first must go in first again.' : 'The edge that went in first now goes in last: the opposite edge leads.'}</li>
     <li><b>Put it back with the printed side facing the other way.</b> If your printer printed on the side facing you, the printed side now faces away from you, and the blank side faces you.</li>
     <li><b>Print the back.</b> Choose <b>Pages: 2</b>, same settings. Repeat for each sheet${sheets > 1 ? ': pages 3 then 4, and so on' : ''}.</li>
-    <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted, print the <b>double-sided test</b> (Printer tab) and adjust <b>Back offset X / Y</b> under Layout → Advanced.</li>
+    <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted by a millimetre or two, print the <b>double-sided test</b> (Printer tab) and adjust <b>Extra back-page offset X / Y</b> under Layout → Advanced.</li>
   </ol>
-  <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.${L.W > L.H ? ' Landscape sheets come out on the paper sideways. Follow these steps with the paper itself, not the picture on screen.' : ''}</p>`;
+  <p class="hint">${L.W > L.H ? 'This is a landscape layout, so the sheet comes out of the printer with the cards sideways on it. Turning it over ' + t.axis + ' as the cards are printed means turning the paper over along its ' + (t.sameEdge ? 'long' : 'short') + ' edge. ' : ''}If the backs come out mirrored or upside down rather than slightly off, the sheet was turned the other way: either turn it the other way or switch <b>Double-sided flip</b> under Layout to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again.</p>
+  <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.</p>`;
 }
 function showBackSteps(sheets) {
   openModal(`<div class="hd"><b>PDF ready: printing the backs</b><button data-close>Close</button></div><div class="bd">${backStepsHtml(sheets)}</div>`);
@@ -3294,7 +3329,7 @@ $('#btnPdf').onclick = exportPDF;
 
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
-  const s = S.settings, L = layout(), doc = newDoc(L);
+  const s = S.settings, L = layout(), doc = newDoc(L), t = duplexTurn(L);
   for (const back of [false, true]) {
     if (back) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
     const T = makeT(L, back);
@@ -3309,7 +3344,15 @@ $('#btnDuplexTest').onclick = () => {
     doc.text(back ? 'BACK' : 'FRONT', L.W / 2, L.H / 2 - 10, {align:'center'});
     doc.setFontSize(9);
     doc.text(back ? 'Hold the sheet up to a light: the red outlines should sit exactly behind the black ones.'
-      : 'Print this page, turn the sheet over along its long edge, re-feed the same edge first, then print page 2.', L.W / 2, L.H / 2 + 14, {align:'center'});
+      : `Print this page, turn the sheet over ${t.axis} as you see it here, ${t.sameEdge ? 're-feed the same edge first' : 'feed the opposite edge first'}, then print page 2.`, L.W / 2, L.H / 2 + 14, {align:'center'});
+    // A TOP mark on each side, placed so that after the right flip the two land on
+    // top of each other. A square grid of outlines looks nearly correct under a wrong
+    // flip; these do not.
+    // Off-centre on the axis that mirrors, so a wrong turn moves it visibly.
+    const off = Math.min(40, L.W / 4);
+    doc.setFontSize(11);
+    doc.text(back ? 'TOP (back)' : 'TOP (front)',
+      T.x(L.W / 2 + (t.lr ? (back ? off : -off) : 0)), T.y(!t.lr && back ? L.H - 8 : 8), {align:'center'});
   }
   doc.save('double-sided-test.pdf');
 };
@@ -3332,8 +3375,9 @@ $('#btnCal').onclick = () => {
     '   If not, set Scale = current scale × 100 / measured length.',
     `2. The rectangle should measure ${s.cardW} × ${s.cardH} mm.`,
     '3. Each corner cross should sit exactly 10 mm from both page edges.',
-    '   If the left crosses are at 11 mm, set Front offset X to -1 (Y works the same way).',
-    '4. For backs: print this page again on the reverse side and adjust the Back offsets.'
+    '   If the left crosses are at 11 mm, set Printer offset X to -1 (Y works the same way).',
+    '4. The printer offsets apply to both sides. If the backs are still off, print this',
+    '   page on the back of a calibrated sheet and add the rest under Extra back-page offset.'
   ];
   txt.forEach((t, i) => doc.text(t, T.x(cx-70), T.y(cy+70+i*5)));
   doc.save('calibration.pdf');
