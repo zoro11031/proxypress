@@ -331,7 +331,23 @@ details.adv:not([open]){padding-bottom:10px}
     </div>
 
     <div class="pane" id="tab-cutting">
-      <h3>Rotary trimmer</h3>
+      <h3>Cutting machine (Silhouette Cameo)</h3>
+      <p class="hint">An automated cutting plotter (Cameo 4/5) cuts cards and 3 mm rounded corners using optical registration marks.</p>
+      <div id="cameoStatus"></div>
+      <div class="row" style="margin-top:6px">
+        <label class="check"><input type="checkbox" id="regToggle"> Registration marks</label>
+        <button id="btnSvg" class="primary" title="Download SVG cut lines for Silhouette Studio">Download cut file (SVG)</button>
+      </div>
+      <details class="adv"><summary>Cameo tips &amp; alignment</summary>
+        <ul class="tips hint" style="padding-left:18px">
+          <li><b>Optical sensor masking:</b> On standard Letter landscape, cards crowd the registration marks by ~1.2 mm. If your Cameo fails to read the marks, place a small sticky note over the bottom-left card during the registration scan, then peel it off before cutting (from the Silhouette Card Maker guide).</li>
+          <li><b>Cut guides:</b> Set to <b>None</b> for Cameo cutting so rotary lines aren't printed on the cards.</li>
+          <li><b>Bleed:</b> 0.625 mm with 0 mm gap gives the exact 1.25 mm spacing matching Silhouette Card Maker.</li>
+          <li><b>Silhouette Studio:</b> Open the exported SVG, set page to Letter landscape, enable registration marks with 10 mm inset, and send to cut.</li>
+        </ul>
+      </details>
+
+      <h3 style="margin-top:20px">Rotary trimmer</h3>
       <p class="hint">A paper trimmer and a 3 mm corner rounder cut cards cleanly in about 2 minutes per sheet.</p>
       <div id="cutStatus"></div>
       <details class="adv"><summary>Before you cut (steps 1–2)</summary>
@@ -429,11 +445,6 @@ details.adv:not([open]){padding-bottom:10px}
         <li>Check your first card against a real one. The corners should sit exactly on top of each other.</li>
       </ul>
       </details>
-      <details class="adv"><summary>Cutting machine (Silhouette Cameo)</summary>
-        <label class="check" style="margin-top:8px"><input type="checkbox" id="regToggle"> Print registration marks on the PDF</label>
-        <p class="hint">Print the PDF, then load this cut file in Silhouette Studio. Mark size and inset are under Layout → Advanced.</p>
-        <div class="row"><button id="btnSvg" title="Cut lines for Silhouette Studio">Download cut file (SVG)</button></div>
-      </details>
     </div>
 
     <div class="pane" id="tab-order">
@@ -483,7 +494,7 @@ details.adv:not([open]){padding-bottom:10px}
       <label>Zoom <input type="range" id="zoom" min="1" max="5" step="0.1" value="2.4" aria-label="Zoom"></label>
       <button class="icon" id="zoomFit" title="Fit to the screen">Fit</button>
       <label class="row print-only"><input type="checkbox" id="showBacks" checked style="width:auto"> Show back pages</label>
-      <label class="row print-only" title="Screen only, not printed"><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines</label>
+      <label class="row print-only" title="Screen preview of the blade cut path. Not printed on the PDF."><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines (preview)</label>
       <span class="order-only">Fronts with their backs, as they'll be printed. Right-click a card to change its art.</span>
     </div>
     <div id="pages"></div>
@@ -515,7 +526,7 @@ const DEFAULTS = {
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
-  silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1
+  silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
 };
 
 const BUILTIN_PRESETS = [
@@ -550,11 +561,7 @@ const BUILTIN_PRESETS = [
     bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'margin', dpi:1200, silhouette:false}},
   {id:'b-a4-land', name:'A4 · Landscape with 1 mm bleed', builtin:true, settings:{
     pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
-  {id:'b-cameo', name:'Silhouette Cameo · Letter landscape', builtin:true, settings:{
-    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:1.5, bleedMode:'extend', gap:3, margin:16, cols:0, rows:0, guides:'none', dpi:1200,
-    silhouette:true, regPattern:3, regInset:10, regLen:0, regThickness:1}},
+    bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}}
 ];
 
 for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : p.id.startsWith('b-laser') ? 'Laser' : null;
@@ -704,7 +711,7 @@ async function load() {
   const ui = await store.get('kv', 'ui');
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!ui.showCuts; S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
+    S.activePreset = ui.activePreset === 'b-cameo' ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -918,10 +925,13 @@ const REG_MIN_LEN = 5, REG_MAX_LEN = 20, REG_SAFETY = 1.25;
 function regArm(L) {
   const s = S.settings;
   if (s.regLen > 0) return Math.max(REG_MIN_LEN, Math.min(s.regLen, REG_MAX_LEN));
-  // Auto: the longest arm that still clears the printed grid, the way Card
-  // Maker picks it - the nearer axis' slack, less one card gap of safety.
-  const slack = Math.max(L.x0, L.y0) - s.regInset - REG_SAFETY;
-  return Math.max(REG_MIN_LEN, Math.min(slack, REG_MAX_LEN));
+  // Auto: find the longest arm that leaves corner clearance on at least one axis,
+  // less one card gap of safety (Silhouette Card Maker's formula).
+  const i = s.regInset;
+  const clrX = Math.min(L.x0 - i, L.W - i - (L.x0 + L.gw)) - REG_SAFETY;
+  const clrY = Math.min(L.y0 - i, L.H - i - (L.y0 + L.gh)) - REG_SAFETY;
+  const slack = Math.max(clrX, clrY);
+  return Math.max(REG_MIN_LEN, Math.min(Math.floor(slack * 4) / 4, REG_MAX_LEN));
 }
 function regMarks(L) {
   const s = S.settings; if (!s.silhouette) return {rects:[], lines:[]};
@@ -935,12 +945,23 @@ function regMarks(L) {
   return {rects: four ? [] : [[i, i, 5, 5]], lines, width: t};
 }
 // Card Maker's corner rule: a layout is only in trouble when the grid comes
-// within the mark's reach on BOTH axes at once, because that is the square
-// region a mark occupies. Clearing one axis is enough.
+// within the mark's reach on BOTH axes at once for any mark. Clearing one axis is enough.
 function regConflict(L) {
   const s = S.settings; if (!s.silhouette) return false;
-  const zone = Math.max(regArm(L), +s.regPattern === 4 ? 0 : 5);
-  return (L.x0 - s.regInset) < zone && (L.y0 - s.regInset) < zone;
+  const i = s.regInset;
+  const clrX = Math.min(L.x0 - i, L.W - i - (L.x0 + L.gw)) - REG_SAFETY;
+  const clrY = Math.min(L.y0 - i, L.H - i - (L.y0 + L.gh)) - REG_SAFETY;
+  if (Math.max(clrX, clrY) < REG_MIN_LEN && (s.regLen <= 0 || s.regLen < REG_MIN_LEN)) return true;
+  const arm = regArm(L), zone = Math.max(arm, +s.regPattern === 4 ? 0 : 5);
+  const xLeftOver = (L.x0 - i) < zone;
+  const xRightOver = (L.W - i - (L.x0 + L.gw)) < zone;
+  const yTopOver = (L.y0 - i) < zone;
+  const yBottomOver = (L.H - i - (L.y0 + L.gh)) < zone;
+  if (xLeftOver && yTopOver) return true;
+  if (xRightOver && yTopOver) return true;
+  if (xLeftOver && yBottomOver) return true;
+  if (+s.regPattern === 4 && xRightOver && yBottomOver) return true;
+  return false;
 }
 
 /* ---------- slots ---------- */
@@ -2920,14 +2941,15 @@ const FIELDS = [
   {k:'cardW', label:'Card width (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {sec:'Bleed & cut guides'},
-  {k:'bleed', label:'Bleed (mm)', type:'num', step:0.1, min:0},
+  {k:'bleed', label:'Bleed (mm)', type:'num', step:0.1, min:0, hint:'Extra image around each card so slight cut misalignment doesn\'t show white edges. 1–2 mm for rotary; 0.625 mm for Silhouette Cameo.'},
   {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border colour']]},
   {k:'gap', label:'Gap between cards (mm)', type:'num', step:0.1, min:0},
   {k:'margin', adv:true, label:'Min. page margin (mm)', type:'num', step:0.1, min:0},
   {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
   {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
   {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
-  {k:'guides', label:'Cut guides', type:'select', full:true, opts:[['margin','Lines in page margin'],['corners','Corner marks'],['both','Margin lines + corners'],['none','None']]},
+  {k:'guides', label:'Cut guides (printed)', type:'select', full:true, opts:[['margin','Lines in page margin'],['corners','Corner marks'],['both','Margin lines + corners'],['none','None']], hint:'Lines printed on the page for manual rotary trimmers. Set to None for machine cutting.'},
+  {k:'showCuts', label:'Show cut lines (preview)', type:'check', full:true, hint:'Red dashed blade cut lines on screen. Preview only — not printed on the PDF.'},
   {k:'guideColor', adv:true, label:'Colour', type:'color'},
   {k:'guideWidth', adv:true, label:'Line width (mm)', type:'num', step:0.05, min:0.05},
   {k:'guideLen', adv:true, label:'Corner mark length (mm)', type:'num', step:0.5, min:0.5},
@@ -3062,6 +3084,7 @@ $('#settingsForm').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
   s[k] = t.type === 'checkbox' ? t.checked : t.hasAttribute('data-num') ? (parseFloat(t.value) || 0) : t.value;
+  if (k === 'showCuts') { S.showCuts = s.showCuts; if ($('#showCuts')) $('#showCuts').checked = S.showCuts; }
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) s.cols = s.rows = 0;
@@ -3200,9 +3223,10 @@ async function drawPreview() {
       for (const [a, b, c, d, dash] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
       for (const [x, y, w, h] of reg.rects) svg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
       for (const [a, b, c, d] of reg.lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
-      if (S.showCuts && !back) page.forEach((_, i) => {
+      if ((S.showCuts || s.showCuts) && !back) page.forEach((_, i) => {
         const p = slotPos(L, i, false);
-        svg += `<rect x="${T.x(p.x + s.bleed)*z}" y="${T.y(p.y + s.bleed)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" fill="none" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+        const cr = (s.cornerRadius || 3.2) * z;
+        svg += `<rect x="${T.x(p.x + s.bleed)*z}" y="${T.y(p.y + s.bleed)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" rx="${cr}" ry="${cr}" fill="none" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="6 4"/>`;
       });
       el.insertAdjacentHTML('beforeend', svg + '</svg>');
       frag.appendChild(el);
@@ -3260,7 +3284,7 @@ $('#zoomFit').onclick = () => {
   S.zoom = Math.max(1, Math.min(5, +(avail / width).toFixed(2))); $('#zoom').value = S.zoom; save(); renderPreview();
 };
 $('#showBacks').onchange = e => { S.showBacks = e.target.checked; save(); renderPreview(); };
-$('#showCuts').onchange = e => { S.showCuts = e.target.checked; save(); renderPreview(); };
+$('#showCuts').onchange = e => { S.showCuts = S.settings.showCuts = e.target.checked; save(); renderPreview(); renderSettings(); };
 
 /* ---------- PDF export ---------- */
 function newDoc(L) {
@@ -3421,7 +3445,7 @@ $('#btnSvg').onclick = () => {
   }
   svg += '</svg>\n';
   download(new Blob([svg], {type:'image/svg+xml'}), 'cut-lines.svg');
-  if (!s.silhouette) toast('Tip: turn on registration marks under Layout → Silhouette Cameo so the cutter can align.', 6000);
+  if (!s.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
 };
 
 /* ---------- backup ---------- */
@@ -3501,8 +3525,45 @@ function bestCutBleed() {
 }
 $('#regToggle').onchange = ev => { S.settings.silhouette = ev.target.checked; S.activePreset = null; save(); renderAll(); };
 function renderCutStatus() {
-  const s = S.settings, el = $('#cutStatus'); if (!el) return;
-  $('#regToggle').checked = !!s.silhouette;
+  const s = S.settings, L = layout();
+  const cEl = $('#cameoStatus');
+  if (cEl) {
+    if ($('#regToggle')) $('#regToggle').checked = !!s.silhouette;
+    const noConflict = !regConflict(L);
+    const cameoOk = s.silhouette && noConflict && s.guides === 'none' && s.bleed <= 1;
+    if (cameoOk) {
+      cEl.innerHTML = `<p class="hint">✓ Your current layout is set up for Silhouette Cameo cutting (${L.cols}×${L.rows} = ${L.per} cards with registration marks).</p>`;
+    } else {
+      const why = [];
+      if (!s.silhouette) why.push('registration marks are off');
+      if (!noConflict) why.push('cards overlap registration marks');
+      if (s.guides !== 'none') why.push('cut guides are on (should be None)');
+      if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
+      cEl.innerHTML = `<div class="warn">Your layout isn't set up for Silhouette Cameo cutting yet (${why.join(', ')}).</div><div class="row"><button class="primary" id="cameoApply">Set up for Silhouette Cameo</button></div>`;
+      const cb = $('#cameoApply');
+      if (cb) cb.onclick = () => {
+        const isA4 = s.pageSize === 'a4';
+        Object.assign(S.settings, {
+          pageSize: isA4 ? 'a4' : 'letter',
+          orientation: 'landscape',
+          cardRotation: 'upright',
+          cols: 4,
+          rows: 2,
+          bleed: 0.625,
+          gap: 0,
+          margin: 10,
+          guides: 'none',
+          silhouette: true,
+          regPattern: 3,
+          regInset: 10,
+          regLen: 0,
+          regThickness: 1
+        });
+        S.activePreset = null; save(); renderAll(); toast('Layout set up for Silhouette Cameo: 8 cards on landscape with registration marks.');
+      };
+    }
+  }
+  const el = $('#cutStatus'); if (!el) return;
   const best = bestCutBleed(), ok = s.guides === 'both' && s.guideWidth >= 0.3 && s.bleed >= best;
   el.innerHTML = ok ? '<p class="hint">✓ Your current layout is set up for rotary cutting.</p>'
     : `<div class="warn">Your layout isn't set up for rotary cutting yet${s.guides !== 'both' ? ' (needs margin lines + corner marks)' : ''}${s.bleed < best ? ` (${best} mm bleed fits without losing a card)` : ''}.</div><div class="row"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
