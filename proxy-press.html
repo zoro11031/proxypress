@@ -34,15 +34,21 @@ header h1 .logo{display:block}
 header .grow{flex:1}
 header select{width:auto;min-width:160px}
 .stats{color:var(--muted);font-size:13px}
-main{flex:1;display:grid;grid-template-columns:400px 1fr;min-height:0}
+main{flex:1;display:grid;grid-template-columns:420px 1fr;min-height:0}
 aside{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
-.tabs{display:flex;border-bottom:1px solid var(--line)}
-.tabs button{flex:1;border:0;border-radius:0;background:none;padding:10px 4px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;text-align:center}
-.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
-.pane{flex:1;overflow:auto;padding:12px 14px;display:none}
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel2);padding:5px 6px;gap:4px}
+.tabs button{flex:1;border:1px solid transparent;border-radius:6px;background:none;padding:8px 4px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;text-align:center;transition:all .15s;cursor:pointer}
+.tabs button:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tabs button.on{color:var(--text);background:var(--panel);border-color:var(--line);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.pane{flex:1;overflow:auto;padding:14px 16px;display:none}
 .pane.on{display:block}
-.wiz-nav{display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
-.wiz-nav button{padding:8px 12px;font-weight:600}
+.step-hdr{margin-bottom:14px}
+.step-num{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:2px}
+.step-hdr h2{font-size:16px;font-weight:700;margin:0 0 3px;color:var(--text);letter-spacing:-.2px}
+.step-hdr .hint{font-size:12px;color:var(--muted);margin:0;line-height:1.4}
+.wiz-nav{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
+.wiz-nav button{padding:10px 16px;font-weight:600;font-size:13px;border-radius:7px;transition:all .15s}
+.wiz-nav button.primary{box-shadow:0 2px 8px rgba(224,163,58,.25)}
 h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:16px 0 8px}
 h3:first-child{margin-top:2px}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -180,12 +186,40 @@ h3:first-child{margin-top:2px}
 .wizard-opt.selected{border-color:var(--accent);background:rgba(224,163,58,.08)}
 .wizard-opt b{display:block;font-size:13px}
 .wizard-opt span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
-.guide-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.guide-tab-btn{padding:8px 14px;border:0;background:none;border-bottom:2px solid transparent;border-radius:0;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted)}
-.guide-tab-btn.active{border-bottom-color:var(--accent);color:var(--text)}
+.cut-options{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.cut-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s;position:relative}
+.cut-card:hover{border-color:#4a515c;background:#262b33}
+.cut-card.selected{border-color:var(--accent);background:rgba(224,163,58,.08);box-shadow:0 0 0 1px var(--accent)}
+.cut-card-check{padding-top:2px}
+.cut-card-check input[type="radio"]{cursor:pointer;margin:0;width:16px;height:16px;accent-color:var(--accent)}
+.cut-card-content{flex:1;min-width:0}
+.cut-card-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.cut-card-icon{font-size:18px;line-height:1}
+.cut-card-titles{flex:1;min-width:120px}
+.cut-card-titles b{display:block;font-size:14px;color:var(--text);letter-spacing:-.1px}
+.cut-card-sub{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+.cut-card-desc{font-size:12px;color:var(--muted);margin:4px 0 0;line-height:1.45}
+.cutter-badge{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;background:rgba(92,194,122,.15);color:var(--ok);border:1px solid rgba(92,194,122,.3);white-space:nowrap}
+.cutter-badge.rotary{background:rgba(224,163,58,.15);color:var(--accent);border-color:rgba(224,163,58,.3)}
+.cutter-status-pill{background:rgba(92,194,122,.08);border-left:3px solid var(--ok);padding:8px 12px;border-radius:6px;font-size:12px;color:var(--text);margin-top:10px;line-height:1.4}
+.setup-hero-pill{background:rgba(224,163,58,.08);border:1px solid rgba(224,163,58,.2);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:12.5px;line-height:1.4}
+.setup-hero-pill b{color:var(--accent2)}
+.setup-hero-pill span{color:var(--muted);display:block;font-size:11.5px;margin-top:2px}
+.hero-card{background:var(--panel2);border:1.5px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.hero-card-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hero-card-title b{font-size:15px;color:var(--text)}
+.hero-card-summary{font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.4}
+.hero-card-summary b{color:var(--text)}
+.guide-tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.guide-tab-btn{padding:8px 14px;border:0;background:none;border-bottom:2px solid transparent;border-radius:0;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted);transition:color .15s}
+.guide-tab-btn:hover{color:var(--text)}
+.guide-tab-btn.active{border-bottom-color:var(--accent);color:var(--accent2)}
+.step-card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.step-card-num{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;background:var(--accent);color:#1b1407;font-weight:700;font-size:11px;margin-right:6px}
+.step-card b{font-size:13px;color:var(--text)}
+.step-card p{font-size:12px;color:var(--muted);margin:4px 0 0;line-height:1.45}
 .callout-box{background:rgba(224,163,58,.1);border-left:3px solid var(--accent);padding:9px 12px;border-radius:4px;margin:10px 0;font-size:12.5px}
 .cutter-card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
-.cutter-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(92,194,122,.15);color:var(--ok);border:1px solid rgba(92,194,122,.3)}
 table.specs-tbl{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
 table.specs-tbl td,table.specs-tbl th{padding:4px 8px;border-bottom:1px solid var(--line);text-align:left}
 table.specs-tbl th{color:var(--muted);font-weight:500;width:42%}
@@ -294,14 +328,18 @@ details.adv:not([open]){padding-bottom:10px}
   <aside>
     <div class="tabs">
       <button data-tab="cards" class="on">1. Cards</button>
-      <button data-tab="setup" class="print-only">2. Print Setup</button>
-      <button data-tab="cutting" class="print-only">3. Cutting Tool</button>
-      <button data-tab="guide" class="print-only">4. Export &amp; Guide</button>
+      <button data-tab="setup" class="print-only">2. Print</button>
+      <button data-tab="cutting" class="print-only">3. Cut</button>
+      <button data-tab="guide" class="print-only">4. Export</button>
       <button data-tab="order" class="order-only">Order</button>
     </div>
 
     <div class="pane on" id="tab-cards">
-      <h3>Add cards</h3>
+      <div class="step-hdr">
+        <div class="step-num">Step 1 of 4</div>
+        <h2>Add cards &amp; decklist</h2>
+        <p class="hint">Paste a decklist or link below. High-res art is selected automatically.</p>
+      </div>
       <div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0;width:auto" placeholder="Moxfield or Archidekt deck link" aria-label="Deck link"><button id="btnLink" title="Add every card in that deck">Import</button></div>
       <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
       <div class="row" style="margin-top:6px">
@@ -341,13 +379,18 @@ details.adv:not([open]){padding-bottom:10px}
       <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden style="margin-bottom:6px">
       <div class="cards" id="cardList"></div>
       <div class="wiz-nav">
-        <button type="button" class="primary" id="btnStep1Next" style="width:100%">Next: 2. Print Setup →</button>
+        <button type="button" class="primary" id="btnStep1Next" style="width:100%">Next: 2. Print →</button>
       </div>
     </div>
 
     <div class="pane" id="tab-setup">
-      <div class="sum" id="setupSummary"></div>
-      <h3>Presets</h3>
+      <div class="step-hdr">
+        <div class="step-num">Step 2 of 4</div>
+        <h2>Print setup &amp; paper</h2>
+        <p class="hint">Configure paper size, orientation, and double-sided printing.</p>
+      </div>
+      <div class="setup-hero-pill" id="setupSummary"></div>
+      <h3>Quick Presets</h3>
       <div class="pick presets" id="presetGrid"></div>
       <div class="row" style="margin-top:8px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
       <h3>Your printer</h3>
@@ -355,8 +398,8 @@ details.adv:not([open]){padding-bottom:10px}
       <div id="printerGuide"></div>
       <h3>Print options</h3>
       <div id="settingsForm"></div>
-      <details class="adv" id="calDrawer" style="margin-top:12px">
-        <summary>Printer Calibration Sheets</summary>
+      <details class="adv" id="calDrawer" style="margin-top:14px">
+        <summary>Printer Calibration &amp; Test Sheets</summary>
         <p class="hint">Print on your cardstock to verify 100% scale and front-to-back alignment.</p>
         <div class="row" style="margin-top:8px">
           <button id="btnCal" title="Print once on your paper, measure, and enter the results under Layout → Advanced">Calibration sheet</button>
@@ -365,32 +408,59 @@ details.adv:not([open]){padding-bottom:10px}
       </details>
       <div class="wiz-nav">
         <button type="button" id="btnStep2Prev">← 1. Cards</button>
-        <button type="button" class="primary" id="btnStep2Next" style="flex:1">Next: 3. Cutting Tool →</button>
+        <button type="button" class="primary" id="btnStep2Next" style="flex:1">Next: 3. Cut →</button>
       </div>
     </div>
 
     <div class="pane" id="tab-cutting">
-      <div class="seg" id="cutModeSeg" style="width:100%;display:flex;margin-bottom:12px">
-        <button id="btnCutModeCameo" style="flex:1">Silhouette Cameo (Plotter)</button>
-        <button id="btnCutModeRotary" style="flex:1">Rotary Trimmer (Manual)</button>
+      <div class="step-hdr">
+        <div class="step-num">Step 3 of 4</div>
+        <h2>Choose cutting tool</h2>
+        <p class="hint">Select your tool below. Layout marks will configure automatically.</p>
       </div>
 
-      <div id="cameoSection">
-        <div class="cutter-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <b>Silhouette Cameo 4 / 5 Plotter</b>
-            <span class="cutter-badge">Automated Cutting</span>
+      <div class="cut-options">
+        <div class="cut-card" id="btnCutModeCameo" role="button" tabindex="0">
+          <div class="cut-card-check">
+            <input type="radio" name="cutterChoice" id="radioCameo" tabindex="-1">
           </div>
-          <p class="hint" style="margin:0 0 10px">Optical registration marks align the plotter to cut every card and 3 mm rounded corner automatically.</p>
-          <div id="cameoStatus"></div>
-          <div class="row" style="margin-top:10px">
-            <button id="btnSvg" class="primary" style="flex:1" title="Download SVG cut lines for Silhouette Studio">Download Cut File (SVG)</button>
+          <div class="cut-card-content">
+            <div class="cut-card-header">
+              <span class="cut-card-icon">⚡</span>
+              <div class="cut-card-titles">
+                <b>Silhouette Cameo (Plotter)</b>
+                <span class="cut-card-sub">Cameo 4 / 5 or Portrait</span>
+              </div>
+              <span class="cutter-badge">Automated</span>
+            </div>
+            <p class="cut-card-desc">Optical registration marks align the plotter to cut 8 cards and 3 mm rounded corners automatically.</p>
           </div>
         </div>
 
-        <div class="cutter-card">
-          <b>ProxyJak 330gsm Cut Settings (Cameo 4/5)</b>
-          <table class="specs-tbl">
+        <div class="cut-card" id="btnCutModeRotary" role="button" tabindex="0">
+          <div class="cut-card-check">
+            <input type="radio" name="cutterChoice" id="radioRotary" tabindex="-1">
+          </div>
+          <div class="cut-card-content">
+            <div class="cut-card-header">
+              <span class="cut-card-icon">📐</span>
+              <div class="cut-card-titles">
+                <b>Rotary Trimmer &amp; Punch</b>
+                <span class="cut-card-sub">Dahle / Fiskars + Kadomaru</span>
+              </div>
+              <span class="cutter-badge rotary">Manual</span>
+            </div>
+            <p class="cut-card-desc">Margin ticks and corner tick marks for guillotine/rotary blade + Sun-Star Kadomaru 3 mm corner rounder.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="cameoSection">
+        <div id="cameoStatus"></div>
+
+        <details class="adv" id="cameoSpecsDrawer" style="margin-top:12px">
+          <summary>💡 Cameo Specs &amp; Sensor Trick (ProxyJak 330gsm)</summary>
+          <table class="specs-tbl" style="margin-top:8px">
             <tr><th>Blade Type</th><td>AutoBlade or 1mm Manual Blade</td></tr>
             <tr><th>Blade Depth</th><td><b>7</b> (330gsm black core)</td></tr>
             <tr><th>Force</th><td><b>33</b> (Maximum pressure)</td></tr>
@@ -398,158 +468,86 @@ details.adv:not([open]){padding-bottom:10px}
             <tr><th>Passes</th><td><b>3–4 passes</b> (Prevents tearing on dense core)</td></tr>
             <tr><th>Line Overcut</th><td>On (0.1 mm start / end)</td></tr>
           </table>
-        </div>
 
-        <details class="adv" open><summary>Optical sensor masking trick</summary>
-          <ul class="tips hint" style="padding-left:18px">
-            <li><b>Sensor clearance:</b> On standard Letter landscape (8-up), the bottom-left card sits ~1.2 mm inside the Cameo optical sensor search margin.</li>
-            <li><b>The Post-It trick:</b> Place a small sticky note or scrap of white paper over the art of the bottom-left card while the Cameo scans registration marks. Once the marks are read successfully, peel off the sticky note before pressing Send to cut! (Tested from Silhouette Card Maker).</li>
-            <li><b>Cut guides:</b> Set to <b>None</b> for Cameo cutting so rotary lines aren't printed on the cards.</li>
-            <li><b>Bleed:</b> 0.625 mm with 0 mm gap gives the exact 1.25 mm spacing matching Silhouette Card Maker.</li>
-          </ul>
-        </details>
+          <div class="callout-box" style="margin-top:10px">
+            <b>Optical sensor masking trick</b>
+            <p class="hint" style="margin:4px 0 0">On Letter landscape, card #5 sits ~1.2 mm inside the sensor search margin. Place a small sticky note (Post-It) over the bottom-left card artwork during registration scanning. Peel it off once marks are read, then cut!</p>
+          </div>
 
-        <details class="adv"><summary>Silhouette Studio 4-step workflow</summary>
-          <ol class="tips hint" style="padding-left:18px">
-            <li><b>Import:</b> In Silhouette Studio, click <i>File → Open</i> and select the downloaded <code>.svg</code>.</li>
-            <li><b>Center:</b> Set Page Size to <b>Letter Landscape</b> and center the cut lines to page.</li>
-            <li><b>Registration:</b> Turn on <b>Registration Marks</b> (Type 1), Inset: <b>10.0 mm</b>.</li>
-            <li><b>Send:</b> In the Send tab, select Material: <i>Coverstock - Heavy (or Cardstock)</i>, set Depth <b>7</b>, Force <b>33</b>, Passes <b>3–4</b>, and cut!</li>
+          <ol class="tips hint" style="padding-left:18px;margin-top:8px">
+            <li><b>Cut guides:</b> Automatically set to <b>None</b> so rotary lines aren't printed.</li>
+            <li><b>Bleed:</b> 0.625 mm with 0 mm gap matches standard Silhouette Card Maker spacing (1.25 mm between cards).</li>
+            <li><b>Silhouette Studio:</b> Set Page Size to Letter Landscape, Inset: 10.0 mm.</li>
           </ol>
+          <div class="row" style="margin-top:10px">
+            <button id="btnSvg" class="icon" style="flex:1" title="Download SVG cut lines for Silhouette Studio">Download Cut File (SVG)</button>
+          </div>
         </details>
       </div>
 
       <div id="rotarySection">
-        <div class="cutter-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <b>Rotary Trimmer &amp; Corner Rounder</b>
-            <span class="cutter-badge">Manual Trimming</span>
-          </div>
-          <p class="hint" style="margin:0 0 10px">A rotary trimmer and 3 mm corner rounder cut cards cleanly in about 2 minutes per sheet.</p>
-          <div id="cutStatus"></div>
-        </div>
+        <div id="cutStatus"></div>
 
-        <div class="cutter-card">
-          <b>Uniform Sizing Trick: Stop-Block Technique</b>
-          <p class="hint" style="margin:6px 0 0">Don't try to line up every card by eye! Build a physical stop on your trimmer fence:
-          stack painter's tape or clamp a wooden block at <b>88 mm</b> for horizontal strip cuts, and <b>63 mm</b> for card cuts.
-          Slide the paper strip against the stop block before each stroke: every card will be cut to the exact identical size within 0.1 mm.</p>
-        </div>
-      <details class="adv"><summary>Before you cut (steps 1–2)</summary>
-      <h3>1 · Set up the sheet</h3>
-      <ul class="tips hint" style="padding-left:18px">
-        <li>Use <b>Margin lines + corners</b> for cut guides. Margin lines guide the first cuts, and corner marks stay on every strip after the sheet is cut apart.</li>
-        <li>Use as much bleed as fits, with a <b>0 mm gap</b>: <b>about 2 mm</b> on landscape 4×2, <b>1 mm</b> on portrait 3×3. A cut can be off by that much and still show only the card's own edge.</li>
-        <li>Print the <b>Calibration sheet</b> first so the marks land exactly where the PDF says.</li>
-      </ul>
-      <h3>2 · Before you cut</h3>
-      <ul class="tips hint" style="padding-left:18px">
-        <li>Let the sheet dry. Laser prints are ready right away. Inkjet needs at least 10 minutes, and overnight is better if the ProxyJak stock feels soft.</li>
-        <li>Trim a scrap first and check which edge of the cut-line indicator the blade actually cuts on.</li>
-        <li>Cut face up so you can see the marks, and hold the sheet flat under the clamp bar.</li>
-      </ul>
-      </details>
-      <details class="adv"><summary>Where to line up the blade</summary>
-      <svg viewBox="0 0 340 190" style="width:100%;height:auto;background:#fff;border-radius:8px;margin-bottom:6px" role="img" aria-label="Diagram of cut guides">
-        <rect x="40" y="40" width="130" height="150" fill="#9aa7b8"/><rect x="170" y="40" width="130" height="150" fill="#b8a99a"/>
-        <rect x="50" y="50" width="110" height="140" fill="#3d5a80"/><rect x="180" y="50" width="110" height="140" fill="#7a5c3d"/>
-        <g stroke="#000" stroke-width="1.2">
-          <line x1="50" y1="0" x2="50" y2="40"/><line x1="160" y1="0" x2="160" y2="40"/><line x1="180" y1="0" x2="180" y2="40"/><line x1="290" y1="0" x2="290" y2="40"/>
-          <line x1="0" y1="50" x2="40" y2="50"/><line x1="300" y1="50" x2="340" y2="50"/>
-          <line x1="160" y1="50" x2="170" y2="50"/><line x1="170" y1="50" x2="180" y2="50"/>
-          <line x1="40" y1="50" x2="50" y2="50"/><line x1="50" y1="40" x2="50" y2="50"/><line x1="290" y1="40" x2="290" y2="50"/><line x1="290" y1="50" x2="300" y2="50"/>
-          <line x1="50" y1="34" x2="290" y2="34" stroke-dasharray="6 3"/>
-        </g>
-        <line x1="160" y1="0" x2="160" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
-        <line x1="180" y1="0" x2="180" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
-        <g font-size="10" font-family="system-ui,sans-serif">
-          <text x="54" y="22" fill="#000">margin tick</text><text x="196" y="30" fill="#000">square-check line</text>
-          <text x="196" y="72" fill="#fff">corner mark ↖</text>
-          <text x="58" y="120" fill="#fff">card</text><text x="188" y="120" fill="#fff">card</text>
-          <text x="128" y="182" fill="#e2615a">cut</text><text x="184" y="182" fill="#e2615a">cut</text>
-          <text x="58" y="160" fill="#fff" font-size="9">light band = bleed</text>
-        </g>
-      </svg>
-      <ul class="tips hint" style="padding-left:18px">
-        <li><b>Margin ticks</b> are thin black lines in the page margin, one at every card edge. They show where the first cuts go.</li>
-        <li><b>Corner marks</b> are short lines at every card corner, in the bleed, with a white outline so they show on black borders. They stay on each strip after the margins are gone.</li>
-        <li>The dashed <b>square-check line</b> runs across the margin at right angles to the cuts. Lay it along one of the format lines on your trimmer's base and the sheet is square to the blade.</li>
-        <li>If the blade runs right at the edge of the base (like the Dahle 507), slide the sheet until the line meets the cutting edge exactly, at both ends of the cut.</li>
-        <li>Every cut goes <b>exactly through a line</b>. Put the line under your trimmer's cutting indicator (the thin guide strip or line on the rail) at <b>both ends</b> before you cut.</li>
-        <li>Turn on <b>Show cut lines</b> above the preview to see every cut as a red dashed line. It only shows on screen, not in the print.</li>
-      </ul>
-      </details>
-      <details class="adv"><summary>Cutting the sheet (steps 3–5)</summary>
-      <h3>3 · Cut the columns</h3>
-      <ol class="tips hint" style="padding-left:18px">
-        <li>Line the blade up with the <b>tick marks in the top and bottom margins</b>. Check both ends before every cut.</li>
-        <li>Trim the left margin off, then work across the sheet. Between two cards there are <b>two lines</b>, one for each card's edge, with both cards' bleed in between. Cut both and throw away the bleed strip.</li>
-        <li>You now have one tall strip per column.</li>
-      </ol>
-      <h3>4 · Cut the rows</h3>
-      <ol class="tips hint" style="padding-left:18px">
-        <li>Turn each strip 90° and line the blade up with the <b>corner marks</b> on both sides of the strip.</li>
-        <li>Again, cut both lines between cards and throw away the bleed strip.</li>
-        <li>Cut <b>one strip at a time</b>. Stacked strips drift, and black-core stock can split if forced.</li>
-      </ol>
-      <h3>5 · Finish</h3>
-      <ul class="tips hint" style="padding-left:18px">
-        <li>Hold the first card against a real card. If it's off, fix your blade alignment before cutting the rest.</li>
-        <li>Round the corners. See <b>Corner cutting</b> below.</li>
-        <li>Sleeve the cards. Sleeves hide small size differences, and the ProxyJak inkjet stock needs them because it has no varnish.</li>
-        <li>Fuzzy or torn edges mean the blade is dull. Rotate or replace it.</li>
-        <li>Double-sided sheets: print the backs before cutting. All cuts follow the front marks.</li>
-      </ul>
-      </details>
-      <details class="adv"><summary>Rounding the corners</summary>
-      <p class="hint">Real Magic cards have corners of roughly 3 mm (about 1/8 in) radius. Pick a tool that matches that.</p>
-      <div class="preset" style="display:block">
-        <b>Your tool: Sun-Star Kadomaru Pro</b>
-        <ul class="tips hint" style="padding-left:18px;margin:6px 0 0">
-          <li>Use the <b>3 mm</b> slot (the smallest). 5 mm and 8 mm are too round.</li>
-          <li>One card per punch. Proxy stock is thicker than it's rated for, so press firmly and evenly.</li>
-          <li>Test on an offcut first. If it crushes or won't cut cleanly, the <b>Kadomaru Pro Neo</b> is rated for 0.4 mm.</li>
-          <li>Empty the scrap tray in the base often, or corners stop cutting cleanly.</li>
-        </ul>
+        <details class="adv" id="rotarySpecsDrawer" style="margin-top:12px">
+          <summary>💡 Trimmer Tips &amp; Stop-Block Technique</summary>
+          <div class="callout-box" style="margin-top:8px">
+            <b>Uniform Sizing Trick: Stop-Block Technique</b>
+            <p class="hint" style="margin:4px 0 0">Don't measure cards by eye! Build a physical stop on your trimmer fence: stack painter's tape or clamp a block at <b>88 mm</b> (strip cross-cut) and <b>63 mm</b> (card width). Slide paper against the stop block before each cut for 0.1 mm precision across your deck.</p>
+          </div>
+
+          <svg viewBox="0 0 340 190" style="width:100%;height:auto;background:#fff;border-radius:8px;margin:8px 0 6px" role="img" aria-label="Diagram of cut guides">
+            <rect x="40" y="40" width="130" height="150" fill="#9aa7b8"/><rect x="170" y="40" width="130" height="150" fill="#b8a99a"/>
+            <rect x="50" y="50" width="110" height="140" fill="#3d5a80"/><rect x="180" y="50" width="110" height="140" fill="#7a5c3d"/>
+            <g stroke="#000" stroke-width="1.2">
+              <line x1="50" y1="0" x2="50" y2="40"/><line x1="160" y1="0" x2="160" y2="40"/><line x1="180" y1="0" x2="180" y2="40"/><line x1="290" y1="0" x2="290" y2="40"/>
+              <line x1="0" y1="50" x2="40" y2="50"/><line x1="300" y1="50" x2="340" y2="50"/>
+              <line x1="160" y1="50" x2="170" y2="50"/><line x1="170" y1="50" x2="180" y2="50"/>
+              <line x1="40" y1="50" x2="50" y2="50"/><line x1="50" y1="40" x2="50" y2="50"/><line x1="290" y1="40" x2="290" y2="50"/><line x1="290" y1="50" x2="300" y2="50"/>
+              <line x1="50" y1="34" x2="290" y2="34" stroke-dasharray="6 3"/>
+            </g>
+            <line x1="160" y1="0" x2="160" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
+            <line x1="180" y1="0" x2="180" y2="190" stroke="#e2615a" stroke-width="1.5" stroke-dasharray="5 3"/>
+            <g font-size="10" font-family="system-ui,sans-serif">
+              <text x="54" y="22" fill="#000">margin tick</text><text x="196" y="30" fill="#000">square-check line</text>
+              <text x="196" y="72" fill="#fff">corner mark ↖</text>
+              <text x="58" y="120" fill="#fff">card</text><text x="188" y="120" fill="#fff">card</text>
+              <text x="128" y="182" fill="#e2615a">cut</text><text x="184" y="182" fill="#e2615a">cut</text>
+              <text x="58" y="160" fill="#fff" font-size="9">light band = bleed</text>
+            </g>
+          </svg>
+          <ul class="tips hint" style="padding-left:18px">
+            <li><b>Margin ticks:</b> Guide outer cuts so margins drop off cleanly.</li>
+            <li><b>Corner marks:</b> Remain visible on strips after margins are gone to guide cross-cuts.</li>
+            <li><b>Kadomaru Pro:</b> Use the 3 mm slot on single cards face-up for authentic corner radius.</li>
+          </ul>
+        </details>
       </div>
-      <table class="drv">
-        <tr><th>Corner rounder punch, R3 / 3 mm</th><td>Cheapest and most common. Best for a few cards at a time. Skip R2 (too square) and R4/R5 (too round).</td></tr>
-        <tr><th>Heavy-duty desktop corner cutter</th><td>A lever cutter with fixed guides. Worth it for 300gsm and heavier stock, black core, or hundreds of cards.</td></tr>
-        <tr><th>Card die cutter</th><td>Cuts the whole card, corners included, in one press. Fastest for big batches, but you have to line up the die with the print.</td></tr>
-        <tr><th>Fine nail file / 400+ grit</th><td>Touch-ups only. Smooths a small nub or a slightly uneven corner.</td></tr>
-      </table>
-      <ul class="tips hint" style="padding-left:18px">
-        <li>Round corners <b>after</b> trimming cards to their final size and <b>before</b> sleeving.</li>
-        <li>Practise on the bleed slivers and offcuts from trimming before you touch a real card.</li>
-        <li>Push the card firmly into <b>both</b> guide walls for every punch. Most lopsided corners come from a card that wasn't fully seated.</li>
-        <li>Punch <b>face up</b>. The blade pushes any burr to the back of the card, where it won't show.</li>
-        <li>On 300gsm+ and black-core stock, punch <b>one card at a time</b>. Stacks drift, and the layers can split.</li>
-        <li>Turn the card the same way after each punch (for example clockwise) so all four corners come out the same.</li>
-        <li>Inkjet prints must be fully dry, or the coating can crack or smudge at the corner.</li>
-        <li>Fuzzy edges, a visible core, or split layers mean the blade is dull. Clean out the coating build-up, punch a few times through wax paper to lubricate it, or replace the blade.</li>
-        <li>Check your first card against a real one. The corners should sit exactly on top of each other.</li>
-      </ul>
-      </details>
-      </div>
+
       <div class="wiz-nav">
-        <button type="button" id="btnStep3Prev">← 2. Print Setup</button>
+        <button type="button" id="btnStep3Prev">← 2. Print</button>
         <button type="button" class="primary" id="btnStep3Next" style="flex:1">Next: 4. Export &amp; Guide →</button>
       </div>
     </div>
 
     <div class="pane" id="tab-guide">
-      <div class="cutter-card" style="margin-bottom:12px;border:1px solid var(--accent)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <b>Export Print-Ready PDF</b>
+      <div class="step-hdr">
+        <div class="step-num">Step 4 of 4</div>
+        <h2>Export &amp; Operator Guide</h2>
+        <p class="hint">Download print-ready files and follow the workshop steps.</p>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-card-title">
+          <b>Print-Ready Package</b>
           <span class="cutter-badge" id="guideCutterBadge">Silhouette Cameo</span>
         </div>
-        <div id="guideJobSummary" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+        <div class="hero-card-summary" id="guideJobSummary"></div>
         <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">🖨️ Generate &amp; Download PDF</button>
         <button id="btnExportSvgTab" style="width:100%;display:none">✂️ Download Cut File (SVG)</button>
       </div>
 
-      <div class="guide-tabs" style="margin-bottom:12px">
-        <button type="button" class="guide-tab-btn active" id="tabGuideBtnPrint">1. Printing &amp; Paper Feeding</button>
+      <div class="guide-tabs">
+        <button type="button" class="guide-tab-btn active" id="tabGuideBtnPrint">1. Printing &amp; Feeding</button>
         <button type="button" class="guide-tab-btn" id="tabGuideBtnCut">2. Cutting Instructions</button>
       </div>
 
@@ -557,7 +555,7 @@ details.adv:not([open]){padding-bottom:10px}
       <div id="tabGuidePaneCut" class="ptab-content" style="display:none"></div>
 
       <div class="wiz-nav">
-        <button type="button" id="btnStep4Prev">← 3. Cutting Tool</button>
+        <button type="button" id="btnStep4Prev">← 3. Cut</button>
       </div>
     </div>
 
@@ -3838,10 +3836,24 @@ function renderCutStatus() {
   const cameoSec = $('#cameoSection');
   const rotarySec = $('#rotarySection');
   if (btnCameo && btnRotary) {
+    btnCameo.classList.toggle('selected', !!s.silhouette);
+    btnRotary.classList.toggle('selected', !s.silhouette);
     btnCameo.classList.toggle('on', !!s.silhouette);
     btnRotary.classList.toggle('on', !s.silhouette);
+    const radioCameo = $('#radioCameo');
+    const radioRotary = $('#radioRotary');
+    if (radioCameo) radioCameo.checked = !!s.silhouette;
+    if (radioRotary) radioRotary.checked = !s.silhouette;
+
+    btnCameo.setAttribute('aria-checked', !!s.silhouette ? 'true' : 'false');
+    btnRotary.setAttribute('aria-checked', !s.silhouette ? 'true' : 'false');
+
     if (cameoSec) cameoSec.style.display = s.silhouette ? 'block' : 'none';
     if (rotarySec) rotarySec.style.display = s.silhouette ? 'none' : 'block';
+
+    const handleKey = (e, fn) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fn(); } };
+    btnCameo.onkeydown = e => handleKey(e, () => btnCameo.click());
+    btnRotary.onkeydown = e => handleKey(e, () => btnRotary.click());
 
     btnCameo.onclick = () => {
       const isA4 = s.pageSize === 'a4';
@@ -3881,14 +3893,14 @@ function renderCutStatus() {
     const noConflict = !regConflict(L);
     const cameoOk = s.silhouette && noConflict && s.guides === 'none' && s.bleed <= 1;
     if (cameoOk) {
-      cEl.innerHTML = `<p class="hint">✓ Your current layout is set up for Silhouette Cameo cutting (${L.cols}×${L.rows} = ${L.per} cards with registration marks).</p>`;
+      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Layout ready for Silhouette Cameo</b> — ${L.cols}×${L.rows} (${L.per} cards) landscape with optical registration marks.</div>`;
     } else {
       const why = [];
       if (!s.silhouette) why.push('registration marks are off');
       if (!noConflict) why.push('cards overlap registration marks');
       if (s.guides !== 'none') why.push('cut guides are on (should be None)');
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
-      cEl.innerHTML = `<div class="warn">Your layout isn't set up for Silhouette Cameo cutting yet (${why.join(', ')}).</div><div class="row"><button class="primary" id="cameoApply">Set up for Silhouette Cameo</button></div>`;
+      cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Apply Cameo Layout (8 cards landscape)</button></div>`;
       const cb = $('#cameoApply');
       if (cb) cb.onclick = () => {
         const isA4 = s.pageSize === 'a4';
@@ -3917,10 +3929,10 @@ function renderCutStatus() {
   const el = $('#cutStatus'); if (!el) return;
   const best = bestCutBleed(), ok = !s.silhouette && s.guides === 'both' && s.guideWidth >= 0.3 && s.bleed >= best;
   if (s.silhouette) {
-    el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
+    el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
-    el.innerHTML = ok ? '<p class="hint">✓ Your current layout is set up for rotary cutting.</p>'
-      : `<div class="warn">Your layout isn't set up for rotary cutting yet${s.guides !== 'both' ? ' (needs margin lines + corner marks)' : ''}${s.bleed < best ? ` (${best} mm bleed fits without losing a card)` : ''}.</div><div class="row"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — Margin lines and corner marks enabled.</div>`
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${s.guides !== 'both' ? ' needs margin lines + corner marks;' : ''}${s.bleed < best ? ` ${best} mm bleed fits without losing a card.` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {
