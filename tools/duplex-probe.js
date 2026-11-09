@@ -1,9 +1,9 @@
 // Probe for tools/console-check.js --probe. Runs inside the page.
 // Returns true, or an object naming what did not match (which fails the run).
 //
-// Covers the two things that made double-sided output land wrong: which way the
-// sheet has to be turned for a given layout, and whether the printer offset
-// reaches the back pages.
+// Covers the layout facts that have actually gone wrong: which way the sheet has to
+// be turned for a given layout, whether the printer offset reaches the back pages,
+// and whether the margin guides stop short of the sheet edge.
 (() => {
   const fails = [];
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
@@ -38,6 +38,14 @@
     // A back offset of 0 meant "never calibrated" and must follow the front.
     S.settings = cleanSettings({offsetX:-1, backOffsetX:0});
     eq('uncalibrated back follows front', makeT(layout(), true).x(0), -1);
+
+    // Margin guides must stop short of the sheet edge. A printer's full-bleed mode
+    // relaxes its declared margin without promising ink at 0.0 mm, so a guide drawn
+    // to 0 ends where nobody has measured.
+    S.settings = {...DEFAULTS, pageSize:'letter', orientation:'portrait', guides:'margin', bleed:1, margin:4};
+    const L2 = layout(), g = guideLines(L2, L2.per);
+    const nearest = Math.min(...g.flatMap(([a, b, c, d]) => [a, b, c, d, L2.W - a, L2.H - b, L2.W - c, L2.H - d]));
+    if (!(nearest >= 0.5)) fails.push(`margin guides reach ${nearest.toFixed(2)}mm from the sheet edge, want >= 0.5`);
   } finally { S.settings = saved; }
   return fails.length ? {failed: fails} : true;
 })()
