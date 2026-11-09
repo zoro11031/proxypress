@@ -4,6 +4,8 @@ A single-page MTG proxy maker. Import a decklist or an MPC Autofill XML, choose 
 
 Two modes: **Print at home** (PDF with bleed, cut guides and double-sided backs, with re-feed instructions) and **Order prints** (an order file plus images for the autofill desktop tool, which places the order on MakePlayingCards.com).
 
+To send a deck to someone who prints proxies, open **Cards → Share a print deck → Export deck & art (.json)**. The file includes this deck's quantities, front and back images, custom-card source art, and paper/layout settings. The recipient can drop it onto Proxy Press or choose **Import print deck…**. It adds a new deck and opens Print setup; their printer and calibration stay intact. They can use the shared layout or keep their own. Files include the art itself, so the original art links are not needed for printing. Print deck JSON files can be up to 2 GB.
+
 ## Run locally
 
 ```sh

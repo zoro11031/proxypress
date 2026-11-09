@@ -287,7 +287,7 @@ def page_csp(page_bytes):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
-        "connect-src 'self' data: blob: https://api.scryfall.com https://img.mpcautofill.com https://cdn.mpcautofill.com",
+        "connect-src 'self' data: blob: https://api.scryfall.com https://cards.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
         "object-src 'none'",
         "base-uri 'none'",
         "form-action 'self'",

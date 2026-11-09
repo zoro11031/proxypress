@@ -27,6 +27,45 @@
     eq('no cameo in print presets', /Cameo/i.test($('#presetGrid').innerHTML), false);
     eq('no cameo in print form', /Silhouette Cameo/i.test($('#settingsForm').innerHTML), false);
 
+    // Paper choice must survive printer presets and cutter changes.
+    for (const [size, w, h] of [['a4', 210, 297], ['letter', 215.9, 279.4]]) {
+      const paper = $('#paperForm [data-k="pageSize"]');
+      paper.value = size;
+      paper.dispatchEvent(new Event('change', {bubbles:true}));
+      eq(`${size} saved`, S.settings.pageSize, size);
+      for (const p of BUILTIN_PRESETS.filter(p => p.kind)) {
+        applyPreset(p);
+        eq(`${size} preserved by ${p.id}`, S.settings.pageSize, size);
+        eq(`${size} preset preview width`, presetPer(p).W, p.settings.orientation === 'landscape' ? h : w);
+      }
+      renderAll();
+      eq(`${size} driver instructions`, $('#printerGuide').textContent.includes(size === 'a4' ? 'A4 (210×297 mm)' : 'Letter (8.5×11 in)'), true);
+      $('#btnCutModeRotary').click();
+      $('#btnCutModeCameo').click();
+      const L = layout();
+      eq(`${size} cameo paper`, S.settings.pageSize, size);
+      eq(`${size} landscape width`, L.W, h);
+      eq(`${size} landscape height`, L.H, w);
+      eq(`${size} cameo fits`, L.fits && !regConflict(L), true);
+      eq(`${size} cameo cards`, L.per, 8);
+      $('#btnCutModeRotary').click();
+      eq(`${size} rotary paper`, S.settings.pageSize, size);
+    }
+
+    eq('printer preset groups', $$('[data-preset-choice]').length, 2);
+    eq('paper presets retained', $$('#presetGrid [data-preset]').length, 6);
+    for (const kind of ['Inkjet', 'Laser']) {
+      for (const orientation of ['portrait', 'landscape']) {
+        const choice = $(`#preset-${kind}`);
+        const p = BUILTIN_PRESETS.find(p => p.kind === kind && p.settings.orientation === orientation);
+        choice.value = p.id;
+        choice.dispatchEvent(new Event('change', {bubbles:true}));
+        choice.parentElement.querySelector('[data-preset]').click();
+        eq(`${kind} ${orientation} selected`, S.activePreset, p.id);
+        eq(`${kind} ${orientation} applied`, S.settings.orientation, orientation);
+      }
+    }
+
     // 3. Assert next/prev wizard buttons
     $('#btnStep4Prev').click();
     eq('prev from guide goes to cutting', $('#tab-cutting').classList.contains('on'), true);
