@@ -525,7 +525,7 @@ details.adv:not([open]){padding-bottom:10px}
 
       <div class="wiz-nav">
         <button type="button" id="btnStep3Prev">← 2. Print</button>
-        <button type="button" class="primary" id="btnStep3Next" style="flex:1">Next: 4. Export &amp; Guide →</button>
+        <button type="button" class="primary" id="btnStep3Next" style="flex:1">Next: 4. Export →</button>
       </div>
     </div>
 
@@ -3195,7 +3195,6 @@ function renderSettings() {
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${s.dfcMode === 'duplex' || s.backs ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span>`;
   const sumEl = $('#setupSummary');
   if (sumEl) sumEl.innerHTML = sumHtml;
-  html = `<div class="sum">${sumHtml}</div>` + html;
 
   html += block(false);
   html += `<details class="adv" ${S.advOpen ? 'open' : ''}><summary>Advanced layout settings${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
