@@ -3145,7 +3145,7 @@ const FIELDS = [
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
-  {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
+  {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
 ];
 const ADV_KEYS = FIELDS.filter(f => f.adv).map(f => f.k);
 const SELECT_OPTS = {
@@ -3221,6 +3221,7 @@ function renderSettings() {
   if (sheetFeedable(S.printer, L.W, L.H) === false)
     html += `<div class="warn">${esc(printerOf(S.printer).name.replace(/ \(.*\)$/, ''))} can't feed this paper size, so it won't print on that printer. It is fine for a print shop or another printer.</div>`;
   const fieldHtml = f => {
+    const hint = typeof f.hint === 'function' ? f.hint() : f.hint;
     if (f.type === 'check') return `<label class="check"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
     if (f.type === 'backimg') {
       if (!s.backs) return '';
@@ -3231,7 +3232,7 @@ function renderSettings() {
     if (f.type === 'select') input = `<select id="setting-${f.k}" data-k="${f.k}" ${f.num ? 'data-num' : ''}>${f.opts.map(([v, t]) => `<option value="${v}" ${String(s[f.k]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
     else if (f.type === 'color') input = `<input id="setting-${f.k}" type="color" data-k="${f.k}" value="${esc(s[f.k])}">`;
     else input = `<input id="setting-${f.k}" type="number" data-k="${f.k}" data-num value="${esc(s[f.k])}" step="${f.step ?? 1}" ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}>`;
-    return `<div class="field ${f.full || f.hint ? 'full' : ''}"><label for="setting-${f.k}">${f.label}</label>${input}${f.hint ? `<div class="hint">${f.hint}</div>` : ''}</div>`;
+    return `<div class="field ${f.full || hint ? 'full' : ''}"><label for="setting-${f.k}">${f.label}</label>${input}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
   };
   const groups = [];
   for (const f of FIELDS) { if (f.sec) groups.push({sec:f.sec, fields:[]}); else groups.at(-1).fields.push(f); }
