@@ -847,6 +847,8 @@ function makeT(L, back) {
   const cx = L.W/2, cy = L.H/2;
   return {x: v => cx + (v-cx)*kx + ox, y: v => cy + (v-cy)*ky + oy, w: v => v*kx, h: v => v*ky};
 }
+// How far short of the sheet edge the margin guides stop, in mm.
+const GUIDE_EDGE = 1;
 function guideLines(L, n) {
   const s = S.settings, out = [];
   if (s.guides === 'none' || !n) return out;
@@ -856,8 +858,15 @@ function guideLines(L, n) {
   for (let r = 0; r < usedRows; r++) { const y = L.y0 + r*(L.sh+s.gap) + s.bleed; ys.add(+y.toFixed(3)); ys.add(+(y + L.ch).toFixed(3)); }
   const gx1 = L.x0, gy1 = L.y0, gx2 = L.x0 + usedCols*L.sw + (usedCols-1)*s.gap, gy2 = L.y0 + usedRows*L.sh + (usedRows-1)*s.gap;
   if (s.guides === 'margin' || s.guides === 'both') {
-    for (const x of xs) { out.push([x, 0, x, gy1]); out.push([x, gy2, x, L.H]); }
-    for (const y of ys) { out.push([0, y, gx1, y]); out.push([gx2, y, L.W, y]); }
+    // Stop the margin guides just short of the sheet edge. A printer's full-bleed
+    // mode relaxes its declared margin but does not promise ink at 0.0 mm - Canon's
+    // own manual says part of the edge may not print, or may smudge - so a line
+    // drawn to 0 ends somewhere nobody has measured. A trimmer is lined up on the
+    // length of the guide, not on its last millimetre, so giving it a definite end
+    // inside the printable area costs nothing and removes the dependency.
+    const e = GUIDE_EDGE;
+    for (const x of xs) { out.push([x, e, x, gy1]); out.push([x, gy2, x, L.H - e]); }
+    for (const y of ys) { out.push([e, y, gx1, y]); out.push([gx2, y, L.W - e, y]); }
     // Square-check lines across the margins, at right angles to the cuts, to line up with the trimmer's base grid.
     const sq = 1.5;
     if (gy1 > sq) out.push([gx1, gy1 - sq, gx2, gy1 - sq, true]);
