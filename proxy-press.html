@@ -559,7 +559,7 @@ details.adv:not([open]){padding-bottom:10px}
             <div class="field">
               <label for="rotaryBleed">Bleed (mm)</label>
               <input type="number" id="rotaryBleed" step="0.1" min="0" max="5" value="2">
-              <span class="hint" style="font-size:11px">1–2 mm recommended</span>
+              <span class="hint" style="font-size:11px">1–3 mm recommended (2 mm for Letter landscape, 3 mm for A4)</span>
             </div>
             <div class="field">
               <label for="rotaryGuideColor">Guide Line Colour</label>
@@ -731,22 +731,22 @@ const BUILTIN_PRESETS = [
   {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 upright (recommended)', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'upright',
     bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
   {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait 3×3', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     bleed:1, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
   {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'upright',
     bleed:2, bleedMode:'extend', gap:0, margin:5, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
   {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait 3×3', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:0.5, bleedMode:'extend', gap:0, margin:5, cols:0, rows:0,
-    guides:'margin', guideColor:'#000000', guideWidth:0.2, guideLen:3,
+    bleed:1, bleedMode:'extend', gap:0, margin:5, cols:0, rows:0,
+    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
   {id:'b-letter', name:'Letter · Portrait no bleed', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
@@ -4244,13 +4244,12 @@ function renderCutStatus() {
       S.activePreset = null; save(); renderAll(); toast('Switched to Silhouette Cameo mode (8 cards landscape + registration marks).');
     };
     btnRotary.onclick = () => {
-      if (!S.settings.silhouette) return;
       S.settings.silhouette = false;
       S.settings.showCuts = false;
       S.showCuts = false;
       Object.assign(S.settings, {cols:0, rows:0, guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
       S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
-      S.activePreset = null; save(); renderAll(); toast('Rotary setup applied: automatic grid, bleed, margin lines and corner marks. Registration marks are off.');
+      S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
     };
   }
 
@@ -4320,12 +4319,12 @@ function renderCutStatus() {
     }
   }
   const el = $('#cutStatus'); if (!el) return;
-  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides === 'both' && s.guideWidth >= 0.3 && s.bleed >= best;
+  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && s.bleed >= 1;
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
-    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — Margin lines and corner marks enabled.</div>`
-      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides !== 'both' ? ' needs margin lines + corner marks;' : ''}${s.bleed < best ? ` ${best} mm bleed fits without losing a card.` : ''}${s.guideWidth < 0.3 ? ' guide lines are thinner than the recommended 0.3 mm;' : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — Margin lines and corner marks enabled (${s.bleed} mm bleed).</div>`
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 1 ? ' card bleed is too small;' : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {
