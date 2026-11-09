@@ -22,7 +22,12 @@
     eq('guide tab on', $('#tab-guide').classList.contains('on'), true);
     eq('guide button on', $('.tabs button[data-tab="guide"]').classList.contains('on'), true);
 
-    // 2. Assert next/prev wizard buttons
+    // 2. Assert Print setup contains NO Cameo options or presets
+    switchTab('setup');
+    eq('no cameo in print presets', /Cameo/i.test($('#presetGrid').innerHTML), false);
+    eq('no cameo in print form', /Silhouette Cameo/i.test($('#settingsForm').innerHTML), false);
+
+    // 3. Assert next/prev wizard buttons
     $('#btnStep4Prev').click();
     eq('prev from guide goes to cutting', $('#tab-cutting').classList.contains('on'), true);
 
@@ -41,7 +46,7 @@
     $('#btnStep3Next').click();
     eq('next from cutting goes to guide', $('#tab-guide').classList.contains('on'), true);
 
-    // 3. Test Cameo vs Rotary cutter toggle
+    // 4. Test Cameo vs Rotary cutter toggle and tool-scoped advanced settings
     switchTab('cutting');
     $('#btnCutModeCameo').click();
     eq('cameo enabled', S.settings.silhouette, true);
@@ -49,6 +54,16 @@
     eq('cameo showCuts false', S.settings.showCuts, false);
     eq('cameo section visible', $('#cameoSection').style.display !== 'none', true);
     eq('rotary section hidden', $('#rotarySection').style.display === 'none', true);
+    eq('cameo adv drawer exists', !!$('#cameoAdvDrawer'), true);
+
+    // Test Cameo advanced controls
+    $('#cameoRegPattern').value = '4';
+    $('#cameoRegPattern').dispatchEvent(new Event('change'));
+    eq('cameo regPattern updated', S.settings.regPattern, 4);
+
+    $('#cameoRegInset').value = '3.5';
+    $('#cameoRegInset').dispatchEvent(new Event('change'));
+    eq('cameo regInset updated', S.settings.regInset, 3.5);
 
     switchTab('guide');
     eq('guide shows cameo badge', $('#guideCutterBadge').textContent, 'Silhouette Cameo');
@@ -62,6 +77,16 @@
     eq('rotary guides both', S.settings.guides, 'both');
     eq('rotary section visible', $('#rotarySection').style.display !== 'none', true);
     eq('cameo section hidden', $('#cameoSection').style.display === 'none', true);
+    eq('rotary adv drawer exists', !!$('#rotaryAdvDrawer'), true);
+
+    // Test Rotary advanced controls
+    $('#rotaryGuides').value = 'corners';
+    $('#rotaryGuides').dispatchEvent(new Event('change'));
+    eq('rotary guides updated', S.settings.guides, 'corners');
+
+    $('#rotaryBleed').value = '1.5';
+    $('#rotaryBleed').dispatchEvent(new Event('change'));
+    eq('rotary bleed updated', S.settings.bleed, 1.5);
 
     switchTab('guide');
     eq('guide shows rotary badge', $('#guideCutterBadge').textContent, 'Rotary Trimmer');
@@ -69,7 +94,7 @@
     eq('guide contains stop block trick', /stop-block/i.test($('#tabGuidePaneCut').innerHTML), true);
     eq('guide contains kadomaru punch', /Kadomaru/i.test($('#tabGuidePaneCut').innerHTML), true);
 
-    // 4. Test Guide Subtabs toggle
+    // 5. Test Guide Subtabs toggle
     $('#tabGuideBtnCut').click();
     eq('cut pane visible', $('#tabGuidePaneCut').style.display !== 'none', true);
     eq('print pane hidden', $('#tabGuidePanePrint').style.display === 'none', true);
@@ -78,7 +103,7 @@
     eq('print pane visible', $('#tabGuidePanePrint').style.display !== 'none', true);
     eq('cut pane hidden', $('#tabGuidePaneCut').style.display === 'none', true);
 
-    // 5. Test Live Duplex Paper Flip in Guide
+    // 6. Test Live Duplex Paper Flip in Guide
     S.settings.dfcMode = 'duplex';
     S.settings.duplexMethod = 'manual';
     S.settings.orientation = 'landscape';
