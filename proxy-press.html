@@ -504,7 +504,7 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const PAGE_SIZES = {letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], a4:[210,297], a3:[297,420]};
+const PAGE_SIZES = {letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], a4:[210,297], a3:[297,420], a5:[148,210], a6:[105,148]};
 const CARD_SIZES = {mtg:[63,88], poker:[63.5,88.9], japanese:[59,86], tarot:[70,120]};
 
 const DEFAULTS = {
@@ -583,6 +583,22 @@ const EPSON_INKJET = [
   ['Quality', 'High'],
   ['Orientation', 'Match the preset'],
 ];
+// Sheet sizes a printer can actually feed, in mm, for the printers where we know.
+// A layout on anything else is a layout that cannot print. Copied from
+// canon-control-center's canon_cc/cli.py SHEETS (converted from points) rather
+// than imported, so proxypress still runs without that project; it is one
+// printer's hardware limit rather than a general fact, and it can go stale.
+const FEEDABLE = {
+  mf753: [[215.9, 279.4], [215.9, 355.6], [139.7, 215.9], [184.1, 266.7], [210, 297],
+          [148, 210], [105, 148], [182, 257], [100, 148], [148, 200], [76.2, 127]],
+};
+// null when we have no list for this printer, so "unknown" never reads as "bad".
+function sheetFeedable(printerId, w, h) {
+  const list = FEEDABLE[printerId];
+  if (!list) return null;
+  return list.some(([a, b]) => (Math.abs(a-w) < 0.6 && Math.abs(b-h) < 0.6) ||
+                               (Math.abs(a-h) < 0.6 && Math.abs(b-w) < 0.6));
+}
 const PRINTERS = [
   {id:'et8500', name:'Epson EcoTank ET-8500 / ET-8550 (inkjet)', kind:'Inkjet',
     paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
@@ -2894,7 +2910,7 @@ addEventListener('blur', closeCtx);
 /* ---------- settings form ---------- */
 const FIELDS = [
   {sec:'Paper & card'},
-  {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4'],['a3','A3'],['custom','Custom']]},
+  {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4'],['a3','A3'],['a5','A5'],['a6','A6 (about one card)'],['custom','Custom']]},
   {k:'orientation', label:'Orientation', type:'select', opts:[['portrait','Portrait'],['landscape','Landscape']]},
   {k:'pageW', label:'Page width (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
   {k:'pageH', label:'Page height (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
@@ -3006,6 +3022,10 @@ function renderSettings() {
   let html = '';
   if (!L.fits) html += `<div class="warn">This grid (${L.cols}×${L.rows}) is bigger than the printable area. Reduce bleed, gap or margin, or set fewer columns/rows.</div>`;
   if (regConflict(L)) html += `<div class="warn">The cards reach into the Silhouette registration marks on both axes, so the cutter may not find them. Increase the page margin, shorten the mark arms, or drop the mark inset to 3.5 mm.</div>`;
+  // Only warn when the chosen printer is one we have a sheet list for. An unknown
+  // printer stays silent rather than being told its paper is wrong.
+  if (sheetFeedable(S.printer, L.W, L.H) === false)
+    html += `<div class="warn">${esc(printerOf(S.printer).name.replace(/ \(.*\)$/, ''))} can't feed this paper size, so it won't print on that printer. It is fine for a print shop or another printer.</div>`;
   const fieldHtml = f => {
     if (f.type === 'check') return `<label class="check"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
     if (f.type === 'backimg') {
