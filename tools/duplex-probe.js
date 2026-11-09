@@ -3,7 +3,9 @@
 //
 // Covers the layout facts that have actually gone wrong: which way the sheet has to
 // be turned for a given layout, whether the printer offset reaches the back pages,
-// and whether the margin guides stop short of the sheet edge.
+// whether the margin guides stop short of the sheet edge, and whether the
+// unfeedable-paper warning fires for the printer it is scoped to and stays quiet
+// for printers we have no sheet list for.
 (() => {
   const fails = [];
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
@@ -46,6 +48,23 @@
     const L2 = layout(), g = guideLines(L2, L2.per);
     const nearest = Math.min(...g.flatMap(([a, b, c, d]) => [a, b, c, d, L2.W - a, L2.H - b, L2.W - c, L2.H - d]));
     if (!(nearest >= 0.5)) fails.push(`margin guides reach ${nearest.toFixed(2)}mm from the sheet edge, want >= 0.5`);
+
+    // The unfeedable-paper warning. All three branches, because a warning that
+    // cannot fire and a warning that fires always both read as working: the
+    // default printer has no sheet list and the default paper is feedable, so
+    // neither is exercised by simply loading the page.
+    const savedPrinter = S.printer;
+    const warned = (printer, pageSize) => {
+      S.printer = printer;
+      S.settings = {...DEFAULTS, pageSize};
+      renderSettings();
+      return /can't feed this paper size/.test(document.querySelector('#settingsForm').innerHTML);
+    };
+    eq('warns: canon + tabloid', warned('mf753', 'tabloid'), true);
+    eq('quiet: canon + letter', warned('mf753', 'letter'), false);
+    eq('quiet: canon + a6 (newly added)', warned('mf753', 'a6'), false);
+    eq('quiet: unknown printer + tabloid', warned('et2800', 'tabloid'), false);
+    S.printer = savedPrinter;
   } finally { S.settings = saved; }
   return fails.length ? {failed: fails} : true;
 })()
