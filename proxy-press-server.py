@@ -220,7 +220,7 @@ def ident_match(i, c):
     if "id" in i:
         return c.get("id") == i["id"]
     if "collector_number" in i:
-        return c.get("set") == str(i.get("set", "")).lower() and c.get("collector_number") == i["collector_number"]
+        return c.get("set") == str(i.get("set", "")).lower() and str(c.get("collector_number", "")).lower() == str(i["collector_number"]).lower()
     names = [c.get("name", "")] + [f.get("name", "") for f in c.get("card_faces") or []]
     return str(i.get("name", "")).lower() in [n.lower() for n in names] and ("set" not in i or c.get("set") == str(i["set"]).lower())
 
@@ -305,6 +305,7 @@ input{width:100%%;box-sizing:border-box;background:#111317;border:1px solid #2f3
 button{margin-top:12px;width:100%%;background:#e0a33a;color:#1b1407;border:0;border-radius:7px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
 .err{color:#ff9c95;font-size:13px;margin:10px 0 0}</style></head><body>
 <form method="post" action="/login"><h1>Proxy<span>Press</span></h1><p>Enter the password to continue.</p>
+<input type="text" name="username" value="user" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1">
 <input type="password" name="password" autocomplete="current-password" aria-label="Password" autofocus required>
 <button type="submit">Sign in</button>%s</form></body></html>"""
 LOGIN_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
@@ -487,7 +488,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             skip = {c.get("name") for c in j.get("categories") or [] if not c.get("includedInDeck") and c.get("name") != "Sideboard"}
             for v in j.get("cards") or []:
                 cats = v.get("categories") or []
-                if cats and cats[0] in skip:
+                if any(cat in skip for cat in cats):
                     continue
                 c = v.get("card") or {}
                 lines.append(line(v.get("quantity", 1), (c.get("oracleCard") or {}).get("name", ""), (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))

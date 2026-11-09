@@ -559,7 +559,7 @@ details.adv:not([open]){padding-bottom:10px}
             <div class="field">
               <label for="rotaryBleed">Bleed (mm)</label>
               <input type="number" id="rotaryBleed" step="0.1" min="0" max="5" value="2">
-              <span class="hint" style="font-size:11px">1–3 mm recommended (2 mm for Letter landscape, 3 mm for A4)</span>
+              <span class="hint" id="rotaryBleedHint" style="font-size:11px">1–3 mm recommended (automatically sets optimal bleed for your sheet)</span>
             </div>
             <div class="field">
               <label for="rotaryGuideColor">Guide Line Colour</label>
@@ -1256,10 +1256,12 @@ async function fetchCollection(ids, progress) {
 }
 async function importList(text, replace) {
   const box = !$('#listIn').value.trim() || $('#listIn').value.trim() === text.trim();
-  if (/^\s*https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+\s*$/i.test(text)) {
+  let link = text.trim();
+  if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(link)) link = 'https://' + link;
+  if (/^\s*https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+\s*$/i.test(link)) {
     busy(true, 'Fetching the deck…');
     try {
-      const r = await fetch('/deck?u=' + encodeURIComponent(text.trim())), j = await r.json().catch(() => ({}));
+      const r = await fetch('/deck?u=' + encodeURIComponent(link)), j = await r.json().catch(() => ({}));
       if (!r.ok || !j.text) throw new Error(j.message || 'Deck links need the Proxy Press server');
       if ($('#listIn').value.trim() === text.trim()) $('#listIn').value = j.text;
       text = j.text;
@@ -1855,7 +1857,7 @@ function orderStepsHtml() {
   return `<ol class="steps">
     <li><b>Get the desktop tool</b> (needs Google Chrome):
       <div class="dl"><a href="${TOOL_DL}autofill-windows.zip" target="_blank" rel="noopener">Windows</a><a href="${TOOL_DL}autofill-macos-arm.zip" target="_blank" rel="noopener">macOS (Apple silicon)</a><a href="${TOOL_DL}autofill-macos-intel.zip" target="_blank" rel="noopener">macOS (Intel)</a><a href="${TOOL_DL}autofill-linux.zip" target="_blank" rel="noopener">Linux</a></div></li>
-    <li><b>Make a new folder.</b> Unzip the tool into it, then unzip your order into the same folder. It should hold the tool, your <code>.xml</code> file and a <code>cards</code> folder.</li>
+    <li><b>Make a new folder.</b> Unzip the tool into it, then unzip your order into the same folder. It should hold the tool, your order file and a <code>cards</code> folder.</li>
     <li><b>Run the tool from that folder.</b> Windows: double-click it. macOS: right-click → Open the first time. Linux: open a terminal in the folder and run it.</li>
     <li><b>Answer its questions.</b> Pressing Enter for each one is fine: browser <b>Chrome</b>, site <b>MakePlayingCards</b>, auto-save <b>yes</b>, shrink large images <b>yes</b>.</li>
     <li><b>Log in when Chrome opens.</b> The tool creates the project and uploads every image from <code>cards</code>, so nothing needs downloading.</li>
@@ -1876,12 +1878,12 @@ chmod +x autofill-linux.bin</pre></li>
       <li><b>Adding to an existing project:</b> choose that option when asked, open the project from <i>My saved projects</i> → <i>Continue to edit</i>, then press Enter in the terminal.</li>
     </ol>
     <table class="drv">
-      <tr><th><code>-d DIR</code></th><td>Folder with the order <code>.xml</code> and <code>cards</code> (default: current folder)</td></tr>
+      <tr><th><code>-d DIR</code></th><td>Folder with the order file and <code>cards</code> (default: current folder)</td></tr>
       <tr><th><code>--browser</code></th><td><code>chrome</code>, <code>brave</code> or <code>edge</code></td></tr>
       <tr><th><code>--max-dpi N</code></th><td>Shrink images above N DPI before upload (100–1200, default 800)</td></tr>
       <tr><th><code>--no-image-post-processing</code></th><td>Upload images untouched (slower)</td></tr>
       <tr><th><code>--no-auto-save</code></th><td>Don't save the project while uploading</td></tr>
-      <tr><th><code>--no-combine-orders</code></th><td>Each XML in the folder becomes its own project</td></tr>
+      <tr><th><code>--no-combine-orders</code></th><td>Each order file in the folder becomes its own project</td></tr>
       <tr><th><code>--exportpdf</code></th><td>Make a PDF of the images instead of a project</td></tr>
       <tr><th><code>--allowsleep</code></th><td>Let the PC sleep during long uploads</td></tr>
       <tr><th><code>--write-debug-logs</code></th><td>Write <code>autofill_log.txt</code> for troubleshooting</td></tr>
@@ -2043,7 +2045,8 @@ $('#btnImport').onclick = () => {
 };
 $('#btnReplace').onclick = () => { if (!deck().entries.length || confirm('Replace every card in this deck?')) importList($('#listIn').value, true); };
 $('#btnLink').onclick = () => {
-  const v = $('#linkIn').value.trim();
+  let v = $('#linkIn').value.trim();
+  if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
   if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link, e.g. https://moxfield.com/decks/…');
   importList(v, false).then(() => { $('#linkIn').value = ''; });
 };
@@ -3211,7 +3214,7 @@ addEventListener('blur', closeCtx);
 
 /* ---------- settings form ---------- */
 const FIELDS = [
-  {sec:'Paper & card'},
+  {sec:'Card size & dimensions'},
   {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4 (210×297 mm)'],['a3','A3'],['a5','A5'],['a6','A6 (about one card)'],['custom','Custom']]},
   {k:'orientation', label:'Orientation', type:'select', opts:[['portrait','Portrait'],['landscape','Landscape']]},
   {k:'pageW', label:'Page width (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
@@ -3369,7 +3372,10 @@ $('#tab-setup').addEventListener('change', async ev => {
   if (k === 'showCuts') { S.showCuts = s.showCuts; if ($('#showCuts')) $('#showCuts').checked = S.showCuts; }
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
-  if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) s.cols = s.rows = 0;
+  if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
+    s.cols = s.rows = 0;
+    if (!s.silhouette) s.bleed = bestCutBleed();
+  }
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
 });
 $('#settingsForm').addEventListener('toggle', ev => {
@@ -3477,7 +3483,14 @@ function renderPresets() {
     ${S.presets.length ? `<details class="adv" open><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
 $('#presetGrid').onchange = ev => {
-  if (ev.target.hasAttribute('data-preset-choice')) ev.target.parentElement.querySelector('[data-preset]').dataset.preset = ev.target.value;
+  if (ev.target.hasAttribute('data-preset-choice')) {
+    const btn = ev.target.parentElement.querySelector('[data-preset]');
+    btn.dataset.preset = ev.target.value;
+    const isAct = ev.target.value === S.activePreset;
+    btn.classList.toggle('on', isAct);
+    const kind = ev.target.id.replace('preset-', '');
+    btn.textContent = isAct ? '✓ Layout active' : `Apply ${kind.toLowerCase()} preset`;
+  }
 };
 $('#presetGrid').onclick = ev => {
   const del = ev.target.closest('[data-del]');
@@ -4175,11 +4188,21 @@ addEventListener('drop', async e => {
 });
 
 function bestCutBleed() {
-  const s = S.settings, cur = s.bleed, per = layout().per;
-  let best = 0;
-  for (const b of [3, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5]) { s.bleed = b; const L = layout(); if (L.fits && L.per >= per) { best = b; break; } }
+  const s = S.settings, cur = s.bleed;
+  s.bleed = 0.5;
+  const baseL = layout();
+  const maxPer = baseL.fits ? baseL.per : 1;
+  let best = 1;
+  for (const b of [3, 2.5, 2, 1.5, 1, 0.75, 0.5]) {
+    s.bleed = b;
+    const L = layout();
+    if (L.fits && L.per >= maxPer) {
+      best = b;
+      break;
+    }
+  }
   s.bleed = cur;
-  return Math.max(best, Math.min(cur, 3));
+  return best;
 }
 if ($('#regToggle')) $('#regToggle').onchange = ev => {
   S.settings.silhouette = ev.target.checked;
@@ -4248,7 +4271,7 @@ function renderCutStatus() {
       S.settings.showCuts = false;
       S.showCuts = false;
       Object.assign(S.settings, {cols:0, rows:0, guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
-      S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
+      S.settings.bleed = bestCutBleed();
       S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
     };
   }
@@ -4319,12 +4342,17 @@ function renderCutStatus() {
     }
   }
   const el = $('#cutStatus'); if (!el) return;
-  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && s.bleed >= 1;
+  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && s.bleed >= 0.5;
+  const rHint = $('#rotaryBleedHint');
+  if (rHint) {
+    const pName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Letter'])[1].replace(/ \(.*\)$/, '');
+    rHint.textContent = `Recommended for ${pName} ${s.orientation}: ${best} mm (preserves maximum cards per sheet)`;
+  }
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
     el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — Margin lines and corner marks enabled (${s.bleed} mm bleed).</div>`
-      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 1 ? ' card bleed is too small;' : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 0.5 ? ' card bleed is too small;' : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {
@@ -4332,7 +4360,7 @@ function renderCutStatus() {
     S.settings.showCuts = false;
     S.showCuts = false;
     Object.assign(S.settings, {cols:0, rows:0, guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
-    S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
+    S.settings.bleed = bestCutBleed();
     S.activePreset = null; save(); renderAll(); toast('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
   };
 }
