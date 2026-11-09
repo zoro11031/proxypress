@@ -152,25 +152,31 @@ h3:first-child{margin-top:2px}
 #listIn.compact:focus, #listIn.compact:not(:placeholder-shown){height:150px}
 .galnote{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-bottom:4px}
 @media (max-width:820px){
-  header{padding:8px 10px;gap:6px}
-  header h1{font-size:15px;margin-right:0}
+  header{padding:6px 10px;gap:6px;align-items:center}
+  header h1{font-size:15px;margin-right:auto;order:0}
   #stats{display:none}
   header .grow{display:none}
-  .seg{flex:1 1 auto;order:1}
-  .seg button{flex:1;padding:6px 8px}
-  .deckbar{order:2;flex:1 1 40%;min-width:0}
-  #btnHelp{order:3} #btnSettings{order:4}
+  #btnHelp{order:1} #btnSettings{order:2}
+  #btnGuide,#btnPdf,#btnXml{display:none!important}
+  .seg{order:3;flex:1 1 auto;width:auto}
+  .seg button{flex:1;padding:6px 8px;font-size:12px}
+  .deckbar{order:4;flex:1 1 auto;min-width:0}
   .deckbar select{min-width:0;flex:1;width:auto}
-  #btnPdf, #btnXml{order:5}
+  .kbd{display:none}
 }
 .sum{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:6px;display:flex;flex-direction:column;gap:2px}
 .sum span{color:var(--muted);font-size:12px}
+.preset-card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.preset-card.active{border-color:var(--accent)}
+.preset-card-title{font-weight:600;font-size:13px;color:var(--text)}
+.preset-card select{width:100%}
+.preset-card button{width:100%;margin-top:2px}
 .pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pick button{text-align:left;padding:10px;border-radius:9px;display:flex;flex-direction:column;gap:3px;white-space:normal}
-.pick button span{color:var(--muted);font-size:12px}
+.pick button{text-align:left;padding:10px 12px;border-radius:8px;display:flex;flex-direction:column;gap:3px;white-space:normal;position:relative}
+.pick button b{font-size:13px;padding-right:16px}
+.pick button span{color:var(--muted);font-size:11.5px}
 .pick button.on{border-color:var(--accent);background:#2d2618}
-.pick button{position:relative}
-.pick .del{position:absolute;top:6px;right:8px;font-style:normal;color:var(--muted);font-size:12px;padding:0 3px}
+.pick .del{position:absolute;top:6px;right:8px;font-style:normal;color:var(--muted);font-size:14px;padding:0 3px}
 .pick .del:hover{color:var(--danger)}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
@@ -287,13 +293,7 @@ details.adv summary::-webkit-details-marker{display:none}
 details.adv summary::before{content:'▸';color:var(--muted);transition:transform .15s}
 details.adv[open] summary::before{transform:rotate(90deg)}
 details.adv:not([open]){padding-bottom:10px}
-@media (max-width:820px){
-  body{overflow:auto}
-  main{grid-template-columns:1fr}
-  aside{border-right:0;border-bottom:1px solid var(--line);max-height:none}
-  .pane{max-height:60vh}
-  #stage{padding:16px}
-}
+
 @media print{body>*:not(#stage){display:none}}
 </style>
 </head>
@@ -358,23 +358,23 @@ details.adv:not([open]){padding-bottom:10px}
       <details class="adv" id="moreSources" style="margin-top:8px">
         <summary>More sources &amp; sharing</summary>
         <div style="margin-top:8px">
-          <b style="font-size:12px;color:var(--text)">Share a print deck</b>
-          <p class="hint">Send one JSON file with this deck, its art and layout. The recipient keeps their own printer and calibration. Import the JSON here or drop it onto the page.</p>
-          <div class="row"><button id="printDeckOut">Export deck &amp; art (.json)</button><button id="printDeckIn">Import print deck…</button></div>
+          <b style="font-size:12px;color:var(--text)">Share deck with art &amp; layout</b>
+          <p class="hint">Package this deck, chosen artwork, and card layout into a single file to share with a friend. When they open it, their own printer settings and alignment stay saved. Drop a shared deck onto this page or choose one below.</p>
+          <div class="row"><button id="printDeckOut">Save deck package…</button><button id="printDeckIn">Open shared deck…</button></div>
           <input type="file" id="filePrintDeck" accept=".json,application/json" hidden>
 
-          <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local images &amp; order files</b>
+          <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local pictures &amp; order files</b>
           <div class="row" style="margin-top:6px">
-            <button id="btnMpc" title="Open an order XML file as a new deck">Open order XML…</button>
+            <button id="btnMpc" title="Open a saved order file as a new deck">Open order file…</button>
             <button id="btnLocalDir" title="Search a folder of card images on this computer">Use local image folder…</button>
           </div>
           <span class="hint" id="localStatus"></span>
-          <p class="hint">Images in the folder that match a card's name are used first and saved into the browser. Works without the server.</p>
+          <p class="hint">Images in the folder that match a card's name are used first and saved into the browser. Works offline.</p>
           <div class="row">
             <button id="btnMpcFiles" title="Images downloaded by the autofill desktop tool">Attach images…</button>
             <button id="btnMpcFolder">Attach folder…</button>
           </div>
-          <p class="hint">Only needed for order XMLs that point to image files on your computer. Online art search needs the server (<code>python3 proxy-press-server.py</code> or Docker).</p>
+          <p class="hint">Only needed for order files that link to image files on your computer. Online art is found automatically when running Proxy Press.</p>
         </div>
       </details>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
@@ -414,10 +414,10 @@ details.adv:not([open]){padding-bottom:10px}
       <h3>Print options</h3>
       <div id="settingsForm"></div>
       <details class="adv" id="calDrawer" style="margin-top:14px">
-        <summary>Printer Calibration &amp; Test Sheets</summary>
-        <p class="hint">Print on your cardstock to verify 100% scale and front-to-back alignment.</p>
+        <summary>Printer Alignment &amp; Test Sheets</summary>
+        <p class="hint">Print on your paper to verify scale and front-to-back alignment.</p>
         <div class="row" style="margin-top:8px">
-          <button id="btnCal" title="Print once on your paper, measure, and enter the results under Print → Advanced">Calibration sheet</button>
+          <button id="btnCal" title="Print once on your paper, measure, and enter the results under Print → Advanced">Alignment sheet</button>
           <button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button>
         </div>
       </details>
@@ -666,7 +666,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button class="primary" id="oZip" title="Order file plus every image, ready for the desktop tool">Download order (.zip)</button>
       </div>
       <p class="hint">The .zip has the order file and a <code>cards</code> folder with every image, including your uploads and cardback.</p>
-      <details class="adv"><summary>Order file only</summary><p class="hint">The tool downloads the online art. Uploaded images and custom cards are left out. Use the .zip to include them.</p><button id="oXml">Download XML only</button></details>
+      <details class="adv"><summary>Order file only</summary><p class="hint">The order tool downloads the online artwork. Uploaded images and custom cards are left out. Download the complete package (.zip) to include them.</p><button id="oXml">Download order file only</button></details>
       <h3>Placing the order</h3>
       <div id="orderSteps"></div>
       <div class="wiz-nav"><button id="btnOrderPrev">← Cards</button></div>
@@ -674,10 +674,10 @@ details.adv:not([open]){padding-bottom:10px}
 
     <div class="pane" id="tab-data">
       <h3>Backup</h3>
-      <p class="hint">Decks, presets, settings and uploaded images are saved in this browser (IndexedDB). They never leave your computer. Export a backup to move them to another browser.</p>
+      <p class="hint">Your decks, presets, settings, and uploaded images are saved privately in this browser on your device. Nothing is sent to external servers. Save a backup file to move your decks to another computer or browser.</p>
       <div class="row">
-        <button id="backupOut">Export backup (.json)</button>
-        <button id="backupIn">Import backup…</button>
+        <button id="backupOut">Save backup file…</button>
+        <button id="backupIn">Restore from backup…</button>
         <input type="file" id="fileBackup" accept=".json,application/json" hidden>
       </div>
       <p class="hint" id="signOut" hidden><a href="/logout">Sign out</a> of this site on this browser.</p>
@@ -702,7 +702,7 @@ details.adv:not([open]){padding-bottom:10px}
 <div id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div id="busy"><div id="busyText">Working…</div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="toast" role="status" aria-live="polite" title="Click to dismiss"></div>
-<div id="drop">Drop a print deck (.json), images or a decklist (.txt)</div>
+<div id="drop">Drop a shared deck, card images, or a decklist here</div>
 <div id="ctx" role="menu"></div>
 <nav id="mbar" aria-label="View"><button data-mview="edit" class="on">Edit</button><button data-mview="preview">Preview <span id="mbarCount"></span></button></nav>
 
@@ -1351,7 +1351,7 @@ function slotsOf(text) {
 async function importMpcXml(text, fileName) {
   const xml = new DOMParser().parseFromString(text, 'application/xml');
   const order = xml.querySelector('order');
-  if (xml.querySelector('parsererror') || !order) { toast(`${fileName}: not a valid order XML file.`, 6000); return false; }
+  if (xml.querySelector('parsererror') || !order) { toast(`${fileName}: not a valid order file.`, 6000); return false; }
   const val = (el, tag) => el.querySelector(tag)?.textContent.trim().replace(/^["']|["']$/g, '') || '';
   const read = sec => [...(order.querySelector(sec)?.children || [])].map(c => ({id:val(c, 'id'), slots:slotsOf(val(c, 'slots')), name:val(c, 'name'), query:val(c, 'query')})).filter(c => c.id);
   const fronts = read('fronts'), backs = read('backs');
@@ -1756,7 +1756,7 @@ function reviewOrderExport(order, withImages, proceed) {
     ${missing ? `<div class="warn">${esc(mpcNotes(order).trim())}</div>` : ''}
     ${noBack ? '<p class="warn">Some cards have no cardback. Choose one before exporting, or add their backs in the desktop tool.</p>' : ''}
     ${order.slot > 612 ? '<p class="warn">The desktop tool will need to split this into smaller orders.</p>' : ''}
-    <div class="row"><button id="orderReviewBack">Review cards &amp; settings</button><button id="orderReviewExport" class="primary">Export ${order.slot} cards${withImages ? ' (.zip)' : ' (XML only)'}</button></div></div>`);
+    <div class="row"><button id="orderReviewBack">Review cards &amp; settings</button><button id="orderReviewExport" class="primary">Export ${order.slot} cards${withImages ? ' (.zip)' : ' (order file only)'}</button></div></div>`);
   $('#orderReviewBack').onclick = () => { closeModal(); switchTab('order'); };
   $('#orderReviewExport').onclick = () => { closeModal(); proceed(); };
   return true;
@@ -1764,7 +1764,7 @@ function reviewOrderExport(order, withImages, proceed) {
 
 async function exportMpcXml(reviewed = false) {
   const order = buildMpcOrder(false);
-  if (!order.slot) return toast(order.uploads.length ? 'XML only leaves out uploaded images and custom cards. Download the .zip instead.' : 'No cards with high-res art yet. Use "Auto fill art" or "Change art" first.', 6000);
+  if (!order.slot) return toast(order.uploads.length ? 'The basic order file leaves out uploaded images and custom cards. Download the full order (.zip) instead.' : 'No cards with high-res art yet. Use "Auto fill art" or "Change art" first.', 6000);
   if (!reviewed && reviewOrderExport(order, false, () => exportMpcXml(true))) return;
   busy(true, 'Preparing order…');
   const info = await mpcCardInfo(order);
@@ -2972,7 +2972,7 @@ async function openCardMaker(target) {
   };
   let fontSlot = null;
   const fontList = () => {
-    $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Fonts on the server are used automatically; free lookalike fonts fill any gaps. Fonts you load here override them in this browser.</p>
+    $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Built-in card fonts are used automatically. Any custom fonts you add here will take precedence.</p>
       <div class="row" style="margin-bottom:6px"><button class="icon primary" data-fontmulti>Load font files…</button><span class="hint">Select several at once; each goes to the slot its file name matches.</span></div>
       <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : slot === 'rrules' && (S.ccFonts?.rules || serverFonts.rules) ? 'Plantin' : 'Free font'}
         <button class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
@@ -3412,8 +3412,8 @@ function renderPrinter() {
   const row = ([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(k === 'Paper size' ? paper : v)}</td></tr>`;
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
-    <p class="hint" style="margin-top:6px">Paper: ${esc(pr.paper)}</p>
-    ${presets[0] ? `<button id="printerPresetApply">Apply recommended print preset</button><p class="hint">Applies the full preset, including its sheet layout and cutting guides. Your current layout stays until you apply it.</p>` : ''}
+    <p class="hint" style="margin-top:6px">💡 <b>Paper recommendation:</b> ${esc(pr.paper)} (works with any cardstock)</p>
+    ${presets[0] ? `<button id="printerPresetApply">Apply recommended settings for ${pr.kind}</button><p class="hint">Applies the best layout, margins, and cutting guides for this printer.</p>` : ''}
     <h3>Print dialog settings</h3>
     <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
     ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
@@ -3435,20 +3435,46 @@ $('#printerSel').onchange = e => {
 
 function renderPresets() {
   const card = (p, mine) => {
-    const parts = p.name.split(' · '), L = presetPer(p);
-    const title = mine ? p.name : parts.length > 1 ? parts.slice(0, -1).join(' · ') : p.name, sub = mine ? 'Your preset' : parts.length > 1 ? parts.at(-1) : '';
-    return `<button data-preset="${esc(p.id)}" class="${p.id === S.activePreset ? 'on' : ''}" aria-pressed="${p.id === S.activePreset}">
-      <b>${esc(title)}</b><span>${esc(sub)}${sub ? ' · ' : ''}${L.per} per sheet</span>
+    const L = presetPer(p);
+    let title, sub;
+    if (mine) {
+      title = p.name;
+      sub = `Custom preset · ${L.per} per sheet`;
+    } else {
+      const parts = p.name.split(' · ');
+      const sheet = parts[0];
+      const desc = parts[1] || '';
+      const isLand = desc.toLowerCase().includes('landscape');
+      title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
+      sub = desc.toLowerCase().includes('no bleed') ? 'Edge-to-edge · No bleed' : desc.toLowerCase().includes('most') ? 'Maximum cards per sheet' : '1 mm cutting bleed';
+    }
+    const isAct = p.id === S.activePreset;
+    return `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}">
+      <b>${esc(title)}</b><span>${esc(sub)}</span>
       ${mine ? `<i class="del" data-del="${esc(p.id)}" title="Delete preset" role="button" aria-label="Delete preset">✕</i>` : ''}</button>`;
   };
   const group = kind => {
     const presets = BUILTIN_PRESETS.filter(p => p.kind === kind);
     const selected = presets.find(p => p.id === S.activePreset) || presets.find(p => p.settings.orientation === S.settings.orientation) || presets[0];
-    return `<div><label for="preset-${kind}">${kind === 'Inkjet' ? 'Inkjet · semi-gloss' : 'Laser · black-core cardstock'}</label><select id="preset-${kind}" data-preset-choice>${presets.map(p => `<option value="${p.id}" ${p === selected ? 'selected' : ''}>${p.settings.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${presetPer(p).per} cards per sheet</option>`).join('')}</select><button data-preset="${selected.id}" ${presets.some(p => p.id === S.activePreset) ? 'class="on"' : ''} style="margin-top:6px">Apply ${kind.toLowerCase()} preset</button></div>`;
+    const isKindActive = presets.some(p => p.id === S.activePreset);
+    const tip = kind === 'Inkjet' ? 'For photo &amp; semi-gloss paper' : 'For cardstock &amp; laser paper';
+    return `<div class="preset-card ${isKindActive ? 'active' : ''}">
+      <div class="preset-card-title">${kind} Printer</div>
+      <div class="hint" style="margin:0 0 4px">${tip}</div>
+      <select id="preset-${kind}" data-preset-choice>${presets.map(p => {
+        const per = presetPer(p).per;
+        const orient = p.settings.orientation === 'landscape' ? 'Landscape (4×2)' : 'Portrait (3×3)';
+        return `<option value="${p.id}" ${p === selected ? 'selected' : ''}>${orient} · ${per} cards</option>`;
+      }).join('')}</select>
+      <button data-preset="${selected.id}" ${isKindActive ? 'class="on"' : ''}>
+        ${isKindActive ? '✓ Layout active' : `Apply ${kind.toLowerCase()} preset`}
+      </button>
+    </div>`;
   };
+  const curPaper = S.settings.pageSize.toUpperCase();
   $('#presetGrid').innerHTML = `<div class="grid2">${['Inkjet', 'Laser'].map(group).join('')}</div>
-    <details class="adv" style="margin-top:10px"><summary>Paper-specific presets</summary><p class="hint">These presets also change the paper size.</p><div class="pick presets">${BUILTIN_PRESETS.filter(p => !p.kind).map(p => card(p, false)).join('')}</div></details>
-    ${S.presets.length ? `<details class="adv" open><summary>Saved presets</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
+    <details class="adv" style="margin-top:10px"><summary>Alternative paper layouts</summary><p class="hint">Fixed sheet layouts. (Applying these switches your paper size from ${curPaper} to match the preset.)</p><div class="pick presets">${BUILTIN_PRESETS.filter(p => !p.kind).map(p => card(p, false)).join('')}</div></details>
+    ${S.presets.length ? `<details class="adv" open><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
 $('#presetGrid').onchange = ev => {
   if (ev.target.hasAttribute('data-preset-choice')) ev.target.parentElement.querySelector('[data-preset]').dataset.preset = ev.target.value;
@@ -3971,9 +3997,9 @@ $('#printDeckOut').onclick = async () => {
     for (const [i, [key, value]] of Object.entries(images).entries()) parts.push(i ? ',' : '', JSON.stringify(key), ':', JSON.stringify(value));
     const blob = new Blob([...parts, '}}'], {type:'application/json'});
     if (blob.size > PRINT_DECK_LIMIT) throw new Error('This print deck exceeds the 2 GB file limit. Split it into smaller decks.');
-    download(blob, `${orderName(data.deck)} (print deck).json`); toast('Print deck exported with all art.');
+    download(blob, `${orderName(data.deck)} (print deck).json`); toast('Deck package saved with all art.');
   }
-  catch (err) { toast('Could not export print deck: ' + err.message, 9000); }
+  catch (err) { toast('Could not export deck package: ' + err.message, 9000); }
   finally { busy(false); }
 };
 $('#printDeckIn').onclick = () => $('#filePrintDeck').click();
@@ -3989,7 +4015,7 @@ async function readPrintDeck(file) {
     return pos < buffer.length;
   };
   const space = async () => { while (await fill()) { while (pos < buffer.length && /\s/.test(buffer[pos])) pos++; if (pos < buffer.length) break; } };
-  const take = async c => { await space(); if (buffer[pos++] !== c) throw new Error('This print deck is not valid JSON.'); };
+  const take = async c => { await space(); if (buffer[pos++] !== c) throw new Error('This shared deck file appears damaged or incomplete.'); };
   const value = async () => {
     await space();
     const parts = []; let depth = 0, quoted = false, escaped = false;
@@ -4018,7 +4044,7 @@ async function readPrintDeck(file) {
     const out = Object.create(null); await take('{'); await space();
     if (buffer[pos] === '}') { pos++; return out; }
     while (true) {
-      const key = await value(); if (typeof key !== 'string') throw new Error('This print deck is not valid JSON.');
+      const key = await value(); if (typeof key !== 'string') throw new Error('This shared deck file appears damaged or incomplete.');
       await take(':'); out[key] = await read(key); await space();
       if (buffer[pos] === '}') { pos++; return out; }
       await take(',');
@@ -4026,24 +4052,24 @@ async function readPrintDeck(file) {
   };
   try {
     const data = await object(key => key === 'images' ? object(value) : value());
-    await space(); if (await fill()) throw new Error('This print deck has unexpected data after the JSON.');
+    await space(); if (await fill()) throw new Error('This shared deck file contains unexpected extra data.');
     return data;
   } finally { await reader.cancel(); reader.releaseLock(); }
 }
 async function openPrintDeckFile(file) {
-  busy(true, 'Reading print deck…');
+  busy(true, 'Reading deck package…');
   try {
-    if (file.size > PRINT_DECK_LIMIT) throw new Error('This print deck exceeds the 2 GB file limit. Ask for smaller decks.');
+    if (file.size > PRINT_DECK_LIMIT) throw new Error('This deck package exceeds the 2 GB file limit. Split it into smaller decks.');
     const data = await readPrintDeck(file);
-    if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Choose a Proxy Press print deck JSON file.');
+    if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Please choose a valid Proxy Press shared deck file.');
     const d = cleanDeck(data.deck);
-    openModal(`<div class="hd"><b>Import print deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds a new deck with its art. Your existing decks, printer and calibration stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout" checked> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Import deck &amp; art</button></div>`);
+    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout" checked> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Import deck &amp; art</button></div>`);
     $('#printDeckConfirm').onclick = async () => {
-      const useLayout = $('#printDeckLayout').checked; closeModal(); busy(true, 'Importing deck and art…');
-      try { await importPrintDeck(data, useLayout); } catch (err) { toast('Could not import print deck: ' + err.message, 9000); }
+      const useLayout = $('#printDeckLayout').checked; closeModal(); busy(true, 'Adding deck and artwork…');
+      try { await importPrintDeck(data, useLayout); } catch (err) { toast('Could not open shared deck: ' + err.message, 9000); }
       finally { busy(false); }
     };
-  } catch (err) { toast('Could not import print deck: ' + err.message, 9000); }
+  } catch (err) { toast('Could not open shared deck: ' + err.message, 9000); }
   finally { busy(false); }
 }
 $('#backupOut').onclick = async () => {
@@ -4078,7 +4104,7 @@ $('#wipe').onclick = async () => {
 };
 async function renderStorage() {
   $('#signOut').hidden = !location.protocol.startsWith('http') || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-  let txt = store.persistent ? 'Saved in IndexedDB.' : 'IndexedDB is unavailable (private window?). Changes last only until you close the tab.';
+  let txt = store.persistent ? 'Saved privately in this browser on your device.' : 'Browser storage is unavailable (private browsing mode?). Changes will only last until you close this window.';
   try { const e = await navigator.storage?.estimate(); if (e) txt += ` About ${(e.usage/1048576).toFixed(1)} MB used.`; } catch {}
   $('#storageInfo').textContent = txt;
 }
