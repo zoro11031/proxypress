@@ -22,6 +22,7 @@ button:hover{border-color:#4a515c}
 button.primary{background:var(--accent);color:#1b1407;border-color:var(--accent);font-weight:600}
 button.primary:hover{background:var(--accent2)}
 button.danger{color:var(--danger)}
+button:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 button.icon{padding:3px 7px;font-size:13px}
 input[type=number],input[type=text],input[type=search],select,textarea{background:#111317;border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%}
 input[type=color]{width:100%;height:30px;background:#111317;border:1px solid var(--line);border-radius:6px;padding:2px}
@@ -70,7 +71,8 @@ h3:first-child{margin-top:2px}
 .card .more{font-size:16px;line-height:1;padding:4px 9px}
 .card .meta{margin-top:2px;line-height:1.6}
 .qty{display:flex;align-items:center;gap:2px}
-.qty input{width:42px;text-align:center;padding:3px}
+.qty input{width:36px;text-align:center;padding:3px 2px;-moz-appearance:textfield;appearance:textfield}
+.qty input::-webkit-outer-spin-button,.qty input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .tag.bad{background:#4a2321;color:#ff9c95}
 .pg .lowres{position:absolute;z-index:2;background:rgba(226,97,90,.92);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;pointer-events:none;white-space:nowrap}
 .tag{display:inline-block;font-size:10px;padding:0 5px;border-radius:4px;background:#3a3020;color:var(--accent2);margin-left:4px}
@@ -347,27 +349,33 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="btnReplace" title="Replace every card in this deck with this list">Replace deck</button>
         <span class="hint kbd">Ctrl+Enter</span>
       </div>
-      <div class="row" style="margin-top:8px">
+      <div class="row" style="margin-top:6px">
         <button id="btnTokens" title="Add the tokens and emblems your cards make">+ Tokens</button>
         <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
         <button id="btnMaker" title="Put your own art into a card frame with the card's text">+ Custom card</button>
-        <button id="btnMpc" title="Open an order XML file as a new deck">Open order XML…</button>
       </div>
       <div id="importNote"></div>
-      <details class="adv"><summary>Share a print deck</summary><p class="hint">Send one JSON file with this deck, its art and layout. The recipient keeps their own printer and calibration. Import the JSON here or drop it onto the page.</p><div class="row"><button id="printDeckOut">Export deck &amp; art (.json)</button><button id="printDeckIn">Import print deck…</button></div><input type="file" id="filePrintDeck" accept=".json,application/json" hidden></details>
-      <p class="hint">High-res art is picked for every card automatically. Right-click (or long-press) any card to change it.</p>
-      <details class="adv" id="moreSources">
-        <summary>Local images &amp; order files</summary>
-        <div class="row" style="margin-top:8px">
-          <button id="btnLocalDir" title="Search a folder of card images on this computer">Use local image folder…</button>
+      <details class="adv" id="moreSources" style="margin-top:8px">
+        <summary>More sources &amp; sharing</summary>
+        <div style="margin-top:8px">
+          <b style="font-size:12px;color:var(--text)">Share a print deck</b>
+          <p class="hint">Send one JSON file with this deck, its art and layout. The recipient keeps their own printer and calibration. Import the JSON here or drop it onto the page.</p>
+          <div class="row"><button id="printDeckOut">Export deck &amp; art (.json)</button><button id="printDeckIn">Import print deck…</button></div>
+          <input type="file" id="filePrintDeck" accept=".json,application/json" hidden>
+
+          <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local images &amp; order files</b>
+          <div class="row" style="margin-top:6px">
+            <button id="btnMpc" title="Open an order XML file as a new deck">Open order XML…</button>
+            <button id="btnLocalDir" title="Search a folder of card images on this computer">Use local image folder…</button>
+          </div>
           <span class="hint" id="localStatus"></span>
+          <p class="hint">Images in the folder that match a card's name are used first and saved into the browser. Works without the server.</p>
+          <div class="row">
+            <button id="btnMpcFiles" title="Images downloaded by the autofill desktop tool">Attach images…</button>
+            <button id="btnMpcFolder">Attach folder…</button>
+          </div>
+          <p class="hint">Only needed for order XMLs that point to image files on your computer. Online art search needs the server (<code>python3 proxy-press-server.py</code> or Docker).</p>
         </div>
-        <p class="hint">Images in the folder that match a card's name are used first and saved into the browser. Works without the server.</p>
-        <div class="row">
-          <button id="btnMpcFiles" title="Images downloaded by the autofill desktop tool">Attach images…</button>
-          <button id="btnMpcFolder">Attach folder…</button>
-        </div>
-        <p class="hint">Only needed for order XMLs that point to image files on your computer. Online art search needs the server (<code>python3 proxy-press-server.py</code> or Docker).</p>
       </details>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
@@ -375,12 +383,14 @@ details.adv:not([open]){padding-bottom:10px}
       <input type="file" id="fileMpcDir" webkitdirectory multiple hidden>
       <input type="file" id="fileLocalDir" webkitdirectory multiple hidden>
       <input type="file" id="fileFace" accept="image/*" hidden>
-      <h3 class="row" style="justify-content:space-between;align-items:center"><span>Deck <span id="deckCount"></span></span>
+      <h3 class="row" style="justify-content:space-between;align-items:center;margin-top:18px"><span>Deck <span id="deckCount"></span></span>
         <span class="row"><span id="deckHealth" class="hint"></span><button class="icon" id="btnMpcAuto" title="Pick the best high-res art for every card that still needs it">Auto fill art</button></span></h3>
+      <p class="hint" style="margin:-2px 0 8px">Right-click or long-press any card to change art or edit.</p>
       <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden style="margin-bottom:6px">
       <div class="cards" id="cardList"></div>
       <div class="wiz-nav">
-        <button type="button" class="primary" id="btnStep1Next" style="width:100%">Next: 2. Print →</button>
+        <button type="button" id="btnClearAll" class="danger" title="Remove all cards from this deck">Clear all</button>
+        <button type="button" class="primary" id="btnStep1Next" style="flex:1">Next: 2. Print →</button>
       </div>
     </div>
 
@@ -1965,6 +1975,7 @@ async function renderCards() {
   const d = deck(), list = $('#cardList');
   const total = d.entries.reduce((a, e) => a + e.qty, 0);
   $('#deckCount').textContent = `(${total})`;
+  $('#btnClearAll').disabled = !d.entries.length;
   $('#listIn').classList.toggle('compact', d.entries.length > 0);
   $('#deckFilter').hidden = d.entries.length <= 12;
   const need = d.entries.filter(e => !e.mpc && e.faces.some(isPreview)).length;
@@ -1977,7 +1988,7 @@ async function renderCards() {
       <div style="min-width:0">
         <div class="nm" title="${esc(e.name)}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</div>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
-          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(f => f.drive && !f.custom) ? '<span class="tag">high-res art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Scryfall placeholder · not for print</span>' : ''}</div>
+          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Scryfall placeholder · not for print</span>' : ''}</div>
       </div>
       <div class="ctl">
         <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity"><button class="icon" data-act="inc" aria-label="More">+</button></div>
@@ -2040,12 +2051,14 @@ $('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#btn
 $('#btnTokens').onclick = addTokens;
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
-$('#btnClear').onclick = async () => {
+const clearDeck = async () => {
   const d = deck(); if (!d.entries.length || !confirm('Remove all cards from this deck?')) return;
   const keys = d.entries.flatMap(e => e.faces.map(f => f.custom)); d.entries = [];
   for (const k of keys) await removeImageIfUnused(k);
   save(); renderAll();
 };
+$('#btnClear').onclick = clearDeck;
+$('#btnClearAll').onclick = clearDeck;
 $('#btnCopyList').onclick = async () => {
   const txt = deck().entries.filter(e => !e.custom).map(e => `${e.qty} ${e.name} (${(e.set || '').toUpperCase()}) ${e.cn}`).join('\n');
   try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
