@@ -36,12 +36,30 @@ Without `assets/` the card maker has no frames or fonts. Point `ASSETS=` at a fr
 
 There is no linter, formatter, pre-commit hook or test suite in the repo. Before committing:
 - `python3 -m py_compile proxy-press-server.py`
-- Load the page in a browser and check the console for errors. The strict CSP turns mistakes into silent failures, so look for CSP violations too.
+- `node tools/console-check.js` — starts a server, loads the page in headless chromium and reports console errors and CSP violations. Needs node 22+ and chromium; no npm packages. Add `--probe tools/duplex-probe.js` to also assert behaviour inside the page. Exit 0 clean, 1 findings, 2 inconclusive.
+- Or load the page in a browser by hand and check the console. The strict CSP turns mistakes into silent failures, so look for CSP violations too.
 - For layout, guides or export changes, export a PDF and look at it rasterised. For card-maker changes, compare the render against the real Scryfall card image for the same printing.
+
+Three things about checking the console that cost real time to learn, and that the
+tool exists to encode:
+
+- **CSP violations never reach `console`.** They arrive on the CDP `Log.entryAdded`
+  channel with source `security`, and they lag the action that caused them by up to
+  2.5 seconds. Anything that watches only console output, or stops listening early,
+  reports a clean page while the CSP is quietly blocking things.
+- **A clean result means nothing on its own.** A listener that is broken and a page
+  that is fine produce identical output, and proving the listener in a separate run
+  does not transfer. The tool forces one violation per channel in the same run it
+  collects, matched on a marker unique to that probe, and refuses to say "clean"
+  unless every one comes back caught.
+- **An injected check passes whatever page is loaded.** If sign-in fails the server
+  serves the login form, which has no app script and so produces no violations at
+  all, and everything still comes back green. The tool checks separately that the app
+  is actually there, and treats its absence as outranking every other result.
 
 ## Rules
 
-- **Keep it single-file and dependency-free.** No bundler, no new CDN scripts, no Python packages. The only external script is jsPDF from cdnjs with an SRI hash.
+- **Keep it single-file and dependency-free.** No bundler, no new CDN scripts, no Python packages. The only external script is jsPDF from cdnjs with an SRI hash. This is about the app: `tools/` holds development-only scripts that never ship, are not referenced by the page, and use nothing outside the standard library.
 - **CSP:** the server hashes each inline `<script>` block at startup (`page_csp`). Never use inline event handlers (`onclick="…"`), `eval`, or `new Function`; attach handlers in the script. Any new external host for images or fetches must be added to `page_csp`.
 - **Escape everything** put into HTML with `esc()`: card names, deck text, Scryfall and MPC data and filenames are untrusted.
 - **Server routes:** every route except `/healthz`, `/og.png` and the login requires sign-in (`signed_in()`). Upstream relays only reach allow-listed paths on fixed hosts. Keep request and response sizes bounded. Never let user input pick a host or a filesystem path outside `ASSETS`/`CACHE`.
