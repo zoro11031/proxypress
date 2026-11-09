@@ -2937,7 +2937,7 @@ const FIELDS = [
   {k:'pageH', label:'Page height (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
   {k:'cardPreset', label:'Card size', type:'select', full:true, opts:[['mtg','MTG / Pokémon 63×88'],['poker','Poker 2.5×3.5 in'],['japanese','Japanese 59×86'],['tarot','Tarot 70×120'],['custom','Custom']]},
   {k:'cardRotation', adv:true, label:'Card direction', type:'select', opts:[['auto','Auto (most cards per page)'],['upright','Always upright'],['rotated','Always sideways']]},
-  {k:'cornerRadius', adv:true, label:'Corner radius (cut SVG, mm)', type:'num', step:0.1},
+  {k:'cornerRadius', adv:true, label:'Corner radius (cut SVG, mm)', type:'num', step:0.1, hint:'Standard MTG / Pokémon corner radius is 3.0 to 3.2 mm.'},
   {k:'cardW', label:'Card width (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {sec:'Bleed & cut guides'},
@@ -3043,7 +3043,7 @@ function renderSettings() {
   const s = S.settings, L = layout();
   let html = '';
   if (!L.fits) html += `<div class="warn">This grid (${L.cols}×${L.rows}) is bigger than the printable area. Reduce bleed, gap or margin, or set fewer columns/rows.</div>`;
-  if (regConflict(L)) html += `<div class="warn">The cards reach into the Silhouette registration marks on both axes, so the cutter may not find them. Increase the page margin, shorten the mark arms, or drop the mark inset to 3.5 mm.</div>`;
+  if (regConflict(L)) html += `<div class="warn">The cards reach into the Silhouette registration marks. Use 0.625 mm bleed (Silhouette standard), increase page margin, or drop mark inset to 3.5 mm.</div>`;
   // Only warn when the chosen printer is one we have a sheet list for. An unknown
   // printer stays silent rather than being told its paper is wrong.
   if (sheetFeedable(S.printer, L.W, L.H) === false)
