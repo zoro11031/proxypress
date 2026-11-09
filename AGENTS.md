@@ -57,6 +57,18 @@ tool exists to encode:
   all, and everything still comes back green. The tool checks separately that the app
   is actually there, and treats its absence as outranking every other result.
 
+Two things about adding a probe assertion, both learned by getting them wrong:
+
+- **A new assertion that passes first time has tested nothing yet.** Break the thing
+  it guards and watch it fail before you believe it. The paper-size warning is the
+  example: none of its branches run on a plain page load, because the default
+  printer has no sheet list and the default paper is feedable, so the first clean
+  run said nothing about it at all.
+- **Commit the change before mutating the page to test it.** Reverting a mutation
+  with `git checkout proxy-press.html` also throws away any uncommitted work in the
+  same file — and the run afterwards reports `probe: undefined`, which reads like a
+  flaky harness when the real cause is that the feature no longer exists.
+
 ## Rules
 
 - **Keep it single-file and dependency-free.** No bundler, no new CDN scripts, no Python packages. The only external script is jsPDF from cdnjs with an SRI hash. This is about the app: `tools/` holds development-only scripts that never ship, are not referenced by the page, and use nothing outside the standard library.
