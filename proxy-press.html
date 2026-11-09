@@ -164,6 +164,12 @@ h3:first-child{margin-top:2px}
 .pick .del:hover{color:var(--danger)}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
+.wiz-bar{display:flex;border-bottom:1px solid var(--line);margin:-14px -18px 14px;background:var(--panel2);border-top-left-radius:8px;border-top-right-radius:8px}
+.wiz-bar-step{flex:1;text-align:center;padding:9px 4px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;background:none;border-radius:0;border-top:0;border-left:0;border-right:0}
+.wiz-bar-step.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(224,163,58,.08)}
+.wiz-bar-step.done{color:var(--text)}
+.wiz-pane{display:none}
+.wiz-pane.active{display:block}
 .wizard-step{margin-bottom:14px}
 .wizard-lbl{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 .wizard-choices{display:flex;flex-direction:column;gap:6px}
@@ -176,6 +182,11 @@ h3:first-child{margin-top:2px}
 .guide-tab-btn{padding:8px 14px;border:0;background:none;border-bottom:2px solid transparent;border-radius:0;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted)}
 .guide-tab-btn.active{border-bottom-color:var(--accent);color:var(--text)}
 .callout-box{background:rgba(224,163,58,.1);border-left:3px solid var(--accent);padding:9px 12px;border-radius:4px;margin:10px 0;font-size:12.5px}
+.cutter-card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.cutter-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(92,194,122,.15);color:var(--ok);border:1px solid rgba(92,194,122,.3)}
+table.specs-tbl{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+table.specs-tbl td,table.specs-tbl th{padding:4px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.specs-tbl th{color:var(--muted);font-weight:500;width:42%}
 .round{width:30px;height:30px;padding:0;border-radius:50%;font-weight:700}
 #dataSlot .pane{display:block;padding:0;overflow:visible}
 .modal.narrow{width:min(600px,calc(100vw - 32px))}
@@ -273,6 +284,7 @@ details.adv:not([open]){padding-bottom:10px}
   <span class="stats" id="stats"></span>
   <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour">?</button>
   <button id="btnSettings" class="icon round" title="Backup &amp; storage" aria-label="Backup and storage">⚙</button>
+  <button id="btnGuide" class="print-only" title="Print &amp; Cut Operator Guide">📖 Guide</button>
   <button id="btnPdf" class="primary print-only" title="Download a print-ready PDF">Export PDF</button>
   <button id="btnXml" class="primary order-only" title="Download the order (.zip) and see how to place it">Export order</button>
 </header>
@@ -343,25 +355,71 @@ details.adv:not([open]){padding-bottom:10px}
     </div>
 
     <div class="pane" id="tab-cutting">
-      <h3>Cutting machine (Silhouette Cameo)</h3>
-      <p class="hint">An automated cutting plotter (Cameo 4/5) cuts cards and 3 mm rounded corners using optical registration marks.</p>
-      <div id="cameoStatus"></div>
-      <div class="row" style="margin-top:6px">
-        <label class="check"><input type="checkbox" id="regToggle"> Registration marks</label>
-        <button id="btnSvg" class="primary" title="Download SVG cut lines for Silhouette Studio">Download cut file (SVG)</button>
+      <div class="seg" id="cutModeSeg" style="width:100%;display:flex;margin-bottom:12px">
+        <button id="btnCutModeCameo" style="flex:1">Silhouette Cameo (Plotter)</button>
+        <button id="btnCutModeRotary" style="flex:1">Rotary Trimmer (Manual)</button>
       </div>
-      <details class="adv"><summary>Cameo tips &amp; alignment</summary>
-        <ul class="tips hint" style="padding-left:18px">
-          <li><b>Optical sensor masking:</b> On standard Letter landscape, cards crowd the registration marks by ~1.2 mm. If your Cameo fails to read the marks, place a small sticky note over the bottom-left card during the registration scan, then peel it off before cutting (from the Silhouette Card Maker guide).</li>
-          <li><b>Cut guides:</b> Set to <b>None</b> for Cameo cutting so rotary lines aren't printed on the cards.</li>
-          <li><b>Bleed:</b> 0.625 mm with 0 mm gap gives the exact 1.25 mm spacing matching Silhouette Card Maker.</li>
-          <li><b>Silhouette Studio:</b> Open the exported SVG, set page to Letter landscape, enable registration marks with 10 mm inset, and send to cut.</li>
-        </ul>
-      </details>
 
-      <h3 style="margin-top:20px">Rotary trimmer</h3>
-      <p class="hint">A paper trimmer and a 3 mm corner rounder cut cards cleanly in about 2 minutes per sheet.</p>
-      <div id="cutStatus"></div>
+      <div id="cameoSection">
+        <div class="cutter-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b>Silhouette Cameo 4 / 5 Plotter</b>
+            <span class="cutter-badge">Automated Cutting</span>
+          </div>
+          <p class="hint" style="margin:0 0 10px">Optical registration marks align the plotter to cut every card and 3 mm rounded corner automatically.</p>
+          <div id="cameoStatus"></div>
+          <div class="row" style="margin-top:10px">
+            <button id="btnSvg" class="primary" style="flex:1" title="Download SVG cut lines for Silhouette Studio">Download Cut File (SVG)</button>
+          </div>
+        </div>
+
+        <div class="cutter-card">
+          <b>ProxyJak 330gsm Cut Settings (Cameo 4/5)</b>
+          <table class="specs-tbl">
+            <tr><th>Blade Type</th><td>AutoBlade or 1mm Manual Blade</td></tr>
+            <tr><th>Blade Depth</th><td><b>7</b> (330gsm black core)</td></tr>
+            <tr><th>Force</th><td><b>33</b> (Maximum pressure)</td></tr>
+            <tr><th>Speed</th><td><b>20–25 mm/s</b></td></tr>
+            <tr><th>Passes</th><td><b>3–4 passes</b> (Prevents tearing on dense core)</td></tr>
+            <tr><th>Line Overcut</th><td>On (0.1 mm start / end)</td></tr>
+          </table>
+        </div>
+
+        <details class="adv" open><summary>Optical sensor masking trick</summary>
+          <ul class="tips hint" style="padding-left:18px">
+            <li><b>Sensor clearance:</b> On standard Letter landscape (8-up), the bottom-left card sits ~1.2 mm inside the Cameo optical sensor search margin.</li>
+            <li><b>The Post-It trick:</b> Place a small sticky note or scrap of white paper over the art of the bottom-left card while the Cameo scans registration marks. Once the marks are read successfully, peel off the sticky note before pressing Send to cut! (Tested from Silhouette Card Maker).</li>
+            <li><b>Cut guides:</b> Set to <b>None</b> for Cameo cutting so rotary lines aren't printed on the cards.</li>
+            <li><b>Bleed:</b> 0.625 mm with 0 mm gap gives the exact 1.25 mm spacing matching Silhouette Card Maker.</li>
+          </ul>
+        </details>
+
+        <details class="adv"><summary>Silhouette Studio 4-step workflow</summary>
+          <ol class="tips hint" style="padding-left:18px">
+            <li><b>Import:</b> In Silhouette Studio, click <i>File → Open</i> and select the downloaded <code>.svg</code>.</li>
+            <li><b>Center:</b> Set Page Size to <b>Letter Landscape</b> and center the cut lines to page.</li>
+            <li><b>Registration:</b> Turn on <b>Registration Marks</b> (Type 1), Inset: <b>10.0 mm</b>.</li>
+            <li><b>Send:</b> In the Send tab, select Material: <i>Coverstock - Heavy (or Cardstock)</i>, set Depth <b>7</b>, Force <b>33</b>, Passes <b>3–4</b>, and cut!</li>
+          </ol>
+        </details>
+      </div>
+
+      <div id="rotarySection">
+        <div class="cutter-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b>Rotary Trimmer &amp; Corner Rounder</b>
+            <span class="cutter-badge">Manual Trimming</span>
+          </div>
+          <p class="hint" style="margin:0 0 10px">A rotary trimmer and 3 mm corner rounder cut cards cleanly in about 2 minutes per sheet.</p>
+          <div id="cutStatus"></div>
+        </div>
+
+        <div class="cutter-card">
+          <b>Uniform Sizing Trick: Stop-Block Technique</b>
+          <p class="hint" style="margin:6px 0 0">Don't try to line up every card by eye! Build a physical stop on your trimmer fence:
+          stack painter's tape or clamp a wooden block at <b>88 mm</b> for horizontal strip cuts, and <b>63 mm</b> for card cuts.
+          Slide the paper strip against the stop block before each stroke: every card will be cut to the exact identical size within 0.1 mm.</p>
+        </div>
       <details class="adv"><summary>Before you cut (steps 1–2)</summary>
       <h3>1 · Set up the sheet</h3>
       <ul class="tips hint" style="padding-left:18px">
@@ -457,6 +515,7 @@ details.adv:not([open]){padding-bottom:10px}
         <li>Check your first card against a real one. The corners should sit exactly on top of each other.</li>
       </ul>
       </details>
+      </div>
     </div>
 
     <div class="pane" id="tab-order">
@@ -3094,24 +3153,6 @@ function renderSettings() {
   html = `<div class="sum"><b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${s.dfcMode === 'duplex' || s.backs ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span></div>` + html;
 
-  html += `<h3>Cutting setup</h3>
-    <div class="row" style="margin-bottom:10px">
-      <button type="button" class="preset ${s.silhouette ? 'active' : ''}" data-cutpreset="cameo" style="flex:1;cursor:pointer;text-align:left;display:block">
-        <div style="font-weight:600;display:flex;align-items:center;justify-content:space-between">
-          <span>Silhouette Cameo</span>
-          ${s.silhouette ? '<span class="tag">Active</span>' : ''}
-        </div>
-        <div class="hint" style="font-size:11px;margin-top:2px">Plotter cut · 8 cards · 0.625 mm bleed · Optical registration marks</div>
-      </button>
-      <button type="button" class="preset ${!s.silhouette ? 'active' : ''}" data-cutpreset="rotary" style="flex:1;cursor:pointer;text-align:left;display:block">
-        <div style="font-weight:600;display:flex;align-items:center;justify-content:space-between">
-          <span>Rotary trimmer / Scissors</span>
-          ${!s.silhouette ? '<span class="tag">Active</span>' : ''}
-        </div>
-        <div class="hint" style="font-size:11px;margin-top:2px">Manual cut · Margin lines + corners · Auto-fit bleed</div>
-      </button>
-    </div>`;
-
   html += block(false);
   html += `<details class="adv" ${S.advOpen ? 'open' : ''}><summary>Advanced layout settings${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
 
@@ -3135,43 +3176,6 @@ $('#settingsForm').addEventListener('toggle', ev => {
   if (ev.target.classList.contains('adv')) { S.advOpen = ev.target.open; save(); }
 }, true);
 $('#settingsForm').addEventListener('click', ev => {
-  const cp = ev.target.closest('[data-cutpreset]');
-  if (cp) {
-    const mode = cp.dataset.cutpreset;
-    if (mode === 'cameo') {
-      const isA4 = S.settings.pageSize === 'a4';
-      Object.assign(S.settings, {
-        pageSize: isA4 ? 'a4' : 'letter',
-        orientation: 'landscape',
-        cardRotation: 'upright',
-        cols: 4,
-        rows: 2,
-        bleed: 0.625,
-        gap: 0,
-        margin: 10,
-        guides: 'none',
-        silhouette: true,
-        regPattern: 3,
-        regInset: 10,
-        regLen: 0,
-        regThickness: 1,
-        showCuts: false
-      });
-      S.showCuts = false;
-      toast('Set up for Silhouette Cameo: 8 cards on landscape with registration marks.');
-    } else {
-      S.settings.silhouette = false;
-      S.settings.showCuts = false;
-      S.showCuts = false;
-      S.settings.guides = 'both';
-      S.settings.guideLen = 3;
-      S.settings.guideWidth = 0.3;
-      S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
-      toast('Set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
-    }
-    S.activePreset = null; save(); renderAll();
-    return;
-  }
   if (ev.target.hasAttribute('data-advreset')) {
     if (!confirm('Reset all advanced settings (calibration included) to defaults?')) return;
     for (const k of ADV_KEYS) S.settings[k] = DEFAULTS[k];
@@ -3277,7 +3281,8 @@ async function drawPreview() {
     for (const back of sides) {
       const T = makeT(L, back), el = document.createElement('div');
       el.className = 'pg'; el.style.width = L.W*z + 'px'; el.style.height = L.H*z + 'px';
-      el.innerHTML = `<span class="lbl">Page ${pi + 1}${back ? ' · back' : ''}</span>`;
+      const backNote = back ? (L.W > L.H ? ' · back (inverted 180° for long-edge feed)' : ' · back') : '';
+      el.innerHTML = `<span class="lbl">Page ${pi + 1}${backNote}</span>`;
       page.forEach((slot, i) => {
         const face = back ? slot.back : slot.front; if (!face) return;
         const p = slotPos(L, i, back), im = document.createElement('img');
@@ -3455,127 +3460,38 @@ async function exportPDF(skipWizard = false) {
   if (done) showPostExportInstructions(pages.length, {hasBacks, cutter: s.silhouette ? 'cameo' : 'rotary'});
 }
 
-function openExportWizard() {
+function openExportWizard(initialStep = 1) {
   if (!window.jspdf) return toast('PDF library failed to load. Check your connection and reload the page.', 6000);
   const slots = buildSlots();
-  if (!slots.length) return toast('Add some cards first.');
+  if (!slots.length && initialStep !== 4) return toast('Add some cards first.');
   const s = S.settings;
-  const isLandscape = s.orientation === 'landscape';
-  const isCameo = !!s.silhouette;
-  const duplexMethod = s.duplexMethod || 'manual';
-  const isSingleSided = s.dfcMode === 'front' && !s.backs;
 
-  const html = `
-    <div class="hd"><b>Export PDF · Print &amp; Cut Setup</b><button data-close>Cancel</button></div>
-    <div class="bd export-wizard">
-      <p class="hint" style="margin-bottom:14px">Set up your print run for <b>ProxyJak 330gsm black-core cardstock</b>. Proxy Press will configure your layout, export the PDF, and provide exact next-step printing and cutting instructions.</p>
+  let curStep = initialStep;
+  let chosenOrient = s.orientation || 'landscape';
+  let chosenDuplex = (s.dfcMode === 'front' && !s.backs) ? 'fronts' : (s.duplexMethod === 'auto' ? 'auto' : 'manual');
+  let chosenCutter = s.silhouette ? 'cameo' : 'rotary';
 
-      <div class="wizard-step">
-        <label class="wizard-lbl">1. Layout &amp; Sheet Orientation</label>
-        <div class="wizard-choices">
-          <label class="wizard-opt ${isLandscape ? 'selected' : ''}">
-            <input type="radio" name="wizOrient" value="landscape" ${isLandscape ? 'checked' : ''}>
-            <div>
-              <b>Landscape (4×2 = 8 cards per sheet)</b>
-              <span>Required for Silhouette Cameo · recommended for heavy 330gsm cardstock to avoid paper curl</span>
-            </div>
-          </label>
-          <label class="wizard-opt ${!isLandscape ? 'selected' : ''}">
-            <input type="radio" name="wizOrient" value="portrait" ${!isLandscape ? 'checked' : ''}>
-            <div>
-              <b>Portrait (3×3 = 9 cards per sheet)</b>
-              <span>Maximum yield for rotary trimmer or hand cutting</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <div class="wizard-step">
-        <label class="wizard-lbl">2. Double-Sided Printing (Duplex)</label>
-        <div class="wizard-choices">
-          <label class="wizard-opt ${duplexMethod === 'manual' && !isSingleSided ? 'selected' : ''}">
-            <input type="radio" name="wizDuplex" value="manual" ${duplexMethod === 'manual' && !isSingleSided ? 'checked' : ''}>
-            <div>
-              <b>Re-feed by hand (Recommended for ProxyJak 330gsm)</b>
-              <span>Prints fronts first, then backs. Essential for 330gsm stock which jams in automatic duplexers.</span>
-            </div>
-          </label>
-          <label class="wizard-opt ${duplexMethod === 'auto' && !isSingleSided ? 'selected' : ''}">
-            <input type="radio" name="wizDuplex" value="auto" ${duplexMethod === 'auto' && !isSingleSided ? 'checked' : ''}>
-            <div>
-              <b>Automatic duplex (both sides at once)</b>
-              <span>Only for lightweight paper or printers with heavy-duty duplex units.</span>
-            </div>
-          </label>
-          <label class="wizard-opt ${isSingleSided ? 'selected' : ''}">
-            <input type="radio" name="wizDuplex" value="fronts" ${isSingleSided ? 'checked' : ''}>
-            <div>
-              <b>Front faces only (Single-sided)</b>
-              <span>No back pages. Best if sleeving proxies with real card backs.</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <div class="wizard-step">
-        <label class="wizard-lbl">3. Cutting Tool</label>
-        <div class="wizard-choices">
-          <label class="wizard-opt ${isCameo ? 'selected' : ''}">
-            <input type="radio" name="wizCutter" value="cameo" ${isCameo ? 'checked' : ''}>
-            <div>
-              <b>Silhouette Cameo (cutting plotter)</b>
-              <span>Auto-configures 0.625 mm bleed, optical registration marks, and disables printed cut lines.</span>
-            </div>
-          </label>
-          <label class="wizard-opt ${!isCameo ? 'selected' : ''}">
-            <input type="radio" name="wizCutter" value="rotary" ${!isCameo ? 'checked' : ''}>
-            <div>
-              <b>Rotary Trimmer / Craft Knife</b>
-              <span>Auto-configures margin cut lines + corner marks and optimizes bleed for clean manual cuts.</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:16px;justify-content:flex-end;gap:8px">
-        <button data-close>Cancel</button>
-        <button class="primary" id="wizExportBtn">Generate &amp; Download PDF</button>
-      </div>
-    </div>
-  `;
-  openModal(html);
-
-  const modal = $('#modal');
-  modal.querySelectorAll('input[type="radio"]').forEach(r => {
-    r.addEventListener('change', () => {
-      const step = r.closest('.wizard-step');
-      step.querySelectorAll('.wizard-opt').forEach(opt => opt.classList.remove('selected'));
-      r.closest('.wizard-opt').classList.add('selected');
-    });
-  });
-
-  const btn = $('#wizExportBtn');
-  if (btn) btn.onclick = async () => {
-    const orient = modal.querySelector('input[name="wizOrient"]:checked')?.value || 'landscape';
-    const duplex = modal.querySelector('input[name="wizDuplex"]:checked')?.value || 'manual';
-    const cutter = modal.querySelector('input[name="wizCutter"]:checked')?.value || 'cameo';
-
-    if (cutter === 'cameo') {
-      s.silhouette = true;
-      s.guides = 'none';
-      s.showCuts = false;
+  function applyWizardSettings() {
+    if (chosenCutter === 'cameo') {
+      const isA4 = s.pageSize === 'a4';
+      Object.assign(s, {
+        pageSize: isA4 ? 'a4' : 'letter',
+        orientation: 'landscape',
+        cardRotation: 'upright',
+        cols: 4,
+        rows: 2,
+        bleed: 0.625,
+        gap: 0,
+        margin: 10,
+        guides: 'none',
+        silhouette: true,
+        regPattern: 3,
+        regInset: 10,
+        regLen: 0,
+        regThickness: 1,
+        showCuts: false
+      });
       S.showCuts = false;
-      s.bleed = 0.625;
-      s.gap = 0;
-      s.margin = 10;
-      s.regPattern = 3;
-      s.regInset = 10;
-      s.regLen = 0;
-      s.regThickness = 1;
-      s.orientation = 'landscape';
-      s.cols = 4;
-      s.rows = 2;
-      s.cardRotation = 'upright';
     } else {
       s.silhouette = false;
       s.showCuts = false;
@@ -3583,8 +3499,8 @@ function openExportWizard() {
       s.guides = 'both';
       s.guideLen = 3;
       s.guideWidth = 0.3;
-      s.orientation = orient;
-      if (orient === 'portrait') {
+      s.orientation = chosenOrient;
+      if (chosenOrient === 'portrait') {
         s.cols = 0; s.rows = 0; s.cardRotation = 'auto';
       } else {
         s.cols = 4; s.rows = 2; s.cardRotation = 'upright';
@@ -3592,10 +3508,10 @@ function openExportWizard() {
       s.bleed = Math.max(s.bleed, bestCutBleed());
     }
 
-    if (duplex === 'fronts') {
+    if (chosenDuplex === 'fronts') {
       s.dfcMode = 'front';
       s.backs = false;
-    } else if (duplex === 'auto') {
+    } else if (chosenDuplex === 'auto') {
       s.dfcMode = 'duplex';
       s.duplexMethod = 'auto';
       s.duplexFlip = 'long';
@@ -3608,9 +3524,267 @@ function openExportWizard() {
     S.activePreset = null;
     save();
     renderAll();
-    closeModal();
-    await exportPDF(true);
-  };
+  }
+
+  function renderModal() {
+    const isLandscape = chosenOrient === 'landscape';
+    const isCameo = chosenCutter === 'cameo';
+    const isSingleSided = chosenDuplex === 'fronts';
+    const sheets = Math.ceil(slots.length / (layout().per || 8));
+
+    let body = '';
+    let foot = '';
+
+    if (curStep === 1) {
+      body = `
+        <div class="wizard-step">
+          <label class="wizard-lbl">1. Sheet Orientation &amp; Layout</label>
+          <div class="wizard-choices">
+            <label class="wizard-opt ${isLandscape ? 'selected' : ''}">
+              <input type="radio" name="wizOrient" value="landscape" ${isLandscape ? 'checked' : ''}>
+              <div>
+                <b>Landscape (4×2 = 8 cards per sheet)</b>
+                <span>Required for Silhouette Cameo optical registration. Recommended for ProxyJak 330gsm to prevent paper curl.</span>
+              </div>
+            </label>
+            <label class="wizard-opt ${!isLandscape ? 'selected' : ''}">
+              <input type="radio" name="wizOrient" value="portrait" ${!isLandscape ? 'checked' : ''}>
+              <div>
+                <b>Portrait (3×3 = 9 cards per sheet)</b>
+                <span>Maximum card yield (9 cards per sheet). Ideal for rotary trimmer or hand cutting.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      `;
+      foot = `
+        <button data-close>Cancel</button>
+        <button class="primary" id="btnWizNext">Next: Duplex Printing →</button>
+      `;
+    } else if (curStep === 2) {
+      body = `
+        <div class="wizard-step">
+          <label class="wizard-lbl">2. Double-Sided Printing Method</label>
+          <div class="wizard-choices">
+            <label class="wizard-opt ${chosenDuplex === 'manual' ? 'selected' : ''}">
+              <input type="radio" name="wizDuplex" value="manual" ${chosenDuplex === 'manual' ? 'checked' : ''}>
+              <div>
+                <b>Manual Re-feed by Hand (Recommended for ProxyJak 330gsm)</b>
+                <span>Prints fronts first, then backs on second pass. Essential for heavy 330gsm black core which jams automatic duplexers.</span>
+              </div>
+            </label>
+            <label class="wizard-opt ${chosenDuplex === 'auto' ? 'selected' : ''}">
+              <input type="radio" name="wizDuplex" value="auto" ${chosenDuplex === 'auto' ? 'checked' : ''}>
+              <div>
+                <b>Automatic Duplex (Both sides at once)</b>
+                <span>Only for lightweight copy paper or printers with heavy-duty duplex units.</span>
+              </div>
+            </label>
+            <label class="wizard-opt ${chosenDuplex === 'fronts' ? 'selected' : ''}">
+              <input type="radio" name="wizDuplex" value="fronts" ${chosenDuplex === 'fronts' ? 'checked' : ''}>
+              <div>
+                <b>Front Faces Only (Single-sided)</b>
+                <span>No back pages. Best if sleeving proxies with opaque sleeves or real Magic card backs.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      `;
+      foot = `
+        <button id="btnWizPrev">← Back</button>
+        <button class="primary" id="btnWizNext">Next: Cutting Tool →</button>
+      `;
+    } else if (curStep === 3) {
+      body = `
+        <div class="wizard-step">
+          <label class="wizard-lbl">3. Cutting Tool &amp; Alignment</label>
+          <div class="wizard-choices">
+            <label class="wizard-opt ${isCameo ? 'selected' : ''}">
+              <input type="radio" name="wizCutter" value="cameo" ${isCameo ? 'checked' : ''}>
+              <div>
+                <b>Silhouette Cameo (Cutting Plotter)</b>
+                <span>Auto-configures 0.625 mm bleed, Cameo optical registration marks, and disables printed cut lines. Generates matching SVG cut file.</span>
+              </div>
+            </label>
+            <label class="wizard-opt ${!isCameo ? 'selected' : ''}">
+              <input type="radio" name="wizCutter" value="rotary" ${!isCameo ? 'checked' : ''}>
+              <div>
+                <b>Rotary Trimmer / Scissors (Manual Cutting)</b>
+                <span>Auto-configures margin cut lines + corner marks and optimizes bleed for clean manual slicing.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      `;
+      foot = `
+        <button id="btnWizPrev">← Back</button>
+        <button id="btnWizSkipGuide" title="View print &amp; cut guide without generating PDF">View Guide</button>
+        <button class="primary" id="btnWizExport">Generate &amp; Download PDF</button>
+      `;
+    } else {
+      // Step 4: Active Operator Guide
+      const printGuide = isSingleSided ? `
+        <p class="hint">Print on <b>ProxyJak 330gsm black-core cardstock</b> from the multipurpose/bypass tray.</p>
+        <ol class="steps">
+          <li><b>Print at 100% scale:</b> Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), <b>not directly in your browser</b>. Select <b>Actual size</b> or <b>100% scale</b>. Never use "Fit to printable area" (it shrinks cards and misaligns cuts).</li>
+          <li><b>Printer Paper Type:</b> In your printer driver, set media type to <b>Coated 3</b>, <b>Heavy 3</b>, or <b>Thick Cardstock (151–200+ gsm)</b>. High fusing heat is essential so toner bonds permanently to ProxyJak 330gsm stock without flaking.</li>
+          <li><b>Feed Tray:</b> Always feed ProxyJak 330gsm from the <b>Multipurpose / Bypass Tray (Tray 1)</b> for a straight, flat paper path. Never feed 330gsm stock from the bottom drawer cassette.</li>
+        </ol>
+      ` : backStepsHtml(sheets);
+
+      const cameoCutGuide = `
+        <div class="callout-box" style="margin-top:0">
+          <b>Silhouette Studio &amp; Cameo 4/5 Setup</b>
+          <p class="hint" style="margin:4px 0 8px">Optical registration marks align the plotter to cut every card and 3 mm rounded corner automatically.</p>
+          <button class="primary" id="btnGuideSvg">Download Cut File (SVG)</button>
+        </div>
+        <ol class="steps" style="margin-top:12px">
+          <li><b>Mat Placement:</b> Place your printed ProxyJak 330gsm sheet squarely in the <b>top-left corner</b> of your cutting mat, aligned with the grid lines. Firmly press the sheet down using a brayer or roller so thick cardstock does not slip during cutting.</li>
+          <li><b>Optical Sensor Masking Trick:</b> On standard Letter landscape, cards sit close (~1.2 mm) to the registration mark zone. If your Cameo optical sensor fails to read the marks:
+            <div class="hint" style="margin:4px 0;padding-left:6px;border-left:2px solid var(--accent)">
+              Place a small <b>sticky note (Post-It note)</b> over the bottom-left card (card #5) during the registration mark scanning phase. The sticky note conceals dark artwork so the sensor detects the marks instantly. <b>Peel the sticky note off immediately after scanning finishes before cutting begins!</b>
+            </div>
+          </li>
+          <li><b>Recommended Cut Settings for ProxyJak 330gsm Black Core:</b>
+            <table class="specs-tbl" style="margin:8px 0">
+              <tr><th>Blade Type</th><td>Autoblade or 1 mm Manual Blade</td></tr>
+              <tr><th>Blade Depth</th><td><b>7</b></td></tr>
+              <tr><th>Force</th><td><b>33</b> (maximum)</td></tr>
+              <tr><th>Speed</th><td><b>20–25 mm/s</b></td></tr>
+              <tr><th>Passes</th><td><b>3 to 4 passes</b> (ProxyJak 330gsm black core is dense; 3-4 passes cut clean without tearing)</td></tr>
+              <tr><th>Line Overcut</th><td>On (0.1 mm)</td></tr>
+            </table>
+          </li>
+          <li><b>Silhouette Studio Job Setup:</b> In Silhouette Studio, set Page Size to <b>Letter Landscape</b> (or A4 Landscape), enable Registration Marks with <b>10 mm Inset</b>, import the SVG cut lines, and send to cut.</li>
+        </ol>
+      `;
+
+      const rotaryCutGuide = `
+        <div class="callout-box" style="margin-top:0">
+          <b>Rotary Trimmer &amp; Manual Cutting Setup</b>
+          <p class="hint" style="margin:4px 0 0">Follow this sequence to ensure 100% uniform card dimensions and clean 3 mm rounded corners.</p>
+        </div>
+        <ol class="steps" style="margin-top:12px">
+          <li><b>The Secret to Uniform Card Dimensions (Physical Stop-Block Trick):</b>
+            <p class="hint">Never measure cards individually by hand. Clamp or tape a solid square stop-block onto your trimmer fence at exactly <b>88 mm</b> (card height) and <b>63 mm</b> (card width). Pushing strips against a fixed stop-block guarantees every single card in your deck is identical in size.</p>
+          </li>
+          <li><b>Step 1 · Trim the Outer Margins:</b> Line up the trimmer blade with the black margin tick lines in the page margins and trim off the four outer white borders.</li>
+          <li><b>Step 2 · Slice Columns into Strips:</b> Cut along the vertical margin ticks to divide the sheet into vertical columns. Each strip will be exactly 63 mm wide.</li>
+          <li><b>Step 3 · Cross-Cut Strips into Cards:</b> Slide each vertical strip against your <b>88 mm stop block</b> and cross-cut between the corner marks. Trim off and discard the narrow bleed strip between cards.</li>
+          <li><b>Step 4 · Round the Corners (3 mm Radius):</b>
+            <ul class="tips hint" style="padding-left:16px;margin-top:4px">
+              <li>Use a <b>Sun-Star Kadomaru Pro</b> corner punch on the <b>"S" 3 mm</b> setting (matching authentic MTG/TCG corner radii).</li>
+              <li>Push each card firmly into <b>both guide walls</b> before pressing to avoid lopsided corners.</li>
+              <li>Punch with the card <b>face up</b> so the blade shears cleanly down and leaves any microscopic burr on the back.</li>
+            </ul>
+          </li>
+        </ol>
+      `;
+
+      body = `
+        <div class="guide-tabs">
+          <button type="button" class="guide-tab-btn active" id="gTabPrint">1. Printing &amp; Paper Flip</button>
+          <button type="button" class="guide-tab-btn" id="gTabCut">2. Cutting Station (${isCameo ? 'Silhouette Cameo' : 'Rotary Trimmer'})</button>
+        </div>
+        <div id="gPanePrint" class="ptab-content">${printGuide}</div>
+        <div id="gPaneCut" class="ptab-content" style="display:none">${isCameo ? cameoCutGuide : rotaryCutGuide}</div>
+      `;
+      foot = `
+        <button class="primary" data-close>Close Guide</button>
+      `;
+    }
+
+    const html = `
+      <div class="hd">
+        <b>${curStep === 4 ? 'Print &amp; Cut Operator Guide' : 'Print &amp; Cut Wizard'}</b>
+        <button data-close>✕</button>
+      </div>
+      <div class="bd export-wizard">
+        <div class="wiz-bar">
+          <button type="button" class="wiz-bar-step ${curStep === 1 ? 'active' : (curStep > 1 ? 'done' : '')}" data-step="1">1. Layout</button>
+          <button type="button" class="wiz-bar-step ${curStep === 2 ? 'active' : (curStep > 2 ? 'done' : '')}" data-step="2">2. Duplex</button>
+          <button type="button" class="wiz-bar-step ${curStep === 3 ? 'active' : (curStep > 3 ? 'done' : '')}" data-step="3">3. Cutting</button>
+          <button type="button" class="wiz-bar-step ${curStep === 4 ? 'active' : ''}" data-step="4">4. Guide</button>
+        </div>
+        ${body}
+        <div class="row" style="margin-top:16px;justify-content:flex-end;gap:8px">
+          ${foot}
+        </div>
+      </div>
+    `;
+
+    openModal(html);
+
+    const modal = $('#modal');
+
+    // Step bar clicking
+    modal.querySelectorAll('.wiz-bar-step').forEach(btn => {
+      btn.onclick = () => {
+        curStep = +btn.dataset.step;
+        renderModal();
+      };
+    });
+
+    // Option cards selection
+    modal.querySelectorAll('input[type="radio"]').forEach(r => {
+      r.addEventListener('change', () => {
+        const step = r.closest('.wizard-step');
+        step.querySelectorAll('.wizard-opt').forEach(opt => opt.classList.remove('selected'));
+        r.closest('.wizard-opt').classList.add('selected');
+        if (r.name === 'wizOrient') chosenOrient = r.value;
+        if (r.name === 'wizDuplex') chosenDuplex = r.value;
+        if (r.name === 'wizCutter') chosenCutter = r.value;
+      });
+    });
+
+    // Navigation buttons
+    const prev = $('#btnWizPrev');
+    if (prev) prev.onclick = () => { curStep = Math.max(1, curStep - 1); renderModal(); };
+
+    const next = $('#btnWizNext');
+    if (next) next.onclick = () => { curStep = Math.min(4, curStep + 1); renderModal(); };
+
+    const skipGuide = $('#btnWizSkipGuide');
+    if (skipGuide) skipGuide.onclick = () => { applyWizardSettings(); curStep = 4; renderModal(); };
+
+    const exportBtn = $('#btnWizExport');
+    if (exportBtn) exportBtn.onclick = async () => {
+      applyWizardSettings();
+      closeModal();
+      await exportPDF(true);
+    };
+
+    // Guide tabs
+    const gTabPrint = $('#gTabPrint');
+    const gTabCut = $('#gTabCut');
+    if (gTabPrint && gTabCut) {
+      gTabPrint.onclick = () => {
+        gTabPrint.classList.add('active');
+        gTabCut.classList.remove('active');
+        $('#gPanePrint').style.display = 'block';
+        $('#gPaneCut').style.display = 'none';
+      };
+      gTabCut.onclick = () => {
+        gTabCut.classList.add('active');
+        gTabPrint.classList.remove('active');
+        $('#gPaneCut').style.display = 'block';
+        $('#gPanePrint').style.display = 'none';
+      };
+    }
+
+    const gSvgBtn = $('#btnGuideSvg');
+    if (gSvgBtn) gSvgBtn.onclick = () => downloadCutSvg();
+  }
+
+  renderModal();
+}
+
+function showPostExportInstructions(sheets, {hasBacks, cutter}) {
+  openExportWizard(4);
+}
+
+function showBackSteps(sheets) {
+  openExportWizard(4);
 }
 
 function backStepsHtml(sheets) {
@@ -3633,112 +3807,6 @@ function backStepsHtml(sheets) {
   </ol>
   <p class="hint">${L.W > L.H ? 'This is a landscape layout, so the sheet comes out of the printer with the cards sideways on it. Turning it over ' + t.axis + ' as the cards are printed means turning the paper over along its ' + (t.sameEdge ? 'long' : 'short') + ' edge. ' : ''}If the backs come out mirrored or upside down rather than slightly off, the sheet was turned the other way: either turn it the other way or switch <b>Double-sided flip</b> under Layout to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again.</p>
   <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.</p>`;
-}
-
-function showPostExportInstructions(sheets, {hasBacks, cutter}) {
-  const s = S.settings, L = layout(), t = duplexTurn(L);
-  const isCameo = cutter === 'cameo';
-
-  let printSteps = '';
-  if (!hasBacks) {
-    printSteps = `
-      <p class="hint">Print on <b>ProxyJak 330gsm black-core cardstock</b> from the multipurpose/bypass tray.</p>
-      <ol class="steps">
-        <li><b>Print at 100% scale:</b> Open the exported PDF in a dedicated PDF application (Adobe Acrobat, Preview, or system PDF viewer), <b>not directly in your browser</b>. Select <b>Actual size</b> or <b>100% scale</b>. Never use "Fit to printable area" or "Shrink oversized pages" (this shrinks the cards and misaligns cuts).</li>
-        <li><b>Printer Paper Type:</b> In your printer driver, set the media type to <b>Coated 3</b>, <b>Heavy 3</b>, or <b>Thick Cardstock (151–200+ gsm)</b>. High fusing heat is essential so toner bonds permanently to ProxyJak 330gsm stock without flaking.</li>
-        <li><b>Feed Tray:</b> Always feed ProxyJak 330gsm from the <b>Multipurpose / Bypass Tray (Tray 1)</b> for a straight, flat paper path. Never feed 330gsm stock from the bottom drawer cassette.</li>
-      </ol>
-    `;
-  } else {
-    printSteps = backStepsHtml(sheets);
-  }
-
-  let cutSteps = '';
-  if (isCameo) {
-    cutSteps = `
-      <div class="callout-box" style="margin-top:0">
-        <b>Silhouette Studio &amp; Cameo 4/5 Setup</b>
-        <p class="hint" style="margin:4px 0 8px">Optical registration marks align the plotter to cut every card and 3 mm rounded corner automatically.</p>
-        <button class="primary" id="postExportSvgBtn">Download Cut File (SVG)</button>
-      </div>
-
-      <ol class="steps" style="margin-top:12px">
-        <li><b>Mat Placement:</b> Place your printed ProxyJak 330gsm sheet squarely in the <b>top-left corner</b> of your cutting mat, aligned with the grid lines. Firmly press the sheet down using a brayer or roller so thick cardstock does not slip during cutting.</li>
-        <li><b>Optical Sensor Masking Trick:</b> On standard Letter landscape, cards sit close (~1.2 mm) to the registration mark zone. If your Cameo optical sensor fails to read the marks:
-          <div class="hint" style="margin:4px 0;padding-left:6px;border-left:2px solid var(--accent)">
-            Place a small <b>sticky note (Post-It note)</b> over the bottom-left card (card #5) during the registration mark scanning phase. The sticky note conceals dark artwork so the sensor detects the marks instantly. <b>Peel the sticky note off immediately after scanning finishes before cutting begins!</b>
-          </div>
-        </li>
-        <li><b>Recommended Cut Settings for ProxyJak 330gsm Black Core:</b>
-          <table class="drv" style="margin:8px 0">
-            <tr><th>Blade Type</th><td>Autoblade or 1 mm Manual Blade</td></tr>
-            <tr><th>Blade Depth</th><td><b>7</b></td></tr>
-            <tr><th>Force</th><td><b>33</b> (maximum)</td></tr>
-            <tr><th>Speed</th><td><b>20–25</b></td></tr>
-            <tr><th>Passes</th><td><b>3 to 4 passes</b> (ProxyJak 330gsm black core is dense; 3 passes often cuts clean, 4 passes ensures complete cut without tearing)</td></tr>
-          </table>
-        </li>
-        <li><b>Silhouette Studio Job Setup:</b> In Silhouette Studio, set Page Size to <b>Letter Landscape</b> (or A4 Landscape), enable Registration Marks with <b>10 mm Inset</b>, import the SVG cut lines, and send to cut.</li>
-      </ol>
-    `;
-  } else {
-    cutSteps = `
-      <div class="callout-box" style="margin-top:0">
-        <b>Rotary Trimmer &amp; Manual Cutting Setup</b>
-        <p class="hint" style="margin:4px 0 0">Follow this sequence to ensure 100% uniform card dimensions and clean 3 mm rounded corners.</p>
-      </div>
-
-      <ol class="steps" style="margin-top:12px">
-        <li><b>The Secret to Uniform Card Dimensions (Physical Stop-Block Trick):</b>
-          <p class="hint">Never measure cards individually by hand. Clamp or tape a solid square stop-block onto your trimmer fence at exactly <b>88 mm</b> (card height) and <b>63 mm</b> (card width). Pushing strips against a fixed stop-block guarantees every single card in your deck is identical in size.</p>
-        </li>
-        <li><b>Step 1 · Trim the Outer Margins:</b> Line up the trimmer blade with the black margin tick lines in the page margins and trim off the four outer white borders.</li>
-        <li><b>Step 2 · Slice Columns into Strips:</b> Cut along the vertical margin ticks to divide the sheet into vertical columns. Each strip will be exactly 63 mm wide.</li>
-        <li><b>Step 3 · Cross-Cut Strips into Cards:</b> Slide each vertical strip against your <b>88 mm stop block</b> and cross-cut between the corner marks. Trim off and discard the narrow bleed strip between cards.</li>
-        <li><b>Step 4 · Round the Corners (3 mm Radius):</b>
-          <ul class="tips hint" style="padding-left:16px;margin-top:4px">
-            <li>Use a <b>Sun-Star Kadomaru Pro</b> corner punch on the <b>"S" 3 mm</b> setting (matching authentic MTG/TCG corner radii).</li>
-            <li>Push each card firmly into <b>both guide walls</b> before pressing to avoid lopsided corners.</li>
-            <li>Punch with the card <b>face up</b> so the blade shears cleanly down and leaves any microscopic burr on the back.</li>
-          </ul>
-        </li>
-      </ol>
-    `;
-  }
-
-  const html = `
-    <div class="hd"><b>PDF Exported · Next Steps</b><button data-close>Close</button></div>
-    <div class="bd post-export-dialog">
-      <div class="guide-tabs">
-        <button type="button" class="guide-tab-btn active" data-ptab="print">1. Printing Guide (ProxyJak 330gsm)</button>
-        <button type="button" class="guide-tab-btn" data-ptab="cut">2. Cutting Guide (${isCameo ? 'Silhouette Cameo' : 'Rotary Trimmer'})</button>
-      </div>
-      <div id="pTabContentPrint" class="ptab-content">${printSteps}</div>
-      <div id="pTabContentCut" class="ptab-content" style="display:none">${cutSteps}</div>
-      <div class="row" style="margin-top:16px;justify-content:flex-end">
-        <button class="primary" data-close>Done</button>
-      </div>
-    </div>
-  `;
-  openModal(html);
-
-  const modal = $('#modal');
-  modal.querySelectorAll('.guide-tab-btn').forEach(btn => {
-    btn.onclick = () => {
-      modal.querySelectorAll('.guide-tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.dataset.ptab;
-      modal.querySelector('#pTabContentPrint').style.display = tab === 'print' ? 'block' : 'none';
-      modal.querySelector('#pTabContentCut').style.display = tab === 'cut' ? 'block' : 'none';
-    };
-  });
-
-  const svgBtn = modal.querySelector('#postExportSvgBtn');
-  if (svgBtn) svgBtn.onclick = () => downloadCutSvg();
-}
-
-function showBackSteps(sheets) {
-  showPostExportInstructions(sheets, {hasBacks: true, cutter: S.settings.silhouette ? 'cameo' : 'rotary'});
 }
 
 $('#btnPdf').onclick = () => openExportWizard();
@@ -3811,6 +3879,7 @@ function downloadCutSvg() {
   if (!s.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
 }
 $('#btnSvg').onclick = downloadCutSvg;
+if ($('#btnGuide')) $('#btnGuide').onclick = () => openExportWizard(4);
 
 /* ---------- backup ---------- */
 function download(blob, name) {
@@ -3887,7 +3956,7 @@ function bestCutBleed() {
   s.bleed = cur;
   return Math.max(best, Math.min(cur, 3));
 }
-$('#regToggle').onchange = ev => {
+if ($('#regToggle')) $('#regToggle').onchange = ev => {
   S.settings.silhouette = ev.target.checked;
   if (S.settings.silhouette) {
     S.settings.guides = 'none';
@@ -3899,6 +3968,49 @@ $('#regToggle').onchange = ev => {
 };
 function renderCutStatus() {
   const s = S.settings, L = layout();
+
+  const btnCameo = $('#btnCutModeCameo');
+  const btnRotary = $('#btnCutModeRotary');
+  const cameoSec = $('#cameoSection');
+  const rotarySec = $('#rotarySection');
+  if (btnCameo && btnRotary) {
+    btnCameo.classList.toggle('on', !!s.silhouette);
+    btnRotary.classList.toggle('on', !s.silhouette);
+    if (cameoSec) cameoSec.style.display = s.silhouette ? 'block' : 'none';
+    if (rotarySec) rotarySec.style.display = s.silhouette ? 'none' : 'block';
+
+    btnCameo.onclick = () => {
+      const isA4 = s.pageSize === 'a4';
+      Object.assign(S.settings, {
+        pageSize: isA4 ? 'a4' : 'letter',
+        orientation: 'landscape',
+        cardRotation: 'upright',
+        cols: 4,
+        rows: 2,
+        bleed: 0.625,
+        gap: 0,
+        margin: 10,
+        guides: 'none',
+        silhouette: true,
+        regPattern: 3,
+        regInset: 10,
+        regLen: 0,
+        regThickness: 1,
+        showCuts: false
+      });
+      S.showCuts = false;
+      S.activePreset = null; save(); renderAll(); toast('Switched to Silhouette Cameo mode (8 cards landscape + registration marks).');
+    };
+    btnRotary.onclick = () => {
+      S.settings.silhouette = false;
+      S.settings.showCuts = false;
+      S.showCuts = false;
+      Object.assign(S.settings, {guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
+      S.settings.bleed = Math.max(S.settings.bleed, bestCutBleed());
+      S.activePreset = null; save(); renderAll(); toast('Switched to Rotary Trimmer mode (margin guides + corner marks).');
+    };
+  }
+
   const cEl = $('#cameoStatus');
   if (cEl) {
     if ($('#regToggle')) $('#regToggle').checked = !!s.silhouette;
