@@ -117,6 +117,8 @@ h3:first-child{margin-top:2px}
 #ctx button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px}
 #ctx button:hover{background:var(--panel2)}
 .pg img{cursor:pointer}
+#pages img[data-copy]{touch-action:manipulation;user-select:none;-webkit-touch-callout:none}
+#stage > #cardSelection{margin:0 0 24px}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
 #mbar{display:none}
@@ -143,6 +145,9 @@ h3:first-child{margin-top:2px}
   #ctx button{padding:11px 12px;font-size:15px}
   #toast{bottom:72px}
   .card{grid-template-columns:44px 1fr auto}
+  #cardSelection button{min-height:44px}
+  .card [data-act="select"]{min-width:22px;min-height:22px}
+  .card .more{min-width:44px;min-height:44px}
 }
 .mana-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .mana-grid[hidden]{display:none}
@@ -2037,7 +2042,10 @@ function syncCardSelection() {
   if (selectionDeck !== S.deckId) { selectedCopies.clear(); selectionAnchor = null; selectionDeck = S.deckId; }
   const valid = new Set(deck().entries.flatMap(e => Array.from({length:e.qty}, (_, q) => copyKey(e, q))));
   selectedCopies = new Set([...selectedCopies].filter(k => valid.has(k)));
-  $('#cardSelection').hidden = !selectedCopies.size;
+  const bar = $('#cardSelection'), mobilePreview = innerWidth <= 820 && document.body.classList.contains('m-preview');
+  if (mobilePreview) { if (bar.parentElement !== $('#stage')) $('#pages').before(bar); }
+  else if (bar.parentElement !== $('#cardList').parentElement) $('#cardList').before(bar);
+  bar.hidden = !selectedCopies.size;
   $('#cardSelectionCount').textContent = `${selectedCopies.size} cop${selectedCopies.size === 1 ? 'y' : 'ies'} selected`;
   $$('#pages .copy-selection-mark').forEach(mark => mark.remove());
   $$('#pages img[data-copy]').forEach(im => {
@@ -2056,14 +2064,15 @@ function syncCardSelection() {
 }
 function selectCopy(e, copy, ev = {}) {
   syncCardSelection();
+  const toggle = ev.ctrlKey || ev.metaKey || (ev.pointerType ? ev.pointerType === 'touch' : matchMedia('(pointer:coarse)').matches);
   const key = copyKey(e, copy), keys = [...new Set(buildSlots().map(slot => copyKey(slot.e, slot.copy)))];
   if (ev.shiftKey && keys.includes(selectionAnchor)) {
     const a = keys.indexOf(selectionAnchor), b = keys.indexOf(key);
     if (!ev.ctrlKey && !ev.metaKey) selectedCopies.clear();
     keys.slice(Math.min(a, b), Math.max(a, b) + 1).forEach(k => selectedCopies.add(k));
   } else {
-    if (!ev.ctrlKey && !ev.metaKey && !ev.shiftKey) selectedCopies.clear();
-    if ((ev.ctrlKey || ev.metaKey) && selectedCopies.has(key)) selectedCopies.delete(key); else selectedCopies.add(key);
+    if (!toggle && !ev.shiftKey) selectedCopies.clear();
+    if (toggle && selectedCopies.has(key)) selectedCopies.delete(key); else selectedCopies.add(key);
     selectionAnchor = key;
   }
   syncCardSelection();
@@ -3718,7 +3727,7 @@ async function drawPreview() {
       page.forEach((slot, i) => {
         const face = back ? slot.back : slot.front; if (!face) return;
         const p = slotPos(L, i, back), im = document.createElement('img');
-        im.dataset.uid = slot.e.uid; im.dataset.copy = slot.copy; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${slot.e.name}, copy ${slot.copy + 1}`); im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
+        im.dataset.uid = slot.e.uid; im.dataset.copy = slot.copy; im.draggable = false; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${slot.e.name}, copy ${slot.copy + 1}`); im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
         Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
         const rot = faceRot(L, back);
         if (isPreview(face)) {
@@ -3776,7 +3785,7 @@ async function drawGallery(gen, wrap, z) {
         }
         const im = document.createElement('img'); im.width = i === 0 ? w : Math.round(w * 0.6); im.height = i === 0 ? h : Math.round(h * 0.6);
         im.alt = f ? f.name : 'No cardback'; im.title = i === 'back' ? 'Cardback' : f?.name || '';
-        im.dataset.uid = e.uid; if (i !== 'back') { im.dataset.copy = copy; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${e.name}, copy ${copy + 1}`); } im.dataset.face = i; im.style.alignSelf = 'flex-end';
+        im.dataset.uid = e.uid; if (i !== 'back') { im.dataset.copy = copy; im.draggable = false; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${e.name}, copy ${copy + 1}`); } im.dataset.face = i; im.style.alignSelf = 'flex-end';
         if (f) thumbSrc(f).then(u => { if (gen === previewGen && u) im.src = u; });
         tile.appendChild(im);
       }
@@ -3803,9 +3812,11 @@ function renderStats() {
 $$('#mbar button').forEach(b => b.onclick = () => {
   const preview = b.dataset.mview === 'preview';
   document.body.classList.toggle('m-preview', preview);
+  syncCardSelection();
   $$('#mbar button').forEach(x => x.classList.toggle('on', x === b));
   if (preview) { if (innerWidth < 820) $('#zoomFit').click(); else renderPreview(); }
 });
+addEventListener('resize', syncCardSelection);
 $('#zoom').oninput = e => { S.zoom = +e.target.value; save(); renderPreview(); };
 $('#zoomFit').onclick = () => {
   const avail = $('#stage').clientWidth - 56, width = S.mode === 'order' ? 63 * 0.75 * 1.6 * 4 + 90 : layout().W;
