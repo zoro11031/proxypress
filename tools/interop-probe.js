@@ -13,14 +13,18 @@
     const d = {id:uid(), name:'Interop', entries:[], updated:Date.now()};
     S.decks.push(d); S.deckId = d.id;
     download = (blob, name) => downloads.push({blob, name});
-    for (const paper of ['letter', 'a4']) for (const count of [1, 8, 9, 16]) {
-      S.settings = {...DEFAULTS, pageSize:paper, orientation:'landscape', cardRotation:'upright', cols:4, rows:2,
-        margin:10, bleed:0.625, gap:0, silhouette:true, guides:'none', dpi:72};
+    for (const [orientation, per, counts, sets] of [
+      ['landscape', 8, [1, 8, 9, 16], {orientation:'landscape', cols:4, rows:2, margin:10, bleed:0.625}],
+      ['portrait', 9, [1, 9, 10, 18], {orientation:'portrait', cols:3, rows:3, margin:5, bleed:0.5, regInset:5.5, regLen:0}]
+    ]) for (const paper of ['letter', 'a4']) for (const count of counts) {
+      S.settings = {...DEFAULTS, pageSize:paper, cardRotation:'upright', gap:0, silhouette:true, guides:'none', dpi:72, ...sets};
       d.entries = [{uid:uid(), name:'Local test', qty:count, faces:[face, face], tokens:[]}];
-      const L = layout(), pages = Math.ceil(count / 8), svgs = [];
+      const L = layout(), pages = Math.ceil(count / per), svgs = [];
+      check(L.per === per, `${paper}/${orientation} capacity`);
+      check(!regConflict(L), `${paper}/${orientation} marks clear`);
       for (let sheet = 0; sheet < pages; sheet++) {
         const svg = cutSvg(sheet), xml = new DOMParser().parseFromString(svg, 'image/svg+xml');
-        check(xml.querySelectorAll('rect').length === Math.min(8, count - sheet * 8), `${paper}/${count}/${sheet} occupancy`);
+        check(xml.querySelectorAll('rect').length === Math.min(per, count - sheet * per), `${paper}/${orientation}/${count}/${sheet} occupancy`);
         svgs.push(svg);
       }
       downloadCutSvg();
@@ -30,13 +34,13 @@
       newDoc = (...args) => { const doc = oldNewDoc(...args); doc.save = () => { pdf = doc.output('datauristring').split(',')[1]; check(doc.getNumberOfPages() === pages * 2, 'front/back page count'); }; return doc; };
       await exportPDF(); closeModal(true);
       check(!!pdf, 'PDF exported');
-      artifacts.push({paper, count, arm:regArm(L), svgs, pdf});
+      artifacts.push({paper, orientation, count, arm:regArm(L), svgs, pdf});
     }
     S.settings.scaleX = 99; S.settings.scaleY = 101; S.settings.offsetX = 2; S.settings.offsetY = -3;
     const L = layout(), p = slotPos(L, 0, false), rect = new DOMParser().parseFromString(cutSvg(), 'image/svg+xml').querySelector('rect');
     const num = key => +rect.getAttribute(key);
-    check(near(num('x'), L.W/2 + (p.x + 0.625 - L.W/2)*0.99 + 2), 'X compensation applied once');
-    check(near(num('y'), L.H/2 + (p.y + 0.625 - L.H/2)*1.01 - 3), 'Y compensation applied once');
+    check(near(num('x'), L.W/2 + (p.x + S.settings.bleed - L.W/2)*0.99 + 2), 'X compensation applied once');
+    check(near(num('y'), L.H/2 + (p.y + S.settings.bleed - L.H/2)*1.01 - 3), 'Y compensation applied once');
     check(near(num('width'), 63*0.99) && near(num('height'), 88*1.01), 'scaled card dimensions');
     check(near(num('rx'), 3.2*0.99) && near(num('ry'), 3.2*1.01), 'scaled corner axes');
     S.settings.cardRotation = 'rotated';
