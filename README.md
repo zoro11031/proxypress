@@ -36,12 +36,18 @@ Then open http://localhost:8642 in your browser.
 
 ### 💻 Desktop App (Windows & Linux)
 
-If you prefer a standalone desktop app without Docker, prebuilt Electron packages with all fonts and frames bundled are available under [Releases](https://github.com/zoro11031/proxypress/releases):
+If you prefer a standalone desktop app without Docker, prebuilt Electron packages with all fonts and frames bundled are available under [Releases](https://github.com/zoro11031/proxypress/releases). The desktop app is designed for personal use and runs entirely on your local machine with no login or password required.
 
-- **Windows:** Download and run the installer (`ProxyPress-Setup-*.exe` or `ProxyPress-*.msi`).
-- **Linux:** Download `ProxyPress-*.AppImage`, make it executable (`chmod +x ProxyPress-*.AppImage`), and double-click to launch.
+- **Windows:** Download and run `Proxy-Press-Setup-*.exe` (installer) or `Proxy-Press-*.msi`.
+- **Linux:**
+  - **AppImage:** Download `Proxy-Press-*.AppImage`, make it executable (`chmod +x Proxy-Press-*.AppImage`), and double-click to launch.
+  - **Debian / Ubuntu (.deb):** Download `Proxy-Press-*.deb` and install with `sudo apt install ./Proxy-Press-*.deb`.
+  - **Fedora / openSUSE / RHEL (.rpm):** Download `Proxy-Press-*.rpm` and install with `sudo dnf install ./Proxy-Press-*.rpm` (or `sudo zypper install ./Proxy-Press-*.rpm` on openSUSE).
+  - **Arch Linux / CachyOS / Manjaro:**
+    - Install the standalone package: `sudo pacman -U Proxy-Press-*.pacman`
+    - Or use the AUR package archive: download `proxypress-bin-aur.tar.gz`, unpack, and run `makepkg -si`.
 
-Both desktop packages run locally with an embedded relay for MPC Autofill and Scryfall caching.
+All desktop packages run locally with an embedded relay for MPC Autofill and Scryfall caching.
 
 ---
 
@@ -144,7 +150,7 @@ You can also drop font files and `.mse-style` folders straight onto the Custom C
 
 ## Special thanks
 
-Huge thanks to **[MPC Autofill / MPCFill](https://mpcfill.com)** above all. None of this would exist without their database, community drives, and the artists creating and sharing high-DPI card renders.
+Huge thanks to **[MPC Autofill / MPCFill](https://mpcfill.com)** above all. None of this would exist without their database, community drives, and the artists creating and sharing high-DPI card renders. If you use the autofill tool or community drives, please consider **[supporting their server and maintenance costs on Patreon](https://www.patreon.com/mpcfill)**.
 
 Also big thanks to:
 

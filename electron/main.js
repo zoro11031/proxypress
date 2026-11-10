@@ -450,6 +450,10 @@ if (app) {
             click: () => shell.openExternal('https://mpcfill.com')
           },
           {
+            label: 'Donate to MPC Autofill (Patreon)',
+            click: () => shell.openExternal('https://www.patreon.com/mpcfill')
+          },
+          {
             label: 'Scryfall',
             click: () => shell.openExternal('https://scryfall.com')
           }

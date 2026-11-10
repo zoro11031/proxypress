@@ -676,7 +676,7 @@ details.adv:not([open]){padding-bottom:10px}
           <details class="adv" id="stockGuide" style="margin-top:8px">
             <summary>Compare cardstock &amp; quality</summary>
             <div class="hint">
-              <p><b>S33 is our default for smooth MTG proxies.</b> S30 is the budget alternative. Stock affects the feel and surface; it does not increase the resolution of your artwork.</p>
+              <p><b>S33 is the default for smooth MTG proxies.</b> S30 is the budget alternative. Stock affects the feel and surface; it does not increase the resolution of your artwork.</p>
               <dl class="stock-guide">
                 <dt><a href="https://www.makeplayingcards.com/s33-card-stock.aspx" target="_blank" rel="noopener">S33 · Superior Smooth</a> <span class="tag">Default</span></dt>
                 <dd>Premium smooth paper with a black inner layer that blocks light. The manufacturer describes stronger visual contrast than standard stock. Choose it when finish and print appearance matter most.</dd>
@@ -1967,6 +1967,7 @@ function orderStepsHtml() {
     <li><b>Log in when Chrome opens.</b> The tool creates the project and uploads every image from <code>cards</code>, so nothing needs downloading.</li>
     <li><b>Check the project, then add it to your cart</b> and check out on MakePlayingCards.com. If the tool stops part-way, run it again from the same folder.</li>
   </ol>
+  <p class="hint" style="margin-top:10px">The autofill tool and art drives are run by community volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting their server and maintenance costs on Patreon</a>.</p>
   <details class="adv"><summary>Linux: running the tool from a terminal</summary>
     <p class="hint" style="margin-top:8px">Needs a desktop session (the tool opens a visible browser window), an x86-64 PC, and Google Chrome, Brave or Microsoft Edge installed normally, not as a Flatpak or Snap.</p>
     <ol class="steps">
@@ -3349,24 +3350,26 @@ const TOUR = {
     <div class="tour-modes">
       <button data-tm="print" class="${S.mode === 'print' ? 'on' : ''}"><b>Print at home</b><span>A PDF for your own printer, with bleed, cut guides and double-sided backs.</span></button>
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
-    </div><p class="hint">You can switch any time with the buttons at the top.</p>`},
+    </div><p class="hint">You can switch any time with the buttons at the top. Community art search is powered by MPC Autofill; consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting their server costs on Patreon</a>.</p>`},
   cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Use <b>Import deck…</b> for a Moxfield or Archidekt link, a saved deck JSON, or a local decklist file. MTGA and MTGO exports work too.</p>
     <p><b>Add needed tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
-    <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>`},
+    <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>
+    <p class="hint">Community art drives are run by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting MPC Autofill's maintenance costs on Patreon</a>.</p>`},
   print:{title:'3 · Print at home', body:() => `<ol class="steps"><li>Choose your printer, paper and double-sided method in <b>2. Print</b>.</li>
     <li>Print the <b>calibration sheet</b> once so cards come out exactly the right size.</li>
     <li>Choose Cameo or rotary in <b>3. Cut</b>. The layout and guides update for your tool.</li>
     <li>In <b>4. Export</b>, review the sheet and download your PDF and cut file. Follow the printing, paper-flip and cutting instructions there.</li></ol>`},
   order:{title:'3 · Order prints', body:() => `<ol class="steps"><li>Choose a cardstock and a cardback in the <b>Order</b> tab.</li>
     <li>Press <b>Review order</b>, then <b>Download order (.zip)</b> for the order file and every image.</li>
-    <li>Follow the steps it shows to place the order with the free desktop tool.</li></ol>`},
+    <li>Follow the steps it shows to place the order with the free desktop tool.</li></ol>
+    <p class="hint">The community autofill tool is maintained by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting their server costs on Patreon</a>.</p>`},
 };
 function openTour(at = 0) {
   S.welcomed = true; save();
   const steps = ['welcome', 'cards', 'art', S.mode === 'order' ? 'order' : 'print'], last = at === steps.length - 1, step = TOUR[steps[at]];
   openModal(`<div class="hd"><b>${step.title}</b><button data-close>${last ? 'Close' : 'Skip'}</button></div>
-    <div class="bd tour">${step.body()}${last ? '<p class="hint">Reopen this tour any time with the <b>?</b> button at the top.</p>' : ''}
+    <div class="bd tour">${step.body()}${last ? '<p class="hint">Reopen this tour any time with the <b>?</b> button at the top · <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">Donate to MPC Autofill on Patreon</a>.</p>' : ''}
       <div class="tour-foot"><div class="tour-dots">${steps.map((_, n) => `<i class="${n === at ? 'on' : ''}"></i>`).join('')}</div>
         ${at ? '<button data-tour="back">Back</button>' : ''}<button class="primary" data-tour="next">${last ? 'Get started' : 'Next'}</button></div></div>`);
   $('#modal').classList.add('narrow');
