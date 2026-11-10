@@ -4,7 +4,7 @@ A single-page MTG proxy maker. Import a decklist or an MPC Autofill XML, choose 
 
 Two modes: **Print at home** (PDF with bleed, cut guides and double-sided backs, with re-feed instructions) and **Order prints** (an order file plus images for the autofill desktop tool, which places the order on MakePlayingCards.com).
 
-To send a deck to someone who prints proxies, open **Cards → Share a print deck → Export deck & art (.json)**. The file includes this deck's quantities, front and back images, custom-card source art, and paper/layout settings. The recipient can drop it onto Proxy Press or choose **Import print deck…**. It adds a new deck and opens Print setup; their printer and calibration stay intact. They can use the shared layout or keep their own. Files include the art itself, so the original art links are not needed for printing. Print deck JSON files can be up to 2 GB.
+To send a deck to someone who prints proxies, open **Cards → Images, custom cards & sharing → Save deck package…**. The file includes this deck's quantities, front and back images, custom-card source art, and paper/layout settings. The recipient can drop it onto Proxy Press or choose **Import deck… → Choose file…**. It adds a new deck and opens Print setup; their printer and calibration stay intact. They can use the shared layout or keep their own. Files include the art itself, so the original art links are not needed for printing. Print deck JSON files can be up to 2 GB.
 
 ## Run locally
 
@@ -32,4 +32,8 @@ The page is served on port 8642, published on `127.0.0.1` unless you set `PROXY_
 | `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | Interface to listen on |
 | `PORT` | `8642` | Port |
 
-Saved decks belong to the browser and the address they were made on. Use **⚙ (top right) → Export backup** to move them between browsers or addresses.
+Saved decks belong to the browser and the address they were made on. Use **⚙ (top right) → Save backup file…** to move them between browsers or addresses.
+
+In the preview, click a card copy to select it, Shift-click for a range, or Ctrl/Cmd-click to toggle copies. On a phone, tap copies to toggle them. Choose **Change selected art…** to update only those copies, or **Select all copies** to include every copy of the selected cards. The selection actions follow you between Edit and Preview on mobile.
+
+Use **⚙ → Return to defaults** to reset printer, layout, art-search, and preview settings while keeping your decks, artwork, and saved presets.

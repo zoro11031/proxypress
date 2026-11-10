@@ -301,12 +301,13 @@ LOGIN_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#14161a;color:#e7e9ee;font:15px/1.4 system-ui,sans-serif}
 form{background:#1c1f25;border:1px solid #2f343d;border-radius:12px;padding:26px;width:min(340px,calc(100vw - 32px));box-sizing:border-box}
 h1{font-size:19px;margin:0 0 4px}h1 span{color:#e0a33a}p{color:#9aa1ad;font-size:13px;margin:0 0 16px}
-input{width:100%%;box-sizing:border-box;background:#111317;border:1px solid #2f343d;border-radius:7px;padding:9px 10px;color:inherit;font:inherit}
+label{display:block;margin-bottom:6px;font-size:13px}input:focus-visible,button:focus-visible{outline:2px solid #f2c26b;outline-offset:3px}input{width:100%%;box-sizing:border-box;background:#111317;border:1px solid #2f343d;border-radius:7px;padding:9px 10px;color:inherit;font:inherit}
 button{margin-top:12px;width:100%%;background:#e0a33a;color:#1b1407;border:0;border-radius:7px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
 .err{color:#ff9c95;font-size:13px;margin:10px 0 0}</style></head><body>
 <form method="post" action="/login"><h1>Proxy<span>Press</span></h1><p>Enter the password to continue.</p>
 <input type="text" name="username" value="user" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1">
-<input type="password" name="password" autocomplete="current-password" aria-label="Password" autofocus required>
+<label for="password">Password</label>
+<input id="password" type="password" name="password" autocomplete="current-password" aria-label="Password" autofocus required>
 <button type="submit">Sign in</button>%s</form></body></html>"""
 LOGIN_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
 
@@ -414,7 +415,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def login(self):
         ip = self.client_ip()
         if too_many_failures(ip):
-            return self.login_page(429, '<p class="err">Too many wrong passwords. Try again in 15 minutes.</p>')
+            return self.login_page(429, '<p class="err" role="alert">Too many wrong passwords. Try again in 15 minutes.</p>')
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
@@ -428,7 +429,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", cookie)])
         record_failure(ip)
         time.sleep(1)
-        self.login_page(401, '<p class="err">Wrong password.</p>')
+        self.login_page(401, '<p class="err" role="alert">Wrong password.</p>')
 
     def relay(self, method):
         path = self.path[len("/mpc/"):]
