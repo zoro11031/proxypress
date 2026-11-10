@@ -1,4 +1,4 @@
-# Proxy Press v1.0.1
+# Proxy Press v1.0.2
 
 A free, easy MTG proxy maker. Drop in a decklist, pick your art, and get a print-ready PDF with proper bleed and cut lines—or an order file ready for MakePlayingCards.
 
@@ -7,35 +7,30 @@ A free, easy MTG proxy maker. Drop in a decklist, pick your art, and get a print
 ### 💡 Which download is best for you?
 
 - **Best for normal desktop users (Easiest & Recommended):**
-  - **Windows:** Download and run **`Proxy-Press-1.0.1.exe`** (or `Proxy-Press-1.0.1.msi`).
-  - **Linux:** Download **`Proxy-Press-1.0.1.AppImage`**, make it executable (`chmod +x`), and double-click to launch.
+  - **Windows:** Download and run **`Proxy-Press-1.0.2.exe`** (or `Proxy-Press-1.0.2.msi`).
+  - **Linux:** Download **`Proxy-Press-1.0.2.AppImage`**, make it executable (`chmod +x`), and double-click to launch.
   *(Everything is pre-packaged with all fonts, frames, and art search tools—no setup, accounts, or password needed).*
 
 - **Best for home servers or NAS (Docker):**
   - If you want Proxy Press running 24/7 on your local network (Unraid, TrueNAS, Synology, Raspberry Pi), the **Docker container** (`docker compose up -d`) is preferred.
 
 - **For Linux users who prefer system package managers:**
-  - **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.1.deb`
-  - **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.1.rpm`
-  - **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.1.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
+  - **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.2.deb`
+  - **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.2.rpm`
+  - **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.2.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
 
 ---
 
-### What's New in v1.0.1
+### What's New in v1.0.2
 
-- **Brand & Icon Redesign:**
-  - Replaced the placeholder logo with a brand new vector app emblem depicting layered Magic cards with gold foil borders, an art window mana spark, and precision print-and-cut registration marks.
-  - Updated multi-resolution Windows `.ico` and Linux `.png` desktop application icons.
-- **UI & Accessibility Polish:**
-  - Fixed low-contrast warning callouts: dark amber theme with high-contrast text and prominent gold-trimmed action buttons.
-  - Smooth, lightweight UI transitions: fluid step-by-step welcome tour animations, modal ease-in, tactile button press feedback, smooth sidebar tab switching, and floating toast notices.
-- **Desktop App Enhancements:**
-  - Seamless dark window launch with zero white screen flashing (`backgroundColor: '#14161a'` and deferred paint show).
-  - Clean auto-hiding menu bar (tap `Alt` to access) for a distraction-free desktop experience.
-  - Windows taskbar icon grouping (`setAppUserModelId`).
-- **Packaging & Builds:**
-  - Fixed RPM package generation for modern rpmbuild (Fedora, openSUSE, RHEL).
-  - Fixed Docker container build asset whitelisting.
+- **Bug Fixes & Accessibility:**
+  - **Welcome Tour Navigation:** Fixed closure state scoping in `openTour` so Next and Back buttons reliably step through all guide slides in both directions.
+  - **Dock Icon Scale:** Scaled the fan-of-cards icon to fill 90% vertical height and 98.6% horizontal span (`505×456` in a `512×512` canvas), eliminating excessive transparent margins so the app icon matches full-sized desktop dock icons.
+  - **Art Picker Layout Stability:** Added fixed card aspect-ratio (`63/88`) placeholders for lazy-loaded images, preventing page reflow and jumpy layout shifts as image thumbnails decode.
+  - **Keyboard Art Selection:** Added `Enter` and `Space` key handlers to art picker figures for accessible keyboard navigation.
+  - **Deck Import Enhancements:** Expanded Moxfield board support to include Oathbreaker signature spells, attractions, stickers, and contraptions; added fallback card name resolution for Archidekt custom/token cards.
+  - **Letter Portrait Preset:** Tuned preset bleed to 0.75 mm so Letter portrait comfortably fits a standard 9-card (3×3) grid with 5.4 mm margins.
+  - **Theme Polish:** Added theme-matched amber text selection (`::selection`).
 
 ---
 

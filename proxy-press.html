@@ -14,6 +14,7 @@
   --accent:#e0a33a;--accent2:#f2c26b;--danger:#e2615a;--ok:#5cc27a;--desk:#0f1114;
 }
 *{box-sizing:border-box}
+::selection{background:rgba(224,163,58,.35);color:#fff}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -116,7 +117,7 @@ h3:first-child{margin-top:2px}
 .prints figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px}
 .prints figure.sel{border-color:var(--accent)}
 .prints figure:hover{border-color:#4a515c}
-.prints img{width:100%;border-radius:5px;display:block}
+.prints img{width:100%;aspect-ratio:63/88;object-fit:cover;background:var(--panel2);border-radius:5px;display:block}
 .prints figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:3px}
 #busy{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:60;flex-direction:column;gap:10px}
 #busy.on{display:flex}
@@ -819,7 +820,7 @@ const BUILTIN_PRESETS = [
     margin:4, dpi:1200}},
   {id:'b-letter', name:'Letter · Portrait', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    margin:5, dpi:1200}},
+    bleed:0.75, margin:5, dpi:1200}},
   {id:'b-a4-land', name:'A4 · Landscape', builtin:true, settings:{
     pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -1714,6 +1715,12 @@ async function openMpcPicker(target) {
       if (ids.length) await page();
     } catch (err) { if (runId !== revision || !bd.isConnected) return; status(local + (err.message === 'MPC_OFFLINE' ? mpcOfflineHtml() : 'Online search failed: ' + esc(err.message))); }
   }
+  bd.addEventListener('keydown', ev => {
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest('figure')) {
+      ev.preventDefault();
+      ev.target.closest('figure').click();
+    }
+  });
   bd.addEventListener('click', async ev => {
     const fb = ev.target.closest('[data-face]');
     if (fb) { faceIdx = +fb.dataset.face; $$('[data-face]', bd).forEach(b => b.classList.toggle('primary', b === fb)); find('#mpcQ').value = face().name; return run(); }
