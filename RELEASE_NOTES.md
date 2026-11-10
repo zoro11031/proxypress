@@ -1,25 +1,26 @@
-# Proxy Press v1.0.5
+# Proxy Press v1.0.6
 
-Multi-select cut guide combinations, dedicated "All" cut guides preset, and layered rendering with corner cut marks drawn over card images while sheet cut lines remain underneath.
+Cut guide line thickness matched to Proxxied standard (0.25 mm / 0.72 pt), crisp and consistent outline rendering, and colorblind-friendly default palette.
 
 ## What's new
 
-- **Multi-select cut guide combinations:** Toggle Sheet cut lines, Corner brackets, and Full card outlines independently in any combination.
-- **Dedicated "All" cut guides preset:** One click to enable sheet cut lines, corner brackets, and full card outlines simultaneously.
-- **Layered cut guide rendering:** In both the workspace preview and exported print-ready PDFs, black sheet cut lines and outlines are drawn underneath card images, while corner cut marks/brackets are drawn on top of card images (matching Proxxied layouts).
-- **Independent guide colors:** Custom color pickers and swatches for both cut lines and corner brackets continue to be supported.
+- **Proxxied-matched cut guide thickness:** Default guide line width is now 0.25 mm (0.72 pt), perfectly matching Proxxied print outputs for both corner marks and full cut lines.
+- **Crisp, consistent outlines:** Card trim outlines now render cleanly over card bleed in both previews and exported PDFs, ensuring 100% consistent line width without bleed clipping.
+- **Colorblind-friendly guide palette:** Default corner guide color is now vibrant cyan/sky blue (`#00bfff`), providing universal contrast against card artwork across all forms of color vision (including red-green deuteranopia and protanopia).
+- **Quick-pick colorblind swatches:** Guide appearance settings now feature colorblind-safe swatches (Sky Blue, High-contrast Yellow, White, Black, Gray).
+- **Automatic settings migration:** Existing user profiles with previous defaults (0.15 mm or lime green) are smoothly updated on load.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/Proxy-Press-1.0.5.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/Proxy-Press-1.0.5.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/Proxy-Press-1.0.6.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/Proxy-Press-1.0.6.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/Proxy-Press-1.0.5.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/Proxy-Press-1.0.5.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/Proxy-Press-1.0.5.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/Proxy-Press-1.0.5.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v1.0.5/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/Proxy-Press-1.0.6.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/Proxy-Press-1.0.6.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/Proxy-Press-1.0.6.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/Proxy-Press-1.0.6.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v1.0.6/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
