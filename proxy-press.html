@@ -740,38 +740,30 @@ const DEFAULTS = {
 };
 
 const BUILTIN_PRESETS = [
-  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 (recommended, 2 mm bleed)', builtin:true, settings:{
-    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait (2 mm bleed)', builtin:true, settings:{
+  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 (recommended)', builtin:true, settings:{
+    orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:4, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait', builtin:true, settings:{
+    orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:4, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2', builtin:true, settings:{
+    orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait', builtin:true, settings:{
+    orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-letter', name:'Letter · Portrait', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2 (2 mm bleed)', builtin:true, settings:{
+    margin:5, dpi:1200}},
+  {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait (2 mm bleed)', builtin:true, settings:{
-    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-letter', name:'Letter · Portrait no bleed', builtin:true, settings:{
-    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:0, gap:0, margin:5, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
-  {id:'b-letter-land', name:'Letter · Landscape 3×2, 6 cards per sheet (3 mm bleed)', builtin:true, settings:{
-    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
-  {id:'b-a4', name:'A4 · Portrait with 2 mm bleed', builtin:true, settings:{
+    margin:4, dpi:1200}},
+  {id:'b-a4', name:'A4 · Portrait', builtin:true, settings:{
     pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', guideWidth:0.3, guideLen:3, dpi:1200, silhouette:false}},
-  {id:'b-a4-land', name:'A4 · Landscape with 3 mm bleed', builtin:true, settings:{
+    margin:4, dpi:1200}},
+  {id:'b-a4-land', name:'A4 · Landscape', builtin:true, settings:{
     pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', guideWidth:0.3, guideLen:3, dpi:1200, silhouette:false}}
+    margin:4, dpi:1200}}
 ];
 
 for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : p.id.startsWith('b-laser') ? 'Laser' : null;
@@ -3318,10 +3310,6 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
-  const normalMargin = (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') ? 5 : 4;
-  if (!out.silhouette && out.margin >= 10) out.margin = normalMargin;
-  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.bleed === 3) out.bleed = 2;
-  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.cols === 3) out.cols = 0;
   return out;
 }
 // Backups are untrusted: rebuild decks from known fields with checked types.
@@ -3411,8 +3399,7 @@ $('#tab-setup').addEventListener('change', async ev => {
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
-    s.cols = s.rows = 0;
-    if (!s.silhouette) s.bleed = bestCutBleed();
+    if (!s.silhouette) s.cols = s.rows = 0;
   }
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
 });
@@ -3437,12 +3424,23 @@ $('#settingsForm').addEventListener('change', async ev => {
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+const CUT_KEYS = ['silhouette', 'regPattern', 'regInset', 'regLen', 'regThickness', 'showCuts', 'guides', 'guideColor', 'guideWidth', 'guideLen', 'bleed', 'bleedMode', 'gap', 'cornerRadius'];
 function presetSettings(p) {
   const paper = p.kind ? {pageSize:S.settings.pageSize, pageW:S.settings.pageW, pageH:S.settings.pageH} : {};
   return {...cleanSettings(p.settings), ...paper};
 }
 function applyPreset(p) {
-  S.settings = {...presetSettings(p), backImage:S.settings.backImage}; S.activePreset = p.id; toast(`Applied "${p.name}".`);
+  const curCut = {};
+  for (const k of CUT_KEYS) { if (k in S.settings) curCut[k] = S.settings[k]; }
+  const next = {...presetSettings(p), ...curCut, backImage:S.settings.backImage};
+  if (S.settings.silhouette) {
+    next.cols = S.settings.cols;
+    next.rows = S.settings.rows;
+    next.cardRotation = S.settings.cardRotation;
+  }
+  S.settings = next;
+  S.activePreset = p.id;
+  toast(`Applied "${p.name}".`);
 }
 function presetPer(p) {
   const saved = S.settings; S.settings = presetSettings(p);
@@ -3457,7 +3455,7 @@ function renderPrinter() {
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
     <p class="hint" style="margin-top:6px">💡 <b>Paper recommendation:</b> ${esc(pr.paper)} (works with any cardstock)</p>
-    ${presets[0] ? `<button id="printerPresetApply">Apply recommended settings for ${pr.kind}</button><p class="hint">Applies the best layout, margins, and cutting guides for this printer.</p>` : ''}
+    ${presets[0] ? `<button id="printerPresetApply">Apply recommended settings for ${pr.kind}</button><p class="hint">Applies the recommended print orientation, resolution, and margins for this printer.</p>` : ''}
     <h3>Print dialog settings</h3>
     <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
     ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
@@ -3494,7 +3492,7 @@ function renderPresets() {
       const desc = parts[1] || '';
       const isLand = desc.toLowerCase().includes('landscape');
       title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
-      sub = desc.toLowerCase().includes('no bleed') ? 'Edge-to-edge · No bleed' : desc.toLowerCase().includes('most') ? 'Maximum cards per sheet' : '1 mm cutting bleed';
+      sub = `${L.cols}×${L.rows} layout`;
     }
     const isAct = p.id === S.activePreset;
     return `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}">
@@ -4293,9 +4291,7 @@ function renderCutStatus() {
 
     btnCameo.onclick = () => {
       if (S.settings.silhouette) return;
-      const isA4 = s.pageSize === 'a4';
       Object.assign(S.settings, {
-        pageSize: isA4 ? 'a4' : 'letter',
         orientation: 'landscape',
         cardRotation: 'upright',
         cols: 4,
@@ -4368,9 +4364,7 @@ function renderCutStatus() {
       cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Apply Cameo Layout (8 cards landscape)</button></div>`;
       const cb = $('#cameoApply');
       if (cb) cb.onclick = () => {
-        const isA4 = s.pageSize === 'a4';
         Object.assign(S.settings, {
-          pageSize: isA4 ? 'a4' : 'letter',
           orientation: 'landscape',
           cardRotation: 'upright',
           cols: 4,

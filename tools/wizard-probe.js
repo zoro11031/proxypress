@@ -153,6 +153,49 @@
     renderGuideTab();
     eq('portrait manual paper flip mentions left to right', /left to right/i.test($('#tabGuidePanePrint').innerHTML), true);
 
+    // 7. Test Step Idempotency and Order Independence (Step 2 must not clobber Step 3 cut settings)
+    switchTab('cutting');
+    $('#btnCutModeRotary').click();
+    $('#rotaryBleed').value = '2.5';
+    $('#rotaryBleed').dispatchEvent(new Event('change'));
+    $('#rotaryGuides').value = 'corners';
+    $('#rotaryGuides').dispatchEvent(new Event('change'));
+    eq('rotary custom bleed set', S.settings.bleed, 2.5);
+    eq('rotary custom guides set', S.settings.guides, 'corners');
+
+    // Go back to Step 2 and apply presets, change printer, change paper
+    switchTab('setup');
+    const laserPreset = BUILTIN_PRESETS.find(p => p.kind === 'Laser' && p.settings.orientation === 'landscape');
+    applyPreset(laserPreset);
+    eq('bleed preserved after applying preset', S.settings.bleed, 2.5);
+    eq('guides preserved after applying preset', S.settings.guides, 'corners');
+    eq('silhouette preserved after applying preset', S.settings.silhouette, false);
+
+    // Change printer in Step 2
+    $('#printerSel').value = 'et8500';
+    $('#printerSel').dispatchEvent(new Event('change'));
+    eq('bleed preserved after changing printer', S.settings.bleed, 2.5);
+    eq('guides preserved after changing printer', S.settings.guides, 'corners');
+
+    // Switch to Cameo in Step 3
+    switchTab('cutting');
+    $('#btnCutModeCameo').click();
+    eq('cameo active', S.settings.silhouette, true);
+    eq('cameo bleed', S.settings.bleed, 0.625);
+
+    // Go back to Step 2 and apply an inkjet preset
+    switchTab('setup');
+    const inkjetPreset = BUILTIN_PRESETS.find(p => p.kind === 'Inkjet' && p.settings.orientation === 'landscape');
+    applyPreset(inkjetPreset);
+    eq('cameo silhouette preserved after inkjet preset', S.settings.silhouette, true);
+    eq('cameo bleed preserved after inkjet preset', S.settings.bleed, 0.625);
+    eq('cameo guides preserved after inkjet preset', S.settings.guides, 'none');
+
+    // Return to rotary
+    switchTab('cutting');
+    $('#btnCutModeRotary').click();
+    eq('rotary restored', S.settings.silhouette, false);
+
   } catch (err) {
     fails.push(`Unexpected error: ${err.message}\n${err.stack}`);
   }
