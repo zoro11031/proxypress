@@ -1,40 +1,81 @@
 # Proxy Press
 
-A single-page MTG proxy maker. Import a decklist or an MPC Autofill XML, choose art from Scryfall or MPC Autofill, and export a print-ready PDF with bleed and cut guides. Decks, presets and settings stay in your browser (IndexedDB). Nothing is stored on the server.
+A fast, private, print-ready Magic: The Gathering proxy maker. Paste any decklist, pick high-resolution art, and generate ready-to-print sheets with perfect alignment, bleed, and cut guides—or export ready-to-order packages for professional cardstock printing.
 
-Two modes: **Print at home** (PDF with bleed, cut guides and double-sided backs, with re-feed instructions) and **Order prints** (an order file plus images for the autofill desktop tool, which places the order on MakePlayingCards.com).
+Everything runs smoothly in your browser with zero bloat and no accounts. Your decks, presets, and artwork stay securely saved on your own machine.
 
-To send a deck to someone who prints proxies, open **Cards → Images, custom cards & sharing → Save deck package…**. The file includes this deck's quantities, front and back images, custom-card source art, and paper/layout settings. The recipient can drop it onto Proxy Press or choose **Import deck… → Choose file…**. It adds a new deck and opens Print setup; their printer and calibration stay intact. They can use the shared layout or keep their own. Files include the art itself, so the original art links are not needed for printing. Print deck JSON files can be up to 2 GB.
+![Proxy Press sheet preview](screenshots/print-preview.png)
 
-## Run locally
+---
+
+## ✨ Features at a Glance
+
+### ⚡ Import Decks Instantly
+- **Import from anywhere:** Paste decklists or import links directly from Moxfield and Archidekt. Text files, MTG Arena, and MTGO exports work out of the box.
+- **Automatic token generation:** Add all tokens and emblems required by your deck with a single click.
+- **Easy sharing:** Package an entire deck—including high-res art and print layouts—into a single file to share with friends. When they import it, their own printer settings and alignment stay untouched.
+
+### 🎨 High-Res Art & Custom Cards
+- **Curated high-res artwork:** Proxy Press automatically finds the best high-DPI scans and renders from Scryfall and community autofill drives.
+- **One-click art picker:** Browse dozens of alternate printings, retro borders, showcase frames, and borderless art variants.
+- **Custom cards & local folders:** Create custom cards with authentic frame typography, upload your own images, or point Proxy Press to an offline folder of card art.
+
+![Choosing high-resolution card artwork](screenshots/art-picker.png)
+
+### 🖨️ Two Printing Workflows
+
+#### 1. Print at Home
+Generate print-ready PDFs tailored to standard Letter or A4 sheets with dual-sided alignment:
+- **Smart bleed & crop marks:** Automatically generates bleed edge extensions and alignment guides so your cards never have white borders.
+- **Front-and-back duplex alignment:** Calibrate front-to-back shift so card backs line up with card fronts every time.
+- **Precision cutting tools:** Choose between manual cutting (rotary trimmer with corner tick marks) and automated craft cutting (Silhouette Cameo with optical registration marks and SVG cut lines).
+
+![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
+
+#### 2. Order Professional Prints
+Prefer casino-grade cardstock delivered to your door? Switch to **Order prints** mode to prepare an order for MakePlayingCards:
+- **Visual card gallery:** Review card fronts and chosen cardbacks side-by-side.
+- **Autofill ready:** Export XML order files and download matching artwork formatted for the autofill desktop tool.
+
+![Reviewing cards in Order Prints mode](screenshots/order-mode.png)
+
+---
+
+## 🚀 Quickstart
+
+### Run locally
 
 ```sh
 python3 proxy-press-server.py
 ```
 
-This opens http://localhost:8642. You can also open `proxy-press.html` directly; everything works except MPC Autofill art search, which needs the server because mpcfill.com only accepts searches from its own site.
+This starts the local server and opens http://localhost:8642. 
 
-No server? **Use local image folder** (Cards tab) searches a folder of MPC-style images on your computer and picks exact name matches automatically.
+> **Tip:** You can also double-click `proxy-press.html` to run completely serverless in any browser! Running with the python script is only required for community art search (due to site CORS protections) and deck-link importing.
 
-## Host with Docker / Podman
+### Host with Docker / Podman
+
+Keep Proxy Press running on your home server or NAS with Docker Compose:
 
 ```sh
-cp .env.example .env    # optional: PROXY_PRESS_AUTH=user:password
+cp .env.example .env    # optional: set password or port
 docker compose up -d    # or: podman compose up -d
 ```
 
-The page is served on port 8642, published on `127.0.0.1` unless you set `PROXY_PRESS_BIND` (for example to the server's LAN IP). A login is optional; set one if the page is reachable beyond your home network, and put it behind HTTPS (Caddy, Traefik, nginx) so the login isn't sent unencrypted.
+#### Configuration Options
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PASSWORD` | — | Optional sign-in page password (`PROXY_PRESS_PASSWORD` in `.env`) |
-| `BASIC_AUTH` | — | Optional `user:password` browser login prompt instead (`PROXY_PRESS_AUTH` in `.env`) |
+| `PASSWORD` | — | Optional password for the web login screen (`PROXY_PRESS_PASSWORD` in `.env`) |
+| `BASIC_AUTH` | — | Optional `user:password` HTTP basic authentication prompt (`PROXY_PRESS_AUTH` in `.env`) |
 | `ASSETS` | `./assets` | Folder of `fonts/` and `frames/<set>/` served to users (`/app/assets` in container) |
 | `CACHE` | `./cache` | Folder for cached Scryfall card data and session key (`/app/cache` in container) |
-| `HOST` | `127.0.0.1` (`0.0.0.0` in the image) | Interface to listen on (`PROXY_PRESS_BIND` in `.env`) |
-| `PORT` | `8642` | Port (`PROXY_PRESS_PORT` in `.env`) |
+| `HOST` | `127.0.0.1` (`0.0.0.0` in container) | Network interface to bind to (`PROXY_PRESS_BIND` in `.env`) |
+| `PORT` | `8642` | Web port (`PROXY_PRESS_PORT` in `.env`) |
 
-## Card Maker Assets (Fonts & Frame Packs)
+---
+
+## 🃏 Card Maker Assets (Fonts & Frame Packs)
 
 Proxy Press includes an in-browser Custom Card Maker for designing custom cards, tokens, and proxies with authentic Magic typography and layouts.
 
@@ -117,14 +158,18 @@ Common supported frame directories placed in `assets/frames/`:
   ```
 - **In-Browser (No Server Hosting)**: You can also load fonts and frames directly into the browser without any server configuration. In the **Cards → Custom card maker** tab, use the **Load…** buttons to pick font files or drag and drop `.mse-style` folders directly into your browser. They are saved in your browser's IndexedDB.
 
+---
 
-Saved decks belong to the browser and the address they were made on. Use **⚙ (top right) → Save backup file…** to move them between browsers or addresses.
+## 💡 Tips & Shortcuts
 
-In the preview, click a card copy to select it, Shift-click for a range, or Ctrl/Cmd-click to toggle copies. On a phone, tap copies to toggle them. Choose **Change selected art…** to update only those copies, or **Select all copies** to include every copy of the selected cards. The selection actions follow you between Edit and Preview on mobile.
+- **Multi-card selection:** In the sheet preview, click a card to select it, **Shift-click** to select a range, or **Ctrl/Cmd-click** to toggle multiple copies. On mobile or touchscreens, tap cards to toggle them.
+- **Batch art changes:** Select copies and tap **Change selected art…** to swap art across all selected copies at once.
+- **Always print at 100%:** When printing your PDF in your viewer or printer driver, make sure scaling is set to **100% / Actual Size** (disable "Fit to printable area") so cards match physical Magic dimensions (63 × 88 mm).
+- **Automated craft cutting:** When using a Silhouette Cameo cutter, export the cut SVG and load it at 100% scale in Silhouette Studio. The exported registration marks line up with your printed sheets.
+- **Backups & resets:** Your decks and settings live in your browser's IndexedDB. Use **⚙ (top right) → Save backup file…** to move your collection between computers. If you ever want a fresh start, use **⚙ → Return to defaults** to reset printer and preview settings while keeping your saved decks and artwork intact.
 
-Use **⚙ → Return to defaults** to reset printer, layout, art-search, and preview settings while keeping your decks, artwork, and saved presets.
+---
 
-## License
+## 📜 License
 
 Proxy Press is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
-
