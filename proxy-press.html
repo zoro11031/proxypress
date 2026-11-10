@@ -406,13 +406,14 @@ details.adv:not([open]){padding-bottom:10px}
       </div>
       <div id="printerGuide"></div>
       <h3>Paper &amp; sheet size</h3>
-      <div class="grid2" id="paperForm"></div>
-      <p class="hint">Choose Letter or A4 to match your paper. Print at Actual size / 100% scale.</p>
-      <div class="setup-hero-pill" id="setupSummary"></div>
-      <h3>Layout presets</h3>
-      <p class="hint">Choose an orientation and layout preset for your printer. Selecting your printer automatically applies the best preset.</p>
       <div id="presetGrid"></div>
-      <div class="row" style="margin-top:8px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
+      <div class="setup-hero-pill" id="setupSummary" style="margin-top:10px"></div>
+      <details class="adv" id="customPaperDrawer" style="margin:10px 0 14px">
+        <summary>Custom paper dimensions &amp; manual orientation</summary>
+        <p class="hint" style="margin-top:6px">For non-standard paper (Tabloid, Legal, A3, A5) or custom millimetre sheet dimensions.</p>
+        <div class="grid2" id="paperForm" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:10px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
+      </details>
       <h3>Card &amp; print options</h3>
       <div id="settingsForm"></div>
       <details class="adv" id="calDrawer" style="margin-top:14px">
@@ -754,17 +755,17 @@ const BUILTIN_PRESETS = [
   {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait', builtin:true, settings:{
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
-  {id:'b-letter', name:'Letter · Portrait', builtin:true, settings:{
-    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    margin:5, dpi:1200}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
-  {id:'b-a4', name:'A4 · Portrait', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    margin:4, dpi:1200}},
+  {id:'b-letter', name:'Letter · Portrait', builtin:true, settings:{
+    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200}},
   {id:'b-a4-land', name:'A4 · Landscape', builtin:true, settings:{
     pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:4, dpi:1200}},
+  {id:'b-a4', name:'A4 · Portrait', builtin:true, settings:{
+    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}}
 ];
 
@@ -3499,7 +3500,7 @@ function renderPresets() {
       title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
       sub = `${L.cols}×${L.rows} layout`;
     }
-    const isAct = p.id === S.activePreset;
+    const isAct = p.id === S.activePreset || (!mine && p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation);
     return `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}">
       <b>${esc(title)}</b><span>${esc(sub)}</span>
       ${mine ? `<i class="del" data-del="${esc(p.id)}" title="Delete preset" role="button" aria-label="Delete preset">✕</i>` : ''}</button>`;
@@ -3524,9 +3525,14 @@ function renderPresets() {
       </button>
     </div>`;
   };
-  const curPaper = S.settings.pageSize.toUpperCase();
-  $('#presetGrid').innerHTML = `<div class="grid2">${['Inkjet', 'Laser'].map(group).join('')}</div>
-    <details class="adv" style="margin-top:10px"><summary>Alternative paper layouts</summary><p class="hint">Fixed sheet layouts. (Applying these switches your paper size from ${curPaper} to match the preset.)</p><div class="pick presets">${BUILTIN_PRESETS.filter(p => !p.kind).map(p => card(p, false)).join('')}</div></details>
+  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind);
+  $('#presetGrid').innerHTML = `
+    <div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
+    <details class="adv" style="margin-top:10px">
+      <summary>Fine-tune printer profile presets</summary>
+      <p class="hint" style="margin-top:6px">Printer-specific presets with custom driver tuning for ${esc(pr.name)}.</p>
+      <div class="grid2" style="margin-top:8px">${['Inkjet', 'Laser'].map(group).join('')}</div>
+    </details>
     ${S.presets.length ? `<details class="adv" open><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
 $('#presetGrid').onchange = ev => {
