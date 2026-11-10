@@ -7,6 +7,7 @@
 // packages, nothing added to the page.
 //
 //   node tools/console-check.js                      # start a server, check the page
+//   --artifacts /tmp/result.json writes window.__probeArtifacts when the probe returns true.
 //   node tools/console-check.js --probe my-probe.js  # also run assertions in the page
 //   node tools/console-check.js --url http://host:port --password pw
 //
@@ -130,6 +131,7 @@ function owns(port) {
     const loaded = await ev("typeof layout==='function' && typeof cleanSettings==='function'");
     let probeOut = null, probeFile = arg('--probe');
     if (loaded && probeFile) probeOut = await ev(fs.readFileSync(probeFile, 'utf8'));
+    if (probeOut === true && arg('--artifacts')) fs.writeFileSync(arg('--artifacts'), JSON.stringify(await ev('window.__probeArtifacts')));
     await sleep(SETTLE);
     // Chromium's "recommendation" source is advisory DOM guidance, not an error.
     // Reported so nothing is hidden, but it does not fail the run.
