@@ -23,6 +23,7 @@
     eq('all local art ready', buildMpcOrder(true).slot, 3);
     eq('XML omits uploads', buildMpcOrder(false).uploads.length, 3);
     eq('XML disabled for all local images', $('#oXml').disabled, true);
+    eq('XML summary counts excluded copies', $('#xmlSummary').textContent, '0 cards included · 3 left out. Your uploaded cardback is also left out.');
     mpcCardInfo = async () => f => ({file:f.file, query:f.name});
     await exportMpcZip();
     eq('ZIP downloaded', downloads.at(-1)?.name.endsWith('.zip'), true);
