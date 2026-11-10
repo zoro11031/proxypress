@@ -2078,7 +2078,14 @@ $('#oBackClear').onclick = async () => {
 };
 $('#oZip').onclick = () => exportMpcZip();
 $('#oXml').onclick = () => exportMpcXml();
-$('#btnXml').onclick = () => { switchTab('order'); $('#oZip').focus(); };
+$('#btnXml').onclick = () => {
+  if ($('#tab-order').classList.contains('on')) {
+    exportMpcZip();
+  } else {
+    switchTab('order');
+    $('#oZip').focus();
+  }
+};
 $('#btnOrderPrev').onclick = () => switchTab('cards');
 
 /* ---------- UI: deck header ---------- */
@@ -4088,6 +4095,7 @@ function renderGuideTab() {
     review.innerHTML = issues.length ? `<div class="warn"><b>Check before printing</b><ul>${issues.map(([tab, text]) => `<li>${esc(text)} <button class="icon" data-review-tab="${tab}">Review ${tab === 'setup' ? 'print setup' : tab === 'cutting' ? 'cutting' : 'cards'}</button></li>`).join('')}</ul></div>` : '';
   }
   $('#btnExportPdfTab').disabled = !slots.length;
+  if ($('#btnPdf') && $('#tab-guide').classList.contains('on')) $('#btnPdf').disabled = !slots.length;
   const svgBtn = $('#btnExportSvgTab');
   if (svgBtn) svgBtn.style.display = isCameo ? 'block' : 'none';
 
@@ -4182,7 +4190,13 @@ function backStepsHtml(sheets) {
   <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.</p>`;
 }
 
-$('#btnPdf').onclick = () => switchTab('guide');
+$('#btnPdf').onclick = async () => {
+  if ($('#tab-guide').classList.contains('on')) {
+    await exportPDF(true);
+  } else {
+    switchTab('guide');
+  }
+};
 
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
@@ -4499,6 +4513,28 @@ function switchTab(name) {
   const activePane = $('#tab-' + name);
   if (activePane) activePane.scrollTop = 0;
   if (name === 'guide') renderGuideTab();
+  const btnPdf = $('#btnPdf');
+  if (btnPdf) {
+    if (name === 'guide') {
+      btnPdf.textContent = 'Download PDF';
+      btnPdf.title = 'Download print-ready PDF files';
+      btnPdf.disabled = !buildSlots().length;
+    } else {
+      btnPdf.textContent = 'Review & export';
+      btnPdf.title = 'Review your print setup and download files';
+      btnPdf.disabled = false;
+    }
+  }
+  const btnXml = $('#btnXml');
+  if (btnXml) {
+    if (name === 'order') {
+      btnXml.textContent = 'Download order (.zip)';
+      btnXml.title = 'Download your formatted order file and images';
+    } else {
+      btnXml.textContent = 'Review order';
+      btnXml.title = 'Review your cards, cardback and order settings';
+    }
+  }
 }
 $$('.tabs button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 

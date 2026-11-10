@@ -24,6 +24,7 @@ A free, easy MTG proxy maker. Drop in a decklist, pick your art, and get a print
 ### What's New in v1.0.2
 
 - **Bug Fixes & Accessibility:**
+  - **Export Button Usability:** Fixed the "Review & export" header button so that clicking it while on the Export tab immediately triggers the PDF export (matching the "Download PDF" panel button). The header button label also dynamically switches between "Review & export" (on steps 1–3) and "Download PDF" (on step 4) so both buttons work seamlessly.
   - **Welcome Tour Navigation:** Fixed closure state scoping in `openTour` so Next and Back buttons reliably step through all guide slides in both directions.
   - **Dock Icon Scale:** Scaled the fan-of-cards icon to fill 90% vertical height and 98.6% horizontal span (`505×456` in a `512×512` canvas), eliminating excessive transparent margins so the app icon matches full-sized desktop dock icons.
   - **Art Picker Layout Stability:** Added fixed card aspect-ratio (`63/88`) placeholders for lazy-loaded images, preventing page reflow and jumpy layout shifts as image thumbnails decode.
