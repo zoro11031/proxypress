@@ -9,6 +9,29 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const url = require('node:url');
+const MAX_BODY = 256 * 1024, MAX_UPSTREAM = 20 * 1024 * 1024;
+const MPC_PATHS = new Set(['2/editorSearch/', '2/cards/', '2/sources/', '2/cardbacks/', '2/languages/', '2/DFCPairs/']);
+
+async function readUpstream(response, limit = MAX_UPSTREAM) {
+  const chunks = []; let size = 0;
+  for await (const chunk of response.body || []) {
+    size += chunk.length;
+    if (size > limit) throw new Error('Response too large');
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function configureNavigation(win, serverUrl) {
+  const external = target => { if (/^https?:\/\//i.test(target)) shell.openExternal(target); };
+  win.webContents.setWindowOpenHandler(({url:target}) => { external(target); return {action:'deny'}; });
+  const navigate = (event, target) => {
+    try { if (new URL(target).origin === serverUrl) return; } catch {}
+    event.preventDefault(); external(target);
+  };
+  win.webContents.on('will-navigate', navigate);
+  win.webContents.on('will-redirect', navigate);
+}
 
 function getResourcePath(...subpaths) {
   if (app && app.isPackaged) {
@@ -89,7 +112,9 @@ function assetManifest() {
 }
 
 function safeAssetPath(reqRoute) {
-  const rel = decodeURIComponent(reqRoute.slice('/assets/'.length));
+  let rel;
+  try { rel = decodeURIComponent(reqRoute.slice('/assets/'.length)); } catch { return null; }
+  if (rel.includes('\0')) return null;
   const full = path.resolve(path.join(assetsDir, rel));
   if (!full.startsWith(path.resolve(assetsDir) + path.sep) || !fs.existsSync(full) || !fs.statSync(full).isFile()) {
     return null;
@@ -108,7 +133,7 @@ function cacheGet(key) {
     const f = cacheKey(key);
     if (fs.existsSync(f)) {
       const [ts, data] = JSON.parse(fs.readFileSync(f, 'utf8'));
-      return data;
+      if (Date.now() / 1000 - ts < 3 * 86400) return data;
     }
   } catch {}
   return null;
@@ -135,9 +160,10 @@ async function handleMpc(req, res, method, reqPath, body) {
     const upstream = await fetch(targetUrl, {
       method,
       headers,
+      signal: AbortSignal.timeout(60000), redirect:'error',
       body: body && body.length ? body : undefined
     });
-    const data = await upstream.arrayBuffer();
+    const data = await readUpstream(upstream);
     res.writeHead(upstream.status, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*'
@@ -166,9 +192,10 @@ async function handleSf(req, res, method, reqPath, body) {
     const upstream = await fetch(targetUrl, {
       method,
       headers,
+      signal: AbortSignal.timeout(60000), redirect:'error',
       body: body && body.length ? body : undefined
     });
-    const text = await upstream.text();
+    const text = (await readUpstream(upstream)).toString('utf8');
     if (method === 'GET' && upstream.status === 200) {
       cachePut('sf:' + targetUrl, text);
     }
@@ -191,8 +218,9 @@ async function handleSym(req, res, reqPath) {
 
   try {
     if (name === 'index.json') {
-      const upstream = await fetch('https://api.scryfall.com/symbology', { headers: { 'User-Agent': 'ProxyPress/1.0' } });
-      const data = await upstream.json();
+      const upstream = await fetch('https://api.scryfall.com/symbology', { headers: { 'User-Agent': 'ProxyPress/1.0' }, signal:AbortSignal.timeout(30000), redirect:'error' });
+      if (!upstream.ok) throw new Error('Symbology unavailable');
+      const data = JSON.parse(await readUpstream(upstream));
       const map = {};
       for (const s of data.data || []) {
         if (s.svg_uri) {
@@ -205,12 +233,12 @@ async function handleSym(req, res, reqPath) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(out);
     } else {
-      const upstream = await fetch('https://svgs.scryfall.io/card-symbols/' + encodeURIComponent(name), { headers: { 'User-Agent': 'ProxyPress/1.0' } });
+      const upstream = await fetch('https://svgs.scryfall.io/card-symbols/' + encodeURIComponent(name), { headers: { 'User-Agent': 'ProxyPress/1.0' }, signal:AbortSignal.timeout(30000), redirect:'error' });
       if (!upstream.ok) {
         res.writeHead(upstream.status);
         return res.end('Not found');
       }
-      const svg = await upstream.text();
+      const svg = (await readUpstream(upstream)).toString('utf8');
       cachePut('sym:' + name, svg);
       res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
       return res.end(svg);
@@ -221,9 +249,30 @@ async function handleSym(req, res, reqPath) {
   }
 }
 
+async function handleSuggestions(res, slug) {
+  if (!/^[a-z0-9][a-z0-9-]{0,159}$/.test(slug)) { res.writeHead(404); return res.end('Not found'); }
+  const key = 'suggest:' + slug, hit = cacheGet(key);
+  if (hit) { res.writeHead(200, {'Content-Type':'application/json'}); return res.end(hit); }
+  try {
+    const upstream = await fetch(`https://json.edhrec.com/pages/cards/${slug}.json`, {headers:{'Accept':'application/json','User-Agent':'ProxyPress/1.0'}, signal:AbortSignal.timeout(20000), redirect:'error'});
+    if (upstream.status !== 404 && !upstream.ok) throw new Error('Suggestions unavailable');
+    const data = upstream.status === 404 ? {} : JSON.parse(await readUpstream(upstream, 2 * 1024 * 1024)), cards = new Map();
+    const add = (name, score, kind) => { if (typeof name === 'string' && name.length && name.length <= 300 && !cards.has(name)) cards.set(name, {name, score, kind}); };
+    (data.similar || []).slice(0,24).forEach((name,i) => add(name,80-i,'Similar card'));
+    for (const group of data.container?.json_dict?.cardlists || []) {
+      const base = {highliftcards:60,topcards:30}[group.tag];
+      if (base) (group.cardviews || []).slice(0,20).forEach((card,i) => add(card.name,base-i,'Often played together'));
+    }
+    const result = JSON.stringify({cards:[...cards.values()].slice(0,64)}); cachePut(key,result);
+    res.writeHead(200, {'Content-Type':'application/json'}); res.end(result);
+  } catch {
+    res.writeHead(502, {'Content-Type':'application/json'}); res.end(JSON.stringify({message:'Suggestions are unavailable right now'}));
+  }
+}
+
 async function handleDeck(req, res, parsedUrl) {
   const deckUrl = (parsedUrl.searchParams?.get('u') || '').trim();
-  const m = deckUrl.match(/https?:\/\/(?:www\.)?(moxfield|archidekt)\.com\/decks\/([A-Za-z0-9_-]+)/);
+  const m = deckUrl.match(/^https?:\/\/(?:www\.)?(moxfield|archidekt)\.com\/decks\/([A-Za-z0-9_-]{1,40})(?:[/?#]|$)/);
   if (!m) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ message: 'Paste a Moxfield or Archidekt deck link' }));
@@ -234,12 +283,12 @@ async function handleDeck(req, res, parsedUrl) {
     : `https://archidekt.com/api/decks/${deckId}/`;
 
   try {
-    const upstream = await fetch(apiUrl, { headers: { 'User-Agent': 'ProxyPress/1.0', 'Accept': 'application/json' } });
+    const upstream = await fetch(apiUrl, { headers: { 'User-Agent': 'ProxyPress/1.0', 'Accept': 'application/json' }, signal:AbortSignal.timeout(30000), redirect:'error' });
     if (!upstream.ok) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ message: `Could not load deck from ${site}` }));
     }
-    const j = await upstream.json();
+    const j = JSON.parse(await readUpstream(upstream));
     const lines = [];
     const fmt = (q, n, st, cn) => `${q} ${n}` + (st && cn ? ` (${st.toUpperCase()}) ${cn}` : '');
 
@@ -251,13 +300,15 @@ async function handleDeck(req, res, parsedUrl) {
         }
       }
     } else {
+      const skip = new Set((j.categories || []).filter(c => !c.includedInDeck && c.name !== 'Sideboard').map(c => c.name));
       for (const c of j.cards || []) {
+        if ((c.categories || []).some(name => skip.has(name))) continue;
         const cd = c.card || {}, ed = cd.edition || {};
         lines.push(fmt(c.quantity || 1, cd.oracleCard?.name || cd.name || '', ed.editioncode || '', cd.collectorNumber || ''));
       }
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ text: lines.join('\n') }));
+    res.end(JSON.stringify({ name:j.name || '', text:lines.filter(line => line.split(' ').slice(1).join(' ')).join('\n') }));
   } catch (err) {
     res.writeHead(502, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ message: `Failed to fetch from ${site}` }));
@@ -309,12 +360,16 @@ function startServer(port = 0) {
       }
 
       if (req.method === 'GET' && reqPath.startsWith('/sym/')) {
+        if (!/^(index\.json|[A-Za-z0-9_-]+\.svg)$/.test(reqPath.slice(5))) {
+          res.writeHead(404); return res.end('Not found');
+        }
         return handleSym(req, res, reqPath);
       }
 
       if (req.method === 'GET' && reqPath === '/deck') {
         return handleDeck(req, res, parsed);
       }
+      if (req.method === 'GET' && reqPath.startsWith('/suggest/')) return handleSuggestions(res, reqPath.slice(9));
 
       if (req.method === 'GET' && reqPath === '/healthz') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -322,14 +377,31 @@ function startServer(port = 0) {
       }
 
       if (reqPath.startsWith('/sf/') || reqPath.startsWith('/mpc/')) {
-        const chunks = [];
-        req.on('data', c => chunks.push(c));
+        if (!['GET', 'POST'].includes(req.method)) { res.writeHead(405); return res.end('Method not allowed'); }
+        const sfRoute = reqPath.slice(3);
+        const allowed = reqPath.startsWith('/mpc/') ? MPC_PATHS.has(reqPath.slice(5)) : req.method === 'POST'
+          ? sfRoute === '/cards/collection' : /^\/cards\/(named|search|[0-9a-f-]{36})$|^\/symbology$/.test(sfRoute);
+        if (!allowed) { res.writeHead(404); return res.end('Endpoint not relayed'); }
+        const route = reqPath + parsed.search;
+        if (req.method === 'GET') {
+          return reqPath.startsWith('/sf/') ? handleSf(req, res, 'GET', route) : handleMpc(req, res, 'GET', route);
+        }
+        const chunks = []; let size = 0;
+        req.on('data', c => {
+          size += c.length;
+          if (size > MAX_BODY) {
+            if (!res.writableEnded) { res.writeHead(413); res.end('Request body too large'); }
+            return;
+          }
+          chunks.push(c);
+        });
         req.on('end', async () => {
+          if (size > MAX_BODY) return;
           const body = Buffer.concat(chunks);
           if (reqPath.startsWith('/sf/')) {
-            await handleSf(req, res, req.method, reqPath, body);
+            await handleSf(req, res, req.method, route, body);
           } else {
-            await handleMpc(req, res, req.method, reqPath, body);
+            await handleMpc(req, res, req.method, route, body);
           }
         });
         return;
@@ -386,20 +458,7 @@ if (app) {
       mainWindow.show();
     });
 
-    mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
-      if (/^https?:\/\//i.test(targetUrl)) {
-        shell.openExternal(targetUrl);
-      }
-      return { action: 'deny' };
-    });
-
-    mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
-      const serverHost = `127.0.0.1:${srv.port}`;
-      if (!targetUrl.includes(serverHost)) {
-        event.preventDefault();
-        shell.openExternal(targetUrl);
-      }
-    });
+    configureNavigation(mainWindow, `http://127.0.0.1:${srv.port}`);
 
     const isMac = process.platform === 'darwin';
     const menuTemplate = [
@@ -456,11 +515,11 @@ if (app) {
             click: () => shell.openExternal('https://github.com/zoro11031/proxypress')
           },
           {
-            label: 'MPC Autofill Website',
+            label: 'Art search website',
             click: () => shell.openExternal('https://mpcfill.com')
           },
           {
-            label: 'Donate to MPC Autofill (Patreon)',
+            label: 'Support the autofill tool (Patreon)',
             click: () => shell.openExternal('https://www.patreon.com/mpcfill')
           },
           {
@@ -494,6 +553,7 @@ if (app) {
           }
         });
         mainWindow.once('ready-to-show', () => mainWindow.show());
+        configureNavigation(mainWindow, `http://127.0.0.1:${srv.port}`);
         mainWindow.loadURL(`http://127.0.0.1:${srv.port}/`);
       }
     });

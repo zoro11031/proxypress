@@ -14,16 +14,16 @@ No accounts, no tracking, and no subscriptions. Everything runs directly on your
 
 Download the desktop app from **[Releases](https://github.com/zoro11031/proxypress/releases)**:
 
-- **Windows:** Download and run `Proxy-Press-1.0.2.exe` (or `Proxy-Press-1.0.2.msi`).
-- **Linux:** Download `Proxy-Press-1.0.2.AppImage`, make it executable (`chmod +x Proxy-Press-1.0.2.AppImage`), and double-click to launch.
+- **Windows:** Download and run `Proxy-Press-1.0.3.exe` (or `Proxy-Press-1.0.3.msi`).
+- **Linux:** Download `Proxy-Press-1.0.3.AppImage`, make it executable (`chmod +x Proxy-Press-1.0.3.AppImage`), and double-click to launch.
 
 *No setup required. All authentic MTG fonts, card frames, and high-res art search tools are built in with no login or password needed.*
 
 #### Other Linux packages (optional)
 If you prefer installing via your distribution's package manager:
-- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.2.deb`
-- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.2.rpm` (or `sudo zypper install ./Proxy-Press-1.0.2.rpm`)
-- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.2.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
+- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.3.deb`
+- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.3.rpm` (or `sudo zypper install ./Proxy-Press-1.0.3.rpm`)
+- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.3.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
 
 ---
 
@@ -35,7 +35,7 @@ If you have a home server (Unraid, TrueNAS, Synology, or Raspberry Pi) and want 
 docker compose up -d
 ```
 
-Then open `http://localhost:8642` in your browser. (To customize ports or set a password, copy `.env.example` to `.env`).
+Then open `http://localhost:8642` on the server. To connect from other devices, copy `.env.example` to `.env`, set `PROXY_PRESS_BIND` to the server's LAN IP, and run `docker compose up -d` again. Open `http://SERVER_LAN_IP:8642` from those devices. You can also set a password in `.env`.
 
 ---
 
@@ -47,11 +47,17 @@ Paste a decklist or paste a link directly from Moxfield or Archidekt. Proxy Pres
 ### 2. Pick Your Favorite Art
 Click any card to browse official printings, retro borders, borderless treatments, and high-DPI community renders.
 
+Right-click a card and choose **Change card match…** to correct its Scryfall match or printing. The Suggestions box recommends cards based on the ones in your deck; use **+** to add one or **Explore suggestions** to browse them. **Share deck with art & layout** is available alongside the export options in both modes.
+
+For tokens, choose **Choose token faces…** to use either face by itself or browse released two-sided token pairings. The selected printing's artwork is saved with your deck.
+
 ![Choosing high-resolution card artwork](screenshots/art-picker.png)
 
 ### 3. Print at Home or Order Online
 - **Print at Home:** Generates standard Letter or A4 PDFs with cut guides and automatic bleed edges so cards never have white borders after cutting. Supports front-to-back printer calibration and Silhouette Cameo cutter registration marks.
 - **Order Online:** One-click bundle ready for MakePlayingCards with formatted order files and card images.
+
+Use the preview toolbar to switch paper size or orientation, fit the whole sheet in the window, or hide the sidebar for more room.
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
 
@@ -76,6 +82,7 @@ Special thanks also to:
 - **[ProxyJak](https://proxyjak.com)** — Quality proxy cardstock.
 - **[Cry Cry](https://www.youtube.com/@crycryproxy)** — Essential YouTube tutorials on paper choices, foiling, and cutter setup.
 - **[Scryfall](https://scryfall.com)** — The card data API powering the MTG community.
+- **[EDHREC](https://edhrec.com)** — Similar-card and shared-deck data for card suggestions.
 - **[Proxxied](https://proxxied.com)** — Inspiration for in-browser sheet previewing.
 - **[Magic Set Editor](https://magicseteditor.boards.net)** & **Card Conjurer / MTG.Design** — Card framing and typography foundations.
 - **r/mpcproxies & r/magicproxies** — Helpful tips on printing and paper stocks.

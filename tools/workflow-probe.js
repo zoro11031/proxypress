@@ -102,10 +102,17 @@
     eq('lookup keeps uploaded art', $('#ccSave').disabled, false);
     closeModal(true); sf = originalSf;
     // A standalone print deck must round-trip without fetching its original art.
+    S.mode='print';applyMode();switchTab('guide');
+    eq('share is a visible print export option',$('#printDeckOut').getClientRects().length>0,true);
     await $('#printDeckOut').onclick();
     const sharedDownload = downloads.at(-1);
     eq('share export downloads JSON', sharedDownload.name.endsWith('(print deck).json'), true);
     const parsed = await readPrintDeck(sharedDownload.blob);
+    S.mode='order';applyMode();switchTab('order');
+    eq('share is a visible order export option',$('#orderPrintDeckOut').getClientRects().length>0,true);
+    await $('#orderPrintDeckOut').onclick();
+    const orderShare=await readPrintDeck(downloads.at(-1).blob);
+    eq('order-mode share includes the same artwork',orderShare.images[f.custom],parsed.images[f.custom]);
     const tricky = {images:{'img-test':'data:image/png;base64,abc='}, deck:{name:'Unicode ☃ \"quoted\" \\ slash', entries:[{text:'braces { } [ ] and \\ escape'}]}, version:1, bool:true, empty:null};
     const bytes = new TextEncoder().encode(JSON.stringify(tricky, null, 2));
     const chunked = {stream:() => new ReadableStream({start(controller) { for (let i = 0; i < bytes.length; i += 3) controller.enqueue(bytes.slice(i, i + 3)); controller.close(); }})};

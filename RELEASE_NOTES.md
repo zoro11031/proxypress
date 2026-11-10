@@ -1,54 +1,43 @@
-# Proxy Press v1.0.2
+# Proxy Press v1.0.3
 
-A free, easy MTG proxy maker. Drop in a decklist, pick your art, and get a print-ready PDF with proper bleed and cut lines—or an order file ready for MakePlayingCards.
+A refreshed workspace, suggestions for your deck, clearer exports, and better token handling. Letter and A4 portrait/landscape presets are still one click away.
 
----
+## What's new
 
-### 💡 Which download is best for you?
+- Refreshed dark interface with clearer navigation, grouped import controls, a larger preview, and better phone layouts.
+- Paper size and orientation shortcuts beside the preview, a hide-sidebar option, and a Fit button that fits the whole sheet.
+- Suggestions based on cards already in your deck, using EDHREC data. Add a card with **+** or browse card previews with **Explore suggestions**.
+- Right-click **Change card match…** to correct the Scryfall card or printing while optionally keeping your chosen artwork.
+- **Choose token faces…** lets you use either token face alone or both sides of a printed pairing. Chosen token artwork is saved with the deck.
+- Treasure imports now select Treasure rather than the Dinosaur face of Dinosaur // Treasure. Different faces of the same printing keep their own quantities, and automatic token art selection rejects mismatched token names.
+- Thin corner brackets, full outlines, guide colors, placement, and line styles. Preview and PDF use the same guide geometry.
+- **Share deck with art & layout** is a visible export option in both Print and Order modes. The file includes artwork and layout while preserving the recipient's printer alignment.
 
-- **Best for normal desktop users (Easiest & Recommended):**
-  - **Windows:** Download and run **`Proxy-Press-1.0.2.exe`** (or `Proxy-Press-1.0.2.msi`).
-  - **Linux:** Download **`Proxy-Press-1.0.2.AppImage`**, make it executable (`chmod +x`), and double-click to launch.
-  *(Everything is pre-packaged with all fonts, frames, and art search tools—no setup, accounts, or password needed).*
+## Fixes
 
-- **Best for home servers or NAS (Docker):**
-  - If you want Proxy Press running 24/7 on your local network (Unraid, TrueNAS, Synology, Raspberry Pi), the **Docker container** (`docker compose up -d`) is preferred.
+- Desktop Scryfall lookups and searches retain their query parameters.
+- Desktop Archidekt imports exclude cards outside the deck and retain the deck name.
+- Keyboard art selection fires once per keypress; deck thumbnails also support keyboard activation.
+- Export buttons consistently reflect whether cards are available.
+- Desktop relays enforce allowed endpoints, size limits, and timeouts. Navigation checks the exact app origin, including reopened windows.
+- Release versions and download filenames are checked before packaging. A release is published after all expected downloads have uploaded.
 
-- **For Linux users who prefer system package managers:**
-  - **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.2.deb`
-  - **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.2.rpm`
-  - **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.2.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
+## Downloads
 
----
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/Proxy-Press-1.0.3.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/Proxy-Press-1.0.3.msi).
 
-### What's New in v1.0.2
+**Linux x86_64:**
 
-- **Bug Fixes & Accessibility:**
-  - **Export Button Usability:** Fixed the "Review & export" header button so that clicking it while on the Export tab immediately triggers the PDF export (matching the "Download PDF" panel button). The header button label also dynamically switches between "Review & export" (on steps 1–3) and "Download PDF" (on step 4) so both buttons work seamlessly.
-  - **Welcome Tour Navigation:** Fixed closure state scoping in `openTour` so Next and Back buttons reliably step through all guide slides in both directions.
-  - **Dock Icon Scale:** Scaled the fan-of-cards icon to fill 90% vertical height and 98.6% horizontal span (`505×456` in a `512×512` canvas), eliminating excessive transparent margins so the app icon matches full-sized desktop dock icons.
-  - **Art Picker Layout Stability:** Added fixed card aspect-ratio (`63/88`) placeholders for lazy-loaded images, preventing page reflow and jumpy layout shifts as image thumbnails decode.
-  - **Keyboard Art Selection:** Added `Enter` and `Space` key handlers to art picker figures for accessible keyboard navigation.
-  - **Deck Import Enhancements:** Expanded Moxfield board support to include Oathbreaker signature spells, attractions, stickers, and contraptions; added fallback card name resolution for Archidekt custom/token cards.
-  - **Letter Portrait Preset:** Tuned preset bleed to 0.75 mm so Letter portrait comfortably fits a standard 9-card (3×3) grid with 5.4 mm margins.
-  - **Theme Polish:** Added theme-matched amber text selection (`::selection`).
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/Proxy-Press-1.0.3.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/Proxy-Press-1.0.3.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/Proxy-Press-1.0.3.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/Proxy-Press-1.0.3.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v1.0.3/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
----
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
-### ❤️ Special Thanks & Supporting MPC Autofill
+## Thanks
 
-Huge thanks to **[MPC Autofill / MPCFill](https://mpcfill.com)** above all. None of this would exist without their database, community drives, and the artists creating and sharing high-DPI card renders.
+Thanks to [MPC Autofill](https://mpcfill.com) and its community drives, [Scryfall](https://scryfall.com), [EDHREC](https://edhrec.com), [Proxxied](https://proxxied.com), [ProxyJak](https://proxyjak.com), and the artists and toolmakers supporting proxy printing. Consider [supporting the autofill service on Patreon](https://www.patreon.com/mpcfill).
 
-If you use the autofill tool or community drives, please consider **[supporting their server and maintenance costs on Patreon](https://www.patreon.com/mpcfill)**.
-
-Special thanks also to:
-- **[ProxyJak](https://proxyjak.com)** — Quality proxy cardstock.
-- **[Cry Cry](https://www.youtube.com/@crycryproxy)** — Essential YouTube tutorials on paper choices, foiling, and cutter setup.
-- **[Scryfall](https://scryfall.com)** — The card data API powering the MTG community.
-- **[Proxxied](https://proxxied.com)** — In-browser preview and sheet layout inspiration.
-- **Magic Set Editor & Card Conjurer / MTG.Design** — Card framing and typography foundations.
-
----
-
-### ⚖️ Fair Use Notice
-Code is free software under [GPL-3.0-or-later](LICENSE). Card frames, symbol vectors, and fonts bundled in `assets/` are proprietary trademarks/copyrights of their respective owners and are bundled in accordance with fair use for non-commercial, personal card crafting and proxy printing.
+Proxy Press code is licensed under [GPL-3.0-or-later](https://github.com/zoro11031/proxypress/blob/main/LICENSE). Card artwork, frames, and fonts belong to their respective owners.

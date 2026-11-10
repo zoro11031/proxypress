@@ -1,7 +1,7 @@
 {
   "name": "proxypress",
   "productName": "ProxyPress",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A browser-based MTG proxy maker",
   "main": "main.js",
   "author": {
@@ -62,7 +62,7 @@
         }
       ],
       "icon": "icon.ico",
-      "artifactName": "Proxy-Press-Setup-${version}.${ext}"
+      "artifactName": "Proxy-Press-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,

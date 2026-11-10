@@ -10,8 +10,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root{
-  --bg:#14161a;--panel:#1c1f25;--panel2:#23272e;--line:#2f343d;--text:#e7e9ee;--muted:#9aa1ad;
-  --accent:#e0a33a;--accent2:#f2c26b;--danger:#e2615a;--ok:#5cc27a;--desk:#0f1114;
+  --bg:#11151b;--panel:#1b2028;--panel2:#242b35;--line:#343d4a;--text:#edf0f5;--muted:#a0aab9;
+  --accent:#e0a33a;--accent2:#f2c26b;--danger:#e2615a;--ok:#5cc27a;--desk:#0c1016;
 }
 *{box-sizing:border-box}
 ::selection{background:rgba(224,163,58,.35);color:#fff}
@@ -32,7 +32,7 @@ input[type=number],input[type=text],input[type=search],select,textarea{backgroun
 input[type=number]:focus,input[type=text]:focus,input[type=search]:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 2px rgba(224,163,58,.2)}
 input[type=color]{width:100%;height:30px;background:#111317;border:1px solid var(--line);border-radius:6px;padding:2px;transition:border-color .15s ease}
 textarea{resize:vertical;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
-header{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
 header h1{font-size:16px;margin:0 8px 0 0;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
 header h1{display:flex;align-items:center;gap:8px}
@@ -40,18 +40,20 @@ header h1 .logo{display:block;width:26px;height:26px;flex-shrink:0}
 header .grow{flex:1}
 header select{width:auto;min-width:160px}
 .stats{color:var(--muted);font-size:13px}
-main{flex:1;display:grid;grid-template-columns:420px 1fr;min-height:0}
+main{flex:1;display:grid;grid-template-columns:clamp(350px,29vw,410px) minmax(0,1fr);min-height:0}
 aside{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
-.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel2);padding:5px 6px;gap:4px}
-.tabs button{flex:1;border:1px solid transparent;border-radius:6px;background:none;padding:8px 4px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;text-align:center;transition:all .15s;cursor:pointer}
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel);padding:9px 8px;gap:4px}
+.tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:8px;background:none;padding:8px 4px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;text-align:center;transition:all .15s;cursor:pointer}
 .tabs button:hover{color:var(--text);background:rgba(255,255,255,.04)}
-.tabs button.on{color:var(--text);background:var(--panel);border-color:var(--line);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.tabs button.on{color:var(--accent2);background:#30291d;border-color:#6b522b}
+.step-index{width:20px;height:20px;display:grid;place-items:center;border-radius:6px;background:var(--panel2);font-size:10px;color:var(--muted)}
+.tabs button.on .step-index{background:var(--accent);color:#211809}
 .pane{flex:1;overflow:auto;padding:14px 16px;display:none}
 .pane.on{display:block;animation:paneIn .15s ease}
 @keyframes paneIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.step-hdr{margin-bottom:14px}
+.step-hdr{margin-bottom:18px}
 .step-num{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:2px}
-.step-hdr h2{font-size:16px;font-weight:700;margin:0 0 3px;color:var(--text);letter-spacing:-.2px}
+.step-hdr h2{font-size:20px;font-weight:650;margin:3px 0 6px;color:var(--text);letter-spacing:-.4px}
 .step-hdr .hint{font-size:12px;color:var(--muted);margin:0;line-height:1.4}
 .wiz-nav{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
 .wiz-nav button{padding:10px 16px;font-weight:600;font-size:13px;border-radius:7px;transition:all .15s}
@@ -75,7 +77,7 @@ h3:first-child{margin-top:2px}
 .warn button{background:#181b22;color:#f7f9fc;border:1px solid #e0a33a;border-radius:5px;font-weight:600;padding:3px 9px;margin-left:6px;cursor:pointer;display:inline-flex;align-items:center;vertical-align:middle;transition:background .15s,color .15s,border-color .15s}
 .warn button:hover{background:#e0a33a;color:#14161a;border-color:#f2c26b}
 .cards{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-.card{display:grid;grid-template-columns:46px 1fr auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px;transition:border-color .15s,background .15s,box-shadow .15s}
+.card{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:7px;transition:border-color .15s,background .15s,box-shadow .15s}
 .card:hover{border-color:#4a515c}
 .card img{width:46px;height:64px;object-fit:cover;border-radius:3px;cursor:pointer;background:#000;transition:transform .12s ease}
 .card img:hover{transform:scale(1.04)}
@@ -83,26 +85,75 @@ h3:first-child{margin-top:2px}
 .pg img.selected,.tile img.selected{outline:3px solid var(--accent);outline-offset:2px}
 .copy-selection-mark{position:absolute;z-index:3;pointer-events:none;background:var(--accent);color:#17130d;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-weight:700;box-shadow:0 1px 5px #000}
 #cardSelection{position:sticky;top:0;z-index:5;background:var(--panel);padding:8px;border:1px solid var(--accent);border-radius:8px;margin-top:8px}
-.card .nm{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card .meta{font-size:11.5px;color:var(--muted)}
+.card .nm{font-weight:600;font-size:13px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
+.card .meta{font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
 .card .ctl{display:flex;gap:6px;align-items:center}
 .card .more{font-size:16px;line-height:1;padding:4px 9px}
 .card .meta{margin-top:2px;line-height:1.6}
 .qty{display:flex;align-items:center;gap:2px}
 .qty input{width:36px;text-align:center;padding:3px 2px;-moz-appearance:textfield;appearance:textfield}
 .qty input::-webkit-outer-spin-button,.qty input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.card .qty{background:#11171f;border:1px solid var(--line);border-radius:7px;gap:0}
+.card .qty button{border:0;background:none;padding:5px 7px}
+.card .qty input{border:0;background:none;width:30px;padding:3px 0}
 .tag.bad{background:#4a2321;color:#ff9c95}
 .pg .lowres{position:absolute;z-index:2;background:rgba(226,97,90,.92);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;pointer-events:none;white-space:nowrap}
 .tag{display:inline-block;font-size:10px;padding:0 5px;border-radius:4px;background:#3a3020;color:var(--accent2);margin-left:4px}
 .preset{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--panel2)}
 .preset .nm{flex:1;font-size:13px}
 .preset.active{border-color:var(--accent)}
-#stage{overflow:auto;background:var(--desk);padding:24px;min-width:0}
+#stage{overflow:auto;background-color:var(--desk);background-image:radial-gradient(#71819818 .8px,transparent .8px);background-size:16px 16px;padding:24px;min-width:0}
+.import-panel{padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+.import-panel>button,.import-panel .source-actions button{background:var(--panel);min-height:38px}
+.import-panel textarea{min-height:130px;padding:10px;line-height:1.6}
+.import-panel #listIn.compact{min-height:0}
+.import-panel .row button{min-height:38px;font-size:12px}
+.source-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.source-actions button{white-space:normal;padding:9px 6px}
+.suggestion-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px}
+.suggestion-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.suggestion-row small{display:block;color:var(--muted);margin-top:3px}
+.suggestion-row .icon{width:25px;height:25px;padding:0;background:#254c7b;color:#b9dcff;border:0;border-radius:6px;font-size:18px}
+.suggestion-row .icon:hover{background:#32649f}
+@media (max-width:820px){.suggestion-row .icon{width:40px;height:40px}}
+#suggestionDrawer{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:0 12px 10px;margin-top:12px}
+#suggestionDrawer>summary{padding:12px;margin:0 -12px;cursor:pointer;font-size:13px;font-weight:600;background:#233443;border-radius:11px}
+#suggestionDrawer[open]>summary{border-bottom:1px solid var(--line);border-radius:11px 11px 0 0}
+#suggestionDrawer:not([open]){padding-bottom:0}
+#suggestionExplore{width:100%;margin:12px 0 5px;padding:9px}
+.suggestion-explore{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.suggestion-tile{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.suggestion-tile img{width:100%;aspect-ratio:63/88;object-fit:cover;border-radius:5px}
+.suggestion-tile small{color:var(--muted);font-size:11px;flex:1}
+.stage-controls{position:sticky;top:0;z-index:5;margin:-24px -24px 54px;padding:20px 24px 12px;background:var(--desk);border-bottom:1px solid #343d4a88}
+.stage-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.stage-heading b{font-size:20px;font-weight:600;letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage-heading span{color:var(--muted);font-size:12px;white-space:nowrap}
+.stage-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+#stage .toolbar{justify-content:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:0;gap:12px;font-size:12px}
+.toolbar-cluster{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toolbar-cluster+.toolbar-cluster{padding-left:12px;border-left:1px solid var(--line)}
+#quickPaper{width:auto;max-width:160px;padding:5px 7px;font-size:12px}
+.paper-direction button{font-size:11px;padding:6px 9px}
+.paper-direction button.on{background:#39311f;color:var(--accent2)}
+#toggleSidebar{font-size:11px;color:var(--muted);background:transparent;padding:6px 9px}
+@media (min-width:821px){body.preview-focus main{grid-template-columns:minmax(0,1fr)}body.preview-focus main>aside{display:none}}
+@media (max-width:820px){.stage-controls{margin:-12px -8px 44px;padding:12px}.stage-heading b{font-size:17px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}.tabs .step-index{display:none}}
+#stage .toolbar input[type=range]{width:90px;vertical-align:middle;accent-color:var(--accent)}
+#zoomValue{font-variant-numeric:tabular-nums;min-width:36px;display:inline-block;text-align:right}
+.guide-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
+.guide-presets button{padding:9px 4px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.guide-presets button.on{border-color:var(--accent);background:#2d2618;color:var(--accent2)}
+.guide-presets svg{width:36px;height:44px;fill:none;stroke:currentColor;stroke-width:1.2}
+.guide-colors{display:flex;gap:6px;margin-top:7px}
+.guide-colors button{width:24px;height:24px;border-radius:50%;padding:0;background:var(--swatch);border:2px solid var(--line)}
+.guide-colors button[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 #pages{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-start}
-.pg{position:relative;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.5);flex:0 0 auto}
+.pg{position:relative;background:#fff;box-shadow:0 8px 36px #0006,0 0 0 1px #ffffff12;flex:0 0 auto}
 .pg img{position:absolute;display:block}
 .pg svg{position:absolute;inset:0;pointer-events:none}
-.pg .lbl{position:absolute;top:-19px;left:0;font-size:11px;color:var(--muted)}
+.pg .lbl{position:absolute;top:-24px;left:0;font-size:10px;font-weight:600;letter-spacing:.4px;color:var(--muted)}
 .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:16px;color:var(--muted);font-size:13px;flex-wrap:wrap}
 .toolbar input[type=range]{width:160px}
 .empty{color:var(--muted);text-align:center;margin-top:80px}
@@ -119,6 +170,14 @@ h3:first-child{margin-top:2px}
 .prints figure:hover{border-color:#4a515c}
 .prints img{width:100%;aspect-ratio:63/88;object-fit:cover;background:var(--panel2);border-radius:5px;display:block}
 .prints figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:3px}
+.token-results{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.token-printing{grid-column:span 2;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2)}
+.token-results .token-printing{grid-column:auto}
+.token-printing.sel{border-color:var(--accent)}
+.token-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.token-pair figure{border:0;padding:0;cursor:default}
+.token-pair button{width:100%;white-space:normal;font-size:12px;margin-top:6px}
+.token-printing>button{width:100%}
 #busy{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:60;flex-direction:column;gap:10px}
 #busy.on{display:flex}
 #busy .bar{width:280px;height:6px;background:#333;border-radius:3px;overflow:hidden}
@@ -135,7 +194,7 @@ h3:first-child{margin-top:2px}
 #ctx button:hover{background:var(--panel2)}
 .pg img{cursor:pointer}
 #pages img[data-copy]{touch-action:manipulation;user-select:none;-webkit-touch-callout:none}
-#stage > #cardSelection{margin:0 0 24px}
+#stage > #cardSelection{top:var(--stage-controls-height,140px);margin:0 0 24px}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
 #mbar{display:none}
@@ -247,6 +306,9 @@ h3:first-child{margin-top:2px}
 .hero-card-title b{font-size:15px;color:var(--text)}
 .hero-card-summary{font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.4}
 .hero-card-summary b{color:var(--text)}
+.share-export{border-color:#4d7996}
+.share-export button{width:100%;padding:11px 8px;font-size:14px;background:#254c7b;border-color:#457aae;color:#edf5ff}
+.share-export button:hover{background:#32649f}
 .guide-tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px}
 .guide-tab-btn{padding:8px 14px;border:0;background:none;border-bottom:2px solid transparent;border-radius:0;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted);transition:color .15s}
 .guide-tab-btn:hover{color:var(--text)}
@@ -296,8 +358,12 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px;transition:background .12s,color .12s}
 .menu-list button:hover{background:var(--panel2)}
 .kbd{margin-left:auto}
-.empty{max-width:460px;margin:60px auto;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 26px;color:var(--text)}
-.empty h2{margin:0 0 12px;font-size:18px}
+.empty{max-width:480px;margin:48px auto;text-align:left;background:linear-gradient(150deg,#222c39,var(--panel));border:1px solid var(--line);border-radius:18px;padding:28px 30px;color:var(--text);box-shadow:0 16px 50px #0003}
+.empty h2{margin:0 0 12px;font-size:24px;font-weight:600;letter-spacing:-.6px}
+.empty-art{height:112px;position:relative;margin-bottom:14px}
+.empty-art i{position:absolute;left:42px;top:8px;width:59px;height:83px;border:1px solid #6589ad;border-radius:7px;background:linear-gradient(140deg,#345a7d,#172733);transform:rotate(-17deg);box-shadow:0 5px 16px #0004}
+.empty-art i:nth-child(2){left:69px;top:5px;border-color:#ac7b5a;background:linear-gradient(140deg,#87573b,#3b2835);transform:rotate(-5deg)}
+.empty-art i:last-child{left:96px;border-color:var(--accent);background:linear-gradient(140deg,#3b3425,#171d25);transform:rotate(9deg);font:44px/83px Georgia,serif;text-align:center;color:var(--accent2)}
 .empty ol{margin:0;padding-left:20px;color:var(--muted)}
 .empty li{margin-bottom:8px}
 .empty b{color:var(--text)}
@@ -366,36 +432,35 @@ details.adv:not([open]){padding-bottom:10px}
 <main>
   <aside>
     <div class="tabs">
-      <button data-tab="cards" class="on">1. Cards</button>
-      <button data-tab="setup" class="print-only">2. Print</button>
-      <button data-tab="cutting" class="print-only">3. Cut</button>
-      <button data-tab="guide" class="print-only">4. Export</button>
-      <button data-tab="order" class="order-only">2. Order</button>
+      <button data-tab="cards" class="on"><span class="step-index" aria-hidden="true">1</span>Cards</button>
+      <button data-tab="setup" class="print-only"><span class="step-index" aria-hidden="true">2</span>Print</button>
+      <button data-tab="cutting" class="print-only"><span class="step-index" aria-hidden="true">3</span>Cut</button>
+      <button data-tab="guide" class="print-only"><span class="step-index" aria-hidden="true">4</span>Export</button>
+      <button data-tab="order" class="order-only"><span class="step-index" aria-hidden="true">2</span>Order</button>
     </div>
 
     <div class="pane on" id="tab-cards">
       <div class="step-hdr">
         <div class="step-num" id="cardsStepLabel">Step 1 of 4</div>
-        <h2>Add cards &amp; decklist</h2>
-        <p class="hint">Paste a decklist below, or import a link or file. High-res art is selected automatically. Review your cards before continuing.</p>
+        <h2>Add cards</h2>
+        <p class="hint">Paste a decklist or bring your own images. Pick artwork directly on the sheet.</p>
       </div>
+      <div class="import-panel">
       <button id="btnLink" style="width:100%;margin-bottom:8px" title="Import from Moxfield, Archidekt or a local file">Import deck…</button>
+      <div class="source-actions">
+        <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
+        <button id="btnMaker" title="Put your own art into a card frame with the card’s text">Create a card…</button>
+      </div>
       <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
       <div class="row" style="margin-top:8px">
         <button id="btnImport" class="primary" style="flex:1" title="Add these cards (Ctrl+Enter)">Add to deck</button>
         <button id="btnTokens" style="flex:1" title="Add the tokens and emblems created by cards in this deck">Add needed tokens</button>
       </div>
+      </div>
       <div id="importNote"></div>
       <details class="adv" id="moreSources" style="margin-top:8px">
-        <summary>Images, custom cards &amp; sharing</summary>
+        <summary>Local images &amp; order files</summary>
         <div style="margin-top:8px">
-          <div class="row" style="margin-bottom:12px">
-            <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
-            <button id="btnMaker" title="Put your own art into a card frame with the card’s text">Create custom card…</button>
-          </div>
-          <b style="font-size:12px;color:var(--text)">Share deck with art &amp; layout</b>
-          <p class="hint">Package this deck, chosen artwork, and card layout into a single file to share with a friend. When they open it, their own printer settings and alignment stay saved. Drop a shared deck onto this page or use Import deck above.</p>
-          <div class="row"><button id="printDeckOut">Save deck package…</button></div>
           <input type="file" id="filePrintDeck" accept=".json,.txt,.dec,.dek,.csv,.xml,application/json,text/plain,text/xml" hidden>
 
           <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local pictures &amp; order files</b>
@@ -411,6 +476,14 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <p class="hint">Only needed for order files that link to image files on your computer. Online art is found automatically when running Proxy Press.</p>
         </div>
+      </details>
+      <details id="suggestionDrawer" open>
+        <summary>Suggestions</summary>
+        <button id="suggestionExplore" class="primary">Explore suggestions</button>
+        <p class="hint" id="suggestionStatus" role="status">Add cards to see suggestions for your deck.</p>
+        <button id="suggestionRetry" class="icon" hidden>Try again</button>
+        <div id="suggestionList"></div>
+        <p class="hint" id="suggestionSource" hidden>Based on your deck · <a href="https://edhrec.com" target="_blank" rel="noopener">EDHREC</a></p>
       </details>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
@@ -471,7 +544,7 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num">Step 3 of 4</div>
         <h2>Choose cutting tool</h2>
-        <p class="hint">Choosing a different tool applies its layout, bleed and guide settings. Open Advanced below to adjust them.</p>
+        <p class="hint">Pick a cutting tool, then choose your guides. Portrait and landscape presets stay available in Print.</p>
       </div>
 
       <div class="cut-options" role="radiogroup" aria-label="Cutting tool">
@@ -505,7 +578,7 @@ details.adv:not([open]){padding-bottom:10px}
               </div>
               <span class="cutter-badge rotary">Manual</span>
             </div>
-            <p class="cut-card-desc">Margin ticks and corner tick marks for guillotine/rotary blade + Sun-Star Kadomaru 3 mm corner rounder.</p>
+            <p class="cut-card-desc">Corner brackets for hand cutting, with optional margin lines and a corner rounder.</p>
           </div>
         </div>
       </div>
@@ -570,17 +643,29 @@ details.adv:not([open]){padding-bottom:10px}
       <!-- ROTARY TRIMMER SECTION -->
       <div id="rotarySection">
         <div id="cutStatus"></div>
+        <div class="guide-presets" aria-label="Guide presets">
+          <button data-guide="corners"><svg viewBox="0 0 36 44" aria-hidden="true"><path d="M3 13V3h10m10 0h10v10M3 31v10h10m10 0h10V31"/></svg>Corner brackets</button>
+          <button data-guide="outline"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38"/></svg>Full outline</button>
+          <button data-guide="none"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38" stroke-dasharray="2 3" opacity=".3"/><path d="m6 36 24-28"/></svg>No guides</button>
+        </div>
 
         <details class="adv" id="rotaryAdvDrawer" style="margin-top:12px">
-          <summary>⚙️ Advanced Rotary Print Guide Settings</summary>
+          <summary>Guide appearance</summary>
           <div class="field full" style="margin-top:8px">
             <label for="rotaryGuides">Printed Cut Guides</label>
             <select id="rotaryGuides">
-              <option value="both">Margin lines + corners (recommended)</option>
+              <option value="both">Margin lines + corners</option>
               <option value="margin">Lines in page margin only</option>
-              <option value="corners">Corner marks only</option>
+              <option value="corners">Corner marks</option>
+              <option value="outline">Full card outlines</option>
               <option value="none">None</option>
             </select>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <div class="field"><label for="rotaryGuideShape">Corner shape</label><select id="rotaryGuideShape"><option value="brackets">L brackets</option><option value="ticks">Crop ticks</option></select></div>
+            <div class="field"><label for="rotaryGuidePlacement">Placement</label><select id="rotaryGuidePlacement"><option value="outside">Outside trim</option><option value="inside">Inside trim</option></select></div>
+            <div class="field"><label for="rotaryGuideStyle">Line style</label><select id="rotaryGuideStyle"><option value="solid">Solid</option><option value="dashed">Dashed</option></select></div>
+            <label class="check"><input type="checkbox" id="rotaryGuideHalo"> White outline</label>
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
@@ -601,6 +686,7 @@ details.adv:not([open]){padding-bottom:10px}
             <div class="field">
               <label for="rotaryGuideColor">Guide Line Colour</label>
               <input type="color" id="rotaryGuideColor" value="#000000" style="height:38px;padding:2px;cursor:pointer">
+              <div class="guide-colors" aria-label="Guide colors"><button data-guide-color="#39e600" style="--swatch:#39e600" aria-label="Green guides"></button><button data-guide-color="#000000" style="--swatch:#000000" aria-label="Black guides"></button><button data-guide-color="#ffffff" style="--swatch:#ffffff" aria-label="White guides"></button><button data-guide-color="#00bfff" style="--swatch:#00bfff" aria-label="Blue guides"></button></div>
             </div>
           </div>
         </details>
@@ -661,7 +747,7 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num">Step 4 of 4</div>
         <h2>Export &amp; print</h2>
-        <p class="hint">Download print-ready files and follow the printing and cutting steps.</p>
+        <p class="hint">Download print files or share your deck with its artwork and layout.</p>
       </div>
 
       <div id="exportReview" aria-live="polite"></div>
@@ -673,6 +759,11 @@ details.adv:not([open]){padding-bottom:10px}
         <div class="hero-card-summary" id="guideJobSummary"></div>
         <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">Download PDF</button>
         <button id="btnExportSvgTab" style="width:100%;display:none">Download cut file (.svg)</button>
+      </div>
+      <div class="hero-card share-export">
+        <div class="hero-card-title"><b>Share deck</b></div>
+        <p class="hint">Save the deck, artwork, and layout in one file. Friends can open it in ProxyPress with their own printer alignment.</p>
+        <button id="printDeckOut">Share deck with art &amp; layout</button>
       </div>
 
       <div class="guide-tabs">
@@ -737,6 +828,11 @@ details.adv:not([open]){padding-bottom:10px}
         <button class="primary" id="oZip" title="Order file plus every image, ready for the desktop tool">Download order (.zip)</button>
       </div>
       <p class="hint">The .zip has the order file and a <code>cards</code> folder with every image, including your uploads and cardback.</p>
+      <div class="hero-card share-export">
+        <div class="hero-card-title"><b>Share deck</b></div>
+        <p class="hint">Save the deck, artwork, and layout in one file. Friends can open it in ProxyPress with their own printer alignment.</p>
+        <button id="orderPrintDeckOut">Share deck with art &amp; layout</button>
+      </div>
       <details class="adv"><summary>Order file only</summary><p class="hint">The order tool downloads the online artwork. Uploaded images and custom cards are left out. Download the complete package (.zip) to include them.</p><p class="hint" id="xmlSummary"></p><button id="oXml">Download online-art order only</button></details>
       <h3>Placing the order</h3>
       <div id="orderSteps"></div>
@@ -762,13 +858,24 @@ details.adv:not([open]){padding-bottom:10px}
   </aside>
 
   <section id="stage">
+    <div class="stage-controls">
+    <div class="stage-heading"><div class="stage-title"><b id="workspaceTitle">Untitled deck</b><span id="previewSummary"></span></div><button id="toggleSidebar" aria-pressed="false">Hide sidebar</button></div>
     <div class="toolbar">
-      <label>Zoom <input type="range" id="zoom" min="1" max="5" step="0.1" value="2.4" aria-label="Zoom"></label>
+      <div class="toolbar-cluster print-only">
+        <select id="quickPaper" aria-label="Preview paper size"><option value="letter">Letter</option><option value="a4">A4</option></select>
+        <div class="seg paper-direction" role="group" aria-label="Paper orientation"><button data-orientation="portrait">Portrait</button><button data-orientation="landscape">Landscape</button></div>
+      </div>
+      <div class="toolbar-cluster">
+      <label><input type="range" id="zoom" min="0.5" max="5" step="0.1" value="2.4" aria-label="Zoom"> <span id="zoomValue">100%</span></label>
       <button class="icon" id="zoomFit" title="Fit to the screen">Fit</button>
+      </div>
+      <div class="toolbar-cluster">
       <label class="row print-only"><input type="checkbox" id="showBacks" checked style="width:auto"> Show back pages</label>
-      <label class="row print-only" title="Screen preview of the blade cut path. Not printed on the PDF."><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines (preview)</label>
-      <span class="hint print-only" id="cutLegend" style="font-size:11px;gap:10px;align-items:center;display:none"><span style="color:#0284c7;font-weight:600">···· Bleed</span> <span style="color:#d55e00;font-weight:600">━ ━ Trim</span> <span style="color:#7c3aed;font-weight:600">╍ ╍ Safe</span></span>
+      <label class="row print-only" title="Show trim and bleed on screen. These overlays are not printed."><input type="checkbox" id="showCuts" style="width:auto"> Trim overlay</label>
+      <span class="hint print-only" id="cutLegend" style="font-size:11px;gap:10px;align-items:center;display:none"><span style="color:#738194">··· Bleed</span> <span style="color:#54ed39">└ Trim</span></span>
       <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
+      </div>
+    </div>
     </div>
     <div id="pages"></div>
   </section>
@@ -795,7 +902,7 @@ const DEFAULTS = {
   pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-  guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
+  guides:'corners', guideColor:'#39e600', guideWidth:0.15, guideLen:6, guideShape:'brackets', guidePlacement:'outside', guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
@@ -1209,7 +1316,20 @@ function guideLines(L, n) {
     if (gx1 > sq) out.push([gx1 - sq, gy1, gx1 - sq, gy2, true]);
     if (L.W - gx2 > sq) out.push([gx2 + sq, gy1, gx2 + sq, gy2, true]);
   }
-  if (s.guides === 'corners' || s.guides === 'both') {
+  if (s.guides === 'outline' || ((s.guides === 'corners' || s.guides === 'both') && s.guideShape === 'brackets')) {
+    const offset = s.guidePlacement === 'inside' ? -(s.guideWidth / 2 + 0.1) : s.guideWidth / 2 + 0.1;
+    const dash = s.guideStyle === 'dashed';
+    for (let i = 0; i < n; i++) {
+      const p = slotPos(L, i, false), x1 = p.x + s.bleed - offset, y1 = p.y + s.bleed - offset;
+      const x2 = p.x + s.bleed + L.cw + offset, y2 = p.y + s.bleed + L.ch + offset;
+      const len = Math.min(s.guideLen, (x2-x1)/2, (y2-y1)/2);
+      out.push(...(s.guides === 'outline'
+        ? [[x1,y1,x2,y1], [x2,y1,x2,y2], [x2,y2,x1,y2], [x1,y2,x1,y1]]
+        : [[x1,y1,x1+len,y1], [x1,y1,x1,y1+len], [x2-len,y1,x2,y1], [x2,y1,x2,y1+len],
+           [x1,y2,x1+len,y2], [x1,y2-len,x1,y2], [x2-len,y2,x2,y2], [x2,y2-len,x2,y2]])
+        .map(line => [...line, dash]));
+    }
+  } else if (s.guides === 'corners' || s.guides === 'both') {
     const len = s.guideLen;
     for (let i = 0; i < n; i++) {
       const p = slotPos(L, i, false), x1 = p.x + s.bleed, y1 = p.y + s.bleed, x2 = x1 + L.cw, y2 = y1 + L.ch;
@@ -1221,7 +1341,7 @@ function guideLines(L, n) {
         .filter(([a, b, c2, d]) => a !== c2 || b !== d));
     }
   }
-  return out;
+  return s.guideStyle === 'dashed' ? out.map(line => [...line.slice(0, 4), true]) : out;
 }
 // Registration marks follow the Silhouette Card Maker specification.
 // Three things in it are easy to get wrong and all three matter:
@@ -1284,8 +1404,9 @@ function buildSlots() {
     if (!e.faces.length) continue;
     for (let q = 0; q < e.qty; q++) {
       if (e.faces.length > 1) {
-        if (s.dfcMode === 'separate') e.faces.forEach((f, i) => out.push({e, copy:q, fi:i, front:f, back:backFace}));
-        else if (s.dfcMode === 'front') out.push({e, copy:q, fi:0, front:e.faces[0], back:backFace});
+        const mode=e.kind==='TOKEN'?'duplex':s.dfcMode;
+        if (mode === 'separate') e.faces.forEach((f, i) => out.push({e, copy:q, fi:i, front:f, back:backFace}));
+        else if (mode === 'front') out.push({e, copy:q, fi:0, front:e.faces[0], back:backFace});
         else out.push({e, copy:q, fi:0, bi:1, front:e.faces[0], back:e.faces[1]});
       } else out.push({e, copy:q, fi:0, front:e.faces[0], back:backFace});
     }
@@ -1315,15 +1436,19 @@ async function sf(url, opts = {}) {
   if (!r.ok && j.object === 'error') throw new Error(j.details);
   return j;
 }
-function toEntry(card, qty) {
+function toEntry(card, qty, tokenFace = null) {
   const pick = o => ({png:o.image_uris.png, normal:o.image_uris.normal});
-  const faces = card.image_uris ? [{name:card.name, ...pick(card)}]
+  const token=/token|emblem/.test(card.layout), source=card.card_faces || [];
+  const index=token && typeof tokenFace==='string'?source.findIndex(f=>f.name.toLowerCase()===tokenFace.trim().toLowerCase()):token && Number.isInteger(tokenFace)?tokenFace:-1;
+  const single=index>=0 && !!source[index]?.image_uris, chosen=single?source[index]:card;
+  const faces = single ? [{name:chosen.name,...pick(chosen)}] : card.image_uris ? [{name:card.name, ...pick(card)}]
     : (card.card_faces || []).filter(f => f.image_uris).map(f => ({name:f.name, ...pick(f)}));
   return {
-    uid:uid(), qty, name:card.name, set:card.set, cn:card.collector_number, scryId:card.id,
+    uid:uid(), qty, name:chosen.name, set:card.set, cn:card.collector_number, scryId:card.id, scryFace:single?index:undefined,
     faces,
-    kind:/token|emblem/.test(card.layout) ? 'TOKEN' : 'CARD',
-    tokens:(card.all_parts || []).filter(p => p.id !== card.id && (p.component === 'token' || /Emblem/.test(p.type_line || ''))).map(p => p.id)
+    kind:token ? 'TOKEN' : 'CARD',
+    tokens:(card.all_parts || []).filter(p => p.id !== card.id && (p.component === 'token' || /Emblem/.test(p.type_line || ''))).map(p => p.id),
+    type:chosen.type_line || '', colorIdentity:single?chosen.colors || []:card.color_identity || []
   };
 }
 function parseList(text) {
@@ -1363,7 +1488,7 @@ async function fetchCollection(ids, progress) {
     const pool = [...(j.data || [])];
     for (const c of chunk) {
       const k = pool.findIndex(card => matches(card, c.id));
-      if (k >= 0) found.push({req:c, card:pool.splice(k, 1)[0]}); else missing.push(c);
+      if (k >= 0) found.push({req:c, card:pool[k]}); else missing.push(c);
     }
   }
   return {found, missing};
@@ -1401,8 +1526,8 @@ async function importList(text, replace) {
     if (replace) d.entries = [];
     found.sort((a, b) => a.req.idx - b.req.idx);
     for (const {req, card} of found) {
-      const ex = d.entries.find(e => e.scryId === card.id);
-      if (ex) ex.qty += req.qty; else d.entries.push(toEntry(card, req.qty));
+      const entry=toEntry(card,req.qty,req.name), ex=d.entries.find(e=>e.scryId===entry.scryId && e.scryFace===entry.scryFace && e.faces.length===entry.faces.length);
+      if (ex) ex.qty += req.qty; else d.entries.push(entry);
     }
     save(); renderAll();
     const line = m => `${m.qty} ${m.name}${m.set ? ` (${m.set.toUpperCase()})${m.cn ? ' ' + m.cn : ''}` : ''}`;
@@ -1428,6 +1553,110 @@ async function addTokens() {
   } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
   busy(false);
 }
+
+/* ---------- deck suggestions ---------- */
+const suggestionCache = new Map();
+let suggestionTimer, suggestionRun = 0, suggestionState = {deckId:null, key:null, cards:[], status:'', error:false};
+const suggestionSlug = name => name.split(' // ')[0].normalize('NFKD').replace(/Æ/gi,'ae').replace(/Œ/gi,'oe').replace(/[\u0300-\u036f'’]/g,'').toLowerCase().replace(/[^a-z0-9 -]/g,'').trim().replace(/[ -]+/g,'-').slice(0,160);
+function suggestionSeeds(d) {
+  const names = [...new Set(d.entries.filter(e => e.qty && e.kind !== 'TOKEN' && !/\bLand\b/.test(e.type || '') && !/^(?:Snow-Covered )?(Plains|Island|Swamp|Mountain|Forest|Wastes)$/i.test(e.name)).map(e => e.name))];
+  return [...new Set([...names.slice(0,4), ...names.slice(-8)])];
+}
+function currentSuggestions() {
+  if (suggestionState.deckId !== S.deckId) return [];
+  const entries = deck().entries.filter(e => e.qty), ids = new Set(entries.map(e => e.scryId)), names = new Set(entries.flatMap(e => [e.name,...e.faces.map(f => f.name)]).map(normName));
+  return suggestionState.cards.filter(x => !ids.has(x.card.id) && ![x.card.name,...(x.card.card_faces || []).map(f => f.name)].some(n => names.has(normName(n))));
+}
+function suggestionReason(item) {
+  const first = item.reasons[0], extra = item.reasons.length > 1 ? ` + ${item.reasons.length-1} more` : '';
+  return (first.kind === 'Similar card' ? 'Similar to ' : 'Played with ') + first.from + extra;
+}
+function paintSuggestions() {
+  const cards = currentSuggestions();
+  $('#suggestionList').innerHTML = cards.slice(0,10).map(item => `<div class="suggestion-row"><span title="${esc(suggestionReason(item))}">${esc(item.card.name)}</span><button class="icon" data-suggest-add="${esc(item.card.id)}" aria-label="Add ${esc(item.card.name)}">+</button></div>`).join('');
+  $('#suggestionStatus').textContent = suggestionState.status || (cards.length ? 'Quick suggestions' : 'Add cards to see suggestions for your deck.');
+  $('#suggestionSource').hidden = !cards.length;
+  $('#suggestionExplore').disabled = !cards.length;
+  $('#suggestionRetry').hidden = !suggestionState.error;
+}
+async function cardRecommendations(name) {
+  const slug = suggestionSlug(name); if (!slug) return [];
+  if (!suggestionCache.has(slug)) suggestionCache.set(slug, (async () => {
+    const response = await fetch('/suggest/' + slug), data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Suggestions unavailable');
+    return Array.isArray(data.cards) ? data.cards : [];
+  })().catch(err => { suggestionCache.delete(slug); throw err; }));
+  return suggestionCache.get(slug);
+}
+async function collectSuggestions(d, key, run, seeds) {
+  const active = () => run === suggestionRun && deck() === d && suggestionState.key === key, ranked = new Map();
+  let reached = 0;
+  try {
+    for (let i=0; i<seeds.length; i+=3) {
+      if (!active()) return;
+      const results = await Promise.allSettled(seeds.slice(i,i+3).map(cardRecommendations));
+      if (!active()) return;
+      results.forEach((result,index) => {
+        if (result.status !== 'fulfilled') return;
+        reached++;
+        for (const item of result.value.slice(0,64)) {
+          if (typeof item.name !== 'string' || !item.name || item.name.length > 300) continue;
+          const name = normName(item.name), match = ranked.get(name) || {name:item.name, score:0, reasons:[]};
+          match.score += Math.max(0,Math.min(100,+item.score || 0));
+          match.reasons.push({from:seeds[i+index],kind:item.kind}); ranked.set(name,match);
+        }
+      });
+    }
+    if (!reached) throw new Error('Suggestions are unavailable right now.');
+    const have = new Set(d.entries.filter(e=>e.qty).flatMap(e=>[e.name,...e.faces.map(f=>f.name)]).map(normName));
+    const candidates = [...ranked.values()].filter(x=>!have.has(normName(x.name))).sort((a,b)=>b.score-a.score || a.name.localeCompare(b.name)).slice(0,60);
+    const {found} = candidates.length ? await fetchCollection(candidates.map(item=>({id:{name:item.name},item}))) : {found:[]};
+    if (!active()) return;
+    const colors = new Set(d.entries.filter(e=>e.qty).flatMap(e=>e.colorIdentity || [])), seen = new Set();
+    suggestionState.cards = found.filter(({card}) => {
+      const id=card.oracle_id || card.id;
+      if (seen.has(id) || !card.image_uris && !card.card_faces?.some(f=>f.image_uris) || colors.size && !(card.color_identity || []).every(c=>colors.has(c))) return false;
+      seen.add(id); return true;
+    }).map(({card,req})=>({...req.item,card})).sort((a,b)=>b.score-a.score).slice(0,36);
+    suggestionState.status = suggestionState.cards.length ? '' : 'No new suggestions for these cards yet.';
+    suggestionState.error = false;
+  } catch (err) {
+    if (!active()) return;
+    suggestionState.status = err.message; suggestionState.error = true;
+  }
+  if (active()) paintSuggestions();
+}
+function renderSuggestions(force = false) {
+  const d=deck(), seeds=suggestionSeeds(d), key=JSON.stringify([...new Set(d.entries.filter(e=>e.qty).map(e=>e.name))].sort());
+  if (!force && suggestionState.deckId===d.id && suggestionState.key===key) return paintSuggestions();
+  clearTimeout(suggestionTimer); const run=++suggestionRun, previous=currentSuggestions().filter(item=>item.reasons.some(reason=>seeds.includes(reason.from)));
+  suggestionState={deckId:d.id,key,cards:previous,status:seeds.length?'Finding suggestions for your deck…':'Add cards to see suggestions for your deck.',error:false};
+  paintSuggestions();
+  if (seeds.length) suggestionTimer=setTimeout(()=>collectSuggestions(d,key,run,seeds),650);
+}
+async function addDeckSuggestion(id, d = deck(), candidate) {
+  if (deck()!==d) return;
+  const item=currentSuggestions().find(x=>x.card.id===id) || candidate; if (!item) return;
+  if (d.entries.some(e=>e.qty && (e.scryId===id || normName(e.name)===normName(item.card.name)))) return;
+  const existing=d.entries.find(e=>e.scryId===id && !e.qty);
+  if (existing) existing.qty=1; else d.entries.push(toEntry(item.card,1));
+  save(); renderAll();
+  $$('[data-suggest-add]').filter(b=>b.dataset.suggestAdd===id).forEach(b=>{b.disabled=true;b.textContent='Added';});
+  const result=await mpcAutofill({auto:true});
+  if (deck()===d) toast('Added '+item.card.name+'.'+autoSummary(result));
+}
+$('#suggestionList').addEventListener('click', ev=>{const button=ev.target.closest('[data-suggest-add]');if(button&&!button.disabled)addDeckSuggestion(button.dataset.suggestAdd);});
+$('#suggestionRetry').onclick=()=>renderSuggestions(true);
+$('#suggestionExplore').onclick=()=>{
+  const d=deck(), cards=currentSuggestions();
+  openModal(`<div class="hd"><b>Suggestions for ${esc(d.name)}</b><button data-close>Close</button></div><div class="bd"><p class="hint">Based on cards already in your deck. Add a suggestion to include one copy.</p><input type="search" id="suggestionFilter" placeholder="Filter suggestions…" aria-label="Filter suggestions" style="margin-bottom:12px"><div class="suggestion-explore">${cards.map(item=>{
+    const card=item.card,image=card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || '';
+    return `<div class="suggestion-tile" data-suggest-name="${esc(card.name.toLowerCase())}"><img loading="lazy" ${/^https:\/\/cards\.scryfall\.io\//.test(image)?`src="${esc(image)}"`:''} alt="${esc(card.name)}"><b>${esc(card.name)}</b><small>${esc(suggestionReason(item))}</small><button data-suggest-add="${esc(card.id)}">+ Add card</button></div>`;
+  }).join('')}</div></div>`);
+  const bd=$('#modal .bd');
+  $('#suggestionFilter').oninput=ev=>{const query=ev.target.value.trim().toLowerCase();$$('[data-suggest-name]',bd).forEach(tile=>tile.hidden=!tile.dataset.suggestName.includes(query));};
+  bd.addEventListener('click',ev=>{const button=ev.target.closest('[data-suggest-add]');if(button&&!button.disabled)addDeckSuggestion(button.dataset.suggestAdd,d,cards.find(item=>item.card.id===button.dataset.suggestAdd));});
+};
 
 /* ---------- uploads ---------- */
 async function storeImage(file) { const key = 'img-' + uid(); await store.set('images', key, file); return key; }
@@ -1671,6 +1900,7 @@ async function openMpcPicker(target) {
           <label class="check"><input type="checkbox" data-m="nsfw" ${S.mpc.nsfw ? 'checked' : ''}> Include NSFW art</label>
         </div>
       </details>
+      ${!isBack && e.kind==='TOKEN'?'<p class="hint"><button id="mpcTokenFaces">Choose token faces…</button></p>':''}
       ${isBack ? '' : `<p class="hint">Your own art: ${copyCount ? '' : '<button class="icon" id="mpcMaker">Make custom card…</button>'} <button class="icon" id="mpcOwn">Upload image…</button> · or design one on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>.</p>`}
       <p class="hint" id="mpcStatus"></p>
       <div class="prints" id="mpcGrid"></div>
@@ -1715,16 +1945,11 @@ async function openMpcPicker(target) {
       if (ids.length) await page();
     } catch (err) { if (runId !== revision || !bd.isConnected) return; status(local + (err.message === 'MPC_OFFLINE' ? mpcOfflineHtml() : 'Online search failed: ' + esc(err.message))); }
   }
-  bd.addEventListener('keydown', ev => {
-    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest('figure')) {
-      ev.preventDefault();
-      ev.target.closest('figure').click();
-    }
-  });
   bd.addEventListener('click', async ev => {
     const fb = ev.target.closest('[data-face]');
     if (fb) { faceIdx = +fb.dataset.face; $$('[data-face]', bd).forEach(b => b.classList.toggle('primary', b === fb)); find('#mpcQ').value = face().name; return run(); }
     if (ev.target.id === 'mpcGo') return run();
+    if (ev.target.id === 'mpcTokenFaces') return openCardMatch(e,target.copies?.length===1 && target.copies[0].copies.length===1?target.copies[0].copies[0]:undefined,faceIdx);
     if (ev.target.id === 'mpcMore') return page();
     if (ev.target.id === 'mpcOwn') { faceTarget = {...target, e, i:faceIdx}; closeModal(); return $('#fileFace').click(); }
     if (ev.target.id === 'mpcMaker') { closeModal(); return openCardMaker({e, i:faceIdx}); }
@@ -1792,7 +2017,8 @@ async function mpcAutofill({auto = false} = {}) {
     const hits = t => res.get(t.q.query + '|' + t.q.cardType) || [];
     await mpcCards([...new Set(uniq.flatMap(q => (res.get(q.query + '|' + q.cardType) || []).slice(0, 40)))]);
     for (const t of targets) {
-      const c = mpcDetails.get(mpcRank(hits(t).slice(0, 40))[0]);
+      const choices=hits(t).slice(0,40).filter(id=>t.q.cardType!=='TOKEN' || normName(mpcDetails.get(id)?.name).replace(/(?:^token | token$)/g,'')===normName(t.f.name).replace(/(?:^token | token$)/g,''));
+      const c = mpcDetails.get(mpcRank(choices)[0]);
       if (c) { const old = t.f.custom; delete t.f.custom; delete t.f.lowRes; Object.assign(t.f, mpcArt(c), {auto:true}); await removeImageIfUnused(old); result.picked++; } else result.missed.push(t.f.name);
     }
     save(); renderAll();
@@ -2057,6 +2283,7 @@ function renderOrder() {
   const fix = $('#oFix'); if (fix) fix.onclick = () => { switchTab('cards'); const e = d.entries.find(e => e.qty && e.faces.some(isPreview)); if (e) openMpcPicker({e, i:e.faces.findIndex(isPreview)}); };
   const auto = $('#oAuto'); if (auto) auto.onclick = () => fillable ? mpcAutofill() : $('#fileMpcImgs').click();
   $('#oZip').disabled = !order.slot;
+  $('#btnXml').disabled = $('#tab-order').classList.contains('on') && !order.slot;
   const xml = buildMpcOrder(false), excluded = d.entries.reduce((n, e) => n + e.qty, 0) - xml.slot;
   $('#oXml').disabled = !xml.slot;
   $('#xmlSummary').textContent = `${xml.slot} cards included · ${excluded} left out.${order.cardback && !xml.cardback ? ' Your uploaded cardback is also left out.' : ''}`;
@@ -2207,11 +2434,11 @@ async function renderCards() {
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; syncCardSelection(); return; }
   list.innerHTML = d.entries.map(e => `
     <div class="card" data-uid="${esc(e.uid)}">
-      <img data-act="art" alt="" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
+      <img data-act="art" alt="" tabindex="0" role="button" aria-label="Change artwork for ${esc(e.name)}" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
       <div style="min-width:0">
         <div class="nm" title="${esc(e.name)}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</div>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
-          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Scryfall placeholder · not for print</span>' : ''}</div>
+          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">chosen art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Needs art</span>' : ''}</div>
       </div>
       <div class="ctl">
         <input type="checkbox" data-act="select" style="width:auto" aria-label="Select all copies of ${esc(e.name)}">
@@ -2232,6 +2459,7 @@ function applyDeckFilter() {
   $('#deckFilterEmpty').hidden = !q || rows.some(r => !r.hidden);
 }
 $('#deckFilter').oninput = applyDeckFilter;
+$('#cardList').addEventListener('keydown', ev=>{if(ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)){ev.preventDefault();ev.target.click();}});
 $('#cardList').addEventListener('click', async ev => {
   const row = ev.target.closest('.card'); if (!row) return;
   const entry = deck().entries.find(e => e.uid === row.dataset.uid);
@@ -2614,7 +2842,7 @@ function fromScryfall(c, faceIdx) {
 async function ccData(e, i) {
   const name = e?.faces[i]?.name || e?.name || '';
   try {
-    if (e?.scryId) return fromScryfall(await sf(`${SF}/cards/${e.scryId}`), e.faces.length > 1 ? i : null);
+    if (e?.scryId) return fromScryfall(await sf(`${SF}/cards/${e.scryId}`), e.scryFace ?? (e.faces.length > 1 ? i : null));
     if (name && !/^Custom card$/i.test(name)) return fromScryfall(await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(name)}`), null);
   } catch {}
   return {name, mana:'', type:'', text:'', flavor:'', pt:'', artist:'', colors:[]};
@@ -3383,12 +3611,12 @@ const TOUR = {
     <div class="tour-modes">
       <button data-tm="print" class="${S.mode === 'print' ? 'on' : ''}"><b>Print at home</b><span>A PDF for your own printer, with bleed, cut guides and double-sided backs.</span></button>
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
-    </div><p class="hint">You can switch any time with the buttons at the top. Community art search is powered by MPC Autofill; consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting their server costs on Patreon</a>.</p>`},
+    </div><p class="hint">You can switch any time with the buttons at the top. Community art search is powered by the autofill tool; consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting their server costs on Patreon</a>.</p>`},
   cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Use <b>Import deck…</b> for a Moxfield or Archidekt link, a saved deck JSON, or a local decklist file. MTGA and MTGO exports work too.</p>
     <p><b>Add needed tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>
-    <p class="hint">Community art drives are run by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting MPC Autofill's maintenance costs on Patreon</a>.</p>`},
+    <p class="hint">Community art drives are run by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting the autofill tool's maintenance costs on Patreon</a>.</p>`},
   print:{title:'3 · Print at home', body:() => `<ol class="steps"><li>Choose your printer, paper and double-sided method in <b>2. Print</b>.</li>
     <li>Print the <b>calibration sheet</b> once so cards come out exactly the right size.</li>
     <li>Choose Cameo or rotary in <b>3. Cut</b>. The layout and guides update for your tool.</li>
@@ -3403,7 +3631,7 @@ function openTour(at = 0) {
   tourStep = at;
   S.welcomed = true; save();
   const steps = ['welcome', 'cards', 'art', S.mode === 'order' ? 'order' : 'print'], last = tourStep === steps.length - 1, step = TOUR[steps[tourStep]];
-  const contentHtml = `<div class="tour-body">${step.body()}</div>${last ? '<p class="hint">Reopen this tour any time with the <b>?</b> button at the top · <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">Donate to MPC Autofill on Patreon</a>.</p>' : ''}
+  const contentHtml = `<div class="tour-body">${step.body()}</div>${last ? '<p class="hint">Reopen this tour any time with the <b>?</b> button at the top · <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">Support the autofill tool on Patreon</a>.</p>' : ''}
     <div class="tour-foot"><div class="tour-dots">${steps.map((_, n) => `<i class="${n === tourStep ? 'on' : ''}"></i>`).join('')}</div>
       ${tourStep ? '<button data-tour="back">Back</button>' : ''}<button class="primary" data-tour="next">${last ? 'Get started' : 'Next'}</button></div>`;
   const existing = $('#modal.narrow .tour');
@@ -3441,6 +3669,103 @@ async function removeEntry(e) {
   for (const f of e.faces) await removeImageIfUnused(f.custom);
   save(); renderAll();
 }
+async function cacheTokenPrinting(entry) {
+  const keys=[];
+  try {
+    for(const face of entry.faces) {
+      const response=await fetch(face.png || face.normal,{signal:AbortSignal.timeout(30000)});
+      if(!response.ok)throw new Error('Could not load token artwork. Try another printing.');
+      const blob=await response.blob();
+      if(!blob.type.startsWith('image/') || blob.size>20*1024*1024)throw new Error('This token image could not be saved.');
+      const key=await storeImage(blob);keys.push(key);Object.assign(face,{custom:key,srcBleed:0});
+    }
+    return keys;
+  } catch(err){for(const key of keys)await removeImageIfUnused(key);throw err;}
+}
+async function applyCardMatch(target, card, keepArt, tokenFace = null) {
+  if (target.deckId !== S.deckId || !deck().entries.includes(target.e)) throw new Error('This card is no longer in the current deck.');
+  const e = target.e, replacement = toEntry(card, e.qty, tokenFace);
+  if (!replacement.faces.length) throw new Error('This printing has no card image. Choose another printing.');
+  if (keepArt) {
+    if(replacement.kind==='TOKEN') {
+      replacement.faces=replacement.faces.map(f=>{const old=e.faces.find(o=>normName(o.name)===normName(f.name));if(!old)throw new Error('This token face has no matching artwork. Turn off Keep chosen artwork to use it.');return {...JSON.parse(JSON.stringify(old)),...f};});
+    } else {
+      if (replacement.faces.length !== e.faces.length) throw new Error('This card has a different number of faces. Turn off Keep chosen artwork to use it.');
+      replacement.faces = replacement.faces.map((f, i) => ({...JSON.parse(JSON.stringify(e.faces[i])), ...f}));
+    }
+  }
+  const copy = target.copy;
+  if (copy !== undefined && (!Number.isInteger(copy) || copy < 0 || copy >= e.qty)) throw new Error('This copy is no longer in the deck.');
+  const cached=replacement.kind==='TOKEN' && !keepArt?await cacheTokenPrinting(replacement):[];
+  if(target.deckId!==S.deckId || !deck().entries.includes(e) || copy!==undefined && copy>=e.qty) {
+    for(const key of cached)await removeImageIfUnused(key);
+    throw new Error('This card is no longer in the current deck.');
+  }
+  replacement.qty=e.qty;
+  const oldKeys = e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]).filter(Boolean);
+  if (copy !== undefined && e.qty > 1) {
+    const at = deck().entries.indexOf(e), parts = [];
+    if (copy > 0) parts.push({...JSON.parse(JSON.stringify(e)), qty:copy});
+    parts.push({...replacement, uid:copy ? uid() : e.uid, qty:1});
+    if (copy < e.qty - 1) parts.push({...JSON.parse(JSON.stringify(e)), uid:uid(), qty:e.qty-copy-1});
+    deck().entries.splice(at, 1, ...parts);
+  } else Object.assign(e, replacement, {uid:e.uid});
+  selectedCopies.clear(); selectionAnchor = null;
+  save(); renderAll();
+  for (const key of oldKeys) await removeImageIfUnused(key);
+}
+function openCardMatch(e, copy, faceIndex = 0) {
+  const target = {e, copy, deckId:S.deckId}, token=e.kind==='TOKEN', manualArt = !token && e.faces.some(f => (f.custom || f.drive) && !f.auto);
+  openModal(`<div class="hd"><b>${token?'Choose token faces':'Change card match'}</b><button data-close>Close</button></div><div class="bd">
+    <p class="hint">Choose the correct card or printing for ${esc(e.name)}. Changes ${copy === undefined && e.qty>1 ? `all ${e.qty} copies in this entry` : 'this copy'}.</p>
+    ${token?'<p class="hint">Choose either face on its own, or use both sides of a printed token.</p>':''}
+    <form id="matchForm" class="row"><input id="matchQuery" type="search" aria-label="Card name or Scryfall search" value="${esc(token?e.faces[faceIndex]?.name || e.name.split(' // ')[0]:e.name.split(' // ')[0])}" placeholder="${token?'Treasure, Food, Soldier…':'Card name or Scryfall search'}" style="flex:1;min-width:180px">${token?'<select id="matchTokenMode" aria-label="Token printings" style="width:auto"><option value="all">All token printings</option><option value="pairs">Two-sided tokens</option></select>':''}<button class="primary">Search</button></form>
+    <label class="check" style="margin-top:12px"><input type="checkbox" id="matchKeepArt" ${manualArt ? 'checked' : ''}> Keep chosen artwork</label>
+    <p id="matchStatus" class="hint" role="status"></p><div class="prints ${token?'token-results':''}" id="matchResults"></div>
+    <button id="matchMore" style="display:none;margin-top:12px">Load more printings</button></div>`);
+  const bd = $('#modal .bd'), find = q => $(q, bd);
+  let revision = 0, cards = [], next = null, choosing = false;
+  const active = () => bd.isConnected && $('#overlay').classList.contains('on') && S.deckId === target.deckId;
+  async function search(more = false) {
+    const query = find('#matchQuery').value.trim(); if ((!query && !token) || choosing) return;
+    const run = ++revision;
+    if (!more) { cards = []; next = null; find('#matchResults').replaceChildren(); }
+    find('#matchMore').style.display = 'none'; find('#matchStatus').textContent = 'Searching Scryfall…';
+    try {
+      const q=token?`${query?'('+query+') ':''}(t:token or t:emblem)${find('#matchTokenMode').value==='pairs'?' layout:double_faced_token':''}`:query;
+      const j = await sf(more ? next : `${SF}/cards/search?unique=prints&include_extras=true&order=${token?'released':'name'}&q=${encodeURIComponent(q)}`);
+      if (run !== revision || !active()) return;
+      const offset = cards.length; cards.push(...(j.data || []));
+      find('#matchResults').insertAdjacentHTML('beforeend', cards.slice(offset).map((c, i) => {
+        const index=offset+i, faces=/token/.test(c.layout)?(c.card_faces || []).filter(f=>f.image_uris):[];
+        if(faces.length>1)return `<article class="token-printing ${c.id===e.scryId?'sel':''}"><b>${esc(c.name)}</b><div class="hint">${esc(c.set_name || c.set)} · #${esc(c.collector_number)} · ${esc((c.lang || '').toUpperCase())}</div><div class="token-pair">${faces.map((f,n)=>`<figure><img loading="lazy" src="${/^https:\/\/cards\.scryfall\.io\//.test(f.image_uris.normal || '')?esc(f.image_uris.normal):''}" alt="${esc(f.name)}"><button data-match="${index}" data-token-face="${n}" ${c.id===e.scryId && e.scryFace===n?'class="primary"':''}>Use ${esc(f.name)} only</button></figure>`).join('')}</div><button data-match="${index}" data-token-face="both">Use both sides</button></article>`;
+        const image = c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || '';
+        const src = /^https:\/\/cards\.scryfall\.io\//.test(image) ? image : '';
+        return `<figure data-match="${offset+i}" tabindex="0" role="button" aria-label="Use ${esc(c.name)}, ${esc(c.set_name)} ${esc(c.collector_number)}" class="${c.id === e.scryId ? 'sel' : ''}"><img loading="lazy" src="${esc(src)}" alt="${esc(c.name)}"><figcaption>${esc(c.name)}<br>${esc(c.set_name || c.set)} · #${esc(c.collector_number)} · ${esc((c.lang || '').toUpperCase())}${c.id === e.scryId ? '<br>Current match' : ''}</figcaption></figure>`;
+      }).join(''));
+      next = j.has_more && typeof j.next_page === 'string' && j.next_page.startsWith(SF + '/cards/search?') ? j.next_page : null;
+      find('#matchMore').style.display = next ? '' : 'none';
+      find('#matchStatus').textContent = cards.length ? `${cards.length} printing${cards.length === 1 ? '' : 's'}. Select one to use it.` : 'No cards found. Try another name.';
+    } catch (err) { if (run === revision && active()) find('#matchStatus').textContent = err.message; }
+  }
+  find('#matchForm').onsubmit = ev => { ev.preventDefault(); search(); };
+  if(token)find('#matchTokenMode').onchange=()=>search();
+  find('#matchMore').onclick = () => search(true);
+  bd.addEventListener('keydown', ev => { if (ev.target.matches('figure[data-match]') && ['Enter', ' '].includes(ev.key)) { ev.preventDefault(); ev.target.click(); } });
+  bd.addEventListener('click', async ev => {
+    const result = ev.target.closest('[data-match]'); if (!result || choosing || !active()) return;
+    choosing = true; ++revision;
+    try {
+      const face=result.dataset.tokenFace;
+      if(token)find('#matchStatus').textContent='Saving token artwork…';
+      await applyCardMatch(target, cards[+result.dataset.match], find('#matchKeepArt').checked,face===undefined || face==='both'?null:+face);
+      if (active()) closeModal();
+      toast('Card match updated.');
+    } catch (err) { if (active()) find('#matchStatus').textContent = err.message; }
+    finally { choosing = false; }
+  });
+  find('#matchQuery').focus(); search();
+}
 function closeCtx() { $('#ctx').classList.remove('on'); }
 function openCtx(x, y, e, i, copy) {
   const m = $('#ctx'), cardback = i === 'back';
@@ -3453,6 +3778,7 @@ function openCtx(x, y, e, i, copy) {
     : `<div class="ttl">${esc(e.faces[i]?.name || e.name)}</div>
        <button data-c="art" role="menuitem">${count ? `Change art for ${count} selected cop${count === 1 ? 'y' : 'ies'}…` : 'Change art…'}</button>
        ${allCount > 1 ? `<button data-c="allart" role="menuitem">Change art for all ${allCount} copies…</button>` : ''}
+       <button data-c="match" role="menuitem">${e.kind==='TOKEN'?'Choose token faces…':'Change card match…'}</button>
        <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
        <button data-c="upload" role="menuitem">Upload image…</button>
        <button data-c="del" class="danger" role="menuitem">Remove card</button>`;
@@ -3464,6 +3790,7 @@ function openCtx(x, y, e, i, copy) {
     closeCtx();
     if (c === 'back') openMpcPicker({cardback:true});
     else if (c === 'art') openMpcPicker(target);
+    else if (c === 'match') openCardMatch(e, copy, i);
     else if (c === 'allart') openMpcPicker({e, i, deckId:S.deckId, copies:same.map(x => ({uid:x.uid, copies:Array.from({length:x.qty}, (_, q) => q)}))});
     else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
     else if (c === 'maker') openCardMaker({e, i});
@@ -3528,7 +3855,7 @@ const FIELDS = [
   {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border colour']]},
   {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
   {sec:'Double-faced cards & backs'},
-  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, show:() => deck().entries.some(e => e.qty > 0 && e.faces.length > 1), opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
+  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, show:() => deck().entries.some(e => e.qty > 0 && e.kind!=='TOKEN' && e.faces.length > 1), opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
   {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['manual','I re-feed the paper by hand (recommended for 330gsm ProxyJak)'],['auto','My printer prints double-sided automatically']],
     hint:'330gsm ProxyJak stock exceeds many duplexer ratings. Use manual re-feeding and test one sheet first.'},
   {k:'duplexFlip', adv:true, label:'Double-sided flip', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['long','Flip on long edge'],['short','Flip on short edge']],
@@ -3552,7 +3879,8 @@ const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
   regPattern: ['3', '4'],
-  guides: ['both', 'margin', 'corners', 'none'],
+  guides: ['both', 'margin', 'corners', 'outline', 'none'],
+  guideShape: ['brackets', 'ticks'], guidePlacement: ['outside', 'inside'], guideStyle: ['solid', 'dashed'],
 };
 function cleanSettings(raw) {
   const out = {...DEFAULTS};
@@ -3588,6 +3916,8 @@ function cleanSettings(raw) {
   }
   for (const k of ['pageW', 'pageH', 'cardW', 'cardH', 'scaleX', 'scaleY']) if (out[k] <= 0) out[k] = DEFAULTS[k];
   for (const k of ['cols', 'rows']) out[k] = Math.max(0, Math.floor(out[k]));
+  out.guideWidth = Math.max(0.05, Math.min(1, out.guideWidth));
+  out.guideLen = Math.max(0.5, Math.min(10, out.guideLen));
   // Migration must not reinterpret valid custom layouts on every reload.
   return out;
 }
@@ -3617,8 +3947,9 @@ function cleanDeck(raw) {
     cardback:face(raw?.cardback),
     entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => pick({
       uid:String(e.uid || uid()).slice(0, 64), name:String(e.name ?? '').slice(0, 300), qty:Math.min(999, Math.max(0, Math.floor(+e.qty) || 0)),
-      set:str(e.set), cn:str(e.cn), scryId:id(e.scryId), kind:e.kind === 'TOKEN' ? 'TOKEN' : 'CARD', custom:e.custom ? true : undefined, mpc:e.mpc ? true : undefined,
-      faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(id).filter(Boolean) : []
+      set:str(e.set), cn:str(e.cn), scryId:id(e.scryId), scryFace:e.kind==='TOKEN' && [0,1].includes(e.scryFace)?e.scryFace:undefined, kind:e.kind === 'TOKEN' ? 'TOKEN' : 'CARD', custom:e.custom ? true : undefined, mpc:e.mpc ? true : undefined,
+      faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(id).filter(Boolean) : [],
+      type:str(e.type, 300), colorIdentity:Array.isArray(e.colorIdentity) ? [...new Set(e.colorIdentity.filter(c => /^[WUBRG]$/.test(c)))] : undefined
     }))
   };
 }
@@ -3816,8 +4147,29 @@ $('#presetSave').onclick = () => {
 /* ---------- preview ---------- */
 let previewGen = 0, previewTimer;
 function renderPreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 60); }
+function syncPreviewControls() {
+  const s=S.settings, paper=$('#quickPaper');
+  const choices=[['letter','Letter'],['a4','A4']];
+  if (!choices.some(([value])=>value===s.pageSize)) choices.push([s.pageSize,FIELDS.find(f=>f.k==='pageSize').opts.find(([value])=>value===s.pageSize)?.[1] || 'Custom']);
+  paper.innerHTML=choices.map(([value,label])=>`<option value="${esc(value)}" ${value===s.pageSize?'selected':''}>${esc(label)}</option>`).join('');
+  $$('.paper-direction button').forEach(b=>{const on=b.dataset.orientation===s.orientation;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+}
+function setPreviewFocus(on) {
+  document.body.classList.toggle('preview-focus',on);
+  $('#toggleSidebar').textContent=on?'Show sidebar':'Hide sidebar';
+  $('#toggleSidebar').setAttribute('aria-pressed',on);
+  $('#zoomFit').click();
+}
+$('#toggleSidebar').onclick=()=>setPreviewFocus(!document.body.classList.contains('preview-focus'));
+$('#quickPaper').onchange=ev=>{
+  const input=$('#paperForm [data-k="pageSize"]');input.value=ev.target.value;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
+};
+$$('.paper-direction button').forEach(button=>button.onclick=()=>{
+  const input=$('#paperForm [data-k="orientation"]');input.value=button.dataset.orientation;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
+});
 async function drawPreview() {
   const gen = ++previewGen, s = S.settings, L = layout(), z = S.zoom;
+  syncPreviewControls();
   const on = !s.silhouette && !!S.showCuts;
   if ($('#showCuts')) {
     $('#showCuts').disabled = !!s.silhouette;
@@ -3829,8 +4181,12 @@ async function drawPreview() {
       : 'Screen preview of bleed, trim, and safe guides. Not printed on the PDF.';
   }
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
+  $('#workspaceTitle').textContent = deck().name;
+  $('#previewSummary').textContent = slots.length ? `${slots.length} card${slots.length===1?'':'s'} · ${pages.length} sheet${pages.length === 1 ? '' : 's'} · ${L.W} × ${L.H} mm` : 'Your print workspace';
+  $('#zoomValue').textContent = Math.round(z / 2.4 * 100) + '%';
+  $('#stage').style.setProperty('--stage-controls-height',$('.stage-controls').offsetHeight+'px');
   if (!slots.length) {
-    wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order your proxies' : 'Print your proxies'}</h2><ol>
+    wrap.innerHTML = `<div class="empty"><div class="empty-art" aria-hidden="true"><i></i><i></i><i>P</i></div><h2>${S.mode === 'order' ? 'Build your next order' : 'Your next deck starts here'}</h2><p class="hint">Bring a decklist or your favorite artwork. Your sheets update as you work.</p><div class="row" style="margin:20px 0"><button class="primary" data-start="import">Import a deck…</button><button data-start="upload">Upload images…</button></div><ol>
       <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or choose <b>Import deck…</b> for a deck link or local file.</li>
       <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
       <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Review order</b>.' : 'Pick your printer in <b>2. Print</b>, choose your tool in <b>3. Cut</b>, then download your files in <b>4. Export</b>.'}</li></ol></div>`;
@@ -3873,17 +4229,15 @@ async function drawPreview() {
       const lines = back ? [] : guideLines(L, page.length), reg = back ? {rects:[], lines:[]} : regMarks(L);
       const sw = Math.max(0.6, s.guideWidth*z);
       let svg = `<svg width="${L.W*z}" height="${L.H*z}">`;
-      for (const [a, b, c, d] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#fff" stroke-width="${sw*3}"/>`;
+      if (s.guideHalo) for (const [a, b, c, d] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#fff" stroke-width="${sw*3}"/>`;
       for (const [a, b, c, d, dash] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
       for (const [x, y, w, h] of reg.rects) svg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
       for (const [a, b, c, d] of reg.lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
       if (!s.silhouette && S.showCuts && !back) page.forEach((_, i) => {
         const p = slotPos(L, i, false);
-        const cr = (s.cornerRadius || 3.2) * z;
-        if (s.bleed > 0) svg += `<rect x="${T.x(p.x)*z}" y="${T.y(p.y)*z}" width="${T.w(L.sw)*z}" height="${T.h(L.sh)*z}" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="2 3"/>`;
-        svg += `<rect x="${T.x(p.x + s.bleed)*z}" y="${T.y(p.y + s.bleed)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" rx="${cr}" ry="${cr}" fill="none" stroke="#d55e00" stroke-width="1.5" stroke-dasharray="6 3"/>`;
-        const safe = Math.min(3, Math.max(1.5, s.bleed));
-        svg += `<rect x="${T.x(p.x + s.bleed + safe)*z}" y="${T.y(p.y + s.bleed + safe)*z}" width="${T.w(L.cw - 2*safe)*z}" height="${T.h(L.ch - 2*safe)*z}" rx="${Math.max(1, cr - safe*z)}" ry="${Math.max(1, cr - safe*z)}" fill="none" stroke="#7c3aed" stroke-width="1.2" stroke-dasharray="4 2 1 2"/>`;
+        if (s.bleed > 0) svg += `<rect x="${T.x(p.x)*z}" y="${T.y(p.y)*z}" width="${T.w(L.sw)*z}" height="${T.h(L.sh)*z}" fill="none" stroke="#738194" stroke-width="0.7" stroke-dasharray="2 3"/>`;
+        const x1 = T.x(p.x + s.bleed)*z, y1 = T.y(p.y + s.bleed)*z, x2 = x1 + T.w(L.cw)*z, y2 = y1 + T.h(L.ch)*z, arm = 6*z;
+        svg += `<path d="M${x1+arm} ${y1}H${x1}V${y1+arm}M${x2-arm} ${y1}H${x2}V${y1+arm}M${x1} ${y2-arm}V${y2}H${x1+arm}M${x2-arm} ${y2}H${x2}V${y2-arm}" fill="none" stroke="#54ed39" stroke-width="1"/>`;
       });
       el.insertAdjacentHTML('beforeend', svg + '</svg>');
       frag.appendChild(el);
@@ -3934,7 +4288,7 @@ function renderStats() {
   }
   const slots = buildSlots(), L = layout(), pages = Math.ceil(slots.length / L.per);
   const backs = slots.some(x => x.back);
-  $('#stats').textContent = `${slots.length} cards · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
+  $('#stats').textContent = `${slots.length} card${slots.length===1?'':'s'} · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
   $('#mbarCount').textContent = slots.length ? `· ${pages} sheet${pages === 1 ? '' : 's'}` : '';
 }
 $$('#mbar button').forEach(b => b.onclick = () => {
@@ -3947,8 +4301,10 @@ $$('#mbar button').forEach(b => b.onclick = () => {
 addEventListener('resize', syncCardSelection);
 $('#zoom').oninput = e => { S.zoom = +e.target.value; save(); renderPreview(); };
 $('#zoomFit').onclick = () => {
-  const avail = $('#stage').clientWidth - 56, width = S.mode === 'order' ? 63 * 0.75 * 1.6 * 4 + 90 : layout().W;
-  S.zoom = Math.max(1, Math.min(5, +(avail / width).toFixed(2))); $('#zoom').value = S.zoom; save(); renderPreview();
+  const stage=$('#stage'), L=layout(), avail=stage.clientWidth-56, width=S.mode==='order'?63*0.75*1.6*4+90:L.W;
+  const height=stage.clientHeight-$('.stage-controls').offsetHeight-(innerWidth<=820?126:80);
+  const fit=S.mode==='order'?avail/width:Math.min(avail/width,Math.max(1,height)/L.H);
+  S.zoom=Math.max(0.5,Math.min(5,Math.floor(fit*100)/100)); $('#zoom').value=S.zoom;save();renderPreview();
 };
 $('#orderShowBacks').onchange = ev => { S.orderShowBacks = ev.target.checked; save(); renderPreview(); };
 $('#showBacks').onchange = e => { S.showBacks = e.target.checked; save(); renderPreview(); };
@@ -4026,7 +4382,7 @@ async function exportPDF(skipWizard = true) {
           await sleep(0);
         }
         if (!back) {
-          pdfLines(doc, T, guideLines(L, page.length), '#ffffff', s.guideWidth * 3);
+          if (s.guideHalo) pdfLines(doc, T, guideLines(L, page.length), '#ffffff', s.guideWidth * 3);
           pdfLines(doc, T, guideLines(L, page.length), s.guideColor, s.guideWidth);
           const reg = regMarks(L);
           doc.setFillColor('#000000');
@@ -4080,7 +4436,7 @@ function renderGuideTab() {
     const paperName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Letter'])[1].replace(/ \(.*\)$/, '');
     jobSum.innerHTML = `<b>${slots.length} cards · ${sheets} sheet${sheets === 1 ? '' : 's'}</b> · ${esc(paperName)} ${s.orientation} (${L.cols}×${L.rows})<br>` +
       `<span>${isSingleSided ? 'Single-sided' : (s.duplexMethod === 'auto' ? 'Double-sided (Auto Duplex)' : 'Double-sided (Manual Paper Flip)')} · ` +
-      `${isCameo ? 'Cameo registration marks' : ({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks',none:'No printed cut guides'}[s.guides] || 'Custom cut guides')}</span>`;
+      `${isCameo ? 'Cameo registration marks' : ({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks',outline:'Full card outlines',none:'No printed cut guides'}[s.guides] || 'Custom cut guides')}</span>`;
   }
 
   const review = $('#exportReview');
@@ -4095,6 +4451,7 @@ function renderGuideTab() {
     review.innerHTML = issues.length ? `<div class="warn"><b>Check before printing</b><ul>${issues.map(([tab, text]) => `<li>${esc(text)} <button class="icon" data-review-tab="${tab}">Review ${tab === 'setup' ? 'print setup' : tab === 'cutting' ? 'cutting' : 'cards'}</button></li>`).join('')}</ul></div>` : '';
   }
   $('#btnExportPdfTab').disabled = !slots.length;
+  $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
   if ($('#btnPdf') && $('#tab-guide').classList.contains('on')) $('#btnPdf').disabled = !slots.length;
   const svgBtn = $('#btnExportSvgTab');
   if (svgBtn) svgBtn.style.display = isCameo ? 'block' : 'none';
@@ -4368,6 +4725,7 @@ $('#printDeckOut').onclick = async () => {
   catch (err) { toast('Could not export deck package: ' + err.message, 9000); }
   finally { busy(false); }
 };
+$('#orderPrintDeckOut').onclick = () => $('#printDeckOut').onclick();
 $('#filePrintDeck').onchange = ev => { const file = ev.target.files[0]; ev.target.value = ''; if (file) { closeModal(); importDeckFile(file); } };
 async function readPrintDeck(file) {
   const reader = file.stream().getReader(), decoder = new TextDecoder();
@@ -4503,6 +4861,7 @@ async function renderStorage() {
 
 /* ---------- misc UI ---------- */
 function switchTab(name) {
+  if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
   if (name === 'presets' || name === 'layout') name = 'setup';
   $$('.tabs button').forEach(x => {
     const on = x.dataset.tab === name;
@@ -4534,6 +4893,7 @@ function switchTab(name) {
       btnXml.textContent = 'Review order';
       btnXml.title = 'Review your cards, cardback and order settings';
     }
+    btnXml.disabled = name === 'order' && $('#oZip').disabled;
   }
 }
 $$('.tabs button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
@@ -4686,6 +5046,11 @@ function renderCutStatus() {
   // Populate Rotary Advanced Inputs
   const rotGuides = $('#rotaryGuides');
   if (rotGuides && document.activeElement !== rotGuides) rotGuides.value = s.guides || 'both';
+  for (const [id, key] of Object.entries({rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'})) {
+    const input = $('#' + id); if (input.type === 'checkbox') input.checked = s[key]; else input.value = s[key];
+  }
+  $$('.guide-presets button').forEach(b => { const on = b.dataset.guide === s.guides; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  $$('.guide-colors button').forEach(b => b.setAttribute('aria-pressed', b.dataset.guideColor === s.guideColor));
   const rotLen = $('#rotaryGuideLen');
   if (rotLen && document.activeElement !== rotLen) rotLen.value = s.guideLen ?? 3;
   const rotWidth = $('#rotaryGuideWidth');
@@ -4725,7 +5090,7 @@ function renderCutStatus() {
     }
   }
   const el = $('#cutStatus'); if (!el) return;
-  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && (s.bleed >= 1.5 || (s.orientation === 'portrait' && s.bleed >= 0.75));
+  const best = bestCutBleed(), ok = !s.silhouette && L.fits && (s.bleed >= 1.5 || (s.orientation === 'portrait' && s.bleed >= 0.75));
   const rHint = $('#rotaryBleedHint');
   if (rHint) {
     const pName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Letter'])[1].replace(/ \(.*\)$/, '');
@@ -4734,8 +5099,8 @@ function renderCutStatus() {
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
-    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${esc({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks'}[s.guides])} enabled (${s.bleed} mm bleed).</div>`
-      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${s.guides === 'none' ? 'No guides will be printed' : esc({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks',outline:'Full card outlines'}[s.guides]) + ' enabled'} (${s.bleed} mm bleed).</div>`
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {
@@ -4750,7 +5115,7 @@ function renderCutStatus() {
   };
 }
 
-for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryBleed:'bleed'})) {
+for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'})) {
   const input = $('#' + id); if (!input) continue;
   input.onchange = () => {
     if (!input.checkValidity() || (input.type === 'number' && !Number.isFinite(input.valueAsNumber))) {
@@ -4761,19 +5126,30 @@ for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegIn
     S.activePreset = null; save(); renderAll();
   };
 }
+$('#rotarySection').addEventListener('click', ev => {
+  const preset = ev.target.closest('[data-guide]'), color = ev.target.closest('[data-guide-color]');
+  if (preset) Object.assign(S.settings, {guides:preset.dataset.guide, guideShape:'brackets', guideWidth:0.15, guideLen:6, guideHalo:false});
+  else if (color) S.settings.guideColor = color.dataset.guideColor;
+  else return;
+  S.activePreset = null; save(); renderAll();
+});
+$('#pages').addEventListener('click', ev => {
+  const start = ev.target.closest('[data-start]'); if (!start) return;
+  if (start.dataset.start === 'upload') $('#btnUpload').click(); else $('#btnLink').click();
+});
 function applyMode() {
   document.body.dataset.mode = S.mode;
   $('#cardsStepLabel').textContent = S.mode === 'order' ? 'Step 1 of 2' : 'Step 1 of 4';
   $('#btnStep1Next').textContent = S.mode === 'order' ? 'Next: 2. Order →' : 'Next: 2. Print →';
   $$('#modeSeg button').forEach(b => { const on = b.dataset.mode === S.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   const active = $('.tabs button.on');
-  if (!active || getComputedStyle(active).display === 'none') $('.tabs button[data-tab=cards]').click();
+  if (!active || getComputedStyle(active).display === 'none') switchTab('cards');
 }
 $$('#modeSeg button').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; save(); applyMode(); renderAll(); });
 $$('#deckMenu .menu-list button').forEach(b => b.addEventListener('click', () => $('#deckMenu').removeAttribute('open')));
 addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckMenu').removeAttribute('open'); });
 $('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
-function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); renderCards(); renderSettings(); renderPresets(); renderPrinter(); renderGuideTab(); renderPreview(); renderStats(); }
+function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); renderCards(); renderSuggestions(); renderSettings(); renderPresets(); renderPrinter(); renderGuideTab(); renderPreview(); renderStats(); }
 
 (async () => {
   await load();
