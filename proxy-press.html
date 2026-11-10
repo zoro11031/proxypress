@@ -19,6 +19,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-syste
 button,input,select,textarea{font:inherit;color:inherit}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;white-space:nowrap}
 button:hover{border-color:#4a515c}
+:where(button,input,select,textarea,summary,a,[tabindex]):focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
 button.primary{background:var(--accent);color:#1b1407;border-color:var(--accent);font-weight:600}
 button.primary:hover{background:var(--accent2)}
 button.danger{color:var(--danger)}
@@ -55,7 +56,8 @@ h3:first-child{margin-top:2px}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 [hidden]{display:none!important}
 .row>*{flex:0 0 auto}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.field{min-width:0}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
 .field.full{grid-column:1/-1}
 .check{display:flex;align-items:center;gap:8px;grid-column:1/-1;font-size:13px}
@@ -96,7 +98,7 @@ h3:first-child{margin-top:2px}
 #overlay.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column}
 .modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
-.modal .hd b{flex:1}
+.modal .hd b{flex:1;min-width:0;overflow-wrap:anywhere}
 .modal .bd{overflow:auto;padding:14px}
 .prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .prints figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px}
@@ -136,12 +138,13 @@ h3:first-child{margin-top:2px}
   #mbar button.on{background:var(--accent);color:#1b1407;border-color:var(--accent);font-weight:600}
   .tabs{overflow-x:auto;scrollbar-width:none}
   .tabs button{flex:1 0 auto;padding:11px 12px}
-  button{min-height:36px}
-  button.icon{min-height:32px}
+  button{min-height:44px}
+  button.icon{min-height:44px}
   input,select,textarea{font-size:16px}
   #overlay{align-items:stretch}
   .modal{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border:0}
   .modal .hd{position:sticky;top:0;background:var(--panel);z-index:2}
+  .modal .bd{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #ctx button{padding:11px 12px;font-size:15px}
   #toast{bottom:72px}
   .card{grid-template-columns:44px 1fr auto}
@@ -185,7 +188,9 @@ h3:first-child{margin-top:2px}
 .pick button b{font-size:13px;padding-right:16px}
 .pick button span{color:var(--muted);font-size:11.5px}
 .pick button.on{border-color:var(--accent);background:#2d2618}
-.pick .del{position:absolute;top:6px;right:8px;font-style:normal;color:var(--muted);font-size:14px;padding:0 3px}
+.preset-item{position:relative;display:flex}
+.preset-item>[data-preset]{width:100%;padding-right:34px}
+.pick .del{position:absolute;top:6px;right:8px;font-style:normal;color:var(--muted);font-size:14px;padding:0 3px;min-width:30px;min-height:30px;align-items:center;justify-content:center;background:none;border:0}
 .pick .del:hover{color:var(--danger)}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
@@ -267,7 +272,7 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .menu{position:relative}
 .menu summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--panel2);user-select:none}
 .menu summary::-webkit-details-marker{display:none}
-.menu-list{position:absolute;z-index:60;top:calc(100% + 4px);left:0;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.menu-list{position:absolute;z-index:60;top:calc(100% + 4px);right:0;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px}
 .menu-list button:hover{background:var(--panel2)}
 .kbd{margin-left:auto}
@@ -331,7 +336,7 @@ details.adv:not([open]){padding-bottom:10px}
   <span class="grow"></span>
   <span class="stats" id="stats"></span>
   <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour">?</button>
-  <button id="btnSettings" class="icon round" title="Backup &amp; storage" aria-label="Backup and storage">⚙</button>
+  <button id="btnSettings" class="icon round" title="Settings &amp; backup" aria-label="Settings and backup">⚙</button>
   <button id="btnPdf" class="primary print-only" title="Review your print setup and download files">Review &amp; export</button>
   <button id="btnXml" class="primary order-only" title="Review your cards, cardback and order settings">Review order</button>
 </header>
@@ -342,7 +347,7 @@ details.adv:not([open]){padding-bottom:10px}
       <button data-tab="setup" class="print-only">2. Print</button>
       <button data-tab="cutting" class="print-only">3. Cut</button>
       <button data-tab="guide" class="print-only">4. Export</button>
-      <button data-tab="order" class="order-only">Order</button>
+      <button data-tab="order" class="order-only">2. Order</button>
     </div>
 
     <div class="pane on" id="tab-cards">
@@ -396,6 +401,7 @@ details.adv:not([open]){padding-bottom:10px}
       <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden style="margin-bottom:6px">
       <div id="cardSelection" hidden><span id="cardSelectionCount" class="hint" aria-live="polite"></span><div class="row"><button id="changeSelectedArt" class="primary">Change selected art…</button><button id="selectAllCopies">Select all copies</button><button id="clearCardSelection">Clear</button></div></div>
       <div class="cards" id="cardList"></div>
+      <p class="hint" id="deckFilterEmpty" hidden>No cards match your search.</p>
       <div class="wiz-nav">
         <button type="button" class="primary" id="btnStep1Next" style="flex:1">Next: 2. Print →</button>
       </div>
@@ -631,8 +637,8 @@ details.adv:not([open]){padding-bottom:10px}
     <div class="pane" id="tab-guide">
       <div class="step-hdr">
         <div class="step-num">Step 4 of 4</div>
-        <h2>Export &amp; Operator Guide</h2>
-        <p class="hint">Download print-ready files and follow the workshop steps.</p>
+        <h2>Export &amp; print</h2>
+        <p class="hint">Download print-ready files and follow the printing and cutting steps.</p>
       </div>
 
       <div id="exportReview" aria-live="polite"></div>
@@ -642,13 +648,13 @@ details.adv:not([open]){padding-bottom:10px}
           <span class="cutter-badge" id="guideCutterBadge">Silhouette Cameo</span>
         </div>
         <div class="hero-card-summary" id="guideJobSummary"></div>
-        <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">🖨️ Generate &amp; Download PDF</button>
-        <button id="btnExportSvgTab" style="width:100%;display:none">✂️ Download Cut File (SVG)</button>
+        <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">Download PDF</button>
+        <button id="btnExportSvgTab" style="width:100%;display:none">Download cut file (.svg)</button>
       </div>
 
       <div class="guide-tabs">
-        <button type="button" class="guide-tab-btn active" id="tabGuideBtnPrint">1. Printing &amp; Feeding</button>
-        <button type="button" class="guide-tab-btn" id="tabGuideBtnCut">2. Cutting Instructions</button>
+        <button type="button" class="guide-tab-btn active" id="tabGuideBtnPrint">Print instructions</button>
+        <button type="button" class="guide-tab-btn" id="tabGuideBtnCut">Cut instructions</button>
       </div>
 
       <div id="tabGuidePanePrint" class="ptab-content"></div>
@@ -690,13 +696,16 @@ details.adv:not([open]){padding-bottom:10px}
 
     <div class="pane" id="tab-data">
       <h3>Backup</h3>
-      <p class="hint">Your decks, presets, settings, and uploaded images are saved privately in this browser on your device. Nothing is sent to external servers. Save a backup file to move your decks to another computer or browser.</p>
+      <p class="hint">Your decks, presets, settings, and uploaded images are stored in this browser. Card and art searches use online services. Save a backup to move your data to another browser or device.</p>
       <div class="row">
         <button id="backupOut">Save backup file…</button>
         <button id="backupIn">Restore from backup…</button>
         <input type="file" id="fileBackup" accept=".json,application/json" hidden>
       </div>
       <p class="hint" id="signOut" hidden><a href="/logout">Sign out</a> of this site on this browser.</p>
+      <h3>Defaults</h3>
+      <p class="hint">Resets printer, layout, art-search, and preview settings. Your decks, artwork, and saved presets stay saved.</p>
+      <button id="resetSettings">Return to defaults</button>
       <h3>Storage</h3>
       <p class="hint" id="storageInfo"></p>
       <div class="row"><button id="wipe" class="danger">Erase all local data</button></div>
@@ -710,14 +719,14 @@ details.adv:not([open]){padding-bottom:10px}
       <label class="row print-only"><input type="checkbox" id="showBacks" checked style="width:auto"> Show back pages</label>
       <label class="row print-only" title="Screen preview of the blade cut path. Not printed on the PDF."><input type="checkbox" id="showCuts" style="width:auto"> Show cut lines (preview)</label>
       <span class="hint print-only" id="cutLegend" style="font-size:11px;gap:10px;align-items:center;display:none"><span style="color:#0284c7;font-weight:600">···· Bleed</span> <span style="color:#d55e00;font-weight:600">━ ━ Trim</span> <span style="color:#7c3aed;font-weight:600">╍ ╍ Safe</span></span>
-      <span class="order-only">Fronts with their backs, as they'll be printed. Right-click a card to change its art.</span>
+      <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
     </div>
     <div id="pages"></div>
   </section>
 </main>
 
 <div id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
-<div id="busy"><div id="busyText">Working…</div><div class="bar"><i id="busyBar"></i></div></div>
+<div id="busy"><div id="busyText" role="status" aria-live="polite">Working…</div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="toast" role="status" aria-live="polite" title="Click to dismiss"></div>
 <div id="drop">Drop a shared deck, card images, or a decklist here</div>
 <div id="ctx" role="menu"></div>
@@ -940,7 +949,7 @@ const store = (() => {
 })();
 
 /* ---------- state ---------- */
-const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, zoom:2.4, showBacks:true };
+const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, zoom:2.4, showBacks:true, orderShowBacks:false };
 const deck = () => S.decks.find(d => d.id === S.deckId);
 
 let saveTimer;
@@ -949,7 +958,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -960,7 +969,7 @@ async function load() {
   const ui = await store.get('kv', 'ui');
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
+    S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -2057,6 +2066,7 @@ function syncCardSelection() {
   });
   $$('#cardList .card').forEach(row => {
     const e = deck().entries.find(e => e.uid === row.dataset.uid), box = row.querySelector('[data-act="select"]');
+    if (!e || !box) { row.classList.remove('selected'); return; }
     const count = Array.from({length:e.qty}, (_, q) => selectedCopies.has(copyKey(e, q))).filter(Boolean).length;
     row.classList.toggle('selected', count > 0);
     box.checked = !!e.qty && count === e.qty; box.indeterminate = count > 0 && count < e.qty;
@@ -2124,7 +2134,7 @@ async function renderCards() {
   $('#deckCount').textContent = `(${total})`;
   $('#listIn').classList.toggle('compact', d.entries.length > 0);
   $('#deckFilter').hidden = d.entries.length <= 12;
-  const need = d.entries.filter(e => !e.mpc && e.faces.some(isPreview)).length;
+  const need = d.entries.filter(e => !e.mpc && e.qty > 0 && e.faces.some(isPreview)).reduce((n, e) => n + e.qty, 0);
   $('#deckHealth').innerHTML = need ? `<span style="color:#ff9c95">${need} need${need === 1 ? 's' : ''} art</span>` : '';
   $('#btnMpcAuto').classList.toggle('primary', need > 0);
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; syncCardSelection(); return; }
@@ -2150,7 +2160,9 @@ async function renderCards() {
 }
 function applyDeckFilter() {
   const q = $('#deckFilter').hidden ? '' : $('#deckFilter').value.trim().toLowerCase();
-  $$('#cardList .card').forEach(r => { r.hidden = !!q && !r.querySelector('.nm').title.toLowerCase().includes(q); });
+  const rows = $$('#cardList .card');
+  rows.forEach(r => { r.hidden = !!q && !r.querySelector('.nm').title.toLowerCase().includes(q); });
+  $('#deckFilterEmpty').hidden = !q || rows.some(r => !r.hidden);
 }
 $('#deckFilter').oninput = applyDeckFilter;
 $('#cardList').addEventListener('click', async ev => {
@@ -2230,15 +2242,32 @@ $('#btnCopyList').onclick = async () => {
   try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
 };
 
-let modalBeforeClose = null;
+let modalBeforeClose = null, modalReturnFocus = null;
+const modalFocusable = () => $$('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal [tabindex]').filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
 function openModal(html) {
+  if (!$('#overlay').classList.contains('on')) modalReturnFocus = document.activeElement;
   parkData();
   modalBeforeClose = null;
   $('#modal').innerHTML = html; $('#modal').classList.remove('narrow'); $('#overlay').classList.add('on');
-  ($('#modal input, #modal select, #modal .bd button') || $('#modal [data-close]'))?.focus();
+  const title = $('#modal .hd b');
+  if (title) { title.id = 'modalTitle'; $('#modal').setAttribute('aria-labelledby', title.id); }
+  else $('#modal').removeAttribute('aria-labelledby');
+  modalFocusable()[0]?.focus();
 }
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
-function closeModal(force = false) { if (!force && modalBeforeClose && !modalBeforeClose()) return; modalBeforeClose = null; parkData(); $('#overlay').classList.remove('on'); }
+function closeModal(force = false) {
+  if (!$('#overlay').classList.contains('on') || (!force && modalBeforeClose && !modalBeforeClose())) return;
+  modalBeforeClose = null; parkData(); $('#overlay').classList.remove('on');
+  if (modalReturnFocus?.isConnected && modalReturnFocus.getClientRects().length) modalReturnFocus.focus();
+  else $('.tabs button.on')?.focus();
+  modalReturnFocus = null;
+}
+$('#modal').addEventListener('keydown', ev => {
+  if (ev.key !== 'Tab') return;
+  const items = modalFocusable(), at = items.indexOf(document.activeElement);
+  if (!items.length) { ev.preventDefault(); return; }
+  if ((ev.shiftKey && at <= 0) || (!ev.shiftKey && (at < 0 || at === items.length - 1))) { ev.preventDefault(); items[ev.shiftKey ? items.length - 1 : 0].focus(); }
+});
 $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttribute('data-close')) closeModal(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(); $('#deckMenu').removeAttribute('open'); } });
 
@@ -3289,7 +3318,7 @@ const TOUR = {
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
     </div><p class="hint">You can switch any time with the buttons at the top.</p>`},
   cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Use <b>Import deck…</b> for a Moxfield or Archidekt link, a saved deck JSON, or a local decklist file. MTGA and MTGO exports work too.</p>
-    <p><b>+ Tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
+    <p><b>Add needed tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>`},
   print:{title:'3 · Print at home', body:() => `<ol class="steps"><li>Choose your printer, paper and double-sided method in <b>2. Print</b>.</li>
@@ -3318,7 +3347,7 @@ function openTour(at = 0) {
 }
 $('#btnHelp').onclick = () => openTour(0);
 $('#btnSettings').onclick = () => {
-  openModal(`<div class="hd"><b>Backup &amp; storage</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
+  openModal(`<div class="hd"><b>Settings &amp; backup</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
   $('#modal').classList.add('narrow');
   const d = $('#tab-data'); d.classList.add('on'); $('#dataSlot').appendChild(d);
   renderStorage();
@@ -3419,10 +3448,10 @@ const FIELDS = [
   {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border colour']]},
   {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
   {sec:'Double-faced cards & backs'},
-  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
-  {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.dfcMode === 'duplex' || s.backs, opts:[['manual','I re-feed the paper by hand (recommended for 330gsm ProxyJak)'],['auto','My printer prints double-sided automatically']],
+  {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, show:() => deck().entries.some(e => e.qty > 0 && e.faces.length > 1), opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
+  {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['manual','I re-feed the paper by hand (recommended for 330gsm ProxyJak)'],['auto','My printer prints double-sided automatically']],
     hint:'330gsm ProxyJak stock exceeds many duplexer ratings. Use manual re-feeding and test one sheet first.'},
-  {k:'duplexFlip', adv:true, label:'Double-sided flip', type:'select', full:true, show:s => s.dfcMode === 'duplex' || s.backs, opts:[['long','Flip on long edge'],['short','Flip on short edge']],
+  {k:'duplexFlip', adv:true, label:'Double-sided flip', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['long','Flip on long edge'],['short','Flip on short edge']],
     hint:'The long edge is the tall edge of the paper itself, not of the picture on it. Printing automatically, this has to match your print dialog. Re-feeding by hand, it is the edge you turn the sheet over along — the steps after export spell out which way that is for your layout.'},
   {k:'backs', label:'Print card backs on back pages', type:'check'},
   {k:'backImage', type:'backimg'},
@@ -3664,9 +3693,8 @@ function renderPresets() {
       sub = `${L.cols}×${L.rows} layout`;
     }
     const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation;
-    return `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}">
-      <b>${esc(title)}</b><span>${esc(sub)}</span>
-      ${mine ? `<i class="del" data-del="${esc(p.id)}" title="Delete preset" role="button" aria-label="Delete preset">✕</i>` : ''}</button>`;
+    const button = `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
+    return mine ? `<div class="preset-item">${button}<button class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
   const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind && (!S.settings.silhouette || p.settings.orientation === 'landscape'));
   $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
@@ -3708,7 +3736,7 @@ async function drawPreview() {
   }
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
   if (!slots.length) {
-    wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order prints in three steps' : 'Print proxies in three steps'}</h2><ol>
+    wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order your proxies' : 'Print your proxies'}</h2><ol>
       <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or choose <b>Import deck…</b> for a deck link or local file.</li>
       <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
       <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Review order</b>.' : 'Pick your printer in <b>2. Print</b>, choose your tool in <b>3. Cut</b>, then download your files in <b>4. Export</b>.'}</li></ol></div>`;
@@ -3777,7 +3805,7 @@ async function drawGallery(gen, wrap, z) {
     if (!e.qty || !e.faces.length) continue;
     for (let copy = 0; copy < e.qty; copy++) {
       const tile = document.createElement('div'); tile.className = 'tile';
-      const sides = [[e.faces[0], 0], [e.faces[1] || cb, e.faces[1] ? 1 : 'back']];
+      const sides = [[e.faces[0], 0], ...(S.orderShowBacks && e.faces[1] ? [[e.faces[1], 1]] : [])];
       for (const [f, i] of sides) {
         if (!f) {
           tile.insertAdjacentHTML('beforeend', `<div class="noback" data-uid="${esc(e.uid)}" title="No cardback yet" style="width:${Math.round(w * 0.6)}px;height:${Math.round(h * 0.6)}px"></div>`);
@@ -3794,7 +3822,13 @@ async function drawGallery(gen, wrap, z) {
       frag.appendChild(tile);
     }
   }
-  if (!cb) frag.insertAdjacentHTML('afterbegin', `<div class="galnote">No cardback chosen yet. Every card except double-faced ones gets it on the back. <button class="primary icon gal-cb">Choose a cardback</button></div>`);
+  $('#orderShowBacks').checked = !!S.orderShowBacks;
+  if (d.entries.some(e => e.qty && e.faces.length === 1)) {
+    const note = document.createElement('div'); note.className = 'galnote';
+    note.innerHTML = cb ? '<img alt="Shared cardback" width="40" height="56"><span>Shared cardback</span><button class="icon gal-cb">Change…</button>' : '<span>No shared cardback chosen.</span><button class="primary icon gal-cb">Choose a cardback…</button>';
+    if (cb) thumbSrc(cb).then(u => { if (gen === previewGen && u) $('img', note).src = u; });
+    frag.prepend(note);
+  }
   wrap.replaceChildren(frag); syncCardSelection();
 }
 function renderStats() {
@@ -3822,6 +3856,7 @@ $('#zoomFit').onclick = () => {
   const avail = $('#stage').clientWidth - 56, width = S.mode === 'order' ? 63 * 0.75 * 1.6 * 4 + 90 : layout().W;
   S.zoom = Math.max(1, Math.min(5, +(avail / width).toFixed(2))); $('#zoom').value = S.zoom; save(); renderPreview();
 };
+$('#orderShowBacks').onchange = ev => { S.orderShowBacks = ev.target.checked; save(); renderPreview(); };
 $('#showBacks').onchange = e => { S.showBacks = e.target.checked; save(); renderPreview(); };
 $('#showCuts').onchange = e => {
   if (S.settings.silhouette) {
@@ -3965,6 +4000,7 @@ function renderGuideTab() {
     if (sheetFeedable(S.printer, L.W, L.H) === false) issues.push(['setup', 'The selected printer cannot feed this paper size.']);
     review.innerHTML = issues.length ? `<div class="warn"><b>Check before printing</b><ul>${issues.map(([tab, text]) => `<li>${esc(text)} <button class="icon" data-review-tab="${tab}">Review ${tab === 'setup' ? 'print setup' : tab === 'cutting' ? 'cutting' : 'cards'}</button></li>`).join('')}</ul></div>` : '';
   }
+  $('#btnExportPdfTab').disabled = !slots.length;
   const svgBtn = $('#btnExportSvgTab');
   if (svgBtn) svgBtn.style.display = isCameo ? 'block' : 'none';
 
@@ -4321,6 +4357,14 @@ $('#fileBackup').onchange = async ev => {
   } catch (e) { toast('Import failed: ' + e.message, 6000); }
   busy(false);
 };
+$('#resetSettings').onclick = () => {
+  if (!confirm('Return printer, layout, art-search, and preview settings to defaults? Your decks, artwork, and saved presets will stay saved.')) return;
+  S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings, backImage:S.settings.backImage};
+  S.printer = 'et2800'; S.printerByKind = {}; S.activePreset = null; S.mpc = {...MPC_DEFAULTS};
+  S.zoom = innerWidth <= 820 ? Math.max(1, Math.min(2.4, (innerWidth - 40) / layout().W)) : 2.4; S.showBacks = true; S.orderShowBacks = false; S.showCuts = false; S.advOpen = false;
+  $('#zoom').value = S.zoom; $('#showBacks').checked = true; $('#orderShowBacks').checked = false;
+  save(); renderAll(); toast('Settings returned to defaults.');
+};
 $('#wipe').onclick = async () => {
   if (!confirm('Erase every deck, preset, setting and uploaded image stored by this page?')) return;
   await store.clear(); location.reload();
@@ -4482,7 +4526,7 @@ function renderCutStatus() {
       S.showCuts = false;
       const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
       if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
-      Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
+      Object.assign(S.settings, {cols:0, rows:0, cardRotation:'upright', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
       S.settings.bleed = bestCutBleed();
       S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
     };
@@ -4569,7 +4613,7 @@ function renderCutStatus() {
     S.showCuts = false;
     const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
     if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
-    Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
+    Object.assign(S.settings, {cols:0, rows:0, cardRotation:'upright', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
     S.settings.bleed = bestCutBleed();
     S.activePreset = null; save(); renderAll(); toast('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
   };
@@ -4589,7 +4633,7 @@ for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegIn
 function applyMode() {
   document.body.dataset.mode = S.mode;
   $('#cardsStepLabel').textContent = S.mode === 'order' ? 'Step 1 of 2' : 'Step 1 of 4';
-  $('#btnStep1Next').textContent = S.mode === 'order' ? 'Next: Order →' : 'Next: 2. Print →';
+  $('#btnStep1Next').textContent = S.mode === 'order' ? 'Next: 2. Order →' : 'Next: 2. Print →';
   $$('#modeSeg button').forEach(b => { const on = b.dataset.mode === S.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   const active = $('.tabs button.on');
   if (!active || getComputedStyle(active).display === 'none') $('.tabs button[data-tab=cards]').click();
