@@ -1,17 +1,21 @@
 {
   "name": "proxypress",
-  "productName": "Proxy Press",
+  "productName": "ProxyPress",
   "version": "1.0.0",
   "description": "A browser-based MTG proxy maker",
   "main": "main.js",
-  "author": "Justin",
+  "author": {
+    "name": "Justin",
+    "email": "zoro11031@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/zoro11031/proxypress",
   "license": "GPL-3.0-or-later",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux AppImage"
+    "dist:linux": "electron-builder --linux AppImage deb rpm pacman"
   },
   "devDependencies": {
     "electron": "^33.2.1",
@@ -19,7 +23,7 @@
   },
   "build": {
     "appId": "io.github.zoro11031.proxypress",
-    "productName": "Proxy Press",
+    "productName": "ProxyPress",
     "directories": {
       "output": "dist"
     },
@@ -58,7 +62,7 @@
         }
       ],
       "icon": "icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "Proxy-Press-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -69,13 +73,37 @@
     },
     "msi": {
       "oneClick": false,
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "Proxy-Press-${version}.${ext}"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "pacman"
+      ],
       "icon": "icon.png",
       "category": "Graphics",
-      "artifactName": "${productName}-${version}.${ext}"
+      "maintainer": "Justin <zoro11031@users.noreply.github.com>",
+      "executableName": "proxypress",
+      "artifactName": "Proxy-Press-${version}.${ext}",
+      "desktop": {
+        "Name": "Proxy Press"
+      },
+      "synopsis": "A browser-based MTG proxy maker",
+      "description": "Turn a decklist into print-ready Magic proxies. Print at home with bleed and cut guides, or order from MakePlayingCards."
+    },
+    "deb": {
+      "priority": "optional",
+      "packageCategory": "graphics",
+      "artifactName": "Proxy-Press-${version}.${ext}"
+    },
+    "rpm": {
+      "category": "Applications/Graphics",
+      "artifactName": "Proxy-Press-${version}.${ext}"
+    },
+    "pacman": {
+      "artifactName": "Proxy-Press-${version}.${ext}"
     }
   }
 }

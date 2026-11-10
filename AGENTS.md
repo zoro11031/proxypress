@@ -11,7 +11,7 @@ Proxy Press is a single-page MTG proxy maker. It imports decklists, finds art on
 | `Dockerfile`, `compose.yaml` | Container image. Read-only root, `cap_drop: ALL`, non-root user, `cache` named volume at `/app/cache`. |
 | `.github/workflows/` | Workflows for container image builds (`image.yml`) and desktop release packaging (`release.yml`). |
 | `assets/` | Fonts and frame packs (`fonts/`, `frames/<set>/`). |
-| `electron/` | Desktop app wrapper and release packaging (Windows `.exe`/`.msi` and Linux `.AppImage`). |
+| `electron/`, `aur/` | Desktop app wrapper and release packaging (Windows `.exe`/`.msi`, Linux `.AppImage`, `.deb`, `.rpm`, `.pacman`, and AUR). |
 | `cache/` | Server cache plus `session.key`. Not in git. |
 | `LICENSE` | GNU General Public License v3.0. |
 

@@ -1,0 +1,50 @@
+# Maintainer: Justin <https://github.com/zoro11031/proxypress>
+
+pkgname=proxypress-bin
+_pkgname=proxypress
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Turn a decklist into print-ready Magic proxies (desktop application)"
+arch=('x86_64')
+url="https://github.com/zoro11031/proxypress"
+license=('GPL-3.0-or-later')
+depends=(
+    'alsa-lib'
+    'at-spi2-core'
+    'cairo'
+    'cups'
+    'dbus'
+    'expat'
+    'glib2'
+    'gtk3'
+    'libdrm'
+    'libnotify'
+    'libx11'
+    'libxcb'
+    'libxcomposite'
+    'libxdamage'
+    'libxext'
+    'libxfixes'
+    'libxkbcommon'
+    'libxrandr'
+    'mesa'
+    'nspr'
+    'nss'
+    'pango'
+    'systemd-libs'
+    'xdg-utils'
+)
+optdepends=(
+    'cups: print directly to local or network printers'
+)
+provides=('proxypress')
+conflicts=('proxypress')
+
+source=("https://github.com/zoro11031/proxypress/releases/download/v${pkgver}/Proxy-Press-${pkgver}.deb")
+sha256sums=('SKIP')
+
+package() {
+    bsdtar -O -xf "Proxy-Press-${pkgver}.deb" 'data.tar.*' | bsdtar -C "${pkgdir}" -xf -
+    install -d "${pkgdir}/usr/bin"
+    ln -sf "/opt/ProxyPress/proxypress" "${pkgdir}/usr/bin/proxypress"
+}
