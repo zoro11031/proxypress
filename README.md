@@ -170,6 +170,20 @@ Common supported frame directories placed in `assets/frames/`:
 
 ---
 
+## ❤️ Special Thanks & Inspirations
+
+Proxy Press stands on the shoulders of the amazing creators, tools, and communities that make Magic accessible to everyone:
+
+- **[Scryfall](https://scryfall.com)** — For building the unbeatable gold standard in Magic data, card imagery, and developer APIs.
+- **[MPC Autofill / MPCFill](https://mpcfill.com)** — The foundational community engine and high-resolution art repository that revolutionized custom card printing, along with all the talented artists who curate and contribute high-DPI drives.
+- **[Proxxied](https://proxxied.com)** — For pioneering modern web proxy generation and inspiring clean, fast in-browser sheet layouts.
+- **[Cry Cry](https://www.youtube.com/@crycryproxy)** — The go-to YouTube channel for MTG proxy crafting, paper testing, foil methods, and cutting guides that inspired our home print and plotter workflows.
+- **[Magic Set Editor (MSE)](https://magicseteditor.boards.net)** — The classic open-source card suite whose typography conventions, frame definitions, and template packages paved the way for custom frames.
+- **Card Conjurer & MTG.Design** — For pushing the boundaries of web-based card rendering and custom layouts.
+- The **r/mpcproxies** and **r/magicproxies** communities — For endless inspiration, printer calibration techniques, and passion for the game.
+
+---
+
 ## 📜 License
 
 Proxy Press is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
