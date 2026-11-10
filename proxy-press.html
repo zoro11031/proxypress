@@ -958,7 +958,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -972,6 +972,10 @@ async function load() {
     S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
+  }
+  if (ui && !ui.orderStockVersion) {
+    S.mpc.stock = MPC_DEFAULTS.stock;
+    await store.set('kv', 'ui', {...ui, mpc:S.mpc, orderStockVersion:1});
   }
   if (!S.decks.length) S.decks.push({id:uid(), name:'My deck', entries:[], updated:Date.now()});
   if (!deck()) S.deckId = S.decks[0].id;
@@ -1488,7 +1492,7 @@ $('#fileMpcImgs').onchange = ev => { attachMpcImages([...ev.target.files]); ev.t
 $('#fileMpcDir').onchange = ev => { attachMpcImages([...ev.target.files]); ev.target.value = ''; };
 
 /* ---------- MPC Autofill search (mpcfill.com) ---------- */
-const MPC_DEFAULTS = {minDpi:300, preferDpi:800, maxDpi:1500, maxMb:30, lang:'', fuzzy:false, nsfw:false, stock:'(S30) Standard Smooth', foil:false};
+const MPC_DEFAULTS = {minDpi:300, preferDpi:800, maxDpi:1500, maxMb:30, lang:'', fuzzy:false, nsfw:false, stock:'(S33) Superior Smooth', foil:false};
 const MPC_STOCKS = ['(S27) Smooth', '(S30) Standard Smooth', '(S33) Superior Smooth', '(M31) Linen', '(P10) Plastic'];
 const MPC_BRACKETS = [18, 36, 55, 72, 90, 108, 126, 144, 162, 180, 198, 216, 234, 396, 504, 612];
 const mpcDetails = new Map();
