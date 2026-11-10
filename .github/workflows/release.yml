@@ -38,6 +38,34 @@ jobs:
         working-directory: electron
         run: npm install
 
+      - name: Patch fpm RPM template for modern rpmbuild
+        if: runner.os == 'Linux'
+        working-directory: electron
+        run: |
+          FPM_DIR=$(node_modules/app-builder-bin/linux/x64/app-builder download-artifact --name=fpm)
+          python3 -c '
+          path = "'"$FPM_DIR"'/lib/app/templates/rpm.erb"
+          with open(path, "r") as f:
+              content = f.read()
+          target = "%install\n# noop\n"
+          replacement = """%install
+          if [ "%{buildroot}" != "%{_topdir}/BUILD" ]; then
+            mkdir -p "%{buildroot}"
+            for f in "%{_topdir}/BUILD"/*; do
+              if [ "$f" != "%{_topdir}/BUILD/%{name}-%{version}-build" ]; then
+                cp -al "$f" "%{buildroot}/" 2>/dev/null || cp -a "$f" "%{buildroot}/"
+              fi
+            done
+          fi
+          """
+          if target in content:
+              with open(path, "w") as f:
+                  f.write(content.replace(target, replacement, 1))
+              print("Patched fpm rpm.erb successfully")
+          else:
+              print("fpm rpm.erb already patched or target not found")
+          '
+
       - name: Build desktop packages
         working-directory: electron
         run: ${{ matrix.dist_cmd }}
@@ -54,6 +82,7 @@ jobs:
         with:
           name: Proxy Press ${{ github.ref_name }}
           body_path: RELEASE_NOTES.md
+          overwrite_files: true
           files: |
             electron/dist/*.exe
             electron/dist/*.msi

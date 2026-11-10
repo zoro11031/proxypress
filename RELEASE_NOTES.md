@@ -31,7 +31,7 @@ A browser-based MTG proxy maker. Drop in a decklist, pick your art, and get a pr
 ### 📦 Installation
 
 #### Windows
-- **Installer:** Download and run `Proxy-Press-Setup-1.0.0.exe` (or `Proxy-Press-1.0.0.msi`).
+- **Installer:** Download and run `Proxy-Press-1.0.0.exe` (or `Proxy-Press-1.0.0.msi`).
 
 #### Linux
 - **AppImage (Universal / Portable):**
@@ -60,7 +60,7 @@ A browser-based MTG proxy maker. Drop in a decklist, pick your art, and get a pr
     Download `proxypress-bin-aur.tar.gz`, unpack, and run:
     ```sh
     tar -xvf proxypress-bin-aur.tar.gz
-    cd aur && makepkg -si
+    makepkg -si
     ```
     *(Or install via an AUR helper: `yay -S proxypress-bin`)*
 

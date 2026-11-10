@@ -2,3 +2,5 @@
 !proxy-press.html
 !proxy-press-server.py
 !og.png
+!assets
+!assets/**
