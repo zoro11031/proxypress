@@ -3632,7 +3632,8 @@ $('#tab-setup').addEventListener('change', async ev => {
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
-    if (!s.silhouette) s.cols = s.rows = 0;
+    if (s.silhouette) Object.assign(s, cameoPaperLayout(s.orientation));
+    else { s.cols = s.rows = 0; if (k === 'orientation' || k === 'pageSize') s.bleed = bestCutBleed(); }
   }
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
 });
