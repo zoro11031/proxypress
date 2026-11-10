@@ -52,19 +52,47 @@
       eq(`${size} rotary paper`, S.settings.pageSize, size);
     }
 
-    eq('printer preset groups', $$('[data-preset-choice]').length, 2);
-    eq('paper presets retained', $$('#presetGrid [data-preset]').length, 6);
-    for (const kind of ['Inkjet', 'Laser']) {
-      for (const orientation of ['portrait', 'landscape']) {
-        const choice = $(`#preset-${kind}`);
-        const p = BUILTIN_PRESETS.find(p => p.kind === kind && p.settings.orientation === orientation);
-        choice.value = p.id;
-        choice.dispatchEvent(new Event('change', {bubbles:true}));
-        choice.parentElement.querySelector('[data-preset]').click();
-        eq(`${kind} ${orientation} selected`, S.activePreset, p.id);
-        eq(`${kind} ${orientation} applied`, S.settings.orientation, orientation);
-      }
+    eq('printer preset groups removed', $$('[data-preset-choice]').length, 0);
+    eq('paper presets retained', $$('#presetGrid [data-preset]').length, 4);
+    Object.assign(S.settings, {offsetX:1.2, scaleY:99.8, brightness:107, dpi:600, duplexMethod:'auto'});
+    const preserved = () => JSON.stringify([S.settings.offsetX, S.settings.scaleY, S.settings.brightness, S.settings.dpi, S.settings.duplexMethod]);
+    const before = preserved();
+    S.settings.cardRotation = 'rotated';
+    $('#presetGrid [data-preset="b-a4"]').click();
+    eq('portrait paper uses upright cards', !!layout().rot, false);
+    eq('paper preserves alignment and print choices', preserved(), before);
+    $('#printerSel').value = 'Laser';
+    $('#printerSel').dispatchEvent(new Event('change'));
+    eq('printer preserves alignment and print choices', preserved(), before);
+    eq('printer type options', $('#printerSel').options.length, 2);
+    eq('laser model list', [...$('#driverPrinterSel').options].every(o => printerOf(o.value).kind === 'Laser'), true);
+    $('#driverDetails').open = true;
+    $('#driverPrinterSel').value = 'laser';
+    $('#driverPrinterSel').dispatchEvent(new Event('change', {bubbles:true}));
+    eq('model selection applied', S.printer, 'laser');
+    eq('model selection keeps drawer open', $('#driverDetails').open, true);
+    $('#printerSel').value = 'Inkjet'; $('#printerSel').dispatchEvent(new Event('change'));
+    $('#printerSel').value = 'Laser'; $('#printerSel').dispatchEvent(new Event('change'));
+    eq('printer model remembered per type', S.printer, 'laser');
+    eq('calibration fields grouped with test sheets', !!$('#calDrawer [data-k="offsetX"]'), true);
+    eq('no duplicate calibration fields', $$('[data-k="offsetX"]').length, 1);
+    for (const pr of PRINTERS) {
+      $('#printerSel').value = pr.kind; $('#printerSel').dispatchEvent(new Event('change'));
+      const settings = JSON.stringify(S.settings);
+      $('#driverDetails').open = true;
+      $('#driverPrinterSel').value = pr.id;
+      $('#driverPrinterSel').dispatchEvent(new Event('change', {bubbles:true}));
+      eq(`${pr.id} model selected`, S.printer, pr.id);
+      eq(`${pr.id} preserves print settings`, JSON.stringify(S.settings), settings);
+      eq(`${pr.id} has manufacturer links`, !!$('#driverDetails a[target="_blank"]'), true);
     }
+
+    $('#btnCutModeCameo').click();
+    eq('cameo offers landscape paper only', $$('#presetGrid [data-preset]').length, 2);
+    $('#presetGrid [data-preset="b-letter-land"]').click();
+    eq('cameo paper choice fits', layout().fits && !regConflict(layout()), true);
+    eq('cameo preview capacity matches effective layout', presetPer(BUILTIN_PRESETS.find(p => p.id === 'b-letter-land')).per, layout().per);
+    $('#btnCutModeRotary').click();
 
     // 3. Assert next/prev wizard buttons
     $('#btnStep4Prev').click();
@@ -126,6 +154,11 @@
     $('#rotaryBleed').value = '1.5';
     $('#rotaryBleed').dispatchEvent(new Event('change'));
     eq('rotary bleed updated', S.settings.bleed, 1.5);
+    const rotary = JSON.stringify(S.settings);
+    $('#btnCutModeRotary').click();
+    eq('selected rotary leaves overrides intact', JSON.stringify(S.settings), rotary);
+    eq('rotary status describes corner guides', /Corner marks enabled/.test($('#cutStatus').textContent), true);
+    eq('rotary status excludes margin guides', /Margin lines/.test($('#cutStatus').textContent), false);
 
     switchTab('guide');
     eq('guide shows rotary badge', $('#guideCutterBadge').textContent, 'Rotary Trimmer');
@@ -143,6 +176,8 @@
     eq('cut pane hidden', $('#tabGuidePaneCut').style.display === 'none', true);
 
     // 6. Test Live Duplex Paper Flip in Guide
+    const oldEntries = deck().entries;
+    deck().entries = [{uid:uid(), name:'Duplex test', qty:1, faces:[{name:'Front'}, {name:'Back'}]}];
     S.settings.dfcMode = 'duplex';
     S.settings.duplexMethod = 'manual';
     S.settings.orientation = 'landscape';
@@ -152,6 +187,51 @@
     S.settings.orientation = 'portrait';
     renderGuideTab();
     eq('portrait manual paper flip mentions left to right', /left to right/i.test($('#tabGuidePanePrint').innerHTML), true);
+
+    deck().entries = oldEntries;
+
+    // 7. Test Step Idempotency and Order Independence (Step 2 must not clobber Step 3 cut settings)
+    switchTab('cutting');
+    $('#btnCutModeRotary').click();
+    $('#rotaryBleed').value = '2.5';
+    $('#rotaryBleed').dispatchEvent(new Event('change'));
+    $('#rotaryGuides').value = 'corners';
+    $('#rotaryGuides').dispatchEvent(new Event('change'));
+    eq('rotary custom bleed set', S.settings.bleed, 2.5);
+    eq('rotary custom guides set', S.settings.guides, 'corners');
+
+    // Go back to Step 2 and apply presets, change printer, change paper
+    switchTab('setup');
+    const laserPreset = BUILTIN_PRESETS.find(p => p.kind === 'Laser' && p.settings.orientation === 'landscape');
+    applyPreset(laserPreset);
+    eq('bleed preserved after applying preset', S.settings.bleed, 2.5);
+    eq('guides preserved after applying preset', S.settings.guides, 'corners');
+    eq('silhouette preserved after applying preset', S.settings.silhouette, false);
+
+    // Change printer in Step 2
+    $('#printerSel').value = 'Inkjet';
+    $('#printerSel').dispatchEvent(new Event('change'));
+    eq('bleed preserved after changing printer', S.settings.bleed, 2.5);
+    eq('guides preserved after changing printer', S.settings.guides, 'corners');
+
+    // Switch to Cameo in Step 3
+    switchTab('cutting');
+    $('#btnCutModeCameo').click();
+    eq('cameo active', S.settings.silhouette, true);
+    eq('cameo bleed', S.settings.bleed, 0.625);
+
+    // Go back to Step 2 and apply an inkjet preset
+    switchTab('setup');
+    const inkjetPreset = BUILTIN_PRESETS.find(p => p.kind === 'Inkjet' && p.settings.orientation === 'landscape');
+    applyPreset(inkjetPreset);
+    eq('cameo silhouette preserved after inkjet preset', S.settings.silhouette, true);
+    eq('cameo bleed preserved after inkjet preset', S.settings.bleed, 0.625);
+    eq('cameo guides preserved after inkjet preset', S.settings.guides, 'none');
+
+    // Return to rotary
+    switchTab('cutting');
+    $('#btnCutModeRotary').click();
+    eq('rotary restored', S.settings.silhouette, false);
 
   } catch (err) {
     fails.push(`Unexpected error: ${err.message}\n${err.stack}`);

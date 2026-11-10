@@ -157,7 +157,7 @@ h3:first-child{margin-top:2px}
   #stats{display:none}
   header .grow{display:none}
   #btnHelp{order:1} #btnSettings{order:2}
-  #btnGuide,#btnPdf,#btnXml{display:none!important}
+  #btnPdf,#btnXml{display:none!important}
   .seg{order:3;flex:1 1 auto;width:auto}
   .seg button{flex:1;padding:6px 8px;font-size:12px}
   .deckbar{order:4;flex:1 1 auto;min-width:0}
@@ -313,6 +313,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="deckRename">Rename deck</button>
         <button id="deckDup">Duplicate deck</button>
         <button id="btnCopyList">Copy decklist</button>
+        <button id="btnReplace" title="Replace every card in this deck with the pasted list">Replace from pasted list</button>
         <button id="btnClear" class="danger">Remove all cards</button>
         <button id="deckDel" class="danger">Delete deck</button>
       </div>
@@ -322,7 +323,6 @@ details.adv:not([open]){padding-bottom:10px}
   <span class="stats" id="stats"></span>
   <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour">?</button>
   <button id="btnSettings" class="icon round" title="Backup &amp; storage" aria-label="Backup and storage">⚙</button>
-  <button id="btnGuide" class="print-only" title="Print &amp; Cut Operator Guide">📖 Guide</button>
   <button id="btnPdf" class="primary print-only" title="Review your print setup and download files">Review &amp; export</button>
   <button id="btnXml" class="primary order-only" title="Review your cards, cardback and order settings">Review order</button>
 </header>
@@ -340,28 +340,26 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num" id="cardsStepLabel">Step 1 of 4</div>
         <h2>Add cards &amp; decklist</h2>
-        <p class="hint">Paste a decklist or link below. High-res art is selected automatically. Review the cards before continuing.</p>
+        <p class="hint">Paste a decklist below, or import a link or file. High-res art is selected automatically. Review your cards before continuing.</p>
       </div>
-      <div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0;width:auto" placeholder="Moxfield or Archidekt deck link" aria-label="Deck link"><button id="btnLink" title="Add every card in that deck">Import</button></div>
+      <button id="btnLink" style="width:100%;margin-bottom:8px" title="Import from Moxfield, Archidekt or a local file">Import deck…</button>
       <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
-      <div class="row" style="margin-top:6px">
-        <button id="btnImport" class="primary" title="Add these cards (Ctrl+Enter)">Add to deck</button>
-        <button id="btnReplace" title="Replace every card in this deck with this list">Replace deck</button>
-        <span class="hint kbd">Ctrl+Enter</span>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <button id="btnTokens" title="Add the tokens and emblems your cards make">+ Tokens</button>
-        <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
-        <button id="btnMaker" title="Put your own art into a card frame with the card's text">+ Custom card</button>
+      <div class="row" style="margin-top:8px">
+        <button id="btnImport" class="primary" style="flex:1" title="Add these cards (Ctrl+Enter)">Add to deck</button>
+        <button id="btnTokens" style="flex:1" title="Add the tokens and emblems created by cards in this deck">Add needed tokens</button>
       </div>
       <div id="importNote"></div>
       <details class="adv" id="moreSources" style="margin-top:8px">
-        <summary>More sources &amp; sharing</summary>
+        <summary>Images, custom cards &amp; sharing</summary>
         <div style="margin-top:8px">
+          <div class="row" style="margin-bottom:12px">
+            <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
+            <button id="btnMaker" title="Put your own art into a card frame with the card’s text">Create custom card…</button>
+          </div>
           <b style="font-size:12px;color:var(--text)">Share deck with art &amp; layout</b>
-          <p class="hint">Package this deck, chosen artwork, and card layout into a single file to share with a friend. When they open it, their own printer settings and alignment stay saved. Drop a shared deck onto this page or choose one below.</p>
-          <div class="row"><button id="printDeckOut">Save deck package…</button><button id="printDeckIn">Open shared deck…</button></div>
-          <input type="file" id="filePrintDeck" accept=".json,application/json" hidden>
+          <p class="hint">Package this deck, chosen artwork, and card layout into a single file to share with a friend. When they open it, their own printer settings and alignment stay saved. Drop a shared deck onto this page or use Import deck above.</p>
+          <div class="row"><button id="printDeckOut">Save deck package…</button></div>
+          <input type="file" id="filePrintDeck" accept=".json,.txt,.dec,.dek,.csv,.xml,application/json,text/plain,text/xml" hidden>
 
           <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local pictures &amp; order files</b>
           <div class="row" style="margin-top:6px">
@@ -389,7 +387,6 @@ details.adv:not([open]){padding-bottom:10px}
       <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden style="margin-bottom:6px">
       <div class="cards" id="cardList"></div>
       <div class="wiz-nav">
-        <button type="button" id="btnClearAll" class="danger" title="Remove all cards from this deck">Clear all</button>
         <button type="button" class="primary" id="btnStep1Next" style="flex:1">Next: 2. Print →</button>
       </div>
     </div>
@@ -398,28 +395,32 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num">Step 2 of 4</div>
         <h2>Print setup &amp; paper</h2>
-        <p class="hint">Configure paper size, orientation, and double-sided printing.</p>
+        <p class="hint">Configure your printer, paper size, and card layout.</p>
       </div>
-      <h3>What paper are you printing on?</h3>
-      <div class="grid2" id="paperForm"></div>
-      <p class="hint">Choose A4 or Letter to match your sheets. Use the same paper size and Actual size / 100% in the print dialog.</p>
-      <div class="setup-hero-pill" id="setupSummary"></div>
-      <h3>Print presets</h3>
-      <p class="hint">Choose a printer type and layout. These presets keep your paper size.</p>
-      <div id="presetGrid"></div>
-      <div class="row" style="margin-top:8px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
       <h3>Your printer</h3>
-      <select id="printerSel" aria-label="Printer"></select>
+      <div class="field full">
+        <select id="printerSel" aria-label="Printer type"></select>
+      </div>
       <div id="printerGuide"></div>
-      <h3>Print options</h3>
+      <h3>Paper &amp; sheet size</h3>
+      <div id="presetGrid"></div>
+      <div class="setup-hero-pill" id="setupSummary" style="margin-top:10px"></div>
+      <details class="adv" id="customPaperDrawer" style="margin:10px 0 14px">
+        <summary>Custom paper dimensions &amp; manual orientation</summary>
+        <p class="hint" style="margin-top:6px">For non-standard paper (Tabloid, Legal, A3, A5) or custom millimetre sheet dimensions.</p>
+        <div class="grid2" id="paperForm" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:10px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
+      </details>
+      <h3>Card &amp; print options</h3>
       <div id="settingsForm"></div>
       <details class="adv" id="calDrawer" style="margin-top:14px">
         <summary>Printer Alignment &amp; Test Sheets</summary>
         <p class="hint">Print on your paper to verify scale and front-to-back alignment.</p>
         <div class="row" style="margin-top:8px">
-          <button id="btnCal" title="Print once on your paper, measure, and enter the results under Print → Advanced">Alignment sheet</button>
+          <button id="btnCal" title="Print once on your paper, measure, and enter the results below">Alignment sheet</button>
           <button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button>
         </div>
+        <div class="grid2" id="calForm"></div>
       </details>
       <div class="wiz-nav">
         <button type="button" id="btnStep2Prev">← 1. Cards</button>
@@ -511,8 +512,8 @@ details.adv:not([open]){padding-bottom:10px}
 
         <details class="adv" id="cameoSpecsDrawer" style="margin-top:10px">
           <summary>💡 Cameo Specs &amp; Sensor Trick (ProxyJak 330gsm)</summary>
-          <p class="hint">Find the force, speed and passes with a small test cut on your Cameo 4 and ProxyJak stock. Start with one pass and inspect without unloading the mat before repeating.</p>
-          <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> provides Cameo 5 reference settings and explains how to tune them. Your Cameo 4 needs its own test.</p>
+          <p class="hint">Find the force, speed and passes with a small test cut on your cutter and stock. Start with one pass and inspect without unloading the mat before repeating.</p>
+          <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> provides Cameo 5 reference settings and explains how to tune them. Your cutter and stock need their own test.</p>
 
           <div class="callout-box" style="margin-top:10px">
             <b>Optical sensor masking trick</b>
@@ -524,9 +525,6 @@ details.adv:not([open]){padding-bottom:10px}
             <li><b>Bleed:</b> 0.625 mm with 0 mm gap matches standard Silhouette Card Maker spacing (1.25 mm between cards).</li>
             <li><b>Silhouette Studio:</b> Match the page and registration settings listed in step 4, Export.</li>
           </ol>
-          <div class="row" style="margin-top:10px">
-            <button id="btnSvg" class="icon" style="flex:1" title="Download SVG cut lines for Silhouette Studio">Download Cut File (SVG)</button>
-          </div>
         </details>
       </div>
 
@@ -566,9 +564,6 @@ details.adv:not([open]){padding-bottom:10px}
               <input type="color" id="rotaryGuideColor" value="#000000" style="height:38px;padding:2px;cursor:pointer">
             </div>
           </div>
-          <label class="check" style="margin-top:10px">
-            <input type="checkbox" id="rotaryShowCuts"> Show cut lines on preview (screen only)
-          </label>
         </details>
 
         <details class="adv" id="rotarySpecsDrawer" style="margin-top:10px">
@@ -677,7 +672,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button class="primary" id="oZip" title="Order file plus every image, ready for the desktop tool">Download order (.zip)</button>
       </div>
       <p class="hint">The .zip has the order file and a <code>cards</code> folder with every image, including your uploads and cardback.</p>
-      <details class="adv"><summary>Order file only</summary><p class="hint">The order tool downloads the online artwork. Uploaded images and custom cards are left out. Download the complete package (.zip) to include them.</p><button id="oXml">Download order file only</button></details>
+      <details class="adv"><summary>Order file only</summary><p class="hint">The order tool downloads the online artwork. Uploaded images and custom cards are left out. Download the complete package (.zip) to include them.</p><p class="hint" id="xmlSummary"></p><button id="oXml">Download online-art order only</button></details>
       <h3>Placing the order</h3>
       <div id="orderSteps"></div>
       <div class="wiz-nav"><button id="btnOrderPrev">← Cards</button></div>
@@ -740,38 +735,30 @@ const DEFAULTS = {
 };
 
 const BUILTIN_PRESETS = [
-  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 (recommended, 2 mm bleed)', builtin:true, settings:{
+  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 (recommended)', builtin:true, settings:{
+    orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:4, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait', builtin:true, settings:{
+    orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:4, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2', builtin:true, settings:{
+    orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait', builtin:true, settings:{
+    orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait (2 mm bleed)', builtin:true, settings:{
+    margin:4, dpi:1200}},
+  {id:'b-letter', name:'Letter · Portrait', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2 (2 mm bleed)', builtin:true, settings:{
-    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait (2 mm bleed)', builtin:true, settings:{
-    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-    guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
-    dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-letter', name:'Letter · Portrait no bleed', builtin:true, settings:{
-    pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:0, gap:0, margin:5, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
-  {id:'b-letter-land', name:'Letter · Landscape 3×2, 6 cards per sheet (3 mm bleed)', builtin:true, settings:{
-    pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
-  {id:'b-a4', name:'A4 · Portrait with 2 mm bleed', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', guideWidth:0.3, guideLen:3, dpi:1200, silhouette:false}},
-  {id:'b-a4-land', name:'A4 · Landscape with 3 mm bleed', builtin:true, settings:{
+    margin:5, dpi:1200}},
+  {id:'b-a4-land', name:'A4 · Landscape', builtin:true, settings:{
     pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', guideWidth:0.3, guideLen:3, dpi:1200, silhouette:false}}
+    margin:4, dpi:1200}},
+  {id:'b-a4', name:'A4 · Portrait', builtin:true, settings:{
+    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:4, dpi:1200}}
 ];
 
 for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : p.id.startsWith('b-laser') ? 'Laser' : null;
@@ -790,7 +777,7 @@ const LASER_TIPS = [
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
   'Print the PDF from a PDF app (Adobe Reader, Okular, Preview), not from the browser. Firefox\'s PDF viewer prints at about 150 DPI, so the cards come out soft.',
-  'Run the <b>Calibration sheet</b> once and enter the results under Print → Advanced.',
+  'Run the <b>Calibration sheet</b> once and enter the results below.',
   'Double-faced cards and card backs print on the back of the sheet. After you export, you get step-by-step re-feed instructions.',
 ];
 const EPSON_INKJET = [
@@ -819,10 +806,49 @@ function sheetFeedable(printerId, w, h) {
 const PRINTERS = [
   {id:'et8500', name:'Epson EcoTank ET-8500 / ET-8550 (inkjet)', kind:'Inkjet',
     paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
-    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS},
+    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS,
+    sources:[['User guide', 'https://files.support.epson.com/docid/cpd5/cpd59879/helpcontents.html']]},
   {id:'et2800', name:'Epson EcoTank ET-2800 / ET-2803 (inkjet)', kind:'Inkjet',
     paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
-    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS},
+    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS,
+    sources:[['User guide', 'https://files.support.epson.com/docid/cpd6/cpd60271.pdf']]},
+  // Manufacturer media and driver guides checked November 2026. Quality choices are starting points for test prints.
+  {id:'et2850', name:'Epson EcoTank ET-2850', kind:'Inkjet',
+    paper:'Epson photo or presentation paper, or compatible inkjet paper',
+    settings:[['Paper source', 'Rear paper feeder'], ['Paper type', 'Premium Photo Paper Semi-Gloss for semi-gloss; Premium Presentation Paper Matte for matte'],
+      ['Quality', 'High'], ['Borderless', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Match the paper type on the printer and in the driver to the paper you loaded.', 'Use paper listed in the guide. Support for Epson photo paper does not establish a 300gsm cardstock rating.', 'For coated paper, test one sheet and let the ink dry before re-feeding.'],
+    sources:[['Paper settings', 'https://files.support.epson.com/docid/cpd6/cpd60206/source/printers/source/paper_loading/reference/et2850_l4260/paper_type_settings_us_canada_et2850.html'], ['User guide', 'https://files.support.epson.com/docid/cpd6/cpd60206/helpcontents.html']]},
+  {id:'ts9521c', name:'Canon PIXMA TS9521C', kind:'Inkjet',
+    paper:'Inkjet card stock or Canon photo paper supported by the TS9500 series',
+    settings:[['Paper source', 'Rear Tray'], ['Media Type', 'Card stock for card stock; Photo Paper Plus Semi-gloss or Matte Photo Paper for matching photo paper'],
+      ['Print Quality', 'High'], ['Borderless', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Load card stock one sheet at a time in the rear tray.', 'Select the matching paper type on the printer. The card stock setting is not a blanket approval for 300gsm stock.', 'Test the paper before printing a full deck.'],
+    sources:[['Paper settings', 'https://ij.manual.canon/ij/webmanual/PrinterDriver/W/TS9500%20series/1.0/EN/PPG/dg-c_paper_type.html'], ['Loading limits', 'https://ij.manual.canon/ij/webmanual/Manual/All/TS9500%20series/EN/UG/ug-190.html']]},
+  {id:'g6020', name:'Canon PIXMA G6020 / G6050', kind:'Inkjet',
+    paper:'Supported inkjet specialty paper up to 200gsm',
+    settings:[['Paper source', 'Rear Tray'], ['Media Type', 'Photo Paper Plus Semi-gloss for semi-gloss; Matte Photo Paper for matte'],
+      ['Print Quality', 'High'], ['Borderless', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['The G6000 series guide lists specialty paper up to 200gsm. Use lighter paper with a backing card in a sleeve.', 'Match the media type on the printer and in the driver to the paper you loaded.', 'Let coated prints dry before handling or re-feeding.'],
+    sources:[['Media and weights', 'https://ij.manual.canon/ij/webmanual/Manual/All/G6000%20series/EN/UG/ug-189.html'], ['Driver settings', 'https://ij.manual.canon/ij/webmanual/PrinterDriver/W/G6000%20series/1.0/EN/PPG/Dg-main.html']]},
+  {id:'hll3270', name:'Brother HL-L3270CDW', kind:'Laser',
+    paper:'Laser-compatible paper, 60–163gsm',
+    settings:[['Paper source', 'Manual'], ['Media Type', 'Thick Paper for thick stock; Glossy Paper for laser glossy paper'],
+      ['Print Quality', 'Best available for the selected media'], ['Toner Save', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Load one sheet at a time in the manual feed slot. Use the rear face-up output for thick paper.', 'Brother lists a 163gsm maximum, including manual feed. Use lighter paper with a backing card in a sleeve.', 'Use paper made for laser printing. Match the media type to the sheet.'],
+    sources:[['Media and weights', 'https://support.brother.com/g/b/spec.aspx?c=us&lang=en&prod=hll3270cdw_us_eu_as'], ['Manual feed', 'https://support.brother.com/g/b/sp/faqend.aspx?c=au&faqid=faq00002792_503&lang=en&prod=hll3270cdw_us_eu_as']]},
+  {id:'mfcl3780', name:'Brother MFC-L3780CDW', kind:'Laser',
+    paper:'Laser-compatible paper, 60–163gsm',
+    settings:[['Paper source', 'MP Tray'], ['Media Type', 'Thick Paper for thick stock; Glossy Paper for laser glossy paper'],
+      ['Print Quality', 'Best available for the selected media'], ['Toner Save', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Use the multipurpose tray and match its paper type to the driver.', 'Brother lists a 163gsm maximum for this model. Use lighter paper with a backing card in a sleeve.', 'Test one sheet before printing the deck.'],
+    sources:[['Media and weights', 'https://support.brother.com/g/b/sp/faqend.aspx?c=us_ot&faqid=faq00000080_056&ftype3=2048&lang=en&prod=mfcl3780cdw_us_as'], ['Driver settings', 'https://support.brother.com/g/s/id/htmldoc/mfc/cv_dcpl3520cdw/asoce/html/GUID-F9CC5823-4CA5-46E3-BAE5-2A0FF7CF67F6_1.html']]},
+  {id:'hp4201', name:'HP Color LaserJet Pro 4201 / MFP 4301', kind:'Laser',
+    paper:'Laser-compatible cardstock, 176–200gsm, or lighter supported paper',
+    settings:[['Paper source', 'Tray 1'], ['Paper type', 'Cardstock 176–200g for matte cardstock; Card Glossy 176–200g for matching laser glossy stock'],
+      ['Print quality', 'Best available for the selected media'], ['Two-sided printing', 'Manual re-feed for cardstock'], ['Scale', 'Actual size / 100%']],
+    tips:['Cardstock 176–200g is supported from Tray 1 with manual duplexing only.', 'Match the paper type and weight to the sheet; choose a lighter paper type for lighter stock.', '300gsm cardstock exceeds the listed media range. Use lighter paper with a backing card in a sleeve.'],
+    sources:[['Paper types and trays', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
   {id:'mf753', name:'Canon Color imageCLASS MF753Cdw / MF753Cdw II (laser)', kind:'Laser',
     paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
     settings:[
@@ -843,7 +869,8 @@ const PRINTERS = [
       ['Special Fine Line Processing', 'Mode 2'], ['Always Rasterize at Host', 'Off'],
       ['EMF Spooling', 'Off'],
     ],
-    tips:LASER_TIPS},
+    tips:LASER_TIPS,
+    sources:[['MF753Cdw guide', 'https://oip.manual.canon/USRMA-7178-zz-SSM-750-enUS/'], ['MF753Cdw II guide', 'https://oip.manual.canon/USRMA-9605-zz-SSM-750II-enUS/']]},
   {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
     paper:'Inkjet-coated cardstock, e.g. ProxyJak INKJET semi-gloss', presets:['b-inkjet-land', 'b-inkjet-port'],
     settings:[
@@ -851,7 +878,8 @@ const PRINTERS = [
       ['Paper type', 'Photo paper, semi-gloss or glossy'],
       ['Quality', 'High / Best'],
     ],
-    tips:INKJET_STOCK_TIPS},
+    tips:INKJET_STOCK_TIPS,
+    sources:[['Epson paper settings example', 'https://files.support.epson.com/docid/cpd6/cpd60206/source/printers/source/paper_loading/reference/et2850_l4260/paper_type_settings_us_canada_et2850.html']]},
   {id:'laser', name:'Other laser printers', kind:'Laser',
     paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
     settings:[
@@ -860,7 +888,8 @@ const PRINTERS = [
       ['Resolution', 'Highest available'],
       ['Toner save', 'Off'],
     ],
-    tips:LASER_TIPS},
+    tips:LASER_TIPS,
+    sources:[['HP paper settings example', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
 ];
 
 /* ---------- storage (IndexedDB, falls back to memory) ---------- */
@@ -1945,7 +1974,9 @@ function renderOrder() {
   const fix = $('#oFix'); if (fix) fix.onclick = () => { switchTab('cards'); const e = d.entries.find(e => e.qty && e.faces.some(isPreview)); if (e) openMpcPicker({e, i:e.faces.findIndex(isPreview)}); };
   const auto = $('#oAuto'); if (auto) auto.onclick = () => fillable ? mpcAutofill() : $('#fileMpcImgs').click();
   $('#oZip').disabled = !order.slot;
-  $('#oXml').disabled = !buildMpcOrder(false).slot;
+  const xml = buildMpcOrder(false), excluded = d.entries.reduce((n, e) => n + e.qty, 0) - xml.slot;
+  $('#oXml').disabled = !xml.slot;
+  $('#xmlSummary').textContent = `${xml.slot} cards included · ${excluded} left out.${order.cardback && !xml.cardback ? ' Your uploaded cardback is also left out.' : ''}`;
   $('#orderSteps').innerHTML = orderStepsHtml();
 }
 $('#oStock').onchange = e => { S.mpc.stock = e.target.value; if (S.mpc.stock === '(P10) Plastic') S.mpc.foil = false; save(); renderOrder(); };
@@ -1996,7 +2027,6 @@ async function renderCards() {
   const d = deck(), list = $('#cardList');
   const total = d.entries.reduce((a, e) => a + e.qty, 0);
   $('#deckCount').textContent = `(${total})`;
-  $('#btnClearAll').disabled = !d.entries.length;
   $('#listIn').classList.toggle('compact', d.entries.length > 0);
   $('#deckFilter').hidden = d.entries.length <= 12;
   const need = d.entries.filter(e => !e.mpc && e.faces.some(isPreview)).length;
@@ -2064,12 +2094,19 @@ $('#btnImport').onclick = () => {
 };
 $('#btnReplace').onclick = () => { if (!deck().entries.length || confirm('Replace every card in this deck?')) importList($('#listIn').value, true); };
 $('#btnLink').onclick = () => {
-  let v = $('#linkIn').value.trim();
-  if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
-  if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link, e.g. https://moxfield.com/decks/…');
-  importList(v, false).then(() => { $('#linkIn').value = ''; });
+  openModal(`<div class="hd"><b>Import deck</b><button data-close>Close</button></div><div class="bd">
+    <label for="linkIn">Moxfield or Archidekt link</label><div class="row" style="margin-top:6px"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0" placeholder="https://moxfield.com/decks/…"><button id="importLinkSubmit" class="primary">Import link</button></div>
+    <h3>From your computer</h3><button id="importLocal">Choose file…</button><p class="hint">Shared deck or backup JSON, text decklist, or order XML.</p></div>`);
+  $('#importLinkSubmit').onclick = () => {
+    let v = $('#linkIn').value.trim();
+    if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
+    if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link.');
+    closeModal(); importList(v, false);
+  };
+  $('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#importLinkSubmit').click(); });
+  $('#importLocal').onclick = () => $('#filePrintDeck').click();
+  $('#linkIn').focus();
 };
-$('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#btnLink').click(); });
 $('#btnTokens').onclick = addTokens;
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
@@ -2080,7 +2117,6 @@ const clearDeck = async () => {
   save(); renderAll();
 };
 $('#btnClear').onclick = clearDeck;
-$('#btnClearAll').onclick = clearDeck;
 $('#btnCopyList').onclick = async () => {
   const txt = deck().entries.filter(e => !e.custom).map(e => `${e.qty} ${e.name} (${(e.set || '').toUpperCase()}) ${e.cn}`).join('\n');
   try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
@@ -3144,7 +3180,7 @@ const TOUR = {
       <button data-tm="print" class="${S.mode === 'print' ? 'on' : ''}"><b>Print at home</b><span>A PDF for your own printer, with bleed, cut guides and double-sided backs.</span></button>
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
     </div><p class="hint">You can switch any time with the buttons at the top.</p>`},
-  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Or paste a Moxfield or Archidekt deck link into the box above it and press <b>Import</b>. MTGA and MTGO exports work too.</p>
+  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Use <b>Import deck…</b> for a Moxfield or Archidekt link, a saved deck JSON, or a local decklist file. MTGA and MTGO exports work too.</p>
     <p><b>+ Tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>`},
@@ -3284,7 +3320,8 @@ const FIELDS = [
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
 ];
-const ADV_KEYS = FIELDS.filter(f => f.adv).map(f => f.k);
+const CAL_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY'];
+const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
   regPattern: ['3', '4'],
@@ -3320,6 +3357,7 @@ function cleanSettings(raw) {
   out.backOffsetRel = true;
   const normalMargin = (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') ? 5 : 4;
   if (!out.silhouette && out.margin >= 10) out.margin = normalMargin;
+  if (!out.silhouette && (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') && out.margin < 5) out.margin = 5;
   if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.bleed === 3) out.bleed = 2;
   if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.cols === 3) out.cols = 0;
   return out;
@@ -3382,14 +3420,15 @@ function renderSettings() {
   $('#paperForm').innerHTML = FIELDS.filter(f => paperKeys.includes(f.k) && (!f.show || f.show(s))).map(fieldHtml).join('');
   const groups = [];
   for (const f of FIELDS) { if (f.sec) groups.push({sec:f.sec, fields:[]}); else groups.at(-1).fields.push(f); }
+  $('#calForm').innerHTML = FIELDS.filter(f => CAL_KEYS.includes(f.k)).map(fieldHtml).join('');
   const block = adv => groups.map(g => {
-    const h = g.fields.filter(f => !paperKeys.includes(f.k) && !!f.adv === adv && (!f.show || f.show(s))).map(fieldHtml).join('');
+    const h = g.fields.filter(f => !paperKeys.includes(f.k) && !CAL_KEYS.includes(f.k) && !!f.adv === adv && (!f.show || f.show(s))).map(fieldHtml).join('');
     return h ? `<h3>${g.sec}</h3><div class="grid2">${h}</div>` : '';
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
-    <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${s.dfcMode === 'duplex' || s.backs ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span>`;
+    <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span>`;
   const sumEl = $('#setupSummary');
   if (sumEl) sumEl.innerHTML = sumHtml;
 
@@ -3407,12 +3446,11 @@ $('#tab-setup').addEventListener('change', async ev => {
   const s = S.settings;
   if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) { t.reportValidity(); t.value = s[k]; return; }
   s[k] = t.type === 'checkbox' ? t.checked : t.hasAttribute('data-num') ? (parseFloat(t.value) || 0) : t.value;
-  if (k === 'showCuts') { S.showCuts = s.showCuts; if ($('#showCuts')) $('#showCuts').checked = S.showCuts; }
+  if (k === 'orientation') s.cardRotation = 'upright';
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
-    s.cols = s.rows = 0;
-    if (!s.silhouette) s.bleed = bestCutBleed();
+    if (!s.silhouette) s.cols = s.rows = 0;
   }
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
 });
@@ -3421,7 +3459,7 @@ $('#settingsForm').addEventListener('toggle', ev => {
 }, true);
 $('#settingsForm').addEventListener('click', ev => {
   if (ev.target.hasAttribute('data-advreset')) {
-    if (!confirm('Reset all advanced settings (calibration included) to defaults?')) return;
+    if (!confirm('Reset advanced layout and quality settings to defaults?')) return;
     for (const k of ADV_KEYS) S.settings[k] = DEFAULTS[k];
     S.activePreset = null; save(); renderAll(); return;
   }
@@ -3438,48 +3476,59 @@ $('#settingsForm').addEventListener('change', async ev => {
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 function presetSettings(p) {
-  const paper = p.kind ? {pageSize:S.settings.pageSize, pageW:S.settings.pageW, pageH:S.settings.pageH} : {};
-  return {...cleanSettings(p.settings), ...paper};
+  if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
+  return {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:S.settings.silhouette ? 'landscape' : p.settings.orientation, cardRotation:'upright'};
 }
 function applyPreset(p) {
-  S.settings = {...presetSettings(p), backImage:S.settings.backImage}; S.activePreset = p.id; toast(`Applied "${p.name}".`);
+  S.settings = presetSettings(p);
+  S.activePreset = p.builtin ? null : p.id;
+  toast(`Applied "${p.name}".`);
 }
 function presetPer(p) {
-  const saved = S.settings; S.settings = presetSettings(p);
-  const L = layout(); S.settings = saved; return L;
+  const saved = S.settings;
+  try { S.settings = presetSettings(p); return layout(); }
+  finally { S.settings = saved; }
 }
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
-  $('#printerSel').innerHTML = PRINTERS.map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
-  const presets = pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id));
+  $('#printerSel').innerHTML = ['Inkjet', 'Laser'].map(kind => `<option value="${kind}" ${kind === pr.kind ? 'selected' : ''}>${kind}</option>`).join('');
   const paper = FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === S.settings.pageSize)[1];
   const row = ([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(k === 'Paper size' ? paper : v)}</td></tr>`;
+  const driverOpen = !!$('#driverDetails')?.open;
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
-    <p class="hint" style="margin-top:6px">💡 <b>Paper recommendation:</b> ${esc(pr.paper)} (works with any cardstock)</p>
-    ${presets[0] ? `<button id="printerPresetApply">Apply recommended settings for ${pr.kind}</button><p class="hint">Applies the best layout, margins, and cutting guides for this printer.</p>` : ''}
-    <h3>Print dialog settings</h3>
-    <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
-    ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
-    <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>`;
+    <details class="adv" id="driverDetails" style="margin:6px 0 14px" ${driverOpen ? 'open' : ''}>
+      <summary>Driver settings &amp; tips</summary>
+      <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+      <p class="hint" style="margin-top:6px">💡 <b>Recommended paper:</b> ${esc(pr.paper)}</p>
+      <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
+      ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
+      ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
+      <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>
+    </details>`;
 }
-$('#printerGuide').addEventListener('click', e => {
-  if (!e.target.closest('#printerPresetApply')) return;
-  const preset = BUILTIN_PRESETS.find(p => p.id === printerOf(S.printer).presets[0]);
-  if (preset) { applyPreset(preset); save(); renderAll(); }
-});
-// Printer selection preserves the sheet; presets are applied explicitly.
 const printerOf = id => PRINTERS.find(x => x.id === id) || PRINTERS[0];
 $('#printerSel').onchange = e => {
-  S.printer = e.target.value;
+  S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
+  const kind = e.target.value, remembered = S.printerByKind?.[kind];
+  S.printer = PRINTERS.find(p => p.id === remembered && p.kind === kind)?.id || (kind === 'Laser' ? 'mf753' : 'et2800');
   const pr = printerOf(S.printer);
   S.printerByKind = {...S.printerByKind, [pr.kind]:pr.id};
   if (!S.settings.silhouette) {
     if (pr.kind === 'Laser' && S.settings.margin < 5) S.settings.margin = 5;
     else if (pr.kind === 'Inkjet' && S.settings.margin === 5) S.settings.margin = 4;
   }
-  save(); renderAll();
+  S.activePreset = null; save(); renderAll();
 };
+
+$('#printerGuide').addEventListener('change', ev => {
+  if (ev.target.id !== 'driverPrinterSel') return;
+  const pr = PRINTERS.find(p => p.id === ev.target.value && p.kind === printerOf(S.printer).kind);
+  if (!pr) return;
+  S.printer = pr.id;
+  S.printerByKind = {...S.printerByKind, [pr.kind]:pr.id};
+  save(); renderAll();
+});
 
 function renderPresets() {
   const card = (p, mine) => {
@@ -3494,46 +3543,17 @@ function renderPresets() {
       const desc = parts[1] || '';
       const isLand = desc.toLowerCase().includes('landscape');
       title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
-      sub = desc.toLowerCase().includes('no bleed') ? 'Edge-to-edge · No bleed' : desc.toLowerCase().includes('most') ? 'Maximum cards per sheet' : '1 mm cutting bleed';
+      sub = `${L.cols}×${L.rows} layout`;
     }
-    const isAct = p.id === S.activePreset;
+    const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation;
     return `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}">
       <b>${esc(title)}</b><span>${esc(sub)}</span>
       ${mine ? `<i class="del" data-del="${esc(p.id)}" title="Delete preset" role="button" aria-label="Delete preset">✕</i>` : ''}</button>`;
   };
-  const group = kind => {
-    const presets = BUILTIN_PRESETS.filter(p => p.kind === kind);
-    const selected = presets.find(p => p.id === S.activePreset) || presets.find(p => p.settings.orientation === S.settings.orientation) || presets[0];
-    const isKindActive = presets.some(p => p.id === S.activePreset);
-    const tip = kind === 'Inkjet' ? 'For photo &amp; semi-gloss paper' : 'For cardstock &amp; laser paper';
-    return `<div class="preset-card ${isKindActive ? 'active' : ''}">
-      <div class="preset-card-title">${kind} Printer</div>
-      <div class="hint" style="margin:0 0 4px">${tip}</div>
-      <select id="preset-${kind}" data-preset-choice>${presets.map(p => {
-        const per = presetPer(p).per;
-        const orient = p.settings.orientation === 'landscape' ? 'Landscape (4×2)' : 'Portrait (3×3)';
-        return `<option value="${p.id}" ${p === selected ? 'selected' : ''}>${orient} · ${per} cards</option>`;
-      }).join('')}</select>
-      <button data-preset="${selected.id}" ${isKindActive ? 'class="on"' : ''}>
-        ${isKindActive ? '✓ Layout active' : `Apply ${kind.toLowerCase()} preset`}
-      </button>
-    </div>`;
-  };
-  const curPaper = S.settings.pageSize.toUpperCase();
-  $('#presetGrid').innerHTML = `<div class="grid2">${['Inkjet', 'Laser'].map(group).join('')}</div>
-    <details class="adv" style="margin-top:10px"><summary>Alternative paper layouts</summary><p class="hint">Fixed sheet layouts. (Applying these switches your paper size from ${curPaper} to match the preset.)</p><div class="pick presets">${BUILTIN_PRESETS.filter(p => !p.kind).map(p => card(p, false)).join('')}</div></details>
-    ${S.presets.length ? `<details class="adv" open><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
+  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind && (!S.settings.silhouette || p.settings.orientation === 'landscape'));
+  $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
+    ${S.presets.length ? `<details class="adv"><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
-$('#presetGrid').onchange = ev => {
-  if (ev.target.hasAttribute('data-preset-choice')) {
-    const btn = ev.target.parentElement.querySelector('[data-preset]');
-    btn.dataset.preset = ev.target.value;
-    const isAct = ev.target.value === S.activePreset;
-    btn.classList.toggle('on', isAct);
-    const kind = ev.target.id.replace('preset-', '');
-    btn.textContent = isAct ? '✓ Layout active' : `Apply ${kind.toLowerCase()} preset`;
-  }
-};
 $('#presetGrid').onclick = ev => {
   const del = ev.target.closest('[data-del]');
   if (del) {
@@ -3558,7 +3578,7 @@ let previewGen = 0, previewTimer;
 function renderPreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 60); }
 async function drawPreview() {
   const gen = ++previewGen, s = S.settings, L = layout(), z = S.zoom;
-  const on = !s.silhouette && !!(S.showCuts || s.showCuts);
+  const on = !s.silhouette && !!S.showCuts;
   if ($('#showCuts')) {
     $('#showCuts').disabled = !!s.silhouette;
     $('#showCuts').checked = on;
@@ -3571,7 +3591,7 @@ async function drawPreview() {
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
   if (!slots.length) {
     wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order prints in three steps' : 'Print proxies in three steps'}</h2><ol>
-      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or paste a Moxfield or Archidekt link and press <b>Import</b>.</li>
+      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or choose <b>Import deck…</b> for a deck link or local file.</li>
       <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
       <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Review order</b>.' : 'Pick your printer in <b>2. Print</b>, choose your tool in <b>3. Cut</b>, then download your files in <b>4. Export</b>.'}</li></ol></div>`;
     return;
@@ -3617,7 +3637,7 @@ async function drawPreview() {
       for (const [a, b, c, d, dash] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
       for (const [x, y, w, h] of reg.rects) svg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
       for (const [a, b, c, d] of reg.lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
-      if (!s.silhouette && (S.showCuts || s.showCuts) && !back) page.forEach((_, i) => {
+      if (!s.silhouette && S.showCuts && !back) page.forEach((_, i) => {
         const p = slotPos(L, i, false);
         const cr = (s.cornerRadius || 3.2) * z;
         if (s.bleed > 0) svg += `<rect x="${T.x(p.x)*z}" y="${T.y(p.y)*z}" width="${T.w(L.sw)*z}" height="${T.h(L.sh)*z}" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="2 3"/>`;
@@ -3684,11 +3704,11 @@ $('#showBacks').onchange = e => { S.showBacks = e.target.checked; save(); render
 $('#showCuts').onchange = e => {
   if (S.settings.silhouette) {
     e.target.checked = false;
-    S.showCuts = S.settings.showCuts = false;
+    S.showCuts = false;
     toast('Cut lines are disabled in Silhouette Cameo mode (plotter cuts the outline).');
     return;
   }
-  S.showCuts = S.settings.showCuts = e.target.checked;
+  S.showCuts = e.target.checked;
   save(); renderPreview(); renderSettings();
 };
 
@@ -3720,26 +3740,36 @@ async function exportPDF(skipWizard = true) {
     return;
   }
   const pages = paginate(slots, L.per), hasBacks = slots.some(x => x.back);
-  const total = slots.length * (hasBacks ? 2 : 1);
+  const totalCards = slots.length;
+  let totalFaces = 0;
+  for (const page of pages) {
+    for (const back of hasBacks ? [false, true] : [false]) {
+      for (const slot of page) if (back ? slot.back : slot.front) totalFaces++;
+    }
+  }
   let done = false;
   busy(true, 'Rendering cards…');
   try {
-    const doc = newDoc(L), cache = new Map(); let n = 0, first = true;
+    const doc = newDoc(L), cache = new Map(); let rendered = 0, first = true;
     const addFace = async (face, x, y, w, h, rot) => {
       const key = (face.custom || face.drive || face.png) + '|' + rot;
       if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot)).toDataURL('image/jpeg', s.jpeg/100)});
       const c = cache.get(key);
       doc.addImage(c.data, 'JPEG', x, y, w, h, c.alias, 'NONE');
     };
-    for (const page of pages) {
+    for (const [pageIdx, page] of pages.entries()) {
+      const pageOffset = pageIdx * L.per;
       for (const back of hasBacks ? [false, true] : [false]) {
         if (!first) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
         first = false;
         const T = makeT(L, back);
         for (let i = 0; i < page.length; i++) {
           const face = back ? page[i].back : page[i].front;
-          n++; busyProgress(n / total, `Rendering card ${n} of ${total}…`);
           if (!face) continue;
+          rendered++;
+          const cardNum = pageOffset + i + 1;
+          const side = hasBacks ? (back ? ' (back)' : ' (front)') : '';
+          busyProgress(rendered / (totalFaces || 1), `Rendering card ${cardNum} of ${totalCards}${side}…`);
           const p = slotPos(L, i, back);
           await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back));
           await sleep(0);
@@ -3785,9 +3815,7 @@ function showBackSteps(sheets) {
 function renderGuideTab() {
   const s = S.settings, L = layout(), slots = buildSlots();
   const pages = paginate(slots, L.per), sheets = pages.length;
-  const wantsBacks = s.dfcMode === 'duplex' || s.backs;
-  const hasBacks = slots.length ? slots.some(x => x.back) : wantsBacks;
-  const isSingleSided = !wantsBacks || !hasBacks;
+  const isSingleSided = !slots.some(x => x.back);
   const isCameo = !!s.silhouette;
 
   const badge = $('#guideCutterBadge');
@@ -3811,7 +3839,6 @@ function renderGuideTab() {
     if (!L.fits) issues.push(['setup', 'The card grid extends beyond the printable area. Reduce the grid, bleed or gap.']);
     if (isCameo && regConflict(L)) issues.push(['cutting', 'Cards overlap the registration marks. Adjust the Cameo layout before printing.']);
     if (isCameo && s.guides !== 'none') issues.push(['cutting', 'Printed trimming guides are enabled alongside Cameo registration marks.']);
-    if (isCameo && +s.regPattern === 4) issues.push(['cutting', 'Your Cameo 4 needs the three-mark pattern. Select it under Advanced.']);
     if (s.backs && !s.backImage && !deck().cardback) issues.push(['setup', 'Choose a card back image or turn off printed card backs.']);
     if (sheetFeedable(S.printer, L.W, L.H) === false) issues.push(['setup', 'The selected printer cannot feed this paper size.']);
     review.innerHTML = issues.length ? `<div class="warn"><b>Check before printing</b><ul>${issues.map(([tab, text]) => `<li>${esc(text)} <button class="icon" data-review-tab="${tab}">Review ${tab === 'setup' ? 'print setup' : tab === 'cutting' ? 'cutting' : 'cards'}</button></li>`).join('')}</ul></div>` : '';
@@ -3823,13 +3850,13 @@ function renderGuideTab() {
   if (printPane) {
     printPane.innerHTML = isSingleSided ? `
       <div class="callout-box" style="margin-top:0">
-        <b>Single-Sided Print Instructions (ProxyJak 330gsm Stock)</b>
-        <p class="hint" style="margin:4px 0 0">Only front faces are being printed. Feed ProxyJak 330gsm from the multipurpose/bypass tray.</p>
+        <b>Single-sided printing</b>
+        <p class="hint" style="margin:4px 0 0">Only front faces are being printed. Use stock supported by your printer.</p>
       </div>
       <ol class="steps" style="margin-top:10px">
         <li><b>Print at 100% scale:</b> Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), <b>not directly in your browser</b>. Select <b>Actual size</b> or <b>100% scale</b>. Never use "Fit to printable area" (it shrinks cards and misaligns cuts).</li>
         <li><b>Printer settings:</b> Follow the media and tray settings for <b>${esc(printerOf(S.printer).name)}</b> in step 2, Print. Use the same paper size and orientation as this PDF.</li>
-        <li><b>Feed Tray:</b> Always feed ProxyJak 330gsm from the <b>Multipurpose / Bypass Tray (Tray 1)</b> for a straight, flat paper path. Never feed 330gsm stock from the bottom drawer cassette.</li>
+        <li><b>Feed Tray:</b> Use the tray and supported stock described in your printer settings in step 2.</li>
       </ol>
     ` : backStepsHtml(Math.max(1, sheets));
   }
@@ -3838,9 +3865,9 @@ function renderGuideTab() {
   if (cutPane) {
     cutPane.innerHTML = isCameo ? `
       <div class="callout-box" style="margin-top:0">
-        <b>Silhouette Studio &amp; Cameo 4 Setup</b>
+        <b>Silhouette Studio setup</b>
         <p class="hint" style="margin:4px 0 8px">The cut file uses the current sheet layout and ${s.cornerRadius} mm corner radius.</p>
-        <button class="primary" id="btnGuideTabSvg" style="width:100%">Download Cut File (SVG)</button>
+        <p class="hint">Download the cut file from Print files above.</p>
       </div>
       <ol class="steps" style="margin-top:12px">
         <li><b>Mat Placement:</b> Place your printed ProxyJak 330gsm sheet squarely in the <b>top-left corner</b> of your cutting mat, aligned with the grid lines. Firmly press the sheet down using a brayer roller so thick cardstock does not slip during cutting.</li>
@@ -3850,9 +3877,9 @@ function renderGuideTab() {
           </div>
         </li>
         <li><b>Find your cutting settings:</b> Make a small test shape first. Start with one pass, inspect the cut without unloading the mat, and repeat as needed.
-          <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> reports depth 7, force 35, speed 25 and 4 passes for the author's Cameo 5, AutoBlade, cardstock and laminate. These are Cameo 5 reference settings. For your Cameo 4, use values supported by Silhouette Studio and determine force, speed and passes with a test cut on your ProxyJak stock.</p>
+          <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> reports depth 7, force 35, speed 25 and 4 passes for the author's Cameo 5, AutoBlade, cardstock and laminate. These are Cameo 5 reference settings. For your cutter, use values supported by Silhouette Studio and determine force, speed and passes with a test cut on your ProxyJak stock.</p>
         </li>
-        <li><b>Silhouette Studio Job Setup:</b> In Silhouette Studio, select your <b>Cameo 4</b> and set the page to <b>${L.W.toFixed(1)} × ${L.H.toFixed(1)} mm</b>. ${s.regPattern === 4 ? '<b>The four-mark pattern requires a Cameo 5 Alpha. For your Cameo 4, choose three marks under Cut → Advanced and export again.</b>' : 'Use the standard three registration marks.'} Match the printed <b>${s.regPattern}-mark pattern</b>, <b>${s.regInset} mm inset</b>, <b>${regArm(L).toFixed(2)} mm arm length</b> and <b>${s.regThickness} mm line thickness</b>. Import the SVG at 100% scale and check alignment before cutting.</li>
+        <li><b>Silhouette Studio Job Setup:</b> In Silhouette Studio, select your cutter and set the page to <b>${L.W.toFixed(1)} × ${L.H.toFixed(1)} mm</b>. ${s.regPattern === 4 ? '<b>The four-mark pattern requires a Cameo 5 Alpha. For other models, choose three marks under Cut → Advanced and export again.</b>' : 'Use the standard three registration marks.'} Match the printed <b>${s.regPattern}-mark pattern</b>, <b>${s.regInset} mm inset</b>, <b>${regArm(L).toFixed(2)} mm arm length</b> and <b>${s.regThickness} mm line thickness</b>. Import the SVG at 100% scale and check alignment before cutting.</li>
       </ol>
     ` : `
       <div class="callout-box" style="margin-top:0">
@@ -3875,8 +3902,6 @@ function renderGuideTab() {
         </li>
       </ol>
     `;
-    const tabSvgBtn = $('#btnGuideTabSvg');
-    if (tabSvgBtn) tabSvgBtn.onclick = () => downloadCutSvg();
   }
 }
 
@@ -3886,7 +3911,7 @@ function backStepsHtml(sheets) {
     <li>Open the PDF in a dedicated PDF application, not the browser, and print it at <b>Actual size / 100%</b>.</li>
     <li>Turn on <b>double-sided printing</b> and choose <b>flip on ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>, matching Print → Advanced → Double-sided flip.</li>
     <li>Use the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print. Check that your printer supports automatic duplex with the stock you loaded.</li>
-    <li>Hold the first sheet up to a light. If the backs are shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Calibration &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> under Print → Advanced.</li>
+    <li>Hold the first sheet up to a light. If the backs are shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Printer Alignment &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> in that drawer.</li>
   </ol><p class="hint">On this layout the backs are laid out for a sheet turned over ${duplexTurn(L).axis} as the cards are printed. If they come out mirrored or upside down rather than slightly off, your printer's flip is the other one: switch <b>Double-sided flip</b> to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again. If heavy 330gsm cardstock jams or scuffs in the duplexer, switch to re-feeding by hand.</p>`;
   const t = duplexTurn(L);
   return `<p class="hint">Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), not the browser. Use the feed tray recommended in step 2, Print. Print one sheet at a time. Every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
@@ -3896,7 +3921,7 @@ function backStepsHtml(sheets) {
     <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b> ${t.sameEdge ? 'The edge that went into the printer first must go in first again.' : 'The edge that went in first now goes in last: the opposite edge leads.'}</li>
     <li><b>Put it back with the printed side facing the other way.</b> If your printer printed on the side facing you, the printed side now faces away from you, and the blank side faces you.</li>
     <li><b>Print the back.</b> Choose <b>Pages: 2</b> (then repeat sheet by sheet), same settings. Repeat for each sheet${sheets > 1 ? ': pages 3 then 4, and so on' : ''}.</li>
-    <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Calibration &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> under Print → Advanced.</li>
+    <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Printer Alignment &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> in that drawer.</li>
   </ol>
   <p class="hint">${L.W > L.H ? 'This is a landscape layout, so the sheet comes out of the printer with the cards sideways on it. Turning it over ' + t.axis + ' as the cards are printed means turning the paper over along its ' + (t.sameEdge ? 'long' : 'short') + ' edge. ' : ''}If the backs come out mirrored or upside down rather than slightly off, the sheet was turned the other way: either turn it the other way or switch <b>Double-sided flip</b> under Print → Advanced to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again.</p>
   <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.</p>`;
@@ -3971,8 +3996,6 @@ function downloadCutSvg() {
   download(new Blob([svg], {type:'image/svg+xml'}), 'cut-lines.svg');
   if (!s.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
 }
-$('#btnSvg').onclick = downloadCutSvg;
-if ($('#btnGuide')) $('#btnGuide').onclick = () => switchTab('guide');
 
 /* ---------- backup ---------- */
 function download(blob, name) {
@@ -4062,8 +4085,7 @@ $('#printDeckOut').onclick = async () => {
   catch (err) { toast('Could not export deck package: ' + err.message, 9000); }
   finally { busy(false); }
 };
-$('#printDeckIn').onclick = () => $('#filePrintDeck').click();
-$('#filePrintDeck').onchange = ev => { const file = ev.target.files[0]; ev.target.value = ''; if (file) openPrintDeckFile(file); };
+$('#filePrintDeck').onchange = ev => { const file = ev.target.files[0]; ev.target.value = ''; if (file) { closeModal(); importDeckFile(file); } };
 async function readPrintDeck(file) {
   const reader = file.stream().getReader(), decoder = new TextDecoder();
   let buffer = '', pos = 0, done = false;
@@ -4116,11 +4138,30 @@ async function readPrintDeck(file) {
     return data;
   } finally { await reader.cancel(); reader.releaseLock(); }
 }
+async function importDeckFile(file) {
+  if (/\.json$/i.test(file.name) || file.type === 'application/json') return openPrintDeckFile(file);
+  if (file.size > 10 * 1024 * 1024) return toast('Decklist and order files must be under 10 MB.');
+  try {
+    const text = await file.text();
+    if (/\.xml$/i.test(file.name)) return await importMpcXml(text, file.name);
+    $('#listIn').value = text; await importList(text, false);
+  } catch (err) { toast('Could not import file: ' + err.message, 9000); }
+}
 async function openPrintDeckFile(file) {
   busy(true, 'Reading deck package…');
   try {
     if (file.size > PRINT_DECK_LIMIT) throw new Error('This deck package exceeds the 2 GB file limit. Split it into smaller decks.');
     const data = await readPrintDeck(file);
+    if (data?.app === 'proxy-press' && data.version === 1 && !data.type && Array.isArray(data.decks) && data.decks.length) {
+      openModal(`<div class="hd"><b>Import from backup</b><button data-close>Close</button></div><div class="bd"><label for="backupDeckChoice">Deck</label><select id="backupDeckChoice">${data.decks.map((d, i) => `<option value="${i}">${esc(d?.name || 'Untitled deck')}</option>`).join('')}</select><p class="hint">Adds the selected deck and its artwork. Your printer settings stay saved.</p><button class="primary" id="backupDeckImport">Import deck &amp; art</button></div>`);
+      $('#backupDeckImport').onclick = async () => {
+        const raw = data.decks[+$('#backupDeckChoice').value]; closeModal(); busy(true, 'Adding deck and artwork…');
+        try { await importPrintDeck({app:'proxy-press', version:1, type:'print-deck', deck:raw, settings:data.settings, images:data.images}, false); }
+        catch (err) { toast('Could not import deck: ' + err.message, 9000); }
+        finally { busy(false); }
+      };
+      return;
+    }
     if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Please choose a valid Proxy Press shared deck file.');
     const d = cleanDeck(data.deck);
     openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout" checked> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Import deck &amp; art</button></div>`);
@@ -4237,7 +4278,7 @@ addEventListener('drop', async e => {
 function bestCutBleed() {
   const s = S.settings, cur = s.bleed, curM = s.margin;
   const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-  if (!s.silhouette && s.margin >= 10) s.margin = normalMargin;
+  if (!s.silhouette && (s.margin >= 10 || s.margin < normalMargin)) s.margin = normalMargin;
   let best = 2, maxCards = 0;
   for (const b of [2, 2.5, 3]) {
     s.bleed = b;
@@ -4293,9 +4334,7 @@ function renderCutStatus() {
 
     btnCameo.onclick = () => {
       if (S.settings.silhouette) return;
-      const isA4 = s.pageSize === 'a4';
       Object.assign(S.settings, {
-        pageSize: isA4 ? 'a4' : 'letter',
         orientation: 'landscape',
         cardRotation: 'upright',
         cols: 4,
@@ -4315,11 +4354,12 @@ function renderCutStatus() {
       S.activePreset = null; save(); renderAll(); toast('Switched to Silhouette Cameo mode (8 cards landscape + registration marks).');
     };
     btnRotary.onclick = () => {
+      if (!S.settings.silhouette) return;
       S.settings.silhouette = false;
       S.settings.showCuts = false;
       S.showCuts = false;
       const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-      if (S.settings.margin >= 10 || !S.settings.margin) S.settings.margin = normalMargin;
+      if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
       Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
       S.settings.bleed = bestCutBleed();
       S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
@@ -4349,8 +4389,6 @@ function renderCutStatus() {
   if (rotColor && document.activeElement !== rotColor) rotColor.value = s.guideColor || '#000000';
   const rotBleed = $('#rotaryBleed');
   if (rotBleed && document.activeElement !== rotBleed) rotBleed.value = s.bleed ?? 2;
-  const rotShowCuts = $('#rotaryShowCuts');
-  if (rotShowCuts && document.activeElement !== rotShowCuts) rotShowCuts.checked = !!s.showCuts;
 
   const cEl = $('#cameoStatus');
   if (cEl) {
@@ -4368,9 +4406,7 @@ function renderCutStatus() {
       cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Apply Cameo Layout (8 cards landscape)</button></div>`;
       const cb = $('#cameoApply');
       if (cb) cb.onclick = () => {
-        const isA4 = s.pageSize === 'a4';
         Object.assign(S.settings, {
-          pageSize: isA4 ? 'a4' : 'letter',
           orientation: 'landscape',
           cardRotation: 'upright',
           cols: 4,
@@ -4401,8 +4437,8 @@ function renderCutStatus() {
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
-    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — Margin lines and corner marks enabled (${s.bleed} mm bleed).</div>`
-      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 1.5 ? ` bleed is ${s.bleed} mm (at least 2 mm recommended to avoid white edges and tearing);` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Apply safe ${best} mm bleed</button></div>`;
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${esc({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks'}[s.guides])} enabled (${s.bleed} mm bleed).</div>`
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 1.5 ? ` bleed is ${s.bleed} mm (at least 2 mm recommended to avoid white edges and tearing);` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {
@@ -4410,14 +4446,14 @@ function renderCutStatus() {
     S.settings.showCuts = false;
     S.showCuts = false;
     const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-    if (S.settings.margin >= 10 || !S.settings.margin) S.settings.margin = normalMargin;
+    if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
     Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
     S.settings.bleed = bestCutBleed();
     S.activePreset = null; save(); renderAll(); toast('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
   };
 }
 
-for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryBleed:'bleed', rotaryShowCuts:'showCuts'})) {
+for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryBleed:'bleed'})) {
   const input = $('#' + id); if (!input) continue;
   input.onchange = () => {
     if (!input.checkValidity() || (input.type === 'number' && !Number.isFinite(input.valueAsNumber))) {
