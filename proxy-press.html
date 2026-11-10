@@ -672,7 +672,7 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field"><label for="rotaryGuideShape">Corner shape</label><select id="rotaryGuideShape"><option value="brackets">L brackets</option><option value="ticks">Crop ticks</option></select></div>
-            <div class="field"><label for="rotaryGuidePlacement">Placement</label><select id="rotaryGuidePlacement"><option value="outside">Outside trim</option><option value="inside">Inside trim</option></select></div>
+            <div class="field"><label for="rotaryGuidePlacement">Placement</label><select id="rotaryGuidePlacement"><option value="inside">Inside trim</option><option value="outside">Outside trim</option></select></div>
             <div class="field"><label for="rotaryGuideStyle">Line style</label><select id="rotaryGuideStyle"><option value="solid">Solid</option><option value="dashed">Dashed</option></select></div>
             <label class="check"><input type="checkbox" id="rotaryGuideHalo"> White outline</label>
           </div>
@@ -916,7 +916,7 @@ const DEFAULTS = {
   pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-  guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'outside', guideStyle:'solid', guideHalo:false,
+  guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
@@ -1367,26 +1367,57 @@ function guideLines(L, n) {
     for (let i = 0; i < n; i++) {
       const p = slotPos(L, i, false), x1 = p.x + s.bleed, y1 = p.y + s.bleed;
       const x2 = x1 + L.cw, y2 = y1 + L.ch;
-      out.push(...[[x1,y1,x2,y1], [x2,y1,x2,y2], [x2,y2,x1,y2], [x1,y2,x1,y1]].map(line => [...line, dash, cutCol, true]));
+      out.push(...[[x1,y1,x2,y1], [x2,y1,x2,y2], [x2,y2,x1,y2], [x1,y2,x1,y1]].map(line => [...line, dash, cutCol, false]));
     }
   }
   if (g.corners) {
-    const offset = (g.lines || g.outline) ? 0 : (s.guidePlacement === 'inside' ? -(s.guideWidth / 2 + 0.1) : s.guideWidth / 2 + 0.1);
+    const isInside = s.guidePlacement !== 'outside';
+    const isTicks = s.guideShape === 'ticks';
+    const tickGap = isTicks ? 1.5 : 0;
+    const len = s.guideLen || 6;
     for (let i = 0; i < n; i++) {
-      const p = slotPos(L, i, false), x1 = p.x + s.bleed - offset, y1 = p.y + s.bleed - offset;
-      const x2 = p.x + s.bleed + L.cw + offset, y2 = p.y + s.bleed + L.ch + offset;
-      const len = Math.min(s.guideLen, (x2-x1)/2, (y2-y1)/2);
-      if (s.guideShape === 'brackets' || g.lines || g.outline) {
-        out.push(...[[x1,y1,x1+len,y1], [x1,y1,x1,y1+len], [x2-len,y1,x2,y1], [x2,y1,x2,y1+len],
-                     [x1,y2,x1+len,y2], [x1,y2-len,x1,y2], [x2-len,y2,x2,y2], [x2,y2-len,x2,y2]].map(line => [...line, dash, cornerCol, true]));
+      const p = slotPos(L, i, false), x1 = p.x + s.bleed, y1 = p.y + s.bleed;
+      const x2 = p.x + s.bleed + L.cw, y2 = p.y + s.bleed + L.ch;
+      const inLen = Math.min(len, (x2 - x1) / 2, (y2 - y1) / 2);
+      const c = i % L.cols, r = Math.floor(i / L.cols);
+      const room = Math.min(len, 2 * s.bleed + s.gap);
+      const lf = c > 0 ? room : len, rt = c < L.cols - 1 && i + 1 < n ? room : len;
+      const up = r > 0 ? room : len, dn = i + L.cols < n ? room : len;
+      let lines;
+      if (isInside) {
+        if (isTicks) {
+          lines = [
+            [x1 + tickGap, y1, x1 + tickGap + inLen, y1], [x1, y1 + tickGap, x1, y1 + tickGap + inLen],
+            [x2 - tickGap - inLen, y1, x2 - tickGap, y1], [x2, y1 + tickGap, x2, y1 + tickGap + inLen],
+            [x1 + tickGap, y2, x1 + tickGap + inLen, y2], [x1, y2 - tickGap - inLen, x1, y2 - tickGap],
+            [x2 - tickGap - inLen, y2, x2 - tickGap, y2], [x2, y2 - tickGap - inLen, x2, y2 - tickGap]
+          ];
+        } else {
+          lines = [
+            [x1, y1, x1 + inLen, y1], [x1, y1, x1, y1 + inLen],
+            [x2 - inLen, y1, x2, y1], [x2, y1, x2, y1 + inLen],
+            [x1, y2, x1 + inLen, y2], [x1, y2 - inLen, x1, y2],
+            [x2 - inLen, y2, x2, y2], [x2, y2 - inLen, x2, y2]
+          ];
+        }
       } else {
-        const c = i % L.cols, r = Math.floor(i / L.cols), room = Math.min(len, 2*s.bleed + s.gap);
-        const lf = c > 0 ? room : len, rt = c < L.cols - 1 && i + 1 < n ? room : len;
-        const up = r > 0 ? room : len, dn = i + L.cols < n ? room : len;
-        out.push(...[[x1-lf, y1, x1, y1], [x1, y1-up, x1, y1], [x2, y1, x2+rt, y1], [x2, y1-up, x2, y1],
-                     [x1-lf, y2, x1, y2], [x1, y2, x1, y2+dn], [x2, y2, x2+rt, y2], [x2, y2, x2, y2+dn]]
-          .filter(([a, b, c2, d]) => a !== c2 || b !== d).map(line => [...line, dash, cornerCol, true]));
+        if (isTicks) {
+          lines = [
+            [x1 - lf - tickGap, y1, x1 - tickGap, y1], [x1, y1 - up - tickGap, x1, y1 - tickGap],
+            [x2 + tickGap, y1, x2 + rt + tickGap, y1], [x2, y1 - up - tickGap, x2, y1 - tickGap],
+            [x1 - lf - tickGap, y2, x1 - tickGap, y2], [x1, y2 + tickGap, x1, y2 + dn + tickGap],
+            [x2 + tickGap, y2, x2 + rt + tickGap, y2], [x2, y2 + tickGap, x2, y2 + dn + tickGap]
+          ];
+        } else {
+          lines = [
+            [x1 - lf, y1, x1, y1], [x1, y1 - up, x1, y1],
+            [x2, y1, x2 + rt, y1], [x2, y1 - up, x2, y1],
+            [x1 - lf, y2, x1, y2], [x1, y2, x1, y2 + dn],
+            [x2, y2, x2 + rt, y2], [x2, y2, x2, y2 + dn]
+          ];
+        }
       }
+      out.push(...lines.filter(([a, b, c2, d]) => a !== c2 || b !== d).map(line => [...line, dash, cornerCol, true]));
     }
   }
   return s.guideStyle === 'dashed' ? out.map(line => [...line.slice(0, 4), true, line[5], line[6]]) : out;
@@ -3966,6 +3997,7 @@ function cleanSettings(raw) {
   for (const k of ['cols', 'rows']) out[k] = Math.max(0, Math.floor(out[k]));
   if (raw?.guideWidth === 0.15) out.guideWidth = 0.25;
   if (raw?.cornerGuideColor === '#39e600') out.cornerGuideColor = '#00bfff';
+  if (raw?.guidePlacement === 'outside' && !raw?.guidePlacementSet) out.guidePlacement = 'inside';
   out.guideWidth = Math.max(0.05, Math.min(1, out.guideWidth));
   out.guideLen = Math.max(0.5, Math.min(10, out.guideLen));
   // Migration must not reinterpret valid custom layouts on every reload.
@@ -5222,6 +5254,7 @@ for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegIn
       input.reportValidity(); input.value = S.settings[key]; return;
     }
     S.settings[key] = input.type === 'checkbox' ? input.checked : input.type === 'number' || key === 'regPattern' ? Number(input.value) : input.value;
+    if (key === 'guidePlacement') S.settings.guidePlacementSet = true;
     if (key === 'showCuts') S.showCuts = input.checked;
     S.activePreset = null; save(); renderAll();
   };
@@ -5241,7 +5274,6 @@ $('#rotarySection').addEventListener('click', ev => {
       else if (k === 'outline') g.outline = !g.outline;
       S.settings.guides = composeGuides(g);
     }
-    Object.assign(S.settings, {guideShape:'brackets', guideWidth:0.25, guideLen:6, guideHalo:false});
   } else if (color) {
     S.settings.guideColor = color.dataset.guideColor;
   } else if (corner) {
