@@ -244,7 +244,7 @@ async function handleDeck(req, res, parsedUrl) {
     const fmt = (q, n, st, cn) => `${q} ${n}` + (st && cn ? ` (${st.toUpperCase()}) ${cn}` : '');
 
     if (site === 'moxfield') {
-      for (const board of ['commanders', 'companions', 'mainboard', 'sideboard']) {
+      for (const board of ['commanders', 'companions', 'signatureSpells', 'mainboard', 'sideboard', 'attractions', 'stickers', 'contraptions']) {
         for (const v of Object.values(j[board] || {})) {
           const c = v.card || {};
           lines.push(fmt(v.quantity || 1, c.name || '', c.set || '', c.cn || ''));

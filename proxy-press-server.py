@@ -482,7 +482,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         line = lambda q, n, st, cn: f"{q} {n}" + (f" ({st.upper()}) {cn}" if st and cn else "")
         lines = []
         if site == "moxfield":
-            for board in ("commanders", "companions", "mainboard", "sideboard"):
+            for board in ("commanders", "companions", "signatureSpells", "mainboard", "sideboard", "attractions", "stickers", "contraptions"):
                 for v in (j.get(board) or {}).values():
                     c = v.get("card") or {}
                     lines.append(line(v.get("quantity", 1), c.get("name", ""), c.get("set", ""), c.get("cn", "")))
@@ -493,7 +493,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if any(cat in skip for cat in cats):
                     continue
                 c = v.get("card") or {}
-                lines.append(line(v.get("quantity", 1), (c.get("oracleCard") or {}).get("name", ""), (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))
+                name = (c.get("oracleCard") or {}).get("name") or c.get("name") or ""
+                lines.append(line(v.get("quantity", 1), name, (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))
         self.send(200, json.dumps({"name": j.get("name", ""), "text": "\n".join(l for l in lines if l.split(" ", 1)[1:] != [""])}).encode(), "application/json")
 
     def sf(self, method):
