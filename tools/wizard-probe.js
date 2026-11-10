@@ -123,6 +123,23 @@
       }
     }
 
+    // Orientation dropdown in setup maintains 9 cards and clear marks
+    S.settings = {...DEFAULTS}; renderAll();
+    $('#btnCutModeCameo').click();
+    $('#presetGrid [data-preset="b-letter-land"]').click();
+    const orSelect = document.querySelector('#tab-setup [data-k="orientation"]');
+    orSelect.value = 'portrait';
+    orSelect.dispatchEvent(new Event('change', {bubbles: true}));
+    eq('cameo dropdown portrait fits nine', `${layout().cols}x${layout().rows}`, '3x3');
+    eq('cameo dropdown portrait no conflict', regConflict(layout()), false);
+    $('#btnCutModeRotary').click();
+    $('#presetGrid [data-preset="b-letter-land"]').click();
+    const orSelectRot = document.querySelector('#tab-setup [data-k="orientation"]');
+    orSelectRot.value = 'portrait';
+    orSelectRot.dispatchEvent(new Event('change', {bubbles: true}));
+    eq('rotary dropdown portrait fits nine', `${layout().cols}x${layout().rows}`, '3x3');
+    eq('rotary dropdown portrait ready', $('#cutStatus')?.textContent.includes('Layout ready for Rotary Trimmer'), true);
+
     // 3. Assert next/prev wizard buttons
     $('#btnStep4Prev').click();
     eq('prev from guide goes to cutting', $('#tab-cutting').classList.contains('on'), true);
