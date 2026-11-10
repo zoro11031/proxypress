@@ -1,0 +1,81 @@
+{
+  "name": "proxypress",
+  "productName": "Proxy Press",
+  "version": "1.0.0",
+  "description": "A browser-based MTG proxy maker",
+  "main": "main.js",
+  "author": "Justin",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "io.github.zoro11031.proxypress",
+    "productName": "Proxy Press",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "icon.png",
+      "icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "../proxy-press.html",
+        "to": "proxy-press.html"
+      },
+      {
+        "from": "../og.png",
+        "to": "og.png"
+      },
+      {
+        "from": "../assets",
+        "to": "assets",
+        "filter": [
+          "fonts/**/*",
+          "frames/**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "msi",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Proxy Press"
+    },
+    "msi": {
+      "oneClick": false,
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "icon.png",
+      "category": "Graphics",
+      "artifactName": "${productName}-${version}.${ext}"
+    }
+  }
+}

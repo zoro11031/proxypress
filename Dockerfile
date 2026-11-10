@@ -2,8 +2,9 @@ FROM python:3.13-alpine
 
 WORKDIR /app
 COPY proxy-press.html proxy-press-server.py og.png ./
+COPY assets/ ./assets/
 
-RUN adduser -D -H -u 10001 proxypress && mkdir cache && chown proxypress cache
+RUN adduser -D -H -u 10001 proxypress && mkdir -p cache && chown -R proxypress cache assets
 USER proxypress
 
 ENV HOST=0.0.0.0 \

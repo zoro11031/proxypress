@@ -9,8 +9,9 @@ Proxy Press is a single-page MTG proxy maker. It imports decklists, finds art on
 | `proxy-press.html` | The whole app: HTML, CSS and one inline `<script>`. No build step, no framework, no npm. |
 | `proxy-press-server.py` | Python standard-library server. Serves the page, login, relays (`/mpc/`, `/sf/`, `/deck`, `/sym/`), `/assets/` and the disk cache. No dependencies. |
 | `Dockerfile`, `compose.yaml` | Container image. Read-only root, `cap_drop: ALL`, non-root user, `cache` named volume at `/app/cache`. |
-| `.github/workflows/image.yml` | Pushes to `main` build `ghcr.io/<owner>/proxypress`. |
-| `assets/` | Fonts and frame packs (`fonts/`, `frames/<set>/`). Not in git; mounted read-only. |
+| `.github/workflows/` | Workflows for container image builds (`image.yml`) and desktop release packaging (`release.yml`). |
+| `assets/` | Fonts and frame packs (`fonts/`, `frames/<set>/`). |
+| `electron/` | Desktop app wrapper and release packaging (Windows `.exe`/`.msi` and Linux `.AppImage`). |
 | `cache/` | Server cache plus `session.key`. Not in git. |
 | `LICENSE` | GNU General Public License v3.0. |
 
