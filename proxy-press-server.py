@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Serves proxy-press.html and relays MPC Autofill searches to mpcfill.com.
 
 mpcfill.com only accepts browser requests from its own site, so the page sends

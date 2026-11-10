@@ -123,3 +123,8 @@ Saved decks belong to the browser and the address they were made on. Use **⚙ (
 In the preview, click a card copy to select it, Shift-click for a range, or Ctrl/Cmd-click to toggle copies. On a phone, tap copies to toggle them. Choose **Change selected art…** to update only those copies, or **Select all copies** to include every copy of the selected cards. The selection actions follow you between Edit and Preview on mobile.
 
 Use **⚙ → Return to defaults** to reset printer, layout, art-search, and preview settings while keeping your decks, artwork, and saved presets.
+
+## License
+
+Proxy Press is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
+

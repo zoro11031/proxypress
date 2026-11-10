@@ -12,6 +12,7 @@ Proxy Press is a single-page MTG proxy maker. It imports decklists, finds art on
 | `.github/workflows/image.yml` | Pushes to `main` build `ghcr.io/<owner>/proxypress`. |
 | `assets/` | Fonts and frame packs (`fonts/`, `frames/<set>/`). Not in git; mounted read-only. |
 | `cache/` | Server cache plus `session.key`. Not in git. |
+| `LICENSE` | GNU General Public License v3.0. |
 
 The page is split into sections marked `/* ---------- name ---------- */` (storage, layout, Scryfall, MPC Autofill, custom card maker, settings form, preview, PDF export, …). Find code by grepping for those or for function names; the file is too large to read whole.
 
