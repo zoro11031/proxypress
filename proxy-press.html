@@ -731,7 +731,7 @@ const CARD_SIZES = {mtg:[63,88], poker:[63.5,88.9], japanese:[59,86], tarot:[70,
 const DEFAULTS = {
   pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
-  bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+  bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
   guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
@@ -740,32 +740,32 @@ const DEFAULTS = {
 };
 
 const BUILTIN_PRESETS = [
-  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape (recommended, 3 mm bleed)', builtin:true, settings:{
+  {id:'b-inkjet-land', name:'Inkjet · ProxyJak semi-gloss · Landscape 4×2 (recommended, 2 mm bleed)', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
     guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait (3 mm bleed)', builtin:true, settings:{
+  {id:'b-inkjet-port', name:'Inkjet · ProxyJak semi-gloss · Portrait (2 mm bleed)', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
     guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape (3 mm bleed)', builtin:true, settings:{
+  {id:'b-laser-land', name:'Laser · Black-core cardstock · Landscape 4×2 (2 mm bleed)', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
     guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
-  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait (3 mm bleed)', builtin:true, settings:{
+  {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait (2 mm bleed)', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
     guides:'both', guideColor:'#000000', guideWidth:0.3, guideLen:3,
     dpi:1200, jpeg:92, brightness:100, silhouette:false}},
   {id:'b-letter', name:'Letter · Portrait no bleed', builtin:true, settings:{
     pageSize:'letter', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     bleed:0, gap:0, margin:5, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
-  {id:'b-letter-land', name:'Letter · Landscape 4×2, 8 cards per sheet (2 mm bleed)', builtin:true, settings:{
+  {id:'b-letter-land', name:'Letter · Landscape 3×2, 6 cards per sheet (3 mm bleed)', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
+    bleed:3, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', dpi:1200, silhouette:false}},
   {id:'b-a4', name:'A4 · Portrait with 2 mm bleed', builtin:true, settings:{
     pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, guides:'both', guideWidth:0.3, guideLen:3, dpi:1200, silhouette:false}},
@@ -4228,8 +4228,13 @@ addEventListener('drop', async e => {
 
 function bestCutBleed() {
   const s = S.settings, cur = s.bleed;
-  let best = 2;
-  for (const b of [3, 2.5, 2, 1.5, 1]) {
+  let best = 2, maxCards = 0;
+  for (const b of [2, 2.5, 3]) {
+    s.bleed = b;
+    const L = layout();
+    if (L.fits && L.per >= maxCards) { maxCards = L.per; best = b; }
+  }
+  if (!maxCards) for (const b of [1.5, 1, 0.5]) {
     s.bleed = b;
     if (layout().fits) { best = b; break; }
   }
@@ -4374,17 +4379,17 @@ function renderCutStatus() {
     }
   }
   const el = $('#cutStatus'); if (!el) return;
-  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && s.bleed >= 2.0;
+  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && s.bleed >= 1.5;
   const rHint = $('#rotaryBleedHint');
   if (rHint) {
     const pName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Letter'])[1].replace(/ \(.*\)$/, '');
-    rHint.textContent = `Recommended for ${pName} ${s.orientation}: ${best} mm (standard 1/8" bleed eliminates white edges and tearing)`;
+    rHint.textContent = `Recommended for ${pName} ${s.orientation}: ${best} mm (absorbs cutting drift and prevents tearing)`;
   }
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
     el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — Margin lines and corner marks enabled (${s.bleed} mm bleed).</div>`
-      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 2.0 ? ` bleed is ${s.bleed} mm (standard 3 mm / 1/8" bleed recommended to eliminate white edges and tearing);` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Apply safe ${best} mm bleed</button></div>`;
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 1.5 ? ` bleed is ${s.bleed} mm (at least 2 mm recommended to avoid white edges and tearing);` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Apply safe ${best} mm bleed</button></div>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {
