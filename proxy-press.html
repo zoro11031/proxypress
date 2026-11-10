@@ -102,7 +102,7 @@ h3:first-child{margin-top:2px}
 .preset{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--panel2)}
 .preset .nm{flex:1;font-size:13px}
 .preset.active{border-color:var(--accent)}
-#stage{overflow:auto;background-color:var(--desk);background-image:radial-gradient(#71819818 .8px,transparent .8px);background-size:16px 16px;padding:24px;min-width:0}
+#stage{overflow:auto;background-color:#161b26;padding:24px;min-width:0}
 .import-panel{padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
 .import-panel>button,.import-panel .source-actions button{background:var(--panel);min-height:38px}
 .import-panel textarea{min-height:130px;padding:10px;line-height:1.6}
@@ -141,16 +141,17 @@ h3:first-child{margin-top:2px}
 @media (max-width:820px){.stage-controls{margin:-12px -8px 44px;padding:12px}.stage-heading b{font-size:17px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}.tabs .step-index{display:none}}
 #stage .toolbar input[type=range]{width:90px;vertical-align:middle;accent-color:var(--accent)}
 #zoomValue{font-variant-numeric:tabular-nums;min-width:36px;display:inline-block;text-align:right}
-.guide-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
+.guide-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
 .guide-presets button{padding:9px 4px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:5px}
 .guide-presets button.on{border-color:var(--accent);background:#2d2618;color:var(--accent2)}
 .guide-presets svg{width:36px;height:44px;fill:none;stroke:currentColor;stroke-width:1.2}
-.guide-colors{display:flex;gap:6px;margin-top:7px}
-.guide-colors button{width:24px;height:24px;border-radius:50%;padding:0;background:var(--swatch);border:2px solid var(--line)}
-.guide-colors button[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
+.guide-colors,.corner-guide-colors{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.guide-colors button,.corner-guide-colors button{width:24px;height:24px;border-radius:50%;padding:0;background:var(--swatch);border:2px solid var(--line)}
+.guide-colors button[aria-pressed=true],.corner-guide-colors button[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 #pages{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-start}
-.pg{position:relative;background:#fff;box-shadow:0 8px 36px #0006,0 0 0 1px #ffffff12;flex:0 0 auto}
+.pg{position:relative;background:#384152;box-shadow:0 8px 36px #0007,0 0 0 1px #ffffff14;flex:0 0 auto}
+@media print{.pg{background:#fff!important}}
 .pg img{position:absolute;display:block}
 .pg svg{position:absolute;inset:0;pointer-events:none}
 .pg .lbl{position:absolute;top:-24px;left:0;font-size:10px;font-weight:600;letter-spacing:.4px;color:var(--muted)}
@@ -644,9 +645,10 @@ details.adv:not([open]){padding-bottom:10px}
       <div id="rotarySection">
         <div id="cutStatus"></div>
         <div class="guide-presets" aria-label="Guide presets">
-          <button data-guide="corners"><svg viewBox="0 0 36 44" aria-hidden="true"><path d="M3 13V3h10m10 0h10v10M3 31v10h10m10 0h10V31"/></svg>Corner brackets</button>
-          <button data-guide="outline"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38"/></svg>Full outline</button>
-          <button data-guide="none"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38" stroke-dasharray="2 3" opacity=".3"/><path d="m6 36 24-28"/></svg>No guides</button>
+          <button type="button" data-guide="both"><svg viewBox="0 0 36 44" aria-hidden="true"><path d="M3 13V3h10m10 0h10v10M3 31v10h10m10 0h10V31"/><line x1="0" y1="3" x2="36" y2="3"/><line x1="0" y1="41" x2="36" y2="41"/><line x1="3" y1="0" x2="3" y2="44"/><line x1="33" y1="0" x2="33" y2="44"/></svg>Sheet cut lines</button>
+          <button type="button" data-guide="corners"><svg viewBox="0 0 36 44" aria-hidden="true"><path d="M3 13V3h10m10 0h10v10M3 31v10h10m10 0h10V31"/></svg>Corner brackets</button>
+          <button type="button" data-guide="outline"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38"/></svg>Full outline</button>
+          <button type="button" data-guide="none"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38" stroke-dasharray="2 3" opacity=".3"/><path d="m6 36 24-28"/></svg>No guides</button>
         </div>
 
         <details class="adv" id="rotaryAdvDrawer" style="margin-top:12px">
@@ -654,9 +656,9 @@ details.adv:not([open]){padding-bottom:10px}
           <div class="field full" style="margin-top:8px">
             <label for="rotaryGuides">Printed Cut Guides</label>
             <select id="rotaryGuides">
-              <option value="both">Margin lines + corners</option>
+              <option value="both">Sheet cut lines + corners (Proxxied)</option>
+              <option value="corners">Corner marks only</option>
               <option value="margin">Lines in page margin only</option>
-              <option value="corners">Corner marks</option>
               <option value="outline">Full card outlines</option>
               <option value="none">None</option>
             </select>
@@ -677,16 +679,21 @@ details.adv:not([open]){padding-bottom:10px}
               <input type="number" id="rotaryGuideWidth" step="0.05" min="0.05" max="1" value="0.3">
             </div>
           </div>
+          <div class="field" style="margin-top:8px">
+            <label for="rotaryBleed">Bleed (mm)</label>
+            <input type="number" id="rotaryBleed" step="0.05" min="0" max="5" value="2">
+            <span class="hint" id="rotaryBleedHint" style="font-size:11px">2–3 mm recommended (standard 1/8" bleed prevents white edges and tearing)</span>
+          </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
-              <label for="rotaryBleed">Bleed (mm)</label>
-              <input type="number" id="rotaryBleed" step="0.05" min="0" max="5" value="2">
-              <span class="hint" id="rotaryBleedHint" style="font-size:11px">2–3 mm recommended (standard 1/8" bleed prevents white edges and tearing)</span>
+              <label for="rotaryGuideColor">Cut Line Colour</label>
+              <input type="color" id="rotaryGuideColor" value="#000000" style="height:38px;padding:2px;cursor:pointer">
+              <div class="guide-colors" aria-label="Cut line colors"><button type="button" data-guide-color="#000000" style="--swatch:#000000" aria-label="Black cut lines"></button><button type="button" data-guide-color="#ffffff" style="--swatch:#ffffff" aria-label="White cut lines"></button><button type="button" data-guide-color="#4a5568" style="--swatch:#4a5568" aria-label="Gray cut lines"></button><button type="button" data-guide-color="#00bfff" style="--swatch:#00bfff" aria-label="Blue cut lines"></button><button type="button" data-guide-color="#39e600" style="--swatch:#39e600" aria-label="Green cut lines"></button></div>
             </div>
             <div class="field">
-              <label for="rotaryGuideColor">Guide Line Colour</label>
-              <input type="color" id="rotaryGuideColor" value="#000000" style="height:38px;padding:2px;cursor:pointer">
-              <div class="guide-colors" aria-label="Guide colors"><button data-guide-color="#39e600" style="--swatch:#39e600" aria-label="Green guides"></button><button data-guide-color="#000000" style="--swatch:#000000" aria-label="Black guides"></button><button data-guide-color="#ffffff" style="--swatch:#ffffff" aria-label="White guides"></button><button data-guide-color="#00bfff" style="--swatch:#00bfff" aria-label="Blue guides"></button></div>
+              <label for="rotaryCornerColor">Corner Guide Colour</label>
+              <input type="color" id="rotaryCornerColor" value="#39e600" style="height:38px;padding:2px;cursor:pointer">
+              <div class="corner-guide-colors" aria-label="Corner bracket colors"><button type="button" data-corner-color="#39e600" style="--swatch:#39e600" aria-label="Green corner brackets"></button><button type="button" data-corner-color="#000000" style="--swatch:#000000" aria-label="Black corner brackets"></button><button type="button" data-corner-color="#ffffff" style="--swatch:#ffffff" aria-label="White corner brackets"></button><button type="button" data-corner-color="#00bfff" style="--swatch:#00bfff" aria-label="Blue corner brackets"></button><button type="button" data-corner-color="#e0a33a" style="--swatch:#e0a33a" aria-label="Gold corner brackets"></button></div>
             </div>
           </div>
         </details>
@@ -902,7 +909,7 @@ const DEFAULTS = {
   pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
-  guides:'corners', guideColor:'#39e600', guideWidth:0.15, guideLen:6, guideShape:'brackets', guidePlacement:'outside', guideStyle:'solid', guideHalo:false,
+  guides:'both', guideColor:'#000000', cornerGuideColor:'#39e600', guideWidth:0.15, guideLen:6, guideShape:'brackets', guidePlacement:'outside', guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
@@ -1299,37 +1306,32 @@ function guideLines(L, n) {
   for (let c = 0; c < usedCols; c++) { const x = L.x0 + c*(L.sw+s.gap) + s.bleed; xs.add(+x.toFixed(3)); xs.add(+(x + L.cw).toFixed(3)); }
   for (let r = 0; r < usedRows; r++) { const y = L.y0 + r*(L.sh+s.gap) + s.bleed; ys.add(+y.toFixed(3)); ys.add(+(y + L.ch).toFixed(3)); }
   const gx1 = L.x0, gy1 = L.y0, gx2 = L.x0 + usedCols*L.sw + (usedCols-1)*s.gap, gy2 = L.y0 + usedRows*L.sh + (usedRows-1)*s.gap;
-  if (s.guides === 'margin' || s.guides === 'both') {
-    // Stop the margin guides just short of the sheet edge. A printer's full-bleed
-    // mode relaxes its declared margin but does not promise ink at 0.0 mm - Canon's
-    // own manual says part of the edge may not print, or may smudge - so a line
-    // drawn to 0 ends somewhere nobody has measured. A trimmer is lined up on the
-    // length of the guide, not on its last millimetre, so giving it a definite end
-    // inside the printable area costs nothing and removes the dependency.
+  const cutCol = s.guideColor || '#000000', cornerCol = s.cornerGuideColor || '#39e600', dash = s.guideStyle === 'dashed';
+  if (s.guides === 'both') {
+    for (const x of xs) out.push([x, 0, x, L.H, dash, cutCol]);
+    for (const y of ys) out.push([0, y, L.W, y, dash, cutCol]);
+  } else if (s.guides === 'margin') {
     const e = GUIDE_EDGE;
-    for (const x of xs) { out.push([x, e, x, gy1]); out.push([x, gy2, x, L.H - e]); }
-    for (const y of ys) { out.push([e, y, gx1, y]); out.push([gx2, y, L.W - e, y]); }
-    // Square-check lines across the margins, at right angles to the cuts, to line up with the trimmer's base grid.
+    for (const x of xs) { out.push([x, e, x, gy1, dash, cutCol]); out.push([x, gy2, x, L.H - e, dash, cutCol]); }
+    for (const y of ys) { out.push([e, y, gx1, y, dash, cutCol]); out.push([gx2, y, L.W - e, y, dash, cutCol]); }
     const sq = 1.5;
-    if (gy1 > sq) out.push([gx1, gy1 - sq, gx2, gy1 - sq, true]);
-    if (L.H - gy2 > sq) out.push([gx1, gy2 + sq, gx2, gy2 + sq, true]);
-    if (gx1 > sq) out.push([gx1 - sq, gy1, gx1 - sq, gy2, true]);
-    if (L.W - gx2 > sq) out.push([gx2 + sq, gy1, gx2 + sq, gy2, true]);
+    if (gy1 > sq) out.push([gx1, gy1 - sq, gx2, gy1 - sq, true, cutCol]);
+    if (L.H - gy2 > sq) out.push([gx1, gy2 + sq, gx2, gy2 + sq, true, cutCol]);
+    if (gx1 > sq) out.push([gx1 - sq, gy1, gx1 - sq, gy2, true, cutCol]);
+    if (L.W - gx2 > sq) out.push([gx2 + sq, gy1, gx2 + sq, gy2, true, cutCol]);
   }
-  if (s.guides === 'outline' || ((s.guides === 'corners' || s.guides === 'both') && s.guideShape === 'brackets')) {
-    const offset = s.guidePlacement === 'inside' ? -(s.guideWidth / 2 + 0.1) : s.guideWidth / 2 + 0.1;
-    const dash = s.guideStyle === 'dashed';
+  if (s.guides === 'outline' || ((s.guides === 'corners' || s.guides === 'both') && (s.guideShape === 'brackets' || s.guides === 'both'))) {
+    const offset = s.guides === 'both' ? 0 : (s.guidePlacement === 'inside' ? -(s.guideWidth / 2 + 0.1) : s.guideWidth / 2 + 0.1);
     for (let i = 0; i < n; i++) {
       const p = slotPos(L, i, false), x1 = p.x + s.bleed - offset, y1 = p.y + s.bleed - offset;
       const x2 = p.x + s.bleed + L.cw + offset, y2 = p.y + s.bleed + L.ch + offset;
       const len = Math.min(s.guideLen, (x2-x1)/2, (y2-y1)/2);
       out.push(...(s.guides === 'outline'
-        ? [[x1,y1,x2,y1], [x2,y1,x2,y2], [x2,y2,x1,y2], [x1,y2,x1,y1]]
+        ? [[x1,y1,x2,y1], [x2,y1,x2,y2], [x2,y2,x1,y2], [x1,y2,x1,y1]].map(line => [...line, dash, cutCol])
         : [[x1,y1,x1+len,y1], [x1,y1,x1,y1+len], [x2-len,y1,x2,y1], [x2,y1,x2,y1+len],
-           [x1,y2,x1+len,y2], [x1,y2-len,x1,y2], [x2-len,y2,x2,y2], [x2,y2-len,x2,y2]])
-        .map(line => [...line, dash]));
+           [x1,y2,x1+len,y2], [x1,y2-len,x1,y2], [x2-len,y2,x2,y2], [x2,y2-len,x2,y2]].map(line => [...line, dash, cornerCol])));
     }
-  } else if (s.guides === 'corners' || s.guides === 'both') {
+  } else if (s.guides === 'corners') {
     const len = s.guideLen;
     for (let i = 0; i < n; i++) {
       const p = slotPos(L, i, false), x1 = p.x + s.bleed, y1 = p.y + s.bleed, x2 = x1 + L.cw, y2 = y1 + L.ch;
@@ -1338,10 +1340,10 @@ function guideLines(L, n) {
       const up = r > 0 ? room : len, dn = i + L.cols < n ? room : len;
       out.push(...[[x1-lf, y1, x1, y1], [x1, y1-up, x1, y1], [x2, y1, x2+rt, y1], [x2, y1-up, x2, y1],
                    [x1-lf, y2, x1, y2], [x1, y2, x1, y2+dn], [x2, y2, x2+rt, y2], [x2, y2, x2, y2+dn]]
-        .filter(([a, b, c2, d]) => a !== c2 || b !== d));
+        .filter(([a, b, c2, d]) => a !== c2 || b !== d).map(line => [...line, dash, cornerCol]));
     }
   }
-  return s.guideStyle === 'dashed' ? out.map(line => [...line.slice(0, 4), true]) : out;
+  return s.guideStyle === 'dashed' ? out.map(line => [...line.slice(0, 4), true, line[5]]) : out;
 }
 // Registration marks follow the Silhouette Card Maker specification.
 // Three things in it are easy to get wrong and all three matter:
@@ -3890,7 +3892,7 @@ function cleanSettings(raw) {
     if (typeof def === 'number') { const n = Number(v); if (v !== null && v !== '' && typeof v !== 'boolean' && Number.isFinite(n) && (!SELECT_OPTS[k] || SELECT_OPTS[k].includes(String(n)))) out[k] = n; }
     else if (typeof def === 'boolean') { if (typeof v === 'boolean') out[k] = v; else if (v === 'true' || v === 'false') out[k] = v === 'true'; }
     else if (k === 'backImage') out[k] = typeof v === 'string' ? v : null;
-    else if (k === 'guideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
+    else if (k === 'guideColor' || k === 'cornerGuideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
     else if (k === 'guides' && v === 'bars') out[k] = 'both';
     else if (SELECT_OPTS[k]?.includes(String(v))) out[k] = String(v);
   }
@@ -4230,14 +4232,14 @@ async function drawPreview() {
       const sw = Math.max(0.6, s.guideWidth*z);
       let svg = `<svg width="${L.W*z}" height="${L.H*z}">`;
       if (s.guideHalo) for (const [a, b, c, d] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#fff" stroke-width="${sw*3}"/>`;
-      for (const [a, b, c, d, dash] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
+      for (const [a, b, c, d, dash, lineCol] of lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${lineCol || s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
       for (const [x, y, w, h] of reg.rects) svg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
       for (const [a, b, c, d] of reg.lines) svg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
       if (!s.silhouette && S.showCuts && !back) page.forEach((_, i) => {
         const p = slotPos(L, i, false);
         if (s.bleed > 0) svg += `<rect x="${T.x(p.x)*z}" y="${T.y(p.y)*z}" width="${T.w(L.sw)*z}" height="${T.h(L.sh)*z}" fill="none" stroke="#738194" stroke-width="0.7" stroke-dasharray="2 3"/>`;
         const x1 = T.x(p.x + s.bleed)*z, y1 = T.y(p.y + s.bleed)*z, x2 = x1 + T.w(L.cw)*z, y2 = y1 + T.h(L.ch)*z, arm = 6*z;
-        svg += `<path d="M${x1+arm} ${y1}H${x1}V${y1+arm}M${x2-arm} ${y1}H${x2}V${y1+arm}M${x1} ${y2-arm}V${y2}H${x1+arm}M${x2-arm} ${y2}H${x2}V${y2-arm}" fill="none" stroke="#54ed39" stroke-width="1"/>`;
+        svg += `<path d="M${x1+arm} ${y1}H${x1}V${y1+arm}M${x2-arm} ${y1}H${x2}V${y1+arm}M${x1} ${y2-arm}V${y2}H${x1+arm}M${x2-arm} ${y2}H${x2}V${y2-arm}" fill="none" stroke="${s.cornerGuideColor || '#39e600'}" stroke-width="1"/>`;
       });
       el.insertAdjacentHTML('beforeend', svg + '</svg>');
       frag.appendChild(el);
@@ -4325,8 +4327,12 @@ function newDoc(L) {
   return new jsPDF({unit:'mm', format:[L.W, L.H], orientation:L.W > L.H ? 'l' : 'p', compress:true});
 }
 function pdfLines(doc, T, lines, color, width) {
-  doc.setDrawColor(color); doc.setLineWidth(width);
-  for (const [a, b, c, d, dash] of lines) { doc.setLineDashPattern(dash ? [3, 1.5] : [], 0); doc.line(T.x(a), T.y(b), T.x(c), T.y(d)); }
+  doc.setLineWidth(width);
+  for (const [a, b, c, d, dash, lineCol] of lines) {
+    doc.setDrawColor(lineCol || color);
+    doc.setLineDashPattern(dash ? [3, 1.5] : [], 0);
+    doc.line(T.x(a), T.y(b), T.x(c), T.y(d));
+  }
   doc.setLineDashPattern([], 0);
 }
 async function exportPDF(skipWizard = true) {
@@ -5051,12 +5057,15 @@ function renderCutStatus() {
   }
   $$('.guide-presets button').forEach(b => { const on = b.dataset.guide === s.guides; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
   $$('.guide-colors button').forEach(b => b.setAttribute('aria-pressed', b.dataset.guideColor === s.guideColor));
+  $$('.corner-guide-colors button').forEach(b => b.setAttribute('aria-pressed', b.dataset.cornerColor === s.cornerGuideColor));
   const rotLen = $('#rotaryGuideLen');
   if (rotLen && document.activeElement !== rotLen) rotLen.value = s.guideLen ?? 3;
   const rotWidth = $('#rotaryGuideWidth');
   if (rotWidth && document.activeElement !== rotWidth) rotWidth.value = s.guideWidth ?? 0.3;
   const rotColor = $('#rotaryGuideColor');
   if (rotColor && document.activeElement !== rotColor) rotColor.value = s.guideColor || '#000000';
+  const rotCorner = $('#rotaryCornerColor');
+  if (rotCorner && document.activeElement !== rotCorner) rotCorner.value = s.cornerGuideColor || '#39e600';
   const rotBleed = $('#rotaryBleed');
   if (rotBleed && document.activeElement !== rotBleed) rotBleed.value = s.bleed ?? 2;
 
@@ -5099,7 +5108,7 @@ function renderCutStatus() {
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
-    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${s.guides === 'none' ? 'No guides will be printed' : esc({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks',outline:'Full card outlines'}[s.guides]) + ' enabled'} (${s.bleed} mm bleed).</div>`
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${s.guides === 'none' ? 'No guides will be printed' : esc({both:'Sheet cut lines and corner marks',margin:'Margin lines',corners:'Corner marks',outline:'Full card outlines'}[s.guides]) + ' enabled'} (${s.bleed} mm bleed).</div>`
       : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
   }
   const b = $('#cutApply');
@@ -5115,7 +5124,7 @@ function renderCutStatus() {
   };
 }
 
-for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'})) {
+for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryCornerColor:'cornerGuideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'})) {
   const input = $('#' + id); if (!input) continue;
   input.onchange = () => {
     if (!input.checkValidity() || (input.type === 'number' && !Number.isFinite(input.valueAsNumber))) {
@@ -5127,9 +5136,10 @@ for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegIn
   };
 }
 $('#rotarySection').addEventListener('click', ev => {
-  const preset = ev.target.closest('[data-guide]'), color = ev.target.closest('[data-guide-color]');
+  const preset = ev.target.closest('[data-guide]'), color = ev.target.closest('[data-guide-color]'), corner = ev.target.closest('[data-corner-color]');
   if (preset) Object.assign(S.settings, {guides:preset.dataset.guide, guideShape:'brackets', guideWidth:0.15, guideLen:6, guideHalo:false});
   else if (color) S.settings.guideColor = color.dataset.guideColor;
+  else if (corner) S.settings.cornerGuideColor = corner.dataset.cornerColor;
   else return;
   S.activePreset = null; save(); renderAll();
 });
