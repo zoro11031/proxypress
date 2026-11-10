@@ -88,7 +88,15 @@
     }
 
     $('#btnCutModeCameo').click();
-    eq('cameo offers landscape paper only', $$('#presetGrid [data-preset]').length, 2);
+    eq('cameo offers both paper orientations', $$('#presetGrid [data-preset]').length, 4);
+    for (const id of ['b-letter', 'b-a4']) {
+      $(`#presetGrid [data-preset="${id}"]`).click();
+      eq(`${id} cameo portrait selected`, S.settings.orientation, 'portrait');
+      eq(`${id} cameo portrait upright`, !!layout().rot, false);
+      eq(`${id} cameo portrait fits`, layout().fits && !regConflict(layout()), true);
+      eq(`${id} keeps registration marks`, S.settings.silhouette, true);
+      eq(`${id} capacity matches preview`, presetPer(BUILTIN_PRESETS.find(p => p.id === id)).per, layout().per);
+    }
     $('#presetGrid [data-preset="b-letter-land"]').click();
     eq('cameo paper choice fits', layout().fits && !regConflict(layout()), true);
     eq('cameo preview capacity matches effective layout', presetPer(BUILTIN_PRESETS.find(p => p.id === 'b-letter-land')).per, layout().per);
