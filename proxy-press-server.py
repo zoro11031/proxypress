@@ -497,6 +497,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 lines.append(line(v.get("quantity", 1), name, (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))
         self.send(200, json.dumps({"name": j.get("name", ""), "text": "\n".join(l for l in lines if l.split(" ", 1)[1:] != [""])}).encode(), "application/json")
 
+    def suggestions(self, slug):
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,159}", slug):
+            return self.send(404, b"Not found", "text/plain")
+        key = "suggest:" + slug
+        hit = cache_get(key, SEARCH_TTL)
+        if hit is not None:
+            return self.send(200, json.dumps(hit).encode(), "application/json")
+        try:
+            req = urllib.request.Request(f"https://json.edhrec.com/pages/cards/{slug}.json", headers={"Accept": "application/json", "User-Agent": "ProxyPress/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                body = r.read(2 * 1024 * 1024 + 1)
+            if len(body) > 2 * 1024 * 1024:
+                raise ValueError("Response too large")
+            data = json.loads(body)
+            cards = {}
+            def add(name, score, kind):
+                if isinstance(name, str) and 0 < len(name) <= 300 and name not in cards:
+                    cards[name] = {"name": name, "score": score, "kind": kind}
+            for i, name in enumerate(data.get("similar", [])[:24]):
+                add(name, 80 - i, "Similar card")
+            for group in data.get("container", {}).get("json_dict", {}).get("cardlists", []):
+                base = {"highliftcards": 60, "topcards": 30}.get(group.get("tag"))
+                if base:
+                    for i, card in enumerate(group.get("cardviews", [])[:20]):
+                        add(card.get("name"), base - i, "Often played together")
+            result = {"cards": list(cards.values())[:64]}
+            cache_put(key, result)
+            return self.send(200, json.dumps(result).encode(), "application/json")
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                result = {"cards": []}
+                cache_put(key, result)
+                return self.send(200, json.dumps(result).encode(), "application/json")
+        except Exception:
+            pass
+        self.send(502, b'{"message":"Suggestions are unavailable right now"}', "application/json")
+
     def sf(self, method):
         try:
             self.sf_cached(method)
@@ -549,6 +586,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(502, b'{"message":"Could not read that deck"}', "application/json")
         if route.startswith("/sf/"):
             return self.sf("GET")
+        if route.startswith("/suggest/"):
+            return self.suggestions(route[len("/suggest/"):])
         if route.startswith("/sym/"):
             name = route[len("/sym/"):]
             if not re.fullmatch(r"index\.json|[A-Z0-9]{1,12}\.svg", name):

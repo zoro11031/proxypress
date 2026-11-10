@@ -8,6 +8,7 @@
 //
 //   node tools/console-check.js                      # start a server, check the page
 //   --artifacts /tmp/result.json writes window.__probeArtifacts when the probe returns true.
+//   --width 1440 --height 1000 --screenshot /tmp/workspace.png captures the checked page.
 //   node tools/console-check.js --probe my-probe.js  # also run assertions in the page
 //   node tools/console-check.js --url http://host:port --password pw
 //
@@ -122,6 +123,7 @@ function owns(port) {
     });
 
     send('Runtime.enable'); send('Log.enable');
+    if (arg('--width')) send('Emulation.setDeviceMetricsOverride', {width:+arg('--width'), height:+arg('--height', '1000'), deviceScaleFactor:1, mobile:false});
     send('Page.navigate', {url: url + '/'});
     await sleep(2500);
     await ev(`(()=>{const p=document.querySelector('input[type=password]');` +
@@ -133,6 +135,15 @@ function owns(port) {
     if (loaded && probeFile) probeOut = await ev(fs.readFileSync(probeFile, 'utf8'));
     if (probeOut === true && arg('--artifacts')) fs.writeFileSync(arg('--artifacts'), JSON.stringify(await ev('window.__probeArtifacts')));
     await sleep(SETTLE);
+    if (arg('--screenshot')) {
+      const shot = await new Promise(resolve => {
+        const myId = ++id;
+        const h = e => { const m = JSON.parse(e.data); if (m.id === myId) { ws.removeEventListener('message', h); resolve(m.result); } };
+        ws.addEventListener('message', h);
+        ws.send(JSON.stringify({id:myId, method:'Page.captureScreenshot', params:{format:'png'}}));
+      });
+      fs.writeFileSync(arg('--screenshot'), Buffer.from(shot.data, 'base64'));
+    }
     // Chromium's "recommendation" source is advisory DOM guidance, not an error.
     // Reported so nothing is hidden, but it does not fail the run.
     const isNote = ([c]) => c === 'log/recommendation';

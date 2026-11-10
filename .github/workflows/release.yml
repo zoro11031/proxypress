@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-desktop:
     strategy:
@@ -34,9 +38,18 @@ jobs:
         with:
           node-version: 22
 
+      - name: Check release metadata and desktop server
+        run: |
+          node tools/release-check.js
+          node tools/desktop-server-check.js
+
+      - name: Check server suggestions
+        if: runner.os == 'Linux'
+        run: python3 tools/suggestions-check.py
+
       - name: Install Electron dependencies
         working-directory: electron
-        run: npm install
+        run: npm ci
 
       - name: Patch fpm RPM template for modern rpmbuild
         if: runner.os == 'Linux'
@@ -83,6 +96,7 @@ jobs:
           name: Proxy Press ${{ github.ref_name }}
           body_path: RELEASE_NOTES.md
           overwrite_files: true
+          draft: true
           files: |
             electron/dist/*.exe
             electron/dist/*.msi
@@ -91,3 +105,41 @@ jobs:
             electron/dist/*.rpm
             electron/dist/*.pacman
             electron/dist/*-aur.tar.gz
+
+      - name: Save desktop packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            electron/dist/*.exe
+            electron/dist/*.msi
+            electron/dist/*.AppImage
+            electron/dist/*.deb
+            electron/dist/*.rpm
+            electron/dist/*.pacman
+            electron/dist/*-aur.tar.gz
+
+  publish-release:
+    needs: build-desktop
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check downloads and publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets > release-assets.json
+          python3 - <<'PY'
+          import json, os
+          version = os.environ["RELEASE_TAG"].removeprefix("v")
+          expected = {f"Proxy-Press-{version}.{ext}" for ext in ("exe", "msi", "AppImage", "deb", "rpm", "pacman")}
+          expected.add("proxypress-bin-aur.tar.gz")
+          uploaded = {a["name"] for a in json.load(open("release-assets.json"))["assets"] if a["size"] > 0}
+          missing = expected - uploaded
+          if missing:
+              raise SystemExit("Missing release downloads: " + ", ".join(sorted(missing)))
+          print("All seven release downloads are present.")
+          PY
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
