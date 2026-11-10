@@ -288,6 +288,9 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .gal .noback{align-self:flex-end;display:flex;align-items:center;justify-content:center;text-align:center;border:1px dashed var(--line);border-radius:4%/3%;color:var(--muted);font-size:11px;padding:4px;cursor:pointer}
 .gal .qty{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;padding:1px 6px;border-radius:9px}
 .osum{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.stock-guide{margin:10px 0}
+.stock-guide dt{font-weight:600;margin-top:10px}
+.stock-guide dd{margin:2px 0 0}
 .osum dt{color:var(--muted)}
 .osum dd{margin:0}
 .steps{padding-left:20px;font-size:13px}
@@ -669,7 +672,33 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr"><div class="step-num">Step 2 of 2</div><h2>Review &amp; order prints</h2><p class="hint">Check your cards and cardback, then download the order for the autofill tool.</p></div>
       <h3>Order settings</h3>
       <div class="grid2">
-        <div class="field full"><label for="oStock">Cardstock</label><select id="oStock"></select></div>
+        <div class="field full"><label for="oStock">Cardstock</label><select id="oStock"></select>
+          <details class="adv" id="stockGuide" style="margin-top:8px">
+            <summary>Compare cardstock &amp; quality</summary>
+            <div class="hint">
+              <p><b>S33 is our default for smooth MTG proxies.</b> S30 is the budget alternative. Stock affects the feel and surface; it does not increase the resolution of your artwork.</p>
+              <dl class="stock-guide">
+                <dt><a href="https://www.makeplayingcards.com/s33-card-stock.aspx" target="_blank" rel="noopener">S33 · Superior Smooth</a> <span class="tag">Default</span></dt>
+                <dd>Premium smooth paper with a black inner layer that blocks light. The manufacturer describes stronger visual contrast than standard stock. Choose it when finish and print appearance matter most.</dd>
+                <dt><a href="https://www.makeplayingcards.com/s30-card-stock.aspx" target="_blank" rel="noopener">S30 · Standard Smooth</a></dt>
+                <dd>Smooth paper with a blue inner layer that limits light passing through. A budget choice for sleeved decks; some players report little difference in feel once sleeved.</dd>
+                <dt><a href="https://www.makeplayingcards.com/s27-card-stock.aspx" target="_blank" rel="noopener">S27 · Smooth</a></dt>
+                <dd>Basic smooth, blue-core paper marketed for prototypes and promotional cards. Choose it for low-cost test decks.</dd>
+                <dt><a href="https://www.makeplayingcards.com/m31-linen-card-stock.aspx" target="_blank" rel="noopener">M31 · Linen</a></dt>
+                <dd>Black-core paper with an embossed texture for handling and shuffling. Choose it for a textured playing-card feel rather than a smooth surface.</dd>
+                <dt><a href="https://www.makeplayingcards.com/plastic-card-stock.aspx" target="_blank" rel="noopener">P10 · Plastic</a></dt>
+                <dd>Flexible, water-resistant plastic with a slippery feel. Choose it for durability rather than a paper-card feel. Foil is unavailable for this option.</dd>
+              </dl>
+              <p><b>Feel and print results vary.</b> Community reports disagree on thickness and stiffness. The hands-on review below was updated in March 2026 to favor S33 after darker recent S30 batches. These are player experiences, not guaranteed specifications.</p>
+              <p>If feel matters, compare a <a href="https://www.makeplayingcards.com/design/card-stock-sample.html" target="_blank" rel="noopener">sample pack</a> before a large order. Check current prices when ordering.</p>
+              <details><summary>Community comparisons</summary><ul>
+                <li><a href="https://old.reddit.com/r/mpcproxies/comments/hgif1t/s30_vs_s33_cardstock/" target="_blank" rel="noopener">S30 vs S33: feel and sleeves (2020)</a></li>
+                <li><a href="https://old.reddit.com/r/mpcproxies/comments/1jdartp/s30_vs_s33_card_stock_my_handson_experience/" target="_blank" rel="noopener">Hands-on comparison, updated March 2026</a></li>
+                <li><a href="https://old.reddit.com/r/mpcproxies/comments/11yqqan/s33_v_s30_card_thickness/" target="_blank" rel="noopener">Thickness and stiffness reports (2023)</a></li>
+              </ul></details>
+            </div>
+          </details>
+        </div>
         <label class="check"><input type="checkbox" id="oFoil"> Foil</label>
       </div>
       <h3>Cardback</h3>
