@@ -3318,6 +3318,10 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
+  const normalMargin = (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') ? 5 : 4;
+  if (!out.silhouette && out.margin >= 10) out.margin = normalMargin;
+  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.bleed === 3) out.bleed = 2;
+  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.cols === 3) out.cols = 0;
   return out;
 }
 // Backups are untrusted: rebuild decks from known fields with checked types.
@@ -3470,6 +3474,10 @@ $('#printerSel').onchange = e => {
   S.printer = e.target.value;
   const pr = printerOf(S.printer);
   S.printerByKind = {...S.printerByKind, [pr.kind]:pr.id};
+  if (!S.settings.silhouette) {
+    if (pr.kind === 'Laser' && S.settings.margin < 5) S.settings.margin = 5;
+    else if (pr.kind === 'Inkjet' && S.settings.margin === 5) S.settings.margin = 4;
+  }
   save(); renderAll();
 };
 
@@ -4227,18 +4235,21 @@ addEventListener('drop', async e => {
 });
 
 function bestCutBleed() {
-  const s = S.settings, cur = s.bleed;
+  const s = S.settings, cur = s.bleed, curM = s.margin;
+  const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
+  if (!s.silhouette && s.margin >= 10) s.margin = normalMargin;
   let best = 2, maxCards = 0;
   for (const b of [2, 2.5, 3]) {
     s.bleed = b;
     const L = layout();
-    if (L.fits && L.per >= maxCards) { maxCards = L.per; best = b; }
+    if (L.fits && L.per > maxCards) { maxCards = L.per; best = b; }
   }
   if (!maxCards) for (const b of [1.5, 1, 0.5]) {
     s.bleed = b;
     if (layout().fits) { best = b; break; }
   }
   s.bleed = cur;
+  s.margin = curM;
   return best;
 }
 if ($('#regToggle')) $('#regToggle').onchange = ev => {
@@ -4307,7 +4318,9 @@ function renderCutStatus() {
       S.settings.silhouette = false;
       S.settings.showCuts = false;
       S.showCuts = false;
-      Object.assign(S.settings, {cols:0, rows:0, guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
+      const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
+      if (S.settings.margin >= 10 || !S.settings.margin) S.settings.margin = normalMargin;
+      Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
       S.settings.bleed = bestCutBleed();
       S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
     };
@@ -4396,7 +4409,9 @@ function renderCutStatus() {
     S.settings.silhouette = false;
     S.settings.showCuts = false;
     S.showCuts = false;
-    Object.assign(S.settings, {cols:0, rows:0, guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
+    const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
+    if (S.settings.margin >= 10 || !S.settings.margin) S.settings.margin = normalMargin;
+    Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
     S.settings.bleed = bestCutBleed();
     S.activePreset = null; save(); renderAll(); toast('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
   };
