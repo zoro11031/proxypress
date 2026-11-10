@@ -468,7 +468,7 @@ details.adv:not([open]){padding-bottom:10px}
               </div>
               <span class="cutter-badge">Automated</span>
             </div>
-            <p class="cut-card-desc">Starts with 8 cards on a landscape sheet, registration marks and 3.2 mm corners. Change paper size and orientation in Print.</p>
+            <p class="cut-card-desc">Uses registration marks and 3.2 mm corners. Keeps the paper size and orientation you chose in Print.</p>
           </div>
         </div>
 
@@ -541,7 +541,7 @@ details.adv:not([open]){padding-bottom:10px}
 
           <ol class="tips hint" style="padding-left:18px;margin-top:8px">
             <li><b>Cut guides:</b> Automatically set to <b>None</b> so rotary lines aren't printed.</li>
-            <li><b>Bleed:</b> 0.625 mm with 0 mm gap matches standard Silhouette Card Maker spacing (1.25 mm between cards).</li>
+            <li><b>Bleed:</b> Landscape uses 0.625 mm bleed. Portrait uses 0.5 mm bleed to fit 9 standard cards. Both use 0 mm gap.</li>
             <li><b>Silhouette Studio:</b> Match the page and registration settings listed in step 4, Export.</li>
           </ol>
         </details>
@@ -575,7 +575,7 @@ details.adv:not([open]){padding-bottom:10px}
           <div class="grid2" style="margin-top:8px">
             <div class="field">
               <label for="rotaryBleed">Bleed (mm)</label>
-              <input type="number" id="rotaryBleed" step="0.1" min="0" max="5" value="2">
+              <input type="number" id="rotaryBleed" step="0.05" min="0" max="5" value="2">
               <span class="hint" id="rotaryBleedHint" style="font-size:11px">2–3 mm recommended (standard 1/8" bleed prevents white edges and tearing)</span>
             </div>
             <div class="field">
@@ -3610,7 +3610,7 @@ function renderSettings() {
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span>`;
   const sumEl = $('#setupSummary');
-  if (sumEl) sumEl.innerHTML = sumHtml;
+  if (sumEl) sumEl.innerHTML = sumHtml + (!s.silhouette && s.orientation === 'portrait' && s.bleed < 1.5 ? '<p class="hint">Compact portrait layout uses less bleed. Cut carefully to avoid white edges; landscape leaves more room for cutting drift.</p>' : '');
 
   html += block(false);
   html += `<details class="adv" ${S.advOpen ? 'open' : ''}><summary>Advanced layout settings${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
@@ -3655,9 +3655,20 @@ $('#settingsForm').addEventListener('change', async ev => {
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+function cameoPaperLayout(orientation) {
+  const portrait = orientation === 'portrait';
+  return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 5.5 : 10, regLen:0};
+}
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
-  return {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright', ...(S.settings.silhouette ? {cols:0, rows:0} : {})};
+  const next = {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright'};
+  if (S.settings.silhouette) Object.assign(next, cameoPaperLayout(next.orientation));
+  else if (!p.kind) {
+    const laser = printerOf(S.printer).kind === 'Laser', portrait = next.orientation === 'portrait';
+    const bleed = portrait ? (next.pageSize === 'letter' ? (laser ? 0.75 : 1) : (laser ? 1.5 : 2)) : 2;
+    Object.assign(next, {cols:0, rows:0, gap:0, margin:laser ? 5 : 4, bleed});
+  }
+  return next;
 }
 function applyPreset(p) {
   S.settings = presetSettings(p);
@@ -4479,7 +4490,7 @@ function bestCutBleed() {
   const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
   if (!s.silhouette && (s.margin >= 10 || s.margin < normalMargin)) s.margin = normalMargin;
   let best = 2, maxCards = 0;
-  for (const b of [2, 2.5, 3]) {
+  for (const b of s.orientation === 'portrait' ? [2, 2.5, 3, 1.5, 1, 0.75] : [2, 2.5, 3]) {
     s.bleed = b;
     const L = layout();
     if (L.fits && L.per > maxCards) { maxCards = L.per; best = b; }
@@ -4534,23 +4545,15 @@ function renderCutStatus() {
     btnCameo.onclick = () => {
       if (S.settings.silhouette) return;
       Object.assign(S.settings, {
-        orientation: 'landscape',
-        cardRotation: 'upright',
-        cols: 4,
-        rows: 2,
-        bleed: 0.625,
-        gap: 0,
-        margin: 10,
+        ...cameoPaperLayout(S.settings.orientation),
         guides: 'none',
         silhouette: true,
         regPattern: 3,
-        regInset: 10,
-        regLen: 0,
         regThickness: 1,
         showCuts: false
       });
       S.showCuts = false;
-      S.activePreset = null; save(); renderAll(); toast('Switched to Silhouette Cameo mode (8 cards landscape + registration marks).');
+      S.activePreset = null; save(); renderAll(); toast(`Cameo ready: ${layout().per} cards per ${S.settings.orientation} sheet with registration marks.`);
     };
     btnRotary.onclick = () => {
       if (!S.settings.silhouette) return;
@@ -4561,7 +4564,7 @@ function renderCutStatus() {
       if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
       Object.assign(S.settings, {cols:0, rows:0, cardRotation:'upright', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
       S.settings.bleed = bestCutBleed();
-      S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
+      S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, margin lines and corner marks.');
     };
   }
 
@@ -4602,42 +4605,34 @@ function renderCutStatus() {
       if (!noConflict) why.push('cards overlap registration marks');
       if (s.guides !== 'none') why.push('cut guides are on (should be None)');
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
-      cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Apply Cameo Layout (8 cards landscape)</button></div>`;
+      cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
       const cb = $('#cameoApply');
       if (cb) cb.onclick = () => {
         Object.assign(S.settings, {
-          orientation: 'landscape',
-          cardRotation: 'upright',
-          cols: 4,
-          rows: 2,
-          bleed: 0.625,
-          gap: 0,
-          margin: 10,
+          ...cameoPaperLayout(S.settings.orientation),
           guides: 'none',
           silhouette: true,
           regPattern: 3,
-          regInset: 10,
-          regLen: 0,
           regThickness: 1,
           showCuts: false
         });
         S.showCuts = false;
-        S.activePreset = null; save(); renderAll(); toast('Layout set up for Silhouette Cameo: 8 cards on landscape with registration marks.');
+        S.activePreset = null; save(); renderAll(); toast(`Cameo ready: ${layout().per} cards per ${S.settings.orientation} sheet with registration marks.`);
       };
     }
   }
   const el = $('#cutStatus'); if (!el) return;
-  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && s.bleed >= 1.5;
+  const best = bestCutBleed(), ok = !s.silhouette && L.fits && s.guides !== 'none' && (s.bleed >= 1.5 || (s.orientation === 'portrait' && s.bleed >= 0.75));
   const rHint = $('#rotaryBleedHint');
   if (rHint) {
     const pName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Letter'])[1].replace(/ \(.*\)$/, '');
-    rHint.textContent = `Recommended for ${pName} ${s.orientation}: ${best} mm (absorbs cutting drift and prevents tearing)`;
+    rHint.textContent = best < 1.5 ? `Compact layout: ${best} mm bleed. Larger bleed may fit fewer cards.` : `Recommended for ${pName} ${s.orientation}: ${best} mm (leaves room for cutting drift)`;
   }
   if (s.silhouette) {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
     el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${esc({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks'}[s.guides])} enabled (${s.bleed} mm bleed).</div>`
-      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < 1.5 ? ` bleed is ${s.bleed} mm (at least 2 mm recommended to avoid white edges and tearing);` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
+      : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.guides === 'none' ? ' print guides are turned off;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
   }
   const b = $('#cutApply');
   if (b) b.onclick = () => {

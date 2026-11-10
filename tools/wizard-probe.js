@@ -41,6 +41,7 @@
       renderAll();
       eq(`${size} driver instructions`, $('#printerGuide').textContent.includes(size === 'a4' ? 'A4 (210×297 mm)' : 'Letter (8.5×11 in)'), true);
       $('#btnCutModeRotary').click();
+      $(`#presetGrid [data-preset="${size === 'a4' ? 'b-a4-land' : 'b-letter-land'}"]`).click();
       $('#btnCutModeCameo').click();
       const L = layout();
       eq(`${size} cameo paper`, S.settings.pageSize, size);
@@ -93,6 +94,7 @@
       $(`#presetGrid [data-preset="${id}"]`).click();
       eq(`${id} cameo portrait selected`, S.settings.orientation, 'portrait');
       eq(`${id} cameo portrait upright`, !!layout().rot, false);
+      eq(`${id} cameo portrait fits nine`, `${layout().cols}x${layout().rows}`, '3x3');
       eq(`${id} cameo portrait fits`, layout().fits && !regConflict(layout()), true);
       eq(`${id} keeps registration marks`, S.settings.silhouette, true);
       eq(`${id} capacity matches preview`, presetPer(BUILTIN_PRESETS.find(p => p.id === id)).per, layout().per);
@@ -101,6 +103,25 @@
     eq('cameo paper choice fits', layout().fits && !regConflict(layout()), true);
     eq('cameo preview capacity matches effective layout', presetPer(BUILTIN_PRESETS.find(p => p.id === 'b-letter-land')).per, layout().per);
     $('#btnCutModeRotary').click();
+
+    for (const printer of ['et2800', 'mf753']) {
+      S.printer = printer; S.settings = {...DEFAULTS}; renderAll();
+      for (const id of ['b-letter', 'b-a4']) {
+        $(`#presetGrid [data-preset="${id}"]`).click();
+        eq(`${printer} ${id} rotary nine cards`, `${layout().cols}x${layout().rows}`, '3x3');
+        eq(`${printer} ${id} rotary fits`, layout().fits, true);
+        eq(`${printer} ${id} full-size cards`, `${S.settings.cardW}x${S.settings.cardH}`, '63x88');
+        eq(`${printer} ${id} bleed field valid`, $('#rotaryBleed').checkValidity(), true);
+        $('#btnCutModeCameo').click();
+        eq(`${printer} ${id} Cameo keeps portrait`, S.settings.orientation, 'portrait');
+        eq(`${printer} ${id} Cameo nine cards`, layout().per, 9);
+        eq(`${printer} ${id} marks clear cards`, regConflict(layout()), false);
+        eq(`${printer} ${id} marks stay printable`, S.settings.regInset - S.settings.regThickness / 2 >= 5, true);
+        $('#btnCutModeRotary').click();
+        eq(`${printer} ${id} rotary keeps nine`, layout().per, 9);
+        eq(`${printer} ${id} compact rotary ready`, !!$('#cutApply'), false);
+      }
+    }
 
     // 3. Assert next/prev wizard buttons
     $('#btnStep4Prev').click();
