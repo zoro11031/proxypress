@@ -465,7 +465,7 @@ details.adv:not([open]){padding-bottom:10px}
               </div>
               <span class="cutter-badge">Automated</span>
             </div>
-            <p class="cut-card-desc">Uses Letter or A4 landscape with 8 cards, registration marks and 3.2 mm rounded corners. Selecting this changes the sheet layout.</p>
+            <p class="cut-card-desc">Starts with 8 cards on a landscape sheet, registration marks and 3.2 mm corners. Change paper size and orientation in Print.</p>
           </div>
         </div>
 
@@ -3624,7 +3624,7 @@ $('#settingsForm').addEventListener('change', async ev => {
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
-  return {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:S.settings.silhouette ? 'landscape' : p.settings.orientation, cardRotation:'upright'};
+  return {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright', ...(S.settings.silhouette ? {cols:0, rows:0} : {})};
 }
 function applyPreset(p) {
   S.settings = presetSettings(p);
@@ -3696,7 +3696,7 @@ function renderPresets() {
     const button = `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
     return mine ? `<div class="preset-item">${button}<button class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
-  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind && (!S.settings.silhouette || p.settings.orientation === 'landscape'));
+  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind);
   $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
     ${S.presets.length ? `<details class="adv"><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
