@@ -65,6 +65,10 @@ h3:first-child{margin-top:2px}
 .cards{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 .card{display:grid;grid-template-columns:46px 1fr auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px}
 .card img{width:46px;height:64px;object-fit:cover;border-radius:3px;cursor:pointer;background:#000}
+.card.selected{border-color:var(--accent)}
+.pg img.selected,.tile img.selected{outline:3px solid var(--accent);outline-offset:2px}
+.copy-selection-mark{position:absolute;z-index:3;pointer-events:none;background:var(--accent);color:#17130d;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-weight:700;box-shadow:0 1px 5px #000}
+#cardSelection{position:sticky;top:0;z-index:5;background:var(--panel);padding:8px;border:1px solid var(--accent);border-radius:8px;margin-top:8px}
 .card .nm{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .meta{font-size:11.5px;color:var(--muted)}
 .card .ctl{display:flex;gap:6px;align-items:center}
@@ -112,7 +116,7 @@ h3:first-child{margin-top:2px}
 #ctx .ttl{font-size:11px;color:var(--muted);padding:5px 10px 3px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #ctx button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px}
 #ctx button:hover{background:var(--panel2)}
-.pg img{cursor:context-menu}
+.pg img{cursor:pointer}
 .tips li{margin-bottom:6px}
 .hint a{color:var(--accent2)}
 #mbar{display:none}
@@ -383,8 +387,9 @@ details.adv:not([open]){padding-bottom:10px}
       <input type="file" id="fileFace" accept="image/*" hidden>
       <h3 class="row" style="justify-content:space-between;align-items:center;margin-top:18px"><span>Deck <span id="deckCount"></span></span>
         <span class="row"><span id="deckHealth" class="hint"></span><button class="icon" id="btnMpcAuto" title="Pick the best high-res art for every card that still needs it">Auto fill art</button></span></h3>
-      <p class="hint" style="margin:-2px 0 8px">Right-click or long-press any card to change art or edit.</p>
+      <p class="hint" style="margin:-2px 0 8px">Click cards in the preview to select copies. Shift-click to select a range. Right-click for more options.</p>
       <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden style="margin-bottom:6px">
+      <div id="cardSelection" hidden><span id="cardSelectionCount" class="hint" aria-live="polite"></span><div class="row"><button id="changeSelectedArt" class="primary">Change selected art…</button><button id="selectAllCopies">Select all copies</button><button id="clearCardSelection">Clear</button></div></div>
       <div class="cards" id="cardList"></div>
       <div class="wiz-nav">
         <button type="button" class="primary" id="btnStep1Next" style="flex:1">Next: 2. Print →</button>
@@ -1212,10 +1217,10 @@ function buildSlots() {
     if (!e.faces.length) continue;
     for (let q = 0; q < e.qty; q++) {
       if (e.faces.length > 1) {
-        if (s.dfcMode === 'separate') e.faces.forEach((f, i) => out.push({e, fi:i, front:f, back:backFace}));
-        else if (s.dfcMode === 'front') out.push({e, fi:0, front:e.faces[0], back:backFace});
-        else out.push({e, fi:0, bi:1, front:e.faces[0], back:e.faces[1]});
-      } else out.push({e, fi:0, front:e.faces[0], back:backFace});
+        if (s.dfcMode === 'separate') e.faces.forEach((f, i) => out.push({e, copy:q, fi:i, front:f, back:backFace}));
+        else if (s.dfcMode === 'front') out.push({e, copy:q, fi:0, front:e.faces[0], back:backFace});
+        else out.push({e, copy:q, fi:0, bi:1, front:e.faces[0], back:e.faces[1]});
+      } else out.push({e, copy:q, fi:0, front:e.faces[0], back:backFace});
     }
   }
   return out;
@@ -1577,9 +1582,11 @@ async function openMpcPicker(target) {
   let faceIdx = target.i || 0, ids = [], shown = 0, localHits = [], thumbs = [];
   const e = target.e, isBack = !!target.cardback;
   const face = () => e?.faces[faceIdx];
+  const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
   const current = () => isBack ? deck().cardback?.drive : face()?.drive;
   openModal(`<div class="hd"><b>${isBack ? 'Choose a cardback' : esc(e.name) + ' · choose art'}</b><button data-close>Close</button></div>
     <div class="bd">
+      ${copyCount ? `<p class="hint">Changes ${copyCount} selected cop${copyCount === 1 ? 'y' : 'ies'}. Other copies keep their art.</p>` : !isBack && e.qty > 1 ? `<p class="hint">Changes all ${e.qty} copies in this deck entry.</p>` : ''}
       ${!isBack && e.faces.length > 1 ? `<div class="row" style="margin-bottom:8px">${e.faces.map((f, i) => `<button class="icon ${i === faceIdx ? 'primary' : ''}" data-face="${i}">${esc(f.name)}</button>`).join('')}</div>` : ''}
       ${isBack ? '' : `<div class="row" style="margin-bottom:8px">
         <input type="text" id="mpcQ" style="flex:1;min-width:180px" value="${esc(face().name)}">
@@ -1597,7 +1604,7 @@ async function openMpcPicker(target) {
           <label class="check"><input type="checkbox" data-m="nsfw" ${S.mpc.nsfw ? 'checked' : ''}> Include NSFW art</label>
         </div>
       </details>
-      ${isBack ? '' : `<p class="hint">Your own art: <button class="icon" id="mpcMaker">Make custom card…</button> <button class="icon" id="mpcOwn">Upload image…</button> · or design one on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>.</p>`}
+      ${isBack ? '' : `<p class="hint">Your own art: ${copyCount ? '' : '<button class="icon" id="mpcMaker">Make custom card…</button>'} <button class="icon" id="mpcOwn">Upload image…</button> · or design one on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>.</p>`}
       <p class="hint" id="mpcStatus"></p>
       <div class="prints" id="mpcGrid"></div>
       <div class="row" style="justify-content:center;margin-top:12px"><button id="mpcMore" style="display:none">Load more</button></div>
@@ -1646,11 +1653,11 @@ async function openMpcPicker(target) {
     if (fb) { faceIdx = +fb.dataset.face; $$('[data-face]', bd).forEach(b => b.classList.toggle('primary', b === fb)); find('#mpcQ').value = face().name; return run(); }
     if (ev.target.id === 'mpcGo') return run();
     if (ev.target.id === 'mpcMore') return page();
-    if (ev.target.id === 'mpcOwn') { faceTarget = {e, i:faceIdx}; closeModal(); return find('#fileFace').click(); }
+    if (ev.target.id === 'mpcOwn') { faceTarget = {...target, e, i:faceIdx}; closeModal(); return $('#fileFace').click(); }
     if (ev.target.id === 'mpcMaker') { closeModal(); return openCardMaker({e, i:faceIdx}); }
     const fig = ev.target.closest('figure'); if (!fig) return;
     if (fig.dataset.local !== undefined) {
-      await useLocalFile(face(), localHits[+fig.dataset.local].file);
+      await applyArtChoice(target, faceIdx, f => useLocalFile(f, localHits[+fig.dataset.local].file));
       closeModal(); save(); renderAll(); return;
     }
     const card = mpcDetails.get(fig.dataset.id); if (!card) return;
@@ -1661,9 +1668,11 @@ async function openMpcPicker(target) {
       await removeImageIfUnused(old);
       toast('Cardback set. Back pages are on.');
     } else {
-      const f = face(), old = f.custom;
-      delete f.custom; delete f.auto; delete f.template; delete f.lowRes; Object.assign(f, mpcArt(card));
-      await removeImageIfUnused(old);
+      await applyArtChoice(target, faceIdx, async f => {
+        const old = f.custom;
+        delete f.custom; delete f.auto; delete f.template; delete f.lowRes; Object.assign(f, mpcArt(card));
+        await removeImageIfUnused(old);
+      });
     }
     closeModal(); save(); renderAll();
   });
@@ -2022,6 +2031,83 @@ $('#deckDel').onclick = async () => {
 };
 
 /* ---------- UI: card list ---------- */
+let selectedCopies = new Set(), selectionDeck = null, selectionAnchor = null;
+const copyKey = (e, copy) => `${e.uid}:${copy}`;
+function syncCardSelection() {
+  if (selectionDeck !== S.deckId) { selectedCopies.clear(); selectionAnchor = null; selectionDeck = S.deckId; }
+  const valid = new Set(deck().entries.flatMap(e => Array.from({length:e.qty}, (_, q) => copyKey(e, q))));
+  selectedCopies = new Set([...selectedCopies].filter(k => valid.has(k)));
+  $('#cardSelection').hidden = !selectedCopies.size;
+  $('#cardSelectionCount').textContent = `${selectedCopies.size} cop${selectedCopies.size === 1 ? 'y' : 'ies'} selected`;
+  $$('#pages .copy-selection-mark').forEach(mark => mark.remove());
+  $$('#pages img[data-copy]').forEach(im => {
+    const on = selectedCopies.has(`${im.dataset.uid}:${im.dataset.copy}`); im.classList.toggle('selected', on); im.setAttribute('aria-pressed', String(on));
+    if (on) {
+      const mark = document.createElement('span'); mark.className = 'copy-selection-mark'; mark.textContent = '✓'; mark.setAttribute('aria-hidden', 'true');
+      mark.style.left = (parseFloat(im.style.left) || im.offsetLeft) + 5 + 'px'; mark.style.top = (parseFloat(im.style.top) || im.offsetTop) + 5 + 'px'; im.parentElement.appendChild(mark);
+    }
+  });
+  $$('#cardList .card').forEach(row => {
+    const e = deck().entries.find(e => e.uid === row.dataset.uid), box = row.querySelector('[data-act="select"]');
+    const count = Array.from({length:e.qty}, (_, q) => selectedCopies.has(copyKey(e, q))).filter(Boolean).length;
+    row.classList.toggle('selected', count > 0);
+    box.checked = !!e.qty && count === e.qty; box.indeterminate = count > 0 && count < e.qty;
+  });
+}
+function selectCopy(e, copy, ev = {}) {
+  syncCardSelection();
+  const key = copyKey(e, copy), keys = [...new Set(buildSlots().map(slot => copyKey(slot.e, slot.copy)))];
+  if (ev.shiftKey && keys.includes(selectionAnchor)) {
+    const a = keys.indexOf(selectionAnchor), b = keys.indexOf(key);
+    if (!ev.ctrlKey && !ev.metaKey) selectedCopies.clear();
+    keys.slice(Math.min(a, b), Math.max(a, b) + 1).forEach(k => selectedCopies.add(k));
+  } else {
+    if (!ev.ctrlKey && !ev.metaKey && !ev.shiftKey) selectedCopies.clear();
+    if ((ev.ctrlKey || ev.metaKey) && selectedCopies.has(key)) selectedCopies.delete(key); else selectedCopies.add(key);
+    selectionAnchor = key;
+  }
+  syncCardSelection();
+}
+function selectedArtTarget() {
+  syncCardSelection();
+  const copies = deck().entries.map(e => ({uid:e.uid, copies:Array.from({length:e.qty}, (_, q) => q).filter(q => selectedCopies.has(copyKey(e, q)))})).filter(x => x.copies.length);
+  return copies.length ? {e:deck().entries.find(e => e.uid === copies[0].uid), i:0, copies, deckId:S.deckId} : null;
+}
+async function applyArtChoice(target, i, update) {
+  if (!target.copies) { await update(target.e.faces[i]); return; }
+  if (target.deckId !== S.deckId) return;
+  const d = deck(), prepared = new Map(), oldKeys = [];
+  for (const item of target.copies) {
+    const e = d.entries.find(e => e.uid === item.uid);
+    if (!e?.faces[i]) continue;
+    const copies = new Set(item.copies.filter(q => q < e.qty)); if (!copies.size) continue;
+    const f = JSON.parse(JSON.stringify(e.faces[i])); await update(f);
+    prepared.set(e, {copies, face:f}); oldKeys.push(e.faces[i].custom);
+  }
+  d.entries = d.entries.flatMap(e => {
+    const change = prepared.get(e); if (!change) return [e];
+    const runs = [];
+    for (let q = 0; q < e.qty; q++) {
+      const chosen = change.copies.has(q), last = runs.at(-1);
+      if (last?.chosen === chosen) last.qty++; else runs.push({chosen, qty:1});
+    }
+    const entries = runs.map((run, n) => {
+      const entry = JSON.parse(JSON.stringify(e)); entry.uid = n ? uid() : e.uid; entry.qty = run.qty;
+      if (run.chosen) entry.faces[i] = JSON.parse(JSON.stringify(change.face));
+      return entry;
+    });
+    Object.assign(e, entries[0]); entries[0] = e; return entries;
+  });
+  selectedCopies.clear(); selectionAnchor = null;
+  for (const key of oldKeys) await removeImageIfUnused(key);
+}
+$('#changeSelectedArt').onclick = () => { const target = selectedArtTarget(); if (target) openMpcPicker(target); };
+$('#clearCardSelection').onclick = () => { selectedCopies.clear(); syncCardSelection(); };
+$('#selectAllCopies').onclick = () => {
+  const names = new Set(deck().entries.filter(e => Array.from({length:e.qty}, (_, q) => selectedCopies.has(copyKey(e, q))).some(Boolean)).map(e => normName(e.name)));
+  deck().entries.filter(e => names.has(normName(e.name))).forEach(e => { for (let q = 0; q < e.qty; q++) selectedCopies.add(copyKey(e, q)); });
+  syncCardSelection();
+};
 let faceTarget = null;
 async function renderCards() {
   const d = deck(), list = $('#cardList');
@@ -2032,7 +2118,7 @@ async function renderCards() {
   const need = d.entries.filter(e => !e.mpc && e.faces.some(isPreview)).length;
   $('#deckHealth').innerHTML = need ? `<span style="color:#ff9c95">${need} need${need === 1 ? 's' : ''} art</span>` : '';
   $('#btnMpcAuto').classList.toggle('primary', need > 0);
-  if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; return; }
+  if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; syncCardSelection(); return; }
   list.innerHTML = d.entries.map(e => `
     <div class="card" data-uid="${esc(e.uid)}">
       <img data-act="art" alt="" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
@@ -2042,6 +2128,7 @@ async function renderCards() {
           ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">custom art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Scryfall placeholder · not for print</span>' : ''}</div>
       </div>
       <div class="ctl">
+        <input type="checkbox" data-act="select" style="width:auto" aria-label="Select all copies of ${esc(e.name)}">
         <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity"><button class="icon" data-act="inc" aria-label="More">+</button></div>
         <button class="icon more" data-act="more" title="Change art, custom card, upload, remove" aria-label="Card options">⋯</button>
       </div>
@@ -2050,7 +2137,7 @@ async function renderCards() {
     const img = list.querySelector(`[data-uid="${CSS.escape(e.uid)}"] img`);
     const f = e.faces[0]; if (f) thumbSrc(f).then(u => { if (u) img.src = u; });
   }
-  applyDeckFilter();
+  applyDeckFilter(); syncCardSelection();
 }
 function applyDeckFilter() {
   const q = $('#deckFilter').hidden ? '' : $('#deckFilter').value.trim().toLowerCase();
@@ -2058,12 +2145,21 @@ function applyDeckFilter() {
 }
 $('#deckFilter').oninput = applyDeckFilter;
 $('#cardList').addEventListener('click', async ev => {
-  const act = ev.target.dataset.act; if (!act || act === 'qty') return;
-  const row = ev.target.closest('.card'), d = deck(), e = d.entries.find(x => x.uid === row.dataset.uid);
+  const row = ev.target.closest('.card'); if (!row) return;
+  const entry = deck().entries.find(e => e.uid === row.dataset.uid);
+  const act = ev.target.dataset.act;
+  if (act === 'select' || ((ev.shiftKey || ev.ctrlKey || ev.metaKey) && !ev.target.closest('.qty'))) {
+    syncCardSelection();
+    if (ev.shiftKey) { selectCopy(entry, Math.max(0, entry.qty - 1), ev); return; }
+    const all = Array.from({length:entry.qty}, (_, q) => copyKey(entry, q)), remove = all.every(k => selectedCopies.has(k));
+    all.forEach(k => remove ? selectedCopies.delete(k) : selectedCopies.add(k)); selectionAnchor = all[0]; syncCardSelection(); return;
+  }
+  if (!act || act === 'qty') return;
+  const d = deck(), e = d.entries.find(x => x.uid === row.dataset.uid);
   if (act === 'inc') e.qty++;
   else if (act === 'dec') e.qty = Math.max(0, e.qty - 1);
   else if (act === 'del') { await removeEntry(e); return; }
-  else if (act === 'art') { if (e.faces[0]?.template) openCardMaker({e, i:0}); else if (e.custom && !e.mpc) { faceTarget = {e, i:0}; $('#fileFace').click(); } else openMpcPicker({e, i:0}); return; }
+  else if (act === 'art') { const target = selectedArtTarget(); if (target?.copies.some(x => x.uid === e.uid)) { openMpcPicker({...target, e, i:0}); return; } if (e.faces[0]?.template) openCardMaker({e, i:0}); else if (e.custom && !e.mpc) { faceTarget = {e, i:0}; $('#fileFace').click(); } else openMpcPicker({e, i:0}); return; }
   else if (act === 'upload') {
     if (e.faces.length > 1) { const i = prompt(`Which face? 1 = ${e.faces[0].name}, 2 = ${e.faces[1].name}`, '1'); if (!i) return; faceTarget = {e, i:Math.min(e.faces.length, Math.max(1, +i)) - 1}; }
     else faceTarget = {e, i:0};
@@ -2080,11 +2176,14 @@ $('#cardList').addEventListener('change', ev => {
 });
 $('#fileFace').onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ''; if (!f || !faceTarget) return;
-  const {e, i} = faceTarget, old = e.faces[i].custom;
-  e.faces[i].custom = await storeImage(f);
-  for (const k of ['srcBleed', 'drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'template', 'lowRes']) delete e.faces[i][k];
-  if (e.custom) e.faces[i].name = e.name;
-  await removeImageIfUnused(old);
+  const target = faceTarget, {e, i} = target;
+  const key = await storeImage(f);
+  await applyArtChoice(target, i, async face => {
+    const old = face.custom; face.custom = key;
+    for (const k of ['srcBleed', 'drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'template', 'lowRes']) delete face[k];
+    if (e.custom) face.name = e.name;
+    await removeImageIfUnused(old);
+  });
   save(); renderAll();
 };
 $('#btnImport').onclick = () => {
@@ -3225,12 +3324,17 @@ async function removeEntry(e) {
   save(); renderAll();
 }
 function closeCtx() { $('#ctx').classList.remove('on'); }
-function openCtx(x, y, e, i) {
+function openCtx(x, y, e, i, copy) {
   const m = $('#ctx'), cardback = i === 'back';
+  const selected = selectedArtTarget();
+  const target = selected && selected.copies.some(x => x.uid === e.uid && (copy === undefined || x.copies.includes(copy))) ? {...selected, e, i} : copy === undefined ? {e, i} : {e, i, deckId:S.deckId, copies:[{uid:e.uid, copies:[copy]}]};
+  const count = target.copies?.reduce((n, x) => n + x.copies.length, 0);
+  const same = deck().entries.filter(x => normName(x.name) === normName(e.name)), allCount = same.reduce((n, x) => n + x.qty, 0);
   m.innerHTML = cardback
     ? `<div class="ttl">Card back</div><button data-c="back" role="menuitem">Change cardback…</button>`
     : `<div class="ttl">${esc(e.faces[i]?.name || e.name)}</div>
-       <button data-c="art" role="menuitem">Change art…</button>
+       <button data-c="art" role="menuitem">${count ? `Change art for ${count} selected cop${count === 1 ? 'y' : 'ies'}…` : 'Change art…'}</button>
+       ${allCount > 1 ? `<button data-c="allart" role="menuitem">Change art for all ${allCount} copies…</button>` : ''}
        <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
        <button data-c="upload" role="menuitem">Upload image…</button>
        <button data-c="del" class="danger" role="menuitem">Remove card</button>`;
@@ -3241,8 +3345,9 @@ function openCtx(x, y, e, i) {
     const c = ev.target.dataset.c; if (!c) return;
     closeCtx();
     if (c === 'back') openMpcPicker({cardback:true});
-    else if (c === 'art') openMpcPicker({e, i});
-    else if (c === 'upload') { faceTarget = {e, i}; $('#fileFace').click(); }
+    else if (c === 'art') openMpcPicker(target);
+    else if (c === 'allart') openMpcPicker({e, i, deckId:S.deckId, copies:same.map(x => ({uid:x.uid, copies:Array.from({length:x.qty}, (_, q) => q)}))});
+    else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
     else if (c === 'maker') openCardMaker({e, i});
     else if (c === 'del' && confirm(`Remove ${e.name}?`)) removeEntry(e);
   };
@@ -3265,18 +3370,22 @@ longPress($('#cardList'), ev => {
 });
 longPress($('#pages'), ev => {
   const im = ev.target.closest('img[data-uid]'); if (!im) return;
-  const e = deck().entries.find(x => x.uid === im.dataset.uid); if (e) openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face);
+  const e = deck().entries.find(x => x.uid === im.dataset.uid); if (e) openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face, im.dataset.copy === undefined ? undefined : +im.dataset.copy);
 });
 $('#cardList').addEventListener('contextmenu', ev => {
   const row = ev.target.closest('.card'); if (!row) return;
   const e = deck().entries.find(x => x.uid === row.dataset.uid); if (!e) return;
   ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, 0);
 });
-$('#pages').addEventListener('click', ev => { if (ev.target.closest('.noback, .gal-cb')) { $('.tabs button[data-tab=order]').click(); $('#oBackBrowse').focus(); } });
+$('#pages').addEventListener('click', ev => {
+  const im = ev.target.closest('img[data-copy]');
+  if (im) { ev.preventDefault(); const e = deck().entries.find(e => e.uid === im.dataset.uid); if (e) selectCopy(e, +im.dataset.copy, ev); return; }
+  if (ev.target.closest('.noback, .gal-cb')) { $('.tabs button[data-tab=order]').click(); $('#oBackBrowse').focus(); } });
+$('#pages').addEventListener('keydown', ev => { if (ev.target.matches('img[data-copy]') && ['Enter', ' '].includes(ev.key)) { ev.preventDefault(); const e = deck().entries.find(e => e.uid === ev.target.dataset.uid); if (e) selectCopy(e, +ev.target.dataset.copy, ev); } });
 $('#pages').addEventListener('contextmenu', ev => {
   const im = ev.target.closest('img[data-uid]'); if (!im) return;
   const e = deck().entries.find(x => x.uid === im.dataset.uid); if (!e) return;
-  ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face);
+  ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face, im.dataset.copy === undefined ? undefined : +im.dataset.copy);
 });
 addEventListener('click', ev => { if (!ev.target.closest('#ctx')) closeCtx(); });
 addEventListener('scroll', closeCtx, true);
@@ -3609,7 +3718,7 @@ async function drawPreview() {
       page.forEach((slot, i) => {
         const face = back ? slot.back : slot.front; if (!face) return;
         const p = slotPos(L, i, back), im = document.createElement('img');
-        im.dataset.uid = slot.e.uid; im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
+        im.dataset.uid = slot.e.uid; im.dataset.copy = slot.copy; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${slot.e.name}, copy ${slot.copy + 1}`); im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
         Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
         const rot = faceRot(L, back);
         if (isPreview(face)) {
@@ -3649,7 +3758,7 @@ async function drawPreview() {
       frag.appendChild(el);
     }
   });
-  wrap.replaceChildren(frag);
+  wrap.replaceChildren(frag); syncCardSelection();
 }
 async function drawGallery(gen, wrap, z) {
   const d = deck(), cb = S.settings.backImage ? {name:'Card back', custom:S.settings.backImage} : d.cardback;
@@ -3657,25 +3766,27 @@ async function drawGallery(gen, wrap, z) {
   const frag = document.createElement('div'); frag.className = 'gal';
   for (const e of d.entries) {
     if (!e.qty || !e.faces.length) continue;
-    const tile = document.createElement('div'); tile.className = 'tile';
-    const sides = [[e.faces[0], 0], [e.faces[1] || cb, e.faces[1] ? 1 : 'back']];
-    for (const [f, i] of sides) {
-      if (!f) {
-        tile.insertAdjacentHTML('beforeend', `<div class="noback" data-uid="${esc(e.uid)}" title="No cardback yet" style="width:${Math.round(w * 0.6)}px;height:${Math.round(h * 0.6)}px"></div>`);
-        continue;
+    for (let copy = 0; copy < e.qty; copy++) {
+      const tile = document.createElement('div'); tile.className = 'tile';
+      const sides = [[e.faces[0], 0], [e.faces[1] || cb, e.faces[1] ? 1 : 'back']];
+      for (const [f, i] of sides) {
+        if (!f) {
+          tile.insertAdjacentHTML('beforeend', `<div class="noback" data-uid="${esc(e.uid)}" title="No cardback yet" style="width:${Math.round(w * 0.6)}px;height:${Math.round(h * 0.6)}px"></div>`);
+          continue;
+        }
+        const im = document.createElement('img'); im.width = i === 0 ? w : Math.round(w * 0.6); im.height = i === 0 ? h : Math.round(h * 0.6);
+        im.alt = f ? f.name : 'No cardback'; im.title = i === 'back' ? 'Cardback' : f?.name || '';
+        im.dataset.uid = e.uid; if (i !== 'back') { im.dataset.copy = copy; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${e.name}, copy ${copy + 1}`); } im.dataset.face = i; im.style.alignSelf = 'flex-end';
+        if (f) thumbSrc(f).then(u => { if (gen === previewGen && u) im.src = u; });
+        tile.appendChild(im);
       }
-      const im = document.createElement('img'); im.width = i === 0 ? w : Math.round(w * 0.6); im.height = i === 0 ? h : Math.round(h * 0.6);
-      im.alt = f ? f.name : 'No cardback'; im.title = i === 'back' ? 'Cardback' : f?.name || '';
-      im.dataset.uid = e.uid; im.dataset.face = i; im.style.alignSelf = 'flex-end';
-      if (f) thumbSrc(f).then(u => { if (gen === previewGen && u) im.src = u; });
-      tile.appendChild(im);
+      if (isPreview(e.faces[0]) || (e.faces[1] && isPreview(e.faces[1]))) tile.insertAdjacentHTML('beforeend', '<span class="lowres">Needs art</span>');
+      if (e.qty > 1) tile.insertAdjacentHTML('beforeend', `<span class="qty">${copy + 1} / ${e.qty}</span>`);
+      frag.appendChild(tile);
     }
-    if (isPreview(e.faces[0]) || (e.faces[1] && isPreview(e.faces[1]))) tile.insertAdjacentHTML('beforeend', '<span class="lowres">Needs art</span>');
-    if (e.qty > 1) tile.insertAdjacentHTML('beforeend', `<span class="qty">×${e.qty}</span>`);
-    frag.appendChild(tile);
   }
   if (!cb) frag.insertAdjacentHTML('afterbegin', `<div class="galnote">No cardback chosen yet. Every card except double-faced ones gets it on the back. <button class="primary icon gal-cb">Choose a cardback</button></div>`);
-  wrap.replaceChildren(frag);
+  wrap.replaceChildren(frag); syncCardSelection();
 }
 function renderStats() {
   if (S.mode === 'order') {
