@@ -313,6 +313,7 @@ details.adv:not([open]){padding-bottom:10px}
         <button id="deckRename">Rename deck</button>
         <button id="deckDup">Duplicate deck</button>
         <button id="btnCopyList">Copy decklist</button>
+        <button id="btnReplace" title="Replace every card in this deck with the pasted list">Replace from pasted list</button>
         <button id="btnClear" class="danger">Remove all cards</button>
         <button id="deckDel" class="danger">Delete deck</button>
       </div>
@@ -339,28 +340,26 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num" id="cardsStepLabel">Step 1 of 4</div>
         <h2>Add cards &amp; decklist</h2>
-        <p class="hint">Paste a decklist or link below. High-res art is selected automatically. Review the cards before continuing.</p>
+        <p class="hint">Paste a decklist below, or import a link or file. High-res art is selected automatically. Review your cards before continuing.</p>
       </div>
-      <div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0;width:auto" placeholder="Moxfield or Archidekt deck link" aria-label="Deck link"><button id="btnLink" title="Add every card in that deck">Import</button></div>
+      <button id="btnLink" style="width:100%;margin-bottom:8px" title="Import from Moxfield, Archidekt or a local file">Import deck…</button>
       <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
-      <div class="row" style="margin-top:6px">
-        <button id="btnImport" class="primary" title="Add these cards (Ctrl+Enter)">Add to deck</button>
-        <button id="btnReplace" title="Replace every card in this deck with this list">Replace deck</button>
-        <span class="hint kbd">Ctrl+Enter</span>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <button id="btnTokens" title="Add the tokens and emblems your cards make">+ Tokens</button>
-        <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
-        <button id="btnMaker" title="Put your own art into a card frame with the card's text">+ Custom card</button>
+      <div class="row" style="margin-top:8px">
+        <button id="btnImport" class="primary" style="flex:1" title="Add these cards (Ctrl+Enter)">Add to deck</button>
+        <button id="btnTokens" style="flex:1" title="Add the tokens and emblems created by cards in this deck">Add needed tokens</button>
       </div>
       <div id="importNote"></div>
       <details class="adv" id="moreSources" style="margin-top:8px">
-        <summary>More sources &amp; sharing</summary>
+        <summary>Images, custom cards &amp; sharing</summary>
         <div style="margin-top:8px">
+          <div class="row" style="margin-bottom:12px">
+            <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
+            <button id="btnMaker" title="Put your own art into a card frame with the card’s text">Create custom card…</button>
+          </div>
           <b style="font-size:12px;color:var(--text)">Share deck with art &amp; layout</b>
-          <p class="hint">Package this deck, chosen artwork, and card layout into a single file to share with a friend. When they open it, their own printer settings and alignment stay saved. Drop a shared deck onto this page or choose one below.</p>
-          <div class="row"><button id="printDeckOut">Save deck package…</button><button id="printDeckIn">Open shared deck…</button></div>
-          <input type="file" id="filePrintDeck" accept=".json,application/json" hidden>
+          <p class="hint">Package this deck, chosen artwork, and card layout into a single file to share with a friend. When they open it, their own printer settings and alignment stay saved. Drop a shared deck onto this page or use Import deck above.</p>
+          <div class="row"><button id="printDeckOut">Save deck package…</button></div>
+          <input type="file" id="filePrintDeck" accept=".json,.txt,.dec,.dek,.csv,.xml,application/json,text/plain,text/xml" hidden>
 
           <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local pictures &amp; order files</b>
           <div class="row" style="margin-top:6px">
@@ -807,10 +806,49 @@ function sheetFeedable(printerId, w, h) {
 const PRINTERS = [
   {id:'et8500', name:'Epson EcoTank ET-8500 / ET-8550 (inkjet)', kind:'Inkjet',
     paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
-    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS},
+    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS,
+    sources:[['User guide', 'https://files.support.epson.com/docid/cpd5/cpd59879/helpcontents.html']]},
   {id:'et2800', name:'Epson EcoTank ET-2800 / ET-2803 (inkjet)', kind:'Inkjet',
     paper:'ProxyJak INKJET semi-gloss, 300gsm', presets:['b-inkjet-land', 'b-inkjet-port'],
-    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS},
+    settings:EPSON_INKJET, tips:INKJET_STOCK_TIPS,
+    sources:[['User guide', 'https://files.support.epson.com/docid/cpd6/cpd60271.pdf']]},
+  // Manufacturer media and driver guides checked November 2026. Quality choices are starting points for test prints.
+  {id:'et2850', name:'Epson EcoTank ET-2850', kind:'Inkjet',
+    paper:'Epson photo or presentation paper, or compatible inkjet paper',
+    settings:[['Paper source', 'Rear paper feeder'], ['Paper type', 'Premium Photo Paper Semi-Gloss for semi-gloss; Premium Presentation Paper Matte for matte'],
+      ['Quality', 'High'], ['Borderless', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Match the paper type on the printer and in the driver to the paper you loaded.', 'Use paper listed in the guide. Support for Epson photo paper does not establish a 300gsm cardstock rating.', 'For coated paper, test one sheet and let the ink dry before re-feeding.'],
+    sources:[['Paper settings', 'https://files.support.epson.com/docid/cpd6/cpd60206/source/printers/source/paper_loading/reference/et2850_l4260/paper_type_settings_us_canada_et2850.html'], ['User guide', 'https://files.support.epson.com/docid/cpd6/cpd60206/helpcontents.html']]},
+  {id:'ts9521c', name:'Canon PIXMA TS9521C', kind:'Inkjet',
+    paper:'Inkjet card stock or Canon photo paper supported by the TS9500 series',
+    settings:[['Paper source', 'Rear Tray'], ['Media Type', 'Card stock for card stock; Photo Paper Plus Semi-gloss or Matte Photo Paper for matching photo paper'],
+      ['Print Quality', 'High'], ['Borderless', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Load card stock one sheet at a time in the rear tray.', 'Select the matching paper type on the printer. The card stock setting is not a blanket approval for 300gsm stock.', 'Test the paper before printing a full deck.'],
+    sources:[['Paper settings', 'https://ij.manual.canon/ij/webmanual/PrinterDriver/W/TS9500%20series/1.0/EN/PPG/dg-c_paper_type.html'], ['Loading limits', 'https://ij.manual.canon/ij/webmanual/Manual/All/TS9500%20series/EN/UG/ug-190.html']]},
+  {id:'g6020', name:'Canon PIXMA G6020 / G6050', kind:'Inkjet',
+    paper:'Supported inkjet specialty paper up to 200gsm',
+    settings:[['Paper source', 'Rear Tray'], ['Media Type', 'Photo Paper Plus Semi-gloss for semi-gloss; Matte Photo Paper for matte'],
+      ['Print Quality', 'High'], ['Borderless', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['The G6000 series guide lists specialty paper up to 200gsm. Use lighter paper with a backing card in a sleeve.', 'Match the media type on the printer and in the driver to the paper you loaded.', 'Let coated prints dry before handling or re-feeding.'],
+    sources:[['Media and weights', 'https://ij.manual.canon/ij/webmanual/Manual/All/G6000%20series/EN/UG/ug-189.html'], ['Driver settings', 'https://ij.manual.canon/ij/webmanual/PrinterDriver/W/G6000%20series/1.0/EN/PPG/Dg-main.html']]},
+  {id:'hll3270', name:'Brother HL-L3270CDW', kind:'Laser',
+    paper:'Laser-compatible paper, 60–163gsm',
+    settings:[['Paper source', 'Manual'], ['Media Type', 'Thick Paper for thick stock; Glossy Paper for laser glossy paper'],
+      ['Print Quality', 'Best available for the selected media'], ['Toner Save', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Load one sheet at a time in the manual feed slot. Use the rear face-up output for thick paper.', 'Brother lists a 163gsm maximum, including manual feed. Use lighter paper with a backing card in a sleeve.', 'Use paper made for laser printing. Match the media type to the sheet.'],
+    sources:[['Media and weights', 'https://support.brother.com/g/b/spec.aspx?c=us&lang=en&prod=hll3270cdw_us_eu_as'], ['Manual feed', 'https://support.brother.com/g/b/sp/faqend.aspx?c=au&faqid=faq00002792_503&lang=en&prod=hll3270cdw_us_eu_as']]},
+  {id:'mfcl3780', name:'Brother MFC-L3780CDW', kind:'Laser',
+    paper:'Laser-compatible paper, 60–163gsm',
+    settings:[['Paper source', 'MP Tray'], ['Media Type', 'Thick Paper for thick stock; Glossy Paper for laser glossy paper'],
+      ['Print Quality', 'Best available for the selected media'], ['Toner Save', 'Off'], ['Scale', 'Actual size / 100%']],
+    tips:['Use the multipurpose tray and match its paper type to the driver.', 'Brother lists a 163gsm maximum for this model. Use lighter paper with a backing card in a sleeve.', 'Test one sheet before printing the deck.'],
+    sources:[['Media and weights', 'https://support.brother.com/g/b/sp/faqend.aspx?c=us_ot&faqid=faq00000080_056&ftype3=2048&lang=en&prod=mfcl3780cdw_us_as'], ['Driver settings', 'https://support.brother.com/g/s/id/htmldoc/mfc/cv_dcpl3520cdw/asoce/html/GUID-F9CC5823-4CA5-46E3-BAE5-2A0FF7CF67F6_1.html']]},
+  {id:'hp4201', name:'HP Color LaserJet Pro 4201 / MFP 4301', kind:'Laser',
+    paper:'Laser-compatible cardstock, 176–200gsm, or lighter supported paper',
+    settings:[['Paper source', 'Tray 1'], ['Paper type', 'Cardstock 176–200g for matte cardstock; Card Glossy 176–200g for matching laser glossy stock'],
+      ['Print quality', 'Best available for the selected media'], ['Two-sided printing', 'Manual re-feed for cardstock'], ['Scale', 'Actual size / 100%']],
+    tips:['Cardstock 176–200g is supported from Tray 1 with manual duplexing only.', 'Match the paper type and weight to the sheet; choose a lighter paper type for lighter stock.', '300gsm cardstock exceeds the listed media range. Use lighter paper with a backing card in a sleeve.'],
+    sources:[['Paper types and trays', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
   {id:'mf753', name:'Canon Color imageCLASS MF753Cdw / MF753Cdw II (laser)', kind:'Laser',
     paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
     settings:[
@@ -831,7 +869,8 @@ const PRINTERS = [
       ['Special Fine Line Processing', 'Mode 2'], ['Always Rasterize at Host', 'Off'],
       ['EMF Spooling', 'Off'],
     ],
-    tips:LASER_TIPS},
+    tips:LASER_TIPS,
+    sources:[['MF753Cdw guide', 'https://oip.manual.canon/USRMA-7178-zz-SSM-750-enUS/'], ['MF753Cdw II guide', 'https://oip.manual.canon/USRMA-9605-zz-SSM-750II-enUS/']]},
   {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
     paper:'Inkjet-coated cardstock, e.g. ProxyJak INKJET semi-gloss', presets:['b-inkjet-land', 'b-inkjet-port'],
     settings:[
@@ -839,7 +878,8 @@ const PRINTERS = [
       ['Paper type', 'Photo paper, semi-gloss or glossy'],
       ['Quality', 'High / Best'],
     ],
-    tips:INKJET_STOCK_TIPS},
+    tips:INKJET_STOCK_TIPS,
+    sources:[['Epson paper settings example', 'https://files.support.epson.com/docid/cpd6/cpd60206/source/printers/source/paper_loading/reference/et2850_l4260/paper_type_settings_us_canada_et2850.html']]},
   {id:'laser', name:'Other laser printers', kind:'Laser',
     paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
     settings:[
@@ -848,7 +888,8 @@ const PRINTERS = [
       ['Resolution', 'Highest available'],
       ['Toner save', 'Off'],
     ],
-    tips:LASER_TIPS},
+    tips:LASER_TIPS,
+    sources:[['HP paper settings example', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
 ];
 
 /* ---------- storage (IndexedDB, falls back to memory) ---------- */
@@ -2053,12 +2094,19 @@ $('#btnImport').onclick = () => {
 };
 $('#btnReplace').onclick = () => { if (!deck().entries.length || confirm('Replace every card in this deck?')) importList($('#listIn').value, true); };
 $('#btnLink').onclick = () => {
-  let v = $('#linkIn').value.trim();
-  if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
-  if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link, e.g. https://moxfield.com/decks/…');
-  importList(v, false).then(() => { $('#linkIn').value = ''; });
+  openModal(`<div class="hd"><b>Import deck</b><button data-close>Close</button></div><div class="bd">
+    <label for="linkIn">Moxfield or Archidekt link</label><div class="row" style="margin-top:6px"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0" placeholder="https://moxfield.com/decks/…"><button id="importLinkSubmit" class="primary">Import link</button></div>
+    <h3>From your computer</h3><button id="importLocal">Choose file…</button><p class="hint">Shared deck or backup JSON, text decklist, or order XML.</p></div>`);
+  $('#importLinkSubmit').onclick = () => {
+    let v = $('#linkIn').value.trim();
+    if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
+    if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link.');
+    closeModal(); importList(v, false);
+  };
+  $('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#importLinkSubmit').click(); });
+  $('#importLocal').onclick = () => $('#filePrintDeck').click();
+  $('#linkIn').focus();
 };
-$('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#btnLink').click(); });
 $('#btnTokens').onclick = addTokens;
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
@@ -3132,7 +3180,7 @@ const TOUR = {
       <button data-tm="print" class="${S.mode === 'print' ? 'on' : ''}"><b>Print at home</b><span>A PDF for your own printer, with bleed, cut guides and double-sided backs.</span></button>
       <button data-tm="order" class="${S.mode === 'order' ? 'on' : ''}"><b>Order prints</b><span>An order for MakePlayingCards.com, placed with their free desktop tool.</span></button>
     </div><p class="hint">You can switch any time with the buttons at the top.</p>`},
-  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Or paste a Moxfield or Archidekt deck link into the box above it and press <b>Import</b>. MTGA and MTGO exports work too.</p>
+  cards:{title:'1 · Add your cards', body:() => `<p>Paste a decklist into the <b>Cards</b> tab and press <b>Add to deck</b> (or Ctrl+Enter). Use <b>Import deck…</b> for a Moxfield or Archidekt link, a saved deck JSON, or a local decklist file. MTGA and MTGO exports work too.</p>
     <p><b>+ Tokens</b> adds the tokens your cards make. Decks save automatically. The <b>⋯</b> menu next to the deck name makes, renames and deletes decks.</p>`},
   art:{title:'2 · Art is picked for you', body:() => `<p>Every card gets high-res art automatically. A red <span class="tag bad">Scryfall placeholder · not for print</span> label means a card still has low-res art.</p>
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>`},
@@ -3398,6 +3446,7 @@ $('#tab-setup').addEventListener('change', async ev => {
   const s = S.settings;
   if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) { t.reportValidity(); t.value = s[k]; return; }
   s[k] = t.type === 'checkbox' ? t.checked : t.hasAttribute('data-num') ? (parseFloat(t.value) || 0) : t.value;
+  if (k === 'orientation') s.cardRotation = 'upright';
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
@@ -3428,7 +3477,7 @@ $('#settingsForm').addEventListener('change', async ev => {
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
-  return {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:S.settings.silhouette ? 'landscape' : p.settings.orientation};
+  return {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:S.settings.silhouette ? 'landscape' : p.settings.orientation, cardRotation:'upright'};
 }
 function applyPreset(p) {
   S.settings = presetSettings(p);
@@ -3453,6 +3502,7 @@ function renderPrinter() {
       <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <p class="hint" style="margin-top:6px">💡 <b>Recommended paper:</b> ${esc(pr.paper)}</p>
       <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
+      ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
       ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
       <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>
     </details>`;
@@ -3541,7 +3591,7 @@ async function drawPreview() {
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
   if (!slots.length) {
     wrap.innerHTML = `<div class="empty"><h2>${S.mode === 'order' ? 'Order prints in three steps' : 'Print proxies in three steps'}</h2><ol>
-      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or paste a Moxfield or Archidekt link and press <b>Import</b>.</li>
+      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or choose <b>Import deck…</b> for a deck link or local file.</li>
       <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
       <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Review order</b>.' : 'Pick your printer in <b>2. Print</b>, choose your tool in <b>3. Cut</b>, then download your files in <b>4. Export</b>.'}</li></ol></div>`;
     return;
@@ -4035,8 +4085,7 @@ $('#printDeckOut').onclick = async () => {
   catch (err) { toast('Could not export deck package: ' + err.message, 9000); }
   finally { busy(false); }
 };
-$('#printDeckIn').onclick = () => $('#filePrintDeck').click();
-$('#filePrintDeck').onchange = ev => { const file = ev.target.files[0]; ev.target.value = ''; if (file) openPrintDeckFile(file); };
+$('#filePrintDeck').onchange = ev => { const file = ev.target.files[0]; ev.target.value = ''; if (file) { closeModal(); importDeckFile(file); } };
 async function readPrintDeck(file) {
   const reader = file.stream().getReader(), decoder = new TextDecoder();
   let buffer = '', pos = 0, done = false;
@@ -4089,11 +4138,30 @@ async function readPrintDeck(file) {
     return data;
   } finally { await reader.cancel(); reader.releaseLock(); }
 }
+async function importDeckFile(file) {
+  if (/\.json$/i.test(file.name) || file.type === 'application/json') return openPrintDeckFile(file);
+  if (file.size > 10 * 1024 * 1024) return toast('Decklist and order files must be under 10 MB.');
+  try {
+    const text = await file.text();
+    if (/\.xml$/i.test(file.name)) return await importMpcXml(text, file.name);
+    $('#listIn').value = text; await importList(text, false);
+  } catch (err) { toast('Could not import file: ' + err.message, 9000); }
+}
 async function openPrintDeckFile(file) {
   busy(true, 'Reading deck package…');
   try {
     if (file.size > PRINT_DECK_LIMIT) throw new Error('This deck package exceeds the 2 GB file limit. Split it into smaller decks.');
     const data = await readPrintDeck(file);
+    if (data?.app === 'proxy-press' && data.version === 1 && !data.type && Array.isArray(data.decks) && data.decks.length) {
+      openModal(`<div class="hd"><b>Import from backup</b><button data-close>Close</button></div><div class="bd"><label for="backupDeckChoice">Deck</label><select id="backupDeckChoice">${data.decks.map((d, i) => `<option value="${i}">${esc(d?.name || 'Untitled deck')}</option>`).join('')}</select><p class="hint">Adds the selected deck and its artwork. Your printer settings stay saved.</p><button class="primary" id="backupDeckImport">Import deck &amp; art</button></div>`);
+      $('#backupDeckImport').onclick = async () => {
+        const raw = data.decks[+$('#backupDeckChoice').value]; closeModal(); busy(true, 'Adding deck and artwork…');
+        try { await importPrintDeck({app:'proxy-press', version:1, type:'print-deck', deck:raw, settings:data.settings, images:data.images}, false); }
+        catch (err) { toast('Could not import deck: ' + err.message, 9000); }
+        finally { busy(false); }
+      };
+      return;
+    }
     if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Please choose a valid Proxy Press shared deck file.');
     const d = cleanDeck(data.deck);
     openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout" checked> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Import deck &amp; art</button></div>`);

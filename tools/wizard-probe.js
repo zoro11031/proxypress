@@ -57,7 +57,9 @@
     Object.assign(S.settings, {offsetX:1.2, scaleY:99.8, brightness:107, dpi:600, duplexMethod:'auto'});
     const preserved = () => JSON.stringify([S.settings.offsetX, S.settings.scaleY, S.settings.brightness, S.settings.dpi, S.settings.duplexMethod]);
     const before = preserved();
+    S.settings.cardRotation = 'rotated';
     $('#presetGrid [data-preset="b-a4"]').click();
+    eq('portrait paper uses upright cards', !!layout().rot, false);
     eq('paper preserves alignment and print choices', preserved(), before);
     $('#printerSel').value = 'Laser';
     $('#printerSel').dispatchEvent(new Event('change'));
@@ -74,6 +76,17 @@
     eq('printer model remembered per type', S.printer, 'laser');
     eq('calibration fields grouped with test sheets', !!$('#calDrawer [data-k="offsetX"]'), true);
     eq('no duplicate calibration fields', $$('[data-k="offsetX"]').length, 1);
+    for (const pr of PRINTERS) {
+      $('#printerSel').value = pr.kind; $('#printerSel').dispatchEvent(new Event('change'));
+      const settings = JSON.stringify(S.settings);
+      $('#driverDetails').open = true;
+      $('#driverPrinterSel').value = pr.id;
+      $('#driverPrinterSel').dispatchEvent(new Event('change', {bubbles:true}));
+      eq(`${pr.id} model selected`, S.printer, pr.id);
+      eq(`${pr.id} preserves print settings`, JSON.stringify(S.settings), settings);
+      eq(`${pr.id} has manufacturer links`, !!$('#driverDetails a[target="_blank"]'), true);
+    }
+
     $('#btnCutModeCameo').click();
     eq('cameo offers landscape paper only', $$('#presetGrid [data-preset]').length, 2);
     $('#presetGrid [data-preset="b-letter-land"]').click();

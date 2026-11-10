@@ -4,6 +4,7 @@
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
   const waitFor = async fn => { for (let i = 0; i < 100; i++) { if (fn()) return; await sleep(50); } throw new Error('Timed out waiting for UI'); };
   const originalDownload = download, originalFetch = window.fetch, originalSf = sf, originalConfirm = window.confirm;
+  const originalImportList = importList;
   const originalInfo = mpcCardInfo, originalApi = mpcApi, originalSearch = mpcSearch, originalCards = mpcCards, originalLocal = [...localIndex];
   download = (blob, name) => downloads.push({blob, name});
   try {
@@ -134,6 +135,30 @@
     eq('incomplete import leaves decks intact', S.decks.length, count);
     S.settings.pageSize = 'letter'; await importPrintDeck(parsed, false);
     created.push(...printDeckKeys(deck(), S.settings)); eq('optional import keeps recipient layout', S.settings.pageSize, 'letter');
+    // The import picker accepts remote links and local shared decks, backups and text.
+    const importedLists = [];
+    importList = async text => importedLists.push(text);
+    for (const host of ['moxfield', 'archidekt']) {
+      $('#btnLink').click();
+      eq('import picker offers local files', !!$('#importLocal'), true);
+      $('#linkIn').value = `${host}.com/decks/example`;
+      $('#importLinkSubmit').click();
+      eq(`${host} link normalized`, importedLists.at(-1), `https://${host}.com/decks/example`);
+    }
+    await importDeckFile(new File(['2 Sol Ring'], 'deck.txt', {type:'text/plain'}));
+    eq('local text uses decklist importer', importedLists.at(-1), '2 Sol Ring');
+    importList = originalImportList;
+    await importDeckFile(new File([JSON.stringify(parsed)], 'shared.json', {type:'application/json'}));
+    eq('local shared deck opens review', !!$('#printDeckConfirm'), true); closeModal(true);
+    const backupCount = S.decks.length, backupPaper = S.settings.pageSize;
+    const backup = {app:'proxy-press', version:1, decks:[parsed.deck], settings:parsed.settings, images:parsed.images};
+    await importDeckFile(new File([JSON.stringify(backup)], 'backup.json', {type:'application/json'}));
+    eq('local backup offers deck selection', $('#backupDeckChoice')?.options.length, 1);
+    await $('#backupDeckImport').onclick();
+    created.push(...printDeckKeys(deck(), S.settings));
+    eq('backup picker adds selected deck', S.decks.length, backupCount + 1);
+    eq('backup picker keeps paper settings', S.settings.pageSize, backupPaper);
+    eq('backup picker keeps printer alignment', S.settings.offsetX, -2);
     // Late art-search responses must not write into a closed or replacement modal.
     let resolveSearch;
     mpcApi = async () => ({languages:[]}); mpcCards = async () => [];
@@ -151,7 +176,7 @@
     eq('late search leaves next dialog intact', $('#modal .bd').textContent, 'Keep this content');
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally {
-    closeModal(true); download = originalDownload; window.fetch = originalFetch; sf = originalSf;
+    closeModal(true); importList = originalImportList; download = originalDownload; window.fetch = originalFetch; sf = originalSf;
     localIndex.splice(0, localIndex.length, ...originalLocal);
     mpcCardInfo = originalInfo; mpcApi = originalApi; mpcSearch = originalSearch; mpcCards = originalCards;
     window.confirm = originalConfirm; Object.assign(S, original); for (const key of new Set(created)) await removeImageIfUnused(key);
