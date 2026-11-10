@@ -2,20 +2,20 @@
 
 This directory contains the packaging files for [`proxypress-bin`](https://aur.archlinux.org/packages/proxypress-bin) on the Arch User Repository.
 
-## Installing from AUR
+## Installing with `makepkg`
 
-If using an AUR helper:
+Download `proxypress-bin-aur.tar.gz` from GitHub Releases, extract, and build:
+
+```sh
+tar -xvf proxypress-bin-aur.tar.gz
+makepkg -si
+```
+
+Once submitted to `aur.archlinux.org`, installation will also be possible via AUR helpers:
 ```sh
 yay -S proxypress-bin
 # or
 paru -S proxypress-bin
-```
-
-## Installing manually with `makepkg`
-
-```sh
-cd aur
-makepkg -si
 ```
 
 ## Publishing / Updating the AUR repository

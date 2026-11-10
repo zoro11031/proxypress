@@ -18,7 +18,7 @@ A browser-based MTG proxy maker. Drop in a decklist, pick your art, and get a pr
   - Debian & Ubuntu `.deb` package
   - Fedora, openSUSE & RHEL `.rpm` package
   - Arch Linux standalone `.pacman` package
-  - Arch User Repository (`aur/PKGBUILD` and `proxypress-bin-aur.tar.gz`)
+  - Arch packaging files (`aur/PKGBUILD` and `proxypress-bin-aur.tar.gz`)
 - **Print at Home Workflow:**
   - Configurable page margins, trim guides, bleed guides, and double-sided alignment calibration.
   - Silhouette Cameo registration marks and cut file generation.
@@ -56,13 +56,12 @@ A browser-based MTG proxy maker. Drop in a decklist, pick your art, and get a pr
     ```sh
     sudo pacman -U Proxy-Press-1.0.0.pacman
     ```
-  - Arch User Repository (AUR):
-    Download `proxypress-bin-aur.tar.gz`, unpack, and run:
+  - Arch build files (PKGBUILD):
+    Download `proxypress-bin-aur.tar.gz` from the release assets, unpack, and run:
     ```sh
     tar -xvf proxypress-bin-aur.tar.gz
     makepkg -si
     ```
-    *(Or install via an AUR helper: `yay -S proxypress-bin`)*
 
 ---
 
