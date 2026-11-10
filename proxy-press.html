@@ -34,8 +34,8 @@ textarea{resize:vertical;min-height:140px;font-family:ui-monospace,Menlo,Consola
 header{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
 header h1{font-size:16px;margin:0 8px 0 0;letter-spacing:.3px}
 header h1 span{color:var(--accent)}
-header h1{display:flex;align-items:center;gap:6px}
-header h1 .logo{display:block}
+header h1{display:flex;align-items:center;gap:8px}
+header h1 .logo{display:block;width:26px;height:26px;flex-shrink:0}
 header .grow{flex:1}
 header select{width:auto;min-width:160px}
 .stats{color:var(--muted);font-size:13px}
@@ -335,7 +335,7 @@ details.adv:not([open]){padding-bottom:10px}
 </head>
 <body>
 <header>
-  <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%231864AB' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%23D9480F' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%23141518' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23F59F00' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23FFF4E6'/%3E%3C/g%3E%3C/svg%3E" alt="" width="22" height="22" class="logo">Proxy<span>Press</span></h1>
+  <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%231864AB' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%23D9480F' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%23141518' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23F59F00' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23FFF4E6'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
   <div class="seg" id="modeSeg" role="tablist" aria-label="Mode">
     <button data-mode="print" role="tab" title="Make a PDF to print and cut yourself">Print at home</button>
     <button data-mode="order" role="tab" title="Make an order file for MakePlayingCards.com">Order prints</button>
@@ -3384,12 +3384,14 @@ const TOUR = {
     <li>Follow the steps it shows to place the order with the free desktop tool.</li></ol>
     <p class="hint">The community autofill tool is maintained by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting their server costs on Patreon</a>.</p>`},
 };
+let tourStep = 0;
 function openTour(at = 0) {
+  tourStep = at;
   S.welcomed = true; save();
-  const steps = ['welcome', 'cards', 'art', S.mode === 'order' ? 'order' : 'print'], last = at === steps.length - 1, step = TOUR[steps[at]];
+  const steps = ['welcome', 'cards', 'art', S.mode === 'order' ? 'order' : 'print'], last = tourStep === steps.length - 1, step = TOUR[steps[tourStep]];
   const contentHtml = `<div class="tour-body">${step.body()}</div>${last ? '<p class="hint">Reopen this tour any time with the <b>?</b> button at the top · <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">Donate to MPC Autofill on Patreon</a>.</p>' : ''}
-    <div class="tour-foot"><div class="tour-dots">${steps.map((_, n) => `<i class="${n === at ? 'on' : ''}"></i>`).join('')}</div>
-      ${at ? '<button data-tour="back">Back</button>' : ''}<button class="primary" data-tour="next">${last ? 'Get started' : 'Next'}</button></div>`;
+    <div class="tour-foot"><div class="tour-dots">${steps.map((_, n) => `<i class="${n === tourStep ? 'on' : ''}"></i>`).join('')}</div>
+      ${tourStep ? '<button data-tour="back">Back</button>' : ''}<button class="primary" data-tour="next">${last ? 'Get started' : 'Next'}</button></div>`;
   const existing = $('#modal.narrow .tour');
   if (existing && $('#overlay').classList.contains('on')) {
     $('#modal .hd b').textContent = step.title;
@@ -3404,8 +3406,9 @@ function openTour(at = 0) {
     const m = ev.target.closest('[data-tm]');
     if (m) { S.mode = m.dataset.tm; save(); applyMode(); renderAll(); return openTour(1); }
     const t = ev.target.dataset.tour;
-    if (t === 'back') openTour(at - 1);
-    else if (t === 'next') last ? (closeModal(), $('#listIn').focus()) : openTour(at + 1);
+    const isLast = tourStep === steps.length - 1;
+    if (t === 'back') openTour(tourStep - 1);
+    else if (t === 'next') isLast ? (closeModal(), $('#listIn').focus()) : openTour(tourStep + 1);
   };
 }
 $('#btnHelp').onclick = () => openTour(0);

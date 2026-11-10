@@ -6,47 +6,49 @@
     </filter>
   </defs>
 
-  <!-- Back Card: MTG Mana Blue -->
-  <g transform="rotate(-15 190 280)" filter="url(#cardShadow)">
-    <rect x="70" y="80" width="220" height="320" rx="16" fill="#1864AB" stroke="#0F1115" stroke-width="6" />
-    <rect x="84" y="94" width="192" height="292" rx="10" fill="none" stroke="#339AF0" stroke-width="4" opacity="0.6" />
-  </g>
+  <g transform="translate(259 256) scale(1.14) translate(-219 -255)">
+    <!-- Back Card: MTG Mana Blue -->
+    <g transform="rotate(-15 190 280)" filter="url(#cardShadow)">
+      <rect x="70" y="80" width="220" height="320" rx="16" fill="#1864AB" stroke="#0F1115" stroke-width="6" />
+      <rect x="84" y="94" width="192" height="292" rx="10" fill="none" stroke="#339AF0" stroke-width="4" opacity="0.6" />
+    </g>
 
-  <!-- Middle Card: Terracotta / Rust Orange -->
-  <g transform="rotate(-6 230 270)" filter="url(#cardShadow)">
-    <rect x="120" y="84" width="220" height="320" rx="16" fill="#D9480F" stroke="#0F1115" stroke-width="6" />
-    <rect x="134" y="98" width="192" height="292" rx="10" fill="none" stroke="#FF922B" stroke-width="4" opacity="0.6" />
-  </g>
+    <!-- Middle Card: Terracotta / Rust Orange -->
+    <g transform="rotate(-6 230 270)" filter="url(#cardShadow)">
+      <rect x="120" y="84" width="220" height="320" rx="16" fill="#D9480F" stroke="#0F1115" stroke-width="6" />
+      <rect x="134" y="98" width="192" height="292" rx="10" fill="none" stroke="#FF922B" stroke-width="4" opacity="0.6" />
+    </g>
 
-  <!-- Front Card: Deep Ink Black + Gold Border -->
-  <g transform="rotate(5 290 260)" filter="url(#cardShadow)">
-    <!-- Base Card Stock -->
-    <rect x="180" y="86" width="224" height="326" rx="18" fill="#141518" stroke="#0F1115" stroke-width="6" />
-    
-    <!-- Bold Gold Card Frame -->
-    <rect x="198" y="104" width="188" height="290" rx="12" fill="none" stroke="#F59F00" stroke-width="12" />
+    <!-- Front Card: Deep Ink Black + Gold Border -->
+    <g transform="rotate(5 290 260)" filter="url(#cardShadow)">
+      <!-- Base Card Stock -->
+      <rect x="180" y="86" width="224" height="326" rx="18" fill="#141518" stroke="#0F1115" stroke-width="6" />
+      
+      <!-- Bold Gold Card Frame -->
+      <rect x="198" y="104" width="188" height="290" rx="12" fill="none" stroke="#F59F00" stroke-width="12" />
 
-    <!-- High-Legibility Serif "P" Monogram -->
-    <path d="M 252 170 
-             H 298 
-             C 334 170 348 186 348 212 
-             C 348 240 332 254 298 254 
-             H 274 
-             V 306 
-             H 288 
-             V 318 
-             H 238 
-             V 306 
-             H 252 
-             V 182 
-             H 238 
-             V 170 
-             Z 
-             M 274 186 
-             V 238 
-             H 296 
-             C 318 238 326 228 326 212 
-             C 326 196 318 186 296 186 
-             Z" fill="#FFF4E6" />
+      <!-- High-Legibility Serif "P" Monogram -->
+      <path d="M 252 170 
+               H 298 
+               C 334 170 348 186 348 212 
+               C 348 240 332 254 298 254 
+               H 274 
+               V 306 
+               H 288 
+               V 318 
+               H 238 
+               V 306 
+               H 252 
+               V 182 
+               H 238 
+               V 170 
+               Z 
+               M 274 186 
+               V 238 
+               H 296 
+               C 318 238 326 228 326 212 
+               C 326 196 318 186 296 186 
+               Z" fill="#FFF4E6" />
+    </g>
   </g>
 </svg>
