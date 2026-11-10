@@ -350,6 +350,9 @@ if (app) {
   let mainWindow = null;
 
   app.whenReady().then(async () => {
+    if (process.platform === 'win32') {
+      app.setAppUserModelId('io.github.zoro11031.proxypress');
+    }
     let srv;
     try {
       srv = await startServer(8642).catch(() => startServer(0));
@@ -367,13 +370,20 @@ if (app) {
       minWidth: 960,
       minHeight: 640,
       title: 'Proxy Press',
+      backgroundColor: '#14161a',
+      darkTheme: true,
+      show: false,
       icon: fs.existsSync(iconPath) ? iconPath : undefined,
-      autoHideMenuBar: false,
+      autoHideMenuBar: true,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true
       }
+    });
+
+    mainWindow.once('ready-to-show', () => {
+      mainWindow.show();
     });
 
     mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
@@ -469,9 +479,21 @@ if (app) {
         mainWindow = new BrowserWindow({
           width: 1400,
           height: 900,
+          minWidth: 960,
+          minHeight: 640,
           title: 'Proxy Press',
-          icon: fs.existsSync(iconPath) ? iconPath : undefined
+          backgroundColor: '#14161a',
+          darkTheme: true,
+          show: false,
+          icon: fs.existsSync(iconPath) ? iconPath : undefined,
+          autoHideMenuBar: true,
+          webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: true
+          }
         });
+        mainWindow.once('ready-to-show', () => mainWindow.show());
         mainWindow.loadURL(`http://127.0.0.1:${srv.port}/`);
       }
     });
