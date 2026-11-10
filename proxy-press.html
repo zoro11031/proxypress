@@ -398,20 +398,22 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num">Step 2 of 4</div>
         <h2>Print setup &amp; paper</h2>
-        <p class="hint">Configure paper size, orientation, and double-sided printing.</p>
+        <p class="hint">Configure your printer, paper size, and card layout.</p>
       </div>
-      <h3>What paper are you printing on?</h3>
+      <h3>Your printer</h3>
+      <div class="field full">
+        <select id="printerSel" aria-label="Printer"></select>
+      </div>
+      <div id="printerGuide"></div>
+      <h3>Paper &amp; sheet size</h3>
       <div class="grid2" id="paperForm"></div>
-      <p class="hint">Choose A4 or Letter to match your sheets. Use the same paper size and Actual size / 100% in the print dialog.</p>
+      <p class="hint">Choose Letter or A4 to match your paper. Print at Actual size / 100% scale.</p>
       <div class="setup-hero-pill" id="setupSummary"></div>
-      <h3>Print presets</h3>
-      <p class="hint">Choose a printer type and layout. These presets keep your paper size.</p>
+      <h3>Layout presets</h3>
+      <p class="hint">Choose an orientation and layout preset for your printer. Selecting your printer automatically applies the best preset.</p>
       <div id="presetGrid"></div>
       <div class="row" style="margin-top:8px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
-      <h3>Your printer</h3>
-      <select id="printerSel" aria-label="Printer"></select>
-      <div id="printerGuide"></div>
-      <h3>Print options</h3>
+      <h3>Card &amp; print options</h3>
       <div id="settingsForm"></div>
       <details class="adv" id="calDrawer" style="margin-top:14px">
         <summary>Printer Alignment &amp; Test Sheets</summary>
@@ -3310,6 +3312,11 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
+  const normalMargin = (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') ? 5 : 4;
+  if (!out.silhouette && out.margin >= 10) out.margin = normalMargin;
+  if (!out.silhouette && (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') && out.margin < 5) out.margin = 5;
+  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.bleed === 3) out.bleed = 2;
+  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.cols === 3) out.cols = 0;
   return out;
 }
 // Backups are untrusted: rebuild decks from known fields with checked types.
@@ -3449,30 +3456,28 @@ function presetPer(p) {
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
   $('#printerSel').innerHTML = PRINTERS.map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
-  const presets = pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id));
   const paper = FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === S.settings.pageSize)[1];
   const row = ([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(k === 'Paper size' ? paper : v)}</td></tr>`;
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
-    <p class="hint" style="margin-top:6px">💡 <b>Paper recommendation:</b> ${esc(pr.paper)} (works with any cardstock)</p>
-    ${presets[0] ? `<button id="printerPresetApply">Apply recommended settings for ${pr.kind}</button><p class="hint">Applies the recommended print orientation, resolution, and margins for this printer.</p>` : ''}
-    <h3>Print dialog settings</h3>
-    <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
-    ${rest.length ? `<details class="adv"><summary>All driver settings (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
-    <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>`;
+    <details class="adv" id="driverDetails" style="margin:6px 0 14px">
+      <summary>🖨️ Driver settings &amp; tips for ${esc(pr.name)}</summary>
+      <p class="hint" style="margin-top:6px">💡 <b>Recommended paper:</b> ${esc(pr.paper)}</p>
+      <table class="drv">${pr.settings.map(row).join('')}</table>
+      ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
+      <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>
+    </details>`;
 }
-$('#printerGuide').addEventListener('click', e => {
-  if (!e.target.closest('#printerPresetApply')) return;
-  const preset = BUILTIN_PRESETS.find(p => p.id === printerOf(S.printer).presets[0]);
-  if (preset) { applyPreset(preset); save(); renderAll(); }
-});
-// Printer selection preserves the sheet; presets are applied explicitly.
+// Printer selection applies the printer's recommended preset for the active orientation and paper.
 const printerOf = id => PRINTERS.find(x => x.id === id) || PRINTERS[0];
 $('#printerSel').onchange = e => {
   S.printer = e.target.value;
   const pr = printerOf(S.printer);
   S.printerByKind = {...S.printerByKind, [pr.kind]:pr.id};
-  if (!S.settings.silhouette) {
+  const presetId = pr.presets.find(id => BUILTIN_PRESETS.find(p => p.id === id)?.settings.orientation === S.settings.orientation) || pr.presets[0];
+  const preset = BUILTIN_PRESETS.find(p => p.id === presetId);
+  if (preset) applyPreset(preset);
+  else if (!S.settings.silhouette) {
     if (pr.kind === 'Laser' && S.settings.margin < 5) S.settings.margin = 5;
     else if (pr.kind === 'Inkjet' && S.settings.margin === 5) S.settings.margin = 4;
   }
@@ -3499,13 +3504,15 @@ function renderPresets() {
       <b>${esc(title)}</b><span>${esc(sub)}</span>
       ${mine ? `<i class="del" data-del="${esc(p.id)}" title="Delete preset" role="button" aria-label="Delete preset">✕</i>` : ''}</button>`;
   };
+  const pr = printerOf(S.printer);
   const group = kind => {
     const presets = BUILTIN_PRESETS.filter(p => p.kind === kind);
     const selected = presets.find(p => p.id === S.activePreset) || presets.find(p => p.settings.orientation === S.settings.orientation) || presets[0];
     const isKindActive = presets.some(p => p.id === S.activePreset);
-    const tip = kind === 'Inkjet' ? 'For photo &amp; semi-gloss paper' : 'For cardstock &amp; laser paper';
+    const matches = pr.kind === kind;
+    const tip = kind === 'Inkjet' ? 'Semi-gloss &amp; photo paper' : 'Black-core &amp; laser cardstock';
     return `<div class="preset-card ${isKindActive ? 'active' : ''}">
-      <div class="preset-card-title">${kind} Printer</div>
+      <div class="preset-card-title">${kind} Printer ${matches ? '<span class="tag">Active printer</span>' : ''}</div>
       <div class="hint" style="margin:0 0 4px">${tip}</div>
       <select id="preset-${kind}" data-preset-choice>${presets.map(p => {
         const per = presetPer(p).per;
@@ -3513,7 +3520,7 @@ function renderPresets() {
         return `<option value="${p.id}" ${p === selected ? 'selected' : ''}>${orient} · ${per} cards</option>`;
       }).join('')}</select>
       <button data-preset="${selected.id}" ${isKindActive ? 'class="on"' : ''}>
-        ${isKindActive ? '✓ Layout active' : `Apply ${kind.toLowerCase()} preset`}
+        ${isKindActive ? '✓ Active layout' : `Use ${kind.toLowerCase()} layout`}
       </button>
     </div>`;
   };
@@ -3529,7 +3536,7 @@ $('#presetGrid').onchange = ev => {
     const isAct = ev.target.value === S.activePreset;
     btn.classList.toggle('on', isAct);
     const kind = ev.target.id.replace('preset-', '');
-    btn.textContent = isAct ? '✓ Layout active' : `Apply ${kind.toLowerCase()} preset`;
+    btn.textContent = isAct ? '✓ Active layout' : `Use ${kind.toLowerCase()} layout`;
   }
 };
 $('#presetGrid').onclick = ev => {
@@ -3718,26 +3725,36 @@ async function exportPDF(skipWizard = true) {
     return;
   }
   const pages = paginate(slots, L.per), hasBacks = slots.some(x => x.back);
-  const total = slots.length * (hasBacks ? 2 : 1);
+  const totalCards = slots.length;
+  let totalFaces = 0;
+  for (const page of pages) {
+    for (const back of hasBacks ? [false, true] : [false]) {
+      for (const slot of page) if (back ? slot.back : slot.front) totalFaces++;
+    }
+  }
   let done = false;
   busy(true, 'Rendering cards…');
   try {
-    const doc = newDoc(L), cache = new Map(); let n = 0, first = true;
+    const doc = newDoc(L), cache = new Map(); let rendered = 0, first = true;
     const addFace = async (face, x, y, w, h, rot) => {
       const key = (face.custom || face.drive || face.png) + '|' + rot;
       if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot)).toDataURL('image/jpeg', s.jpeg/100)});
       const c = cache.get(key);
       doc.addImage(c.data, 'JPEG', x, y, w, h, c.alias, 'NONE');
     };
-    for (const page of pages) {
+    for (const [pageIdx, page] of pages.entries()) {
+      const pageOffset = pageIdx * L.per;
       for (const back of hasBacks ? [false, true] : [false]) {
         if (!first) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
         first = false;
         const T = makeT(L, back);
         for (let i = 0; i < page.length; i++) {
           const face = back ? page[i].back : page[i].front;
-          n++; busyProgress(n / total, `Rendering card ${n} of ${total}…`);
           if (!face) continue;
+          rendered++;
+          const cardNum = pageOffset + i + 1;
+          const side = hasBacks ? (back ? ' (back)' : ' (front)') : '';
+          busyProgress(rendered / (totalFaces || 1), `Rendering card ${cardNum} of ${totalCards}${side}…`);
           const p = slotPos(L, i, back);
           await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back));
           await sleep(0);
@@ -4235,7 +4252,7 @@ addEventListener('drop', async e => {
 function bestCutBleed() {
   const s = S.settings, cur = s.bleed, curM = s.margin;
   const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-  if (!s.silhouette && s.margin >= 10) s.margin = normalMargin;
+  if (!s.silhouette && (s.margin >= 10 || s.margin < normalMargin)) s.margin = normalMargin;
   let best = 2, maxCards = 0;
   for (const b of [2, 2.5, 3]) {
     s.bleed = b;
@@ -4315,7 +4332,7 @@ function renderCutStatus() {
       S.settings.showCuts = false;
       S.showCuts = false;
       const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-      if (S.settings.margin >= 10 || !S.settings.margin) S.settings.margin = normalMargin;
+      if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
       Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
       S.settings.bleed = bestCutBleed();
       S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, full bleed, margin lines and corner marks.');
@@ -4404,7 +4421,7 @@ function renderCutStatus() {
     S.settings.showCuts = false;
     S.showCuts = false;
     const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-    if (S.settings.margin >= 10 || !S.settings.margin) S.settings.margin = normalMargin;
+    if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
     Object.assign(S.settings, {cols:0, rows:0, cardRotation:'auto', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
     S.settings.bleed = bestCutBleed();
     S.activePreset = null; save(); renderAll(); toast('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
