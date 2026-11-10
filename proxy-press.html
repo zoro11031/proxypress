@@ -3512,8 +3512,8 @@ function cleanSettings(raw) {
   for (const [k, def] of Object.entries(DEFAULTS)) {
     const v = raw?.[k];
     if (v === undefined) continue;
-    if (typeof def === 'number') { const n = Number(v); if (Number.isFinite(n)) out[k] = n; }
-    else if (typeof def === 'boolean') out[k] = !!v;
+    if (typeof def === 'number') { const n = Number(v); if (v !== null && v !== '' && typeof v !== 'boolean' && Number.isFinite(n) && (!SELECT_OPTS[k] || SELECT_OPTS[k].includes(String(n)))) out[k] = n; }
+    else if (typeof def === 'boolean') { if (typeof v === 'boolean') out[k] = v; else if (v === 'true' || v === 'false') out[k] = v === 'true'; }
     else if (k === 'backImage') out[k] = typeof v === 'string' ? v : null;
     else if (k === 'guideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
     else if (k === 'guides' && v === 'bars') out[k] = 'both';
@@ -3535,11 +3535,13 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
-  const normalMargin = (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') ? 5 : 4;
-  if (!out.silhouette && out.margin >= 10) out.margin = normalMargin;
-  if (!out.silhouette && (typeof S !== 'undefined' && PRINTERS.find(x => x.id === S.printer)?.kind === 'Laser') && out.margin < 5) out.margin = 5;
-  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.bleed === 3) out.bleed = 2;
-  if (!out.silhouette && out.pageSize === 'letter' && out.orientation === 'landscape' && out.cols === 3) out.cols = 0;
+  for (const f of FIELDS) if (f.type === 'num') {
+    if (f.min !== undefined) out[f.k] = Math.max(f.min, out[f.k]);
+    if (f.max !== undefined) out[f.k] = Math.min(f.max, out[f.k]);
+  }
+  for (const k of ['pageW', 'pageH', 'cardW', 'cardH', 'scaleX', 'scaleY']) if (out[k] <= 0) out[k] = DEFAULTS[k];
+  for (const k of ['cols', 'rows']) out[k] = Math.max(0, Math.floor(out[k]));
+  // Migration must not reinterpret valid custom layouts on every reload.
   return out;
 }
 // Backups are untrusted: rebuild decks from known fields with checked types.
@@ -4061,6 +4063,10 @@ function renderGuideTab() {
         <li><b>Feed Tray:</b> Use the tray and supported stock described in your printer settings in step 2.</li>
       </ol>
     ` : backStepsHtml(Math.max(1, sheets));
+    if (S.printer === 'mf753' && (isSingleSided || s.duplexMethod === 'manual') && ['letter', 'a4'].includes(s.pageSize)) {
+      const sheet = s.pageSize === 'a4' ? 'A4' : 'Letter';
+      printPane.innerHTML += `<details><summary>Print with Canon Suite</summary><p class="hint">Replace cards.pdf with your exported PDF filename and choose your stock profile. This checks one page without printing:</p><pre>canon-print print cards.pdf --sheet ${sheet} --scaling none --duplex None --pages 1 --dry-run</pre><p class="hint">Check the verification report and printer status before removing --dry-run. Print one sheet at a time. ${isSingleSided ? 'Repeat with the next page.' : 'Pages 1 and 2 are the first front and back; pages 3 and 4 are the next pair. Re-feed as described above, then print the matching back page with the same settings.'}</p></details>`;
+    }
   }
 
   const cutPane = $('#tabGuidePaneCut');
@@ -4104,6 +4110,12 @@ function renderGuideTab() {
         </li>
       </ol>
     `;
+    if (isCameo && ['letter', 'a4'].includes(s.pageSize)) {
+      const calibrated = s.scaleX !== 100 || s.scaleY !== 100 || s.offsetX !== 0 || s.offsetY !== 0;
+      cutPane.innerHTML += calibrated
+        ? '<p class="hint">Printer compensation is already applied to the PDF and SVG, including the marks. Compare the cut overlay and test with a pen; nominal registration settings alone do not describe asymmetric compensation.</p>'
+        : `<details><summary>Cut with Silhouette Control Center</summary><p class="hint">Export the matching sheet’s cut SVG. Replace cut-lines.svg with that filename. This builds and verifies without cutting:</p><pre>silhouette-control-center cut --from cut-lines.svg --sheet ${s.pageSize === 'a4' ? 'A4' : 'Letter'} --${s.orientation === 'landscape' ? 'landscape' : 'portrait'} --pattern ${s.regPattern === 4 ? 'four' : 'three'} --mark-inset ${s.regInset} --mark-length ${regArm(L)} --mark-thickness ${s.regThickness} --dry-run</pre><p class="hint">Choose your blade preset separately. Inspect the overlay and test on plain paper with a pen before cutting stock. PDF inspection cannot measure physical printer scaling.</p></details>`;
+    }
   }
 }
 
@@ -4187,16 +4199,30 @@ $('#btnCal').onclick = () => {
   doc.save('calibration.pdf');
 };
 
-function downloadCutSvg() {
-  const s = S.settings, L = layout(), T = makeT(L, false), n = Math.min(L.per, buildSlots().length || L.per);
+function cutSvg(sheet = 0) {
+  const s = S.settings, L = layout(), T = makeT(L, false), count = buildSlots().length;
+  const pages = Math.max(1, Math.ceil(count / L.per));
+  if (!Number.isInteger(sheet) || sheet < 0 || sheet >= pages) throw new Error('Choose an existing sheet.');
+  const n = count ? Math.min(L.per, count - sheet * L.per) : L.per;
   let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${L.W}mm" height="${L.H}mm" viewBox="0 0 ${L.W} ${L.H}">\n`;
   for (let i = 0; i < n; i++) {
     const p = slotPos(L, i, false);
-    svg += `<rect x="${T.x(p.x + s.bleed).toFixed(3)}" y="${T.y(p.y + s.bleed).toFixed(3)}" width="${T.w(L.cw).toFixed(3)}" height="${T.h(L.ch).toFixed(3)}" rx="${s.cornerRadius ?? 3.2}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
+    svg += `<rect x="${T.x(p.x + s.bleed).toFixed(3)}" y="${T.y(p.y + s.bleed).toFixed(3)}" width="${T.w(L.cw).toFixed(3)}" height="${T.h(L.ch).toFixed(3)}" rx="${T.w(s.cornerRadius ?? 3.2).toFixed(3)}" ry="${T.h(s.cornerRadius ?? 3.2).toFixed(3)}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
   }
   svg += '</svg>\n';
-  download(new Blob([svg], {type:'image/svg+xml'}), 'cut-lines.svg');
-  if (!s.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
+  return svg;
+}
+
+function downloadCutSvg(sheet) {
+  const pages = Math.max(1, Math.ceil(buildSlots().length / layout().per));
+  if (sheet === undefined && pages > 1) {
+    openModal(`<div class="hd"><b>Export cut paths</b></div><div class="bd"><label for="cutSheet">Sheet</label><select id="cutSheet">${Array.from({length:pages}, (_, i) => `<option value="${i}">Sheet ${i + 1}</option>`).join('')}</select><p class="hint">Choose the sheet you will cut. The last sheet may contain fewer cards.</p><button id="cutSheetExport" class="primary">Download SVG</button></div>`);
+    $('#cutSheetExport').onclick = () => { const selected = +$('#cutSheet').value; closeModal(true); downloadCutSvg(selected); };
+    return;
+  }
+  const svg = cutSvg(sheet ?? 0);
+  download(new Blob([svg], {type:'image/svg+xml'}), pages === 1 ? 'cut-lines.svg' : `cut-lines-sheet-${(sheet ?? 0) + 1}.svg`);
+  if (!S.settings.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
 }
 
 /* ---------- backup ---------- */
