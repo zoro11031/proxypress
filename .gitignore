@@ -1,4 +1,7 @@
 .env
 __pycache__/
-assets/
 cache/
+node_modules/
+dist/
+electron/node_modules/
+electron/dist/

@@ -2,9 +2,59 @@
 
 A browser-based MTG proxy maker. Drop in a decklist, pick your art, and get a print-ready PDF with proper bleed and cut lines—or an order file ready for MakePlayingCards.
 
-Runs entirely in your browser. No accounts, no sign-ups, and no uploads to a server—your decks and settings stay in your local browser storage.
+Runs entirely in your browser with zero accounts or tracking. Decks, presets, and artwork stay securely saved on your own machine.
 
 ![Proxy Press sheet preview](screenshots/print-preview.png)
+
+---
+
+## Running Proxy Press
+
+### 🐳 Docker / Podman (Recommended & Supported)
+
+Running with Docker or Podman is the officially supported, easiest way to host Proxy Press. It isolates the environment, persists your card cache, and serves all bundled fonts and card frame packs automatically.
+
+```sh
+cp .env.example .env    # optional: configure password, port, etc.
+docker compose up -d    # or: podman compose up -d
+```
+
+Then open http://localhost:8642 in your browser.
+
+#### Configuration options
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PASSWORD` | — | Optional password for the web login screen (`PROXY_PRESS_PASSWORD` in `.env`) |
+| `BASIC_AUTH` | — | Optional `user:password` browser login prompt (`PROXY_PRESS_AUTH` in `.env`) |
+| `ASSETS` | `./assets` | Folder of fonts and frame packs (`/app/assets` in container) |
+| `CACHE` | `./cache` | Folder for cached Scryfall card data and session key (`/app/cache` in container) |
+| `HOST` | `127.0.0.1` (`0.0.0.0` in container) | Interface to listen on (`PROXY_PRESS_BIND` in `.env`) |
+| `PORT` | `8642` | Port (`PROXY_PRESS_PORT` in `.env`) |
+
+---
+
+### 💻 Desktop App (Windows & Linux)
+
+If you prefer a standalone desktop app without Docker, prebuilt Electron packages with all fonts and frames bundled are available under [Releases](https://github.com/zoro11031/proxypress/releases):
+
+- **Windows:** Download and run the installer (`ProxyPress-Setup-*.exe` or `ProxyPress-*.msi`).
+- **Linux:** Download `ProxyPress-*.AppImage`, make it executable (`chmod +x ProxyPress-*.AppImage`), and double-click to launch.
+
+Both desktop packages run locally with an embedded relay for MPC Autofill and Scryfall caching.
+
+---
+
+### ⚙️ Advanced & Alternative Setups
+
+#### Run with Python directly
+```sh
+python3 proxy-press-server.py
+```
+Starts the local server and opens http://localhost:8642 in your default browser. Requires Python 3.10+ (standard library only, no pip dependencies).
+
+#### Serverless / Offline (Browser Only)
+You can also double-click `proxy-press.html` directly in any modern browser. Everything works offline except searching community art drives (which requires the Docker container, desktop app, or Python script due to external site CORS restrictions).
 
 ---
 
@@ -29,41 +79,11 @@ High-res art is matched automatically using Scryfall and community autofill driv
 
 ---
 
-## Getting started
-
-### Run locally
-
-```sh
-python3 proxy-press-server.py
-```
-
-Opens http://localhost:8642. 
-
-> You can also just open `proxy-press.html` directly in any browser. Running the python script is only needed for searching community art drives (due to site CORS protections) and importing deck links.
-
-### Run with Docker or Podman
-
-```sh
-cp .env.example .env    # optional: set password or port
-docker compose up -d    # or: podman compose up -d
-```
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `PASSWORD` | — | Optional password for the web login screen (`PROXY_PRESS_PASSWORD` in `.env`) |
-| `BASIC_AUTH` | — | Optional `user:password` browser login prompt (`PROXY_PRESS_AUTH` in `.env`) |
-| `ASSETS` | `./assets` | Folder of fonts and frame packs (`/app/assets` in container) |
-| `CACHE` | `./cache` | Folder for cached Scryfall card data and session key (`/app/cache` in container) |
-| `HOST` | `127.0.0.1` (`0.0.0.0` in container) | Interface to listen on (`PROXY_PRESS_BIND` in `.env`) |
-| `PORT` | `8642` | Port (`PROXY_PRESS_PORT` in `.env`) |
-
----
-
 ## Card maker assets (fonts & frames)
 
-Proxy Press has a built-in custom card maker for designing custom cards, tokens, and proxies with authentic Magic typography and layouts.
+Proxy Press includes an in-browser Custom Card Maker for designing custom cards, tokens, and proxies with authentic Magic typography and layouts.
 
-It includes fallback web fonts and vector frames out of the box. For real print-quality cards matching authentic frames (Modern M15, Classic Retro, Planeswalker, etc.), put your fonts and frame packs in an `assets/` directory:
+All essential fonts and frame packages come pre-bundled in `assets/`:
 
 ```
 assets/
@@ -87,7 +107,7 @@ assets/
 
 ### Fonts
 
-Fonts can be `.ttf`, `.otf`, or `.woff`/`.woff2`. Standard Magic font packs come with the Magic Set Editor (MSE) installer and community packs. Filenames are recognized automatically:
+Proxy Press automatically inspects filenames in `assets/fonts/` and assigns them to the appropriate typography slot:
 
 | Slot | Font | Recognized filenames |
 |---|---|---|
@@ -106,7 +126,7 @@ Fonts can be `.ttf`, `.otf`, or `.woff`/`.woff2`. Standard Magic font packs come
 
 ### Frames
 
-Proxy Press reads standard Magic Set Editor (`.mse-style`) frame folders directly. Put packages like `magic-m15.mse-style`, `magic-old.mse-style`, or `magic-new.mse-style` into `assets/frames/`.
+Proxy Press reads standard Magic Set Editor (`.mse-style`) frame packages directly from `assets/frames/`. Supported frame directories include modern M15, Planeswalker, 8th Edition, classic retro, borderless extended art, and vintage ABU frames.
 
 You can also drop font files and `.mse-style` folders straight onto the Custom Card Maker tab in the browser without touching server folders. They get stored directly in IndexedDB.
 
@@ -138,6 +158,8 @@ Also big thanks to:
 
 ---
 
-## License
+## License & Fair Use Notice
 
-Proxy Press is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
+Proxy Press code is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
+
+**Typography & Card Asset Fair Use Notice:** Card frames, symbol vectors, and font files bundled in `assets/` (such as Beleren, Plantin, and Magic Medieval) are proprietary trademarks and copyrights of their respective owners (including Wizards of the Coast and Monotype). They are not covered under the GNU General Public License v3.0 and are bundled in accordance with fair use for non-commercial, personal card crafting and proxy printing.
