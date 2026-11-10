@@ -1,171 +1,89 @@
 # Proxy Press
 
-A browser-based MTG proxy maker. Drop in a decklist, pick your art, and get a print-ready PDF with proper bleed and cut lines—or an order file ready for MakePlayingCards.
+A free, easy MTG proxy maker. Paste your decklist, choose your favorite art, and get a print-ready PDF with proper cut lines—or an order file ready for MakePlayingCards.
 
-Runs entirely in your browser with zero accounts or tracking. Decks, presets, and artwork stay securely saved on your own machine.
+No accounts, no tracking, and no subscriptions. Everything runs directly on your machine.
 
 ![Proxy Press sheet preview](screenshots/print-preview.png)
 
 ---
 
-## Running Proxy Press
+## Which download is best for you?
 
-### 🐳 Docker / Podman (Recommended & Supported)
+### 💻 For Normal Users (Easiest & Recommended)
 
-Running with Docker or Podman is the officially supported, easiest way to host Proxy Press. It isolates the environment, persists your card cache, and serves all bundled fonts and card frame packs automatically.
+Download the desktop app from **[Releases](https://github.com/zoro11031/proxypress/releases)**:
+
+- **Windows:** Download and run `Proxy-Press-1.0.1.exe` (or `Proxy-Press-1.0.1.msi`).
+- **Linux:** Download `Proxy-Press-1.0.1.AppImage`, make it executable (`chmod +x Proxy-Press-1.0.1.AppImage`), and double-click to launch.
+
+*No setup required. All authentic MTG fonts, card frames, and high-res art search tools are built in with no login or password needed.*
+
+#### Other Linux packages (optional)
+If you prefer installing via your distribution's package manager:
+- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.1.deb`
+- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.1.rpm` (or `sudo zypper install ./Proxy-Press-1.0.1.rpm`)
+- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.1.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
+
+---
+
+### 🐳 For Home Servers & NAS (Docker)
+
+If you have a home server (Unraid, TrueNAS, Synology, or Raspberry Pi) and want Proxy Press running 24/7 so anyone on your home Wi-Fi can open it in their browser:
 
 ```sh
-cp .env.example .env    # optional: configure password, port, etc.
-docker compose up -d    # or: podman compose up -d
+docker compose up -d
 ```
 
-Then open http://localhost:8642 in your browser.
-
-#### Configuration options
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `PASSWORD` | — | Optional password for the web login screen (`PROXY_PRESS_PASSWORD` in `.env`) |
-| `BASIC_AUTH` | — | Optional `user:password` browser login prompt (`PROXY_PRESS_AUTH` in `.env`) |
-| `ASSETS` | `./assets` | Folder of fonts and frame packs (`/app/assets` in container) |
-| `CACHE` | `./cache` | Folder for cached Scryfall card data and session key (`/app/cache` in container) |
-| `HOST` | `127.0.0.1` (`0.0.0.0` in container) | Interface to listen on (`PROXY_PRESS_BIND` in `.env`) |
-| `PORT` | `8642` | Port (`PROXY_PRESS_PORT` in `.env`) |
+Then open `http://localhost:8642` in your browser. (To customize ports or set a password, copy `.env.example` to `.env`).
 
 ---
 
-### 💻 Desktop App (Windows & Linux)
+## What It Does
 
-If you prefer a standalone desktop app without Docker, prebuilt Electron packages with all fonts and frames bundled are available under [Releases](https://github.com/zoro11031/proxypress/releases). The desktop app is designed for personal use and runs entirely on your local machine with no login or password required.
+### 1. Import Any Deck
+Paste a decklist or paste a link directly from Moxfield or Archidekt. Proxy Press imports your cards and can automatically add all required tokens and emblems with one click.
 
-- **Windows:** Download and run `Proxy-Press-Setup-*.exe` (installer) or `Proxy-Press-*.msi`.
-- **Linux:**
-  - **AppImage:** Download `Proxy-Press-*.AppImage`, make it executable (`chmod +x Proxy-Press-*.AppImage`), and double-click to launch.
-  - **Debian / Ubuntu (.deb):** Download `Proxy-Press-*.deb` and install with `sudo apt install ./Proxy-Press-*.deb`.
-  - **Fedora / openSUSE / RHEL (.rpm):** Download `Proxy-Press-*.rpm` and install with `sudo dnf install ./Proxy-Press-*.rpm` (or `sudo zypper install ./Proxy-Press-*.rpm` on openSUSE).
-  - **Arch Linux / CachyOS / Manjaro:**
-    - Install the standalone package: `sudo pacman -U Proxy-Press-*.pacman`
-    - Or use the AUR package archive: download `proxypress-bin-aur.tar.gz`, unpack, and run `makepkg -si`.
-
-All desktop packages run locally with an embedded relay for MPC Autofill and Scryfall caching.
-
----
-
-### ⚙️ Advanced & Alternative Setups
-
-#### Run with Python directly
-```sh
-python3 proxy-press-server.py
-```
-Starts the local server and opens http://localhost:8642 in your default browser. Requires Python 3.10+ (standard library only, no pip dependencies).
-
-#### Serverless / Offline (Browser Only)
-You can also double-click `proxy-press.html` directly in any modern browser. Everything works offline except searching community art drives (which requires the Docker container, desktop app, or Python script due to external site CORS restrictions).
-
----
-
-## What it does
-
-### Quick deck imports
-Paste a decklist or import a link from Moxfield or Archidekt (MTG Arena and MTGO text exports work too). It can also add all the tokens and emblems your deck needs with one click. If you want to send a deck to a friend, export a deck package with the artwork included—when they open it, their own printer settings and alignment stay untouched.
-
-### High-res art search
-High-res art is matched automatically using Scryfall and community autofill drives. If you want a specific printing, retro border, or borderless version, click any card to browse alternate arts and high-DPI renders. You can also make custom cards or point it to a folder of card images on your computer.
+### 2. Pick Your Favorite Art
+Click any card to browse official printings, retro borders, borderless treatments, and high-DPI community renders.
 
 ![Choosing high-resolution card artwork](screenshots/art-picker.png)
 
-### Print at home or order online
-
-- **Home printing:** Generates clean PDFs for standard Letter or A4 sheets. It builds bleed edge extensions so cards don't have white edges when cut, and lets you dial in front-to-back alignment for two-sided prints. Built-in cut guides support both hand trimmers (margin and corner marks) and automated craft plotters like the Silhouette Cameo (registration marks and cut SVGs).
-- **Ordering prints:** Switch to Order mode to review your card fronts and backs in a gallery, then download an XML order file and images ready for the autofill desktop tool.
+### 3. Print at Home or Order Online
+- **Print at Home:** Generates standard Letter or A4 PDFs with cut guides and automatic bleed edges so cards never have white borders after cutting. Supports front-to-back printer calibration and Silhouette Cameo cutter registration marks.
+- **Order Online:** One-click bundle ready for MakePlayingCards with formatted order files and card images.
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
 
-![Reviewing cards in Order Prints mode](screenshots/order-mode.png)
+### 4. Custom Card Maker
+Design custom cards, commanders, and tokens right in your browser with authentic typography and classic or modern frame packs included.
 
 ---
 
-## Card maker assets (fonts & frames)
+## Simple Printing Tips
 
-Proxy Press includes an in-browser Custom Card Maker for designing custom cards, tokens, and proxies with authentic Magic typography and layouts.
-
-All essential fonts and frame packages come pre-bundled in `assets/`:
-
-```
-assets/
-├── fonts/
-│   ├── Beleren2016-Bold.ttf          # Modern card title
-│   ├── Beleren Small Caps.ttf        # Modern type line & P/T
-│   ├── PlantinMTProRg.TTF            # Rules text (regular)
-│   ├── PlantinMTProRgIt.TTF          # Flavor & reminder text (italic)
-│   ├── PlantinMTProBold.TTF          # Bold rules & P/T numbers
-│   ├── Magicmedieval-pRV1.ttf        # Retro card title
-│   ├── Matrix Bold.ttf               # Retro type line & 8th Edition frames
-│   ├── Relay-Medium.ttf              # Collector line & copyright
-│   └── ModMatrix.ttf                 # Modern P/T font
-└── frames/
-    ├── magic-m15.mse-style/          # Modern frame (2014–present)
-    ├── magic-m15-planeswalker.mse-style/
-    ├── magic-new.mse-style/          # Modern frame (2003–2014)
-    ├── magic-old.mse-style/          # Classic retro frame (1993–2003)
-    └── ...                           # Other .mse-style packages
-```
-
-### Fonts
-
-Proxy Press automatically inspects filenames in `assets/fonts/` and assigns them to the appropriate typography slot:
-
-| Slot | Font | Recognized filenames |
-|---|---|---|
-| Modern Name | Beleren Bold | `Beleren2016-Bold.ttf`, `Beleren-Bold.ttf`, `beleren-bold_P1.01.ttf` |
-| Modern Type & P/T | Beleren Small Caps | `Beleren Small Caps.ttf`, `belerensmallcaps-bold.ttf` |
-| Rules Text | Plantin Regular | `PlantinMTProRg.TTF`, `mplantin.ttf`, `Plantin.ttf` |
-| Flavor / Reminder | Plantin Italic | `PlantinMTProRgIt.TTF`, `mplantinit.ttf` |
-| Bold Text | Plantin Bold | `PlantinMTProBold.TTF` |
-| Retro Name | Magic Medieval | `Magicmedieval-pRV1.ttf`, `MAGIC.TTF`, `magmed.ttf` |
-| Retro Type / 8th Ed | Matrix Bold | `Matrix Bold.ttf`, `MatrixBold.ttf`, `matrixb.ttf` |
-| Collector Line | Relay Medium / Gotham | `Relay-Medium.ttf`, `Gotham Medium.otf` |
-| Future Sight | Eurostile / Futura | `Eurostile.ttf`, `Microgramma.ttf`, `Futura.ttf` |
-| Matrix P/T | ModMatrix | `ModMatrix.ttf` |
-
-*Mana symbols and loyalty icons don't need font files—they are fetched as SVGs directly from Scryfall and cached.*
-
-### Frames
-
-Proxy Press reads standard Magic Set Editor (`.mse-style`) frame packages directly from `assets/frames/`. Supported frame directories include modern M15, Planeswalker, 8th Edition, classic retro, borderless extended art, and vintage ABU frames.
-
-You can also drop font files and `.mse-style` folders straight onto the Custom Card Maker tab in the browser without touching server folders. They get stored directly in IndexedDB.
+- **The #1 Rule:** Always set your printer scaling to **100% / Actual Size** (never "Fit to page" or "Shrink to fit", or cards will be slightly smaller than real Magic cards).
+- **Paper choices:** Heavy cardstock (300 gsm / 110 lb) works great for sleeves. For foil peels or sticker proxies, matte vinyl sticker paper on real basic lands gives a great feel.
+- **Alignment:** If double-sided printing drifts slightly on your printer, use the calibration sliders in the preview sidebar to adjust horizontal and vertical alignment.
 
 ---
 
-## Helpful tips
-
-- **Selecting cards:** In the sheet preview, click a card copy to select it, Shift-click for a range, or Ctrl/Cmd-click to toggle copies. On a phone or tablet, tap copies to toggle them.
-- **Batch art changes:** Select copies, then click **Change selected art…** to swap art across all of them at once.
-- **Print scale:** When printing the exported PDF, always make sure printer scaling is set to **100% / Actual Size** (not "Fit to page" or "Shrink to fit"). Otherwise, cards won't come out at standard Magic dimensions (63 × 88 mm).
-- **Silhouette Cameo cutting:** Export the cut SVG, import it at 100% scale in Silhouette Studio, and make sure registration marks are enabled.
-- **Backups & resets:** Everything is stored in your browser's IndexedDB. Use **⚙ (top right) → Save backup file…** to move your decks between machines. Use **⚙ → Return to defaults** if you ever want to reset print and preview settings while keeping your saved decks and artwork.
-
----
-
-## Special thanks
+## Supporting MPC Autofill & Credits
 
 Huge thanks to **[MPC Autofill / MPCFill](https://mpcfill.com)** above all. None of this would exist without their database, community drives, and the artists creating and sharing high-DPI card renders. If you use the autofill tool or community drives, please consider **[supporting their server and maintenance costs on Patreon](https://www.patreon.com/mpcfill)**.
 
-Also big thanks to:
-
-- **[ProxyJak](https://proxyjak.com)** — For providing an easy way to get quality proxy cardstock.
-- **[Cry Cry](https://www.youtube.com/@crycryproxy)** — The best proxy tutorials on YouTube for paper choices, printer settings, foiling, and cutter setup.
-- **[Scryfall](https://scryfall.com)** — The card data and image API that powers the entire MTG community.
-- **[Proxxied](https://proxxied.com)** — Great inspiration for in-browser sheet layouts and card grids.
-- **[Magic Set Editor](https://magicseteditor.boards.net)** — Frame layouts, fonts, and templating conventions.
-- **Card Conjurer & MTG.Design** — Pioneers of web-based card rendering.
-- **r/mpcproxies & r/magicproxies** — Endless tips on paper stocks, calibration, and proxy crafting.
+Special thanks also to:
+- **[ProxyJak](https://proxyjak.com)** — Quality proxy cardstock.
+- **[Cry Cry](https://www.youtube.com/@crycryproxy)** — Essential YouTube tutorials on paper choices, foiling, and cutter setup.
+- **[Scryfall](https://scryfall.com)** — The card data API powering the MTG community.
+- **[Proxxied](https://proxxied.com)** — Inspiration for in-browser sheet previewing.
+- **[Magic Set Editor](https://magicseteditor.boards.net)** & **Card Conjurer / MTG.Design** — Card framing and typography foundations.
+- **r/mpcproxies & r/magicproxies** — Helpful tips on printing and paper stocks.
 
 ---
 
 ## License & Fair Use Notice
 
-Proxy Press code is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
+Proxy Press is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
 
-**Typography & Card Asset Fair Use Notice:** Card frames, symbol vectors, and font files bundled in `assets/` (such as Beleren, Plantin, and Magic Medieval) are proprietary trademarks and copyrights of their respective owners (including Wizards of the Coast and Monotype). They are not covered under the GNU General Public License v3.0 and are bundled in accordance with fair use for non-commercial, personal card crafting and proxy printing.
+**Typography & Card Assets:** Card frames, symbol vectors, and fonts bundled in `assets/` (Beleren, Plantin, Magic Medieval, etc.) are proprietary trademarks and copyrights of their respective owners (such as Wizards of the Coast and Monotype). They are not covered under the GNU General Public License v3.0 and are bundled in accordance with fair use for non-commercial, personal card crafting and proxy printing.
