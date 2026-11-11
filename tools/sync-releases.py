@@ -138,14 +138,21 @@ def sync():
         print(f"  Release: id={r.get('id')}, tag={r.get('tag_name')}, name={r.get('name')}, draft={r.get('draft')}, latest={r.get('make_latest')}")
 
     try:
-        check = api_request("GET", "/check-runs/130649491922")
-        print("Check run 130649491922:")
-        print("  status:", check.get("status"), "conclusion:", check.get("conclusion"))
-        print("  output:", json.dumps(check.get("output"), indent=2))
-        annos = api_request("GET", "/check-runs/130649491922/annotations")
-        print("  annotations:", json.dumps(annos, indent=2))
+        run_jobs = api_request("GET", "/actions/runs/43057132698/jobs")
+        for j in run_jobs.get("jobs", []):
+            print(f"Job: {j.get('name')} -> {j.get('conclusion')}")
+            for s in j.get("steps", []):
+                print(f"  Step {s.get('number')}: {s.get('name')} -> {s.get('conclusion')}")
     except Exception as e:
-        print("  Error querying check-run 130649491922:", e)
+        print("  Error querying run jobs:", e)
+
+    try:
+        rel_51 = api_request("GET", "/releases/441930318")
+        print("Release v0.5.1 assets:")
+        for a in rel_51.get("assets", []):
+            print(f"  Asset: {a.get('name')} ({a.get('size')} bytes)")
+    except Exception as e:
+        print("  Error querying v0.5.1 assets:", e)
 
     for r in releases:
         tag = r.get("tag_name")
