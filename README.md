@@ -14,16 +14,16 @@ No accounts, no tracking, and no subscriptions. Everything runs directly on your
 
 Download the desktop app from **[Releases](https://github.com/zoro11031/proxypress/releases)**:
 
-- **Windows:** Download and run `Proxy-Press-1.0.8.exe` (or `Proxy-Press-1.0.8.msi`).
-- **Linux:** Download `Proxy-Press-1.0.8.AppImage`, make it executable (`chmod +x Proxy-Press-1.0.8.AppImage`), and double-click to launch.
+- **Windows:** Download and run `Proxy-Press-0.5.0.exe` (or `Proxy-Press-0.5.0.msi`).
+- **Linux:** Download `Proxy-Press-0.5.0.AppImage`, make it executable (`chmod +x Proxy-Press-0.5.0.AppImage`), and double-click to launch.
 
 *No setup required. All authentic MTG fonts, card frames, and high-res art search tools are built in with no login or password needed.*
 
 #### Other Linux packages (optional)
 If you prefer installing via your distribution's package manager:
-- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-1.0.8.deb`
-- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-1.0.8.rpm` (or `sudo zypper install ./Proxy-Press-1.0.8.rpm`)
-- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-1.0.8.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
+- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-0.5.0.deb`
+- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-0.5.0.rpm` (or `sudo zypper install ./Proxy-Press-0.5.0.rpm`)
+- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-0.5.0.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
 
 ---
 

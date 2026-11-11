@@ -63,16 +63,38 @@ ASSET_TYPES = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".w
 
 
 def asset_manifest():
-    fonts, frames = [], []
+    return json.loads(asset_manifest_data()[0])
+
+
+manifest_cache, manifest_lock = [0, None, None], threading.Lock()
+
+
+def asset_manifest_data():
     font_dir, frame_dir = os.path.join(ASSETS, "fonts"), os.path.join(ASSETS, "frames")
+    mt = max((os.path.getmtime(d) for d in (font_dir, frame_dir) if os.path.isdir(d)), default=0)
+    with manifest_lock:
+        if manifest_cache[1] is not None and manifest_cache[0] == mt:
+            return manifest_cache[1], manifest_cache[2]
+    fonts, frames = [], []
     if os.path.isdir(font_dir):
         fonts = sorted(f for f in os.listdir(font_dir) if os.path.splitext(f)[1].lower() in (".ttf", ".otf", ".woff", ".woff2"))
     if os.path.isdir(frame_dir):
         for name in sorted(os.listdir(frame_dir)):
             d = os.path.join(frame_dir, name)
-            if os.path.isfile(os.path.join(d, "style")):
-                frames.append({"name": name, "files": sorted(f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f)))})
-    return {"fonts": fonts, "frames": frames}
+            style_file = os.path.join(d, "style")
+            if os.path.isfile(style_file):
+                item = {"name": name, "files": sorted(f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f)))}
+                try:
+                    with open(style_file, "r", encoding="utf-8", errors="replace") as sf:
+                        item["style"] = sf.read()
+                except OSError:
+                    pass
+                frames.append(item)
+    body = json.dumps({"fonts": fonts, "frames": frames}).encode()
+    etag = f'"{hashlib.sha256(body).hexdigest()[:16]}"'
+    with manifest_lock:
+        manifest_cache[:] = [mt, body, etag]
+    return body, etag
 
 
 def asset_path(route):
@@ -121,7 +143,7 @@ def fetch_symbol(name):
 
 
 CACHE = os.environ.get("CACHE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
-CARD_TTL, SEARCH_TTL, MPC_TTL, SYMBOL_TTL = 14 * 86400, 3 * 86400, 2 * 86400, 14 * 86400
+CARD_TTL, SEARCH_TTL, MPC_TTL, SYMBOL_TTL, DECK_TTL = 14 * 86400, 3 * 86400, 2 * 86400, 14 * 86400, 1800
 MEM_CACHE_BYTES, DISK_CACHE_FILES = 48 * 1024 * 1024, 60000
 sf_lock, sf_last, mem_cache, mem_size, mem_lock = threading.Lock(), [0.0], {}, [0], threading.Lock()
 disk_pruned = [0.0]
@@ -390,6 +412,29 @@ def page_csp(page_bytes):
     ])
 
 
+page_cache, page_lock = {}, threading.Lock()
+
+
+def page_response(host, https, preview_tags_fn):
+    mtime = os.path.getmtime(PAGE) if os.path.isfile(PAGE) else 0
+    key = (mtime, host, https, PUBLIC_URL)
+    with page_lock:
+        hit = page_cache.get(key)
+    if hit:
+        return hit
+    with open(PAGE, "rb") as f:
+        body = f.read()
+    csp = page_csp(body)
+    body = body.replace(b"</title>", b"</title>\n" + preview_tags_fn().encode(), 1)
+    body = body.replace(b"</head>", ('<meta name="public-url" content="' + html.escape(PUBLIC_URL, quote=True) + '"></head>').encode(), 1)
+    etag = f'"{hashlib.sha256(body).hexdigest()[:16]}"'
+    res = (body, csp, etag)
+    with page_lock:
+        page_cache.clear()
+        page_cache[key] = res
+    return res
+
+
 LOGIN_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Proxy Press · Sign in</title>
 <meta name="theme-color" content="#14161a"><!--head--><style>
@@ -448,6 +493,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return self.headers.get("X-Forwarded-Proto") == "https"
 
     def send(self, status, body, ctype, extra=()):
+        etag = next((v for k, v in extra if k == "ETag"), None)
+        inm = self.headers.get("If-None-Match")
+        if status == 200 and etag and inm and etag in [x.strip() for x in inm.split(",")]:
+            self.send_response(304)
+            for k, v in extra:
+                if k in ("ETag", "Cache-Control", "Vary"):
+                    self.send_header(k, v)
+            self.end_headers()
+            return
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
@@ -596,7 +650,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     if match and match[2] in ("image", "thumb"):
                         row = db.execute("SELECT mime,data FROM share_images JOIN instance_art ON hash=CASE WHEN ?='thumb' THEN COALESCE(thumb,image) ELSE image END WHERE id=?", (match[2], int(match[1]))).fetchone()
                         if row:
-                            return self.send(200, row[1], row[0], [("Content-Security-Policy", "default-src 'none'; sandbox")])
+                            etag = f'"{match[1]}-{match[2]}"'
+                            return self.send(200, row[1], row[0], [("ETag", etag), ("Cache-Control", "private, max-age=2592000, immutable"), ("Content-Security-Policy", "default-src 'none'; sandbox")])
                 return self.share_json(404, {"message": "Artwork not found."})
             origin = self.headers.get("Origin")
             if self.headers.get("Sec-Fetch-Site") == "cross-site" or origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host"):
@@ -679,13 +734,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send(404, b"This share link was removed or is not ready.", "text/plain")
                 return False
             if path == "deck.json":
-                self.send(200, doc.encode(), "application/json", [("Access-Control-Allow-Origin", "*")])
+                etag = f'"{hashlib.sha256(doc.encode()).hexdigest()[:16]}"'
+                self.send(200, doc.encode(), "application/json", [("ETag", etag), ("Cache-Control", "public, max-age=60"), ("Access-Control-Allow-Origin", "*")])
                 return False
             if path and re.fullmatch(r"images/[a-f0-9]{64}", path):
                 with share_db() as db:
                     image = db.execute("SELECT mime,data FROM share_images JOIN share_refs ON image=hash WHERE share=? AND hash=?", (token, path[7:])).fetchone()
                 if image:
-                    self.send(200, image[1], image[0], [("Content-Security-Policy", "default-src 'none'; sandbox"), ("Access-Control-Allow-Origin", "*"), ("Cross-Origin-Resource-Policy", "cross-origin")])
+                    etag = f'"{path[7:]}"'
+                    self.send(200, image[1], image[0], [("ETag", etag), ("Cache-Control", "public, max-age=31536000, immutable"), ("Content-Security-Policy", "default-src 'none'; sandbox"), ("Access-Control-Allow-Origin", "*"), ("Cross-Origin-Resource-Policy", "cross-origin")])
                 else:
                     self.send(404, b"Image not found", "text/plain")
                 return False
@@ -734,7 +791,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         key = "mpc:" + method + ":" + path + ":" + hashlib.sha256(body or b"").hexdigest()
         hit = cache_get(key, MPC_TTL)
         if hit is not None:
-            return self.send(200, hit.encode(), "application/json")
+            extra = [("Cache-Control", "private, max-age=86400"), ("ETag", f'"{hashlib.sha256(hit.encode()).hexdigest()[:16]}"')] if method == "GET" else []
+            return self.send(200, hit.encode(), "application/json", extra)
         req = urllib.request.Request(UPSTREAM + path, data=body, method=method, headers={
             "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "ProxyPress/1.0"})
         try:
@@ -744,7 +802,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return self.send(502, b'{"name":"Relay error","message":"Response too large"}', "application/json")
                 if r.status == 200:
                     cache_put(key, data.decode("utf-8", "replace"))
-                self.send(r.status, data, "application/json")
+                extra = [("Cache-Control", "private, max-age=86400"), ("ETag", f'"{hashlib.sha256(data).hexdigest()[:16]}"')] if method == "GET" and r.status == 200 else []
+                self.send(r.status, data, "application/json", extra)
         except urllib.error.HTTPError as e:
             self.send(e.code, e.read(64 * 1024), "application/json")
         except Exception:
@@ -755,6 +814,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         m = re.match(r"https?://(?:www\.)?(moxfield|archidekt)\.com/decks/([A-Za-z0-9_-]{1,40})", url)
         if not m:
             return self.send(400, b'{"message":"Paste a Moxfield or Archidekt deck link"}', "application/json")
+        key = "deck:" + url
+        hit = cache_get(key, DECK_TTL)
+        if hit is not None:
+            body = hit.encode() if isinstance(hit, str) else json.dumps(hit).encode()
+            return self.send(200, body, "application/json", [("Cache-Control", "private, max-age=300")])
         site, deck_id = m.groups()
         api = f"https://api2.moxfield.com/v2/decks/all/{deck_id}" if site == "moxfield" else f"https://archidekt.com/api/decks/{deck_id}/"
         try:
@@ -781,7 +845,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 c = v.get("card") or {}
                 name = (c.get("oracleCard") or {}).get("name") or c.get("name") or ""
                 lines.append(line(v.get("quantity", 1), name, (c.get("edition") or {}).get("editioncode", ""), c.get("collectorNumber", "")))
-        self.send(200, json.dumps({"name": j.get("name", ""), "text": "\n".join(l for l in lines if l.split(" ", 1)[1:] != [""])}).encode(), "application/json")
+        out = json.dumps({"name": j.get("name", ""), "text": "\n".join(l for l in lines if l.split(" ", 1)[1:] != [""])}).encode()
+        cache_put(key, out.decode("utf-8", "replace"))
+        self.send(200, out, "application/json", [("Cache-Control", "private, max-age=300")])
 
     def suggestions(self, slug):
         if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,159}", slug):
@@ -789,7 +855,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         key = "suggest:" + slug
         hit = cache_get(key, SEARCH_TTL)
         if hit is not None:
-            return self.send(200, json.dumps(hit).encode(), "application/json")
+            body = json.dumps(hit).encode()
+            return self.send(200, body, "application/json", [("Cache-Control", "private, max-age=86400"), ("ETag", f'"{hashlib.sha256(body).hexdigest()[:16]}"')])
         try:
             req = urllib.request.Request(f"https://json.edhrec.com/pages/cards/{slug}.json", headers={"Accept": "application/json", "User-Agent": "ProxyPress/1.0"})
             with urllib.request.urlopen(req, timeout=20) as r:
@@ -810,12 +877,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                         add(card.get("name"), base - i, "Often played together")
             result = {"cards": list(cards.values())[:64]}
             cache_put(key, result)
-            return self.send(200, json.dumps(result).encode(), "application/json")
+            out = json.dumps(result).encode()
+            return self.send(200, out, "application/json", [("Cache-Control", "private, max-age=86400"), ("ETag", f'"{hashlib.sha256(out).hexdigest()[:16]}"')])
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 result = {"cards": []}
                 cache_put(key, result)
-                return self.send(200, json.dumps(result).encode(), "application/json")
+                out = json.dumps(result).encode()
+                return self.send(200, out, "application/json", [("Cache-Control", "private, max-age=86400"), ("ETag", f'"{hashlib.sha256(out).hexdigest()[:16]}"')])
         except Exception:
             pass
         self.send(502, b'{"message":"Suggestions are unavailable right now"}', "application/json")
@@ -850,7 +919,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, j = scryfall(path)
                 if status == 200:
                     cache_put("get:" + path, j)
-        self.send(status, json.dumps(j).encode(), "application/json")
+        body = json.dumps(j).encode()
+        extra = []
+        if status == 200 and method == "GET":
+            extra = [("Cache-Control", f"private, max-age={3600 if route == '/cards/search' else 86400}"),
+                     ("ETag", f'"{hashlib.sha256(body).hexdigest()[:16]}"')]
+        self.send(status, body, "application/json", extra)
 
     def do_GET(self):
         route = self.path.split("?")[0]
@@ -890,24 +964,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 body = symbol(name)
             except Exception:
                 return self.send(502, b"Could not reach Scryfall", "text/plain")
+            etag = f'"{hashlib.sha256(body).hexdigest()[:16]}"'
             if name == "index.json":
-                return self.send(200, body, "application/json", [("Cache-Control", "private, max-age=86400")])
-            return self.send(200, body, "image/svg+xml", [("Cache-Control", "private, max-age=2592000, immutable"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
+                return self.send(200, body, "application/json", [("ETag", etag), ("Cache-Control", "private, max-age=86400")])
+            return self.send(200, body, "image/svg+xml", [("ETag", etag), ("Cache-Control", "private, max-age=2592000, immutable"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
         if route == "/assets/manifest.json":
-            return self.send(200, json.dumps(asset_manifest()).encode(), "application/json")
+            body, etag = asset_manifest_data()
+            return self.send(200, body, "application/json", [("ETag", etag), ("Cache-Control", "private, max-age=3600")])
         if route.startswith("/assets/"):
             full, ctype = asset_path(route)
             if not full:
                 return self.send(404, b"Not found", "text/plain")
-            with open(full, "rb") as f:
-                return self.send(200, f.read(), ctype, [("Cache-Control", "private, max-age=86400"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
+            try:
+                stat = os.stat(full)
+                etag = f'"{int(stat.st_mtime):x}-{stat.st_size:x}"'
+                inm = self.headers.get("If-None-Match")
+                if inm and etag in [x.strip() for x in inm.split(",")]:
+                    return self.send(200, b"", ctype, [("ETag", etag), ("Cache-Control", "private, max-age=86400")])
+                with open(full, "rb") as f:
+                    return self.send(200, f.read(), ctype, [("ETag", etag), ("Cache-Control", "private, max-age=86400"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
+            except OSError:
+                return self.send(404, b"Not found", "text/plain")
         if route in ("/", "/proxy-press.html"):
-            with open(PAGE, "rb") as f:
-                body = f.read()
-            csp = page_csp(body)
-            body = body.replace(b"</title>", b"</title>\n" + self.preview_tags().encode(), 1)
-            body = body.replace(b"</head>", ('<meta name="public-url" content="' + html.escape(PUBLIC_URL, quote=True) + '"></head>').encode(), 1)
-            return self.send(200, body, "text/html; charset=utf-8", [("Content-Security-Policy", csp)])
+            body, csp, etag = page_response(self.headers.get("Host", ""), self.https(), self.preview_tags)
+            return self.send(200, body, "text/html; charset=utf-8", [("Content-Security-Policy", csp), ("Cache-Control", "no-cache"), ("ETag", etag)])
         self.send(404, b"Not found", "text/plain")
 
     do_HEAD = do_GET
