@@ -3,6 +3,7 @@
 
 import json
 import os
+import subprocess
 import sys
 import urllib.request
 import urllib.error
@@ -21,10 +22,20 @@ HEADERS = {
     "User-Agent": "proxypress-sync-releases"
 }
 
-# Mapping of previous releases:
-# old_tag -> (new_tag, new_name, commit_sha, body)
 RELEASES_MAP = {
-    "v1.0.8": {
+    "v0.5.1": {
+        "tag_name": "v0.5.1",
+        "name": "Proxy Press v0.5.1",
+        "target_commitish": "c31b33e",
+        "make_latest": "true"
+    },
+    "v0.5.0": {
+        "tag_name": "v0.5.0",
+        "name": "Proxy Press v0.5.0",
+        "target_commitish": "3e80511",
+        "make_latest": "false"
+    },
+    "v0.4.0": {
         "tag_name": "v0.4.0",
         "name": "Proxy Press v0.4.0",
         "target_commitish": "39a768a",
@@ -36,9 +47,9 @@ RELEASES_MAP = {
             "- **Compact JSON export:** Export decks with compressed artwork and links to original server assets."
         ),
         "draft": False,
-        "make_latest": "true"
+        "make_latest": "false"
     },
-    "v1.0.7": {
+    "v0.3.3": {
         "tag_name": "v0.3.3",
         "name": "Proxy Press v0.3.3",
         "target_commitish": "1ef70e4",
@@ -48,7 +59,7 @@ RELEASES_MAP = {
             "- **Dropdown controls:** Restored corner shape and placement selector options."
         )
     },
-    "v1.0.6": {
+    "v0.3.2": {
         "tag_name": "v0.3.2",
         "name": "Proxy Press v0.3.2",
         "target_commitish": "0f32c95",
@@ -57,7 +68,7 @@ RELEASES_MAP = {
             "- **Guide specs:** Proxxied 0.25 mm line thickness and colorblind-safe guide palettes."
         )
     },
-    "v1.0.5": {
+    "v0.3.1": {
         "tag_name": "v0.3.1",
         "name": "Proxy Press v0.3.1",
         "target_commitish": "52f24cc",
@@ -66,7 +77,7 @@ RELEASES_MAP = {
             "- **Layered guides:** Combination guide toggle and All preset."
         )
     },
-    "v1.0.4": {
+    "v0.3.0": {
         "tag_name": "v0.3.0",
         "name": "Proxy Press v0.3.0",
         "target_commitish": "7eb3702",
@@ -75,7 +86,7 @@ RELEASES_MAP = {
             "- **Cut guides:** Continuous sheet lines, custom cut/corner colors, and dark workspace."
         )
     },
-    "v1.0.3": {
+    "v0.2.0": {
         "tag_name": "v0.2.0",
         "name": "Proxy Press v0.2.0",
         "target_commitish": "8021f0a",
@@ -85,7 +96,7 @@ RELEASES_MAP = {
             "- **Token faces:** Support for selecting specific faces on tokens and double-faced cards."
         )
     },
-    "v1.0.2": {
+    "v0.1.2": {
         "tag_name": "v0.1.2",
         "name": "Proxy Press v0.1.2",
         "target_commitish": "7dec04a",
@@ -94,7 +105,7 @@ RELEASES_MAP = {
             "- **Workflow fixes:** Tour navigation, deck import boards, and export button fixes."
         )
     },
-    "v1.0.1": {
+    "v0.1.1": {
         "tag_name": "v0.1.1",
         "name": "Proxy Press v0.1.1",
         "target_commitish": "013e928",
@@ -103,7 +114,7 @@ RELEASES_MAP = {
             "- **Polish:** Brand icon redesign, dark warning styles, and window bounds fixes."
         )
     },
-    "v1.0.0": {
+    "v0.1.0": {
         "tag_name": "v0.1.0",
         "name": "Proxy Press v0.1.0",
         "target_commitish": "8817318",
@@ -134,21 +145,32 @@ def sync():
     print(f"Fetching releases for {REPO}...")
     releases = api_request("GET", "/releases?per_page=100")
     print(f"Found {len(releases)} releases.")
+    existing_tags = {r.get("tag_name") for r in releases}
+
+    # Ensure v0.4.0 release is created if missing
+    if "v0.4.0" not in existing_tags:
+        print("Creating release for v0.4.0...")
+        info = RELEASES_MAP["v0.4.0"]
+        proc = subprocess.run(
+            ["gh", "release", "create", "v0.4.0", "--repo", REPO, "--title", info["name"], "--notes", info["body"]],
+            capture_output=True,
+            text=True
+        )
+        print(f"  gh release create result: rc={proc.returncode}")
+        if proc.stdout:
+            print(f"  stdout: {proc.stdout.strip()}")
+        if proc.stderr:
+            print(f"  stderr: {proc.stderr.strip()}")
+        if proc.returncode == 0:
+            existing_tags.add("v0.4.0")
 
     for r in releases:
         tag = r.get("tag_name")
         rel_id = r.get("id")
-        current_name = r.get("name")
 
-        # Check if this release corresponds to one of the historical versions
-        target_info = None
-        if tag in RELEASES_MAP:
-            target_info = RELEASES_MAP[tag]
-        elif current_name and "v1.0.8" in current_name:
-            target_info = RELEASES_MAP["v1.0.8"]
-        else:
-            # Maybe already updated tag?
-            for old_tag, info in RELEASES_MAP.items():
+        target_info = RELEASES_MAP.get(tag)
+        if not target_info:
+            for info in RELEASES_MAP.values():
                 if info["tag_name"] == tag:
                     target_info = info
                     break
@@ -156,27 +178,18 @@ def sync():
         if target_info:
             print(f"Updating release {rel_id} ({tag} -> {target_info['name']})...")
             payload = {
-                "tag_name": target_info["tag_name"],
-                "target_commitish": target_info["target_commitish"],
                 "name": target_info["name"],
-                "body": target_info["body"],
                 "draft": target_info.get("draft", False),
                 "make_latest": target_info.get("make_latest", "false")
             }
+            if "body" in target_info:
+                payload["body"] = target_info["body"]
+
             try:
                 updated = api_request("PATCH", f"/releases/{rel_id}", payload)
                 print(f"  ✓ Updated {updated.get('tag_name')} - {updated.get('name')}")
             except Exception as e:
-                # If changing tag_name fails, update name and body without tag_name
-                print(f"  Retrying without tag_name update: {e}")
-                payload_fallback = {
-                    "name": target_info["name"],
-                    "body": target_info["body"],
-                    "draft": target_info.get("draft", False),
-                    "make_latest": target_info.get("make_latest", "false")
-                }
-                updated = api_request("PATCH", f"/releases/{rel_id}", payload_fallback)
-                print(f"  ✓ Updated name/body: {updated.get('name')}")
+                print(f"  Error updating release {rel_id}: {e}")
 
     print("Sync complete.")
 

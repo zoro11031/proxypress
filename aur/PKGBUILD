@@ -2,7 +2,7 @@
 
 pkgname=proxypress-bin
 _pkgname=proxypress
-pkgver=0.5.1
+pkgver=0.5.2
 pkgrel=1
 pkgdesc="Turn a decklist into print-ready Magic proxies (desktop application)"
 arch=('x86_64')
