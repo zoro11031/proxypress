@@ -1,7 +1,7 @@
 {
   "name": "proxypress",
   "productName": "ProxyPress",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A browser-based MTG proxy maker",
   "main": "main.js",
   "author": {

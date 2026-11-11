@@ -2058,7 +2058,8 @@ function scryfallArt(card, query) {
   const named=faces.filter(f=>normName(f.name).includes(normName(query))), chosen=named.length?named:faces;
   return chosen.flatMap(f=>{
     const png=safe(f.image_uris?.png || f.image_uris?.large || f.image_uris?.normal);
-    return png?[{png,thumb:safe(f.image_uris?.small || f.image_uris?.normal),name:f.name,card,index:f.index}]:[];
+    const dpi=f.image_uris?.png?300:f.image_uris?.large?270:f.image_uris?.normal?196:300;
+    return png?[{png,thumb:safe(f.image_uris?.small || f.image_uris?.normal),name:f.name,card,index:f.index,dpi}]:[];
   });
 }
 async function openMpcPicker(target) {
@@ -2147,7 +2148,7 @@ async function openMpcPicker(target) {
             sfNext=data.has_more && typeof data.next_page==='string' && data.next_page.startsWith(SF+'/cards/search?')?data.next_page:null;
           }
           const batch=sfHits.slice(sfShown,sfShown+60), offset=sfShown;sfShown+=batch.length;
-          find('#scryfallArt').insertAdjacentHTML('beforeend',batch.map((c,i)=>`<figure data-scryfall="${offset+i}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} from Scryfall" class="${face()?.scryArt===c.png?'sel':''}">${c.thumb?`<img loading="lazy" src="${esc(c.thumb)}" alt="">`:''}<figcaption>${esc(c.name)}<br><b style="color:var(--accent2)">Scryfall</b> · ${esc(c.card.set_name || c.card.set || '')} #${esc(c.card.collector_number || '')}</figcaption></figure>`).join(''));
+          find('#scryfallArt').insertAdjacentHTML('beforeend',batch.map((c,i)=>`<figure data-scryfall="${offset+i}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} from Scryfall" class="${face()?.scryArt===c.png?'sel':''}">${c.thumb?`<img loading="lazy" src="${esc(c.thumb)}" alt="">`:''}<figcaption>${esc(c.name)}<br><b style="color:var(--accent2)">Scryfall</b> · ${esc(c.card.set_name || c.card.set || '')} #${esc(c.card.collector_number || '')} · ${S.mpc.preferDpi && (c.dpi||300) >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+(c.dpi||300)} DPI</b>` : +(c.dpi||300) + ' DPI'}</figcaption></figure>`).join(''));
           find('#sfArtMore').style.display=sfShown<sfHits.length || sfNext?'':'none';
           update('scryfall',sfHits.length?`${sfHits.length}${sfNext?'+':''} Scryfall printing${sfHits.length===1?'':'s'}.`:query?'No Scryfall printings found.':'Enter a card name to search Scryfall.');
         }catch(err){if(active()){sfNext=null;find('#sfArtMore').style.display='none';update('scryfall',err.status===404?'No Scryfall printings found.':'Scryfall is unavailable.');}}
