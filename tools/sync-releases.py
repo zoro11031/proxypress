@@ -151,21 +151,18 @@ def sync():
     if "v0.4.0" not in existing_tags:
         print("Creating release for v0.4.0...")
         info = RELEASES_MAP["v0.4.0"]
-        payload = {
-            "tag_name": "v0.4.0",
-            "name": info["name"],
-            "target_commitish": info["target_commitish"],
-            "body": info["body"],
-            "draft": False,
-            "make_latest": "false"
-        }
-        try:
-            new_rel = api_request("POST", "/releases", payload)
-            print("  ✓ Created v0.4.0 release:", new_rel.get("id"))
-            releases.append(new_rel)
+        proc = subprocess.run(
+            ["gh", "release", "create", "v0.4.0", "--repo", REPO, "--title", info["name"], "--notes", info["body"]],
+            capture_output=True,
+            text=True
+        )
+        print(f"  gh release create result: rc={proc.returncode}")
+        if proc.stdout:
+            print(f"  stdout: {proc.stdout.strip()}")
+        if proc.stderr:
+            print(f"  stderr: {proc.stderr.strip()}")
+        if proc.returncode == 0:
             existing_tags.add("v0.4.0")
-        except Exception as e:
-            print("  Error creating v0.4.0:", e)
 
     for r in releases:
         tag = r.get("tag_name")
