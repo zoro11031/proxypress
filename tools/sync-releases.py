@@ -35,7 +35,8 @@ RELEASES_MAP = {
             "- **Scryfall art search:** Browse and select official Scryfall printings alongside community art.\n"
             "- **Compact JSON export:** Export decks with compressed artwork and links to original server assets."
         ),
-        "draft": False
+        "draft": False,
+        "make_latest": "true"
     },
     "v1.0.7": {
         "tag_name": "v0.3.3",
@@ -160,7 +161,7 @@ def sync():
                 "name": target_info["name"],
                 "body": target_info["body"],
                 "draft": target_info.get("draft", False),
-                "make_latest": "false"
+                "make_latest": target_info.get("make_latest", "false")
             }
             try:
                 updated = api_request("PATCH", f"/releases/{rel_id}", payload)
@@ -172,7 +173,7 @@ def sync():
                     "name": target_info["name"],
                     "body": target_info["body"],
                     "draft": target_info.get("draft", False),
-                    "make_latest": "false"
+                    "make_latest": target_info.get("make_latest", "false")
                 }
                 updated = api_request("PATCH", f"/releases/{rel_id}", payload_fallback)
                 print(f"  ✓ Updated name/body: {updated.get('name')}")

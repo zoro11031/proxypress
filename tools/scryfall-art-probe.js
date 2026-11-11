@@ -37,6 +37,8 @@
     await openMpcPicker({e:d.entries[0],i:0});await wait(()=>!!$('[data-scryfall]'));
     eq('Scryfall appears while community search is still pending',typeof resolveCommunity,'function');
     eq('Scryfall label is explicit',$('[data-scryfall]').textContent.includes('Scryfall'),true);
+    eq('Scryfall displays DPI',$('[data-scryfall]').textContent.includes('300 DPI'),true);
+    eq('Scryfall art returns 300 DPI',scryfallArt(card(1),'Original')[0].dpi,300);
     eq('set names are escaped',!!$('#scryfallArt set'),false);
     eq('untrusted image hosts are omitted',$$('[data-scryfall]').length,1);
     eq('search requests individual printings',new URL(requests[0]).searchParams.get('unique'),'prints');

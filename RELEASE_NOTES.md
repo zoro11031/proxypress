@@ -1,33 +1,36 @@
-# Proxy Press v0.5.0
+# Proxy Press v0.5.1
 
-Client-side and server-side caching engine for faster loads and rendering.
+Resolution metadata for official Scryfall card imagery in art search.
 
 ## What's new
 
-- **HTTP caching & 304 Not Modified:** Added ETags and conditional request handling across the application page, static assets, symbols, instance art, and API relays.
-- **Pre-rendered page cache:** In-memory caching of the HTML document and script CSP hashes to eliminate disk reads and regex hashing on warm loads.
-- **Bundled asset manifest:** Embedded frame styles into the manifest to eliminate 18 individual HTTP roundtrips on startup.
-- **Client-side persistent caching:** Cached frame sets, fonts, symbol maps, and art search metadata in IndexedDB.
-- **Staple card pre-caching:** Background pre-caching for basic lands and common format staples to accelerate deck imports.
-- **UI render optimizations:** Synchronous thumbnail rendering in the card list and memoized cut guide calculations.
+- **Scryfall art DPI:** Scryfall card printings in art search now display their resolution (300 DPI) alongside set code and collector number, matching community art metadata formatting and respecting high-DPI threshold highlighting.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
 ---
 
 # Previous Releases
+
+### v0.5.0
+- **HTTP caching & 304 Not Modified:** Added ETags and conditional request handling across the application page, static assets, symbols, instance art, and API relays.
+- **Pre-rendered page cache:** In-memory caching of the HTML document and script CSP hashes to eliminate disk reads and regex hashing on warm loads.
+- **Bundled asset manifest:** Embedded frame styles into the manifest to eliminate 18 individual HTTP roundtrips on startup.
+- **Client-side persistent caching:** Cached frame sets, fonts, symbol maps, and art search metadata in IndexedDB.
+- **Staple card pre-caching:** Background pre-caching for basic lands and common format staples to accelerate deck imports.
+- **UI render optimizations:** Synchronous thumbnail rendering in the card list and memoized cut guide calculations.
 
 ### v0.4.0
 - **Public deck sharing:** Share decks via public, revocable links with deduplicated server storage.
