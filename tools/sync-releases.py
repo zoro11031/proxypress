@@ -163,5 +163,24 @@ def sync():
     print("Sync complete.")
 
 
+def cancel_stale_release_runs():
+    print("Checking for stale in-progress release runs...")
+    try:
+        data = api_request("GET", "/actions/runs?status=in_progress")
+        runs = data.get("workflow_runs", [])
+        for r in runs:
+            if r.get("name") == "release":
+                run_id = r.get("id")
+                print(f"Cancelling stale release run {run_id}...")
+                try:
+                    api_request("POST", f"/actions/runs/{run_id}/cancel")
+                    print(f"  ✓ Cancelled {run_id}")
+                except Exception as e:
+                    print(f"  Could not cancel {run_id}: {e}")
+    except Exception as e:
+        print(f"Error checking runs: {e}")
+
+
 if __name__ == "__main__":
+    cancel_stale_release_runs()
     sync()
