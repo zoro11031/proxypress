@@ -17,16 +17,22 @@ Environment:
   BASIC_AUTH  "user:password" for a browser login prompt instead (optional)
   NO_BROWSER  set to 1 to skip opening a browser on start
   CACHE       folder for cached Scryfall card data (default ./cache)
+  PUBLIC_URL  public origin for share links, e.g. https://proxy.example.com
+  SHARE_STORAGE_MB  total stored share artwork budget (default 20480)
+  SHARE_DECK_MB  artwork budget per shared deck (default 1024)
 """
 import base64
+import contextlib
 import hashlib
 import hmac
+import html
 import http.server
 import ipaddress
 import json
 import os
 import re
 import signal
+import sqlite3
 import sys
 import threading
 import time
@@ -118,6 +124,78 @@ CARD_TTL, SEARCH_TTL, MPC_TTL, SYMBOL_TTL = 14 * 86400, 3 * 86400, 2 * 86400, 14
 MEM_CACHE_BYTES, DISK_CACHE_FILES = 48 * 1024 * 1024, 60000
 sf_lock, sf_last, mem_cache, mem_size, mem_lock = threading.Lock(), [0.0], {}, [0], threading.Lock()
 disk_pruned = [0.0]
+SHARE_BYTES = max(1, int(os.environ.get("SHARE_STORAGE_MB", 20480))) * 1048576
+SHARE_DECK_BYTES = max(1, int(os.environ.get("SHARE_DECK_MB", 1024))) * 1048576
+SHARE_TOKEN = r"[A-Za-z0-9_-]{32}"
+share_lock = threading.Lock()
+PUBLIC_URL = os.environ.get("PUBLIC_URL", "").strip().rstrip("/")
+if PUBLIC_URL:
+    public = urllib.parse.urlsplit(PUBLIC_URL)
+    if public.scheme not in ("http", "https") or not public.hostname or public.username or public.password or public.path or public.query or public.fragment:
+        sys.exit("PUBLIC_URL must be an http(s) origin, such as https://proxy.example.com")
+    if not re.fullmatch(r"[A-Za-z0-9.:-]+", public.hostname):
+        sys.exit("PUBLIC_URL must have a valid domain or IP address")
+    try:
+        public.port
+    except ValueError:
+        sys.exit("PUBLIC_URL must have a valid port")
+
+
+@contextlib.contextmanager
+def share_db():
+    os.makedirs(CACHE, exist_ok=True)
+    db = sqlite3.connect(os.path.join(CACHE, "shares.sqlite3"), timeout=30)
+    try:
+        db.execute("PRAGMA foreign_keys=ON")
+        with db:
+            db.execute("CREATE TABLE IF NOT EXISTS shares (id TEXT PRIMARY KEY, created INTEGER NOT NULL, document TEXT)")
+            db.execute("CREATE TABLE IF NOT EXISTS share_images (hash TEXT PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS share_refs (share TEXT REFERENCES shares(id) ON DELETE CASCADE, image TEXT REFERENCES share_images(hash), PRIMARY KEY(share,image))")
+            yield db
+    finally:
+        db.close()
+
+
+def prune_shares(db):
+    db.execute("DELETE FROM shares WHERE document IS NULL AND created < ?", (int(time.time()) - 86400,))
+    db.execute("DELETE FROM share_images WHERE hash NOT IN (SELECT image FROM share_refs)")
+
+
+def shared_document(token):
+    with share_db() as db:
+        row = db.execute("SELECT document FROM shares WHERE id=? AND document IS NOT NULL", (token,)).fetchone()
+    return row[0] if row else None
+
+
+def valid_share_document(doc):
+    if not isinstance(doc, dict) or doc.get("app") != "proxy-press" or doc.get("type") != "linked-deck" or doc.get("version") != 1:
+        return False
+    d, images, settings = doc.get("deck"), doc.get("images"), doc.get("settings")
+    if not isinstance(d, dict) or not isinstance(images, dict) or not isinstance(settings, dict) or len(images) > 4000:
+        return False
+    entries = d.get("entries")
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 2000:
+        return False
+    keys, count = set(), 0
+    for e in entries:
+        if not isinstance(e, dict) or type(e.get("qty")) is not int or not 0 <= e["qty"] <= 999:
+            return False
+        count += e["qty"]
+        if not isinstance(e.get("faces"), list) or not 1 <= len(e["faces"]) <= 8:
+            return False
+        for f in e["faces"]:
+            if not isinstance(f, dict) or not isinstance(f.get("custom"), str):
+                return False
+            keys.add(f["custom"])
+            t = f.get("template")
+            if t is not None:
+                if not isinstance(t, dict):
+                    return False
+                keys.update(t[k] for k in ("artKey", "frameKey", "popKey") if isinstance(t.get(k), str))
+    for f in (d.get("cardback"), {"custom": settings.get("backImage")}):
+        if isinstance(f, dict) and isinstance(f.get("custom"), str):
+            keys.add(f["custom"])
+    return 0 < count <= 20000 and keys <= images.keys() and all(isinstance(k, str) and re.fullmatch(r"[\w-]{1,64}", k) and isinstance(v, str) and re.fullmatch(r"[a-f0-9]{64}", v) for k, v in images.items())
 
 
 def session_secret():
@@ -288,7 +366,7 @@ def page_csp(page_bytes):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
-        "connect-src 'self' data: blob: https://api.scryfall.com https://cards.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
+        "connect-src 'self' data: blob: https://api.scryfall.com https://cards.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com" + (" " + PUBLIC_URL if PUBLIC_URL else ""),
         "object-src 'none'",
         "base-uri 'none'",
         "form-action 'self'",
@@ -405,13 +483,119 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return True
 
     def refuse(self):
-        if self.path.startswith(("/mpc/", "/assets/", "/deck", "/sym/", "/sf/")):
+        if self.path.startswith(("/mpc/", "/assets/", "/deck", "/sym/", "/sf/", "/shares")):
             return self.send(401, b'{"name":"Signed out","message":"Sign in again"}', "application/json")
         if PASSWORD:
             return self.login_page(200)
         if self.headers.get("Authorization"):
             time.sleep(1)
         self.send(401, b"Login required", "text/plain", [("WWW-Authenticate", 'Basic realm="Proxy Press", charset="UTF-8"')])
+
+    def share_json(self, status, data):
+        return self.send(status, json.dumps(data, ensure_ascii=True).encode(), "application/json")
+
+    def share_api(self, route):
+        try:
+            if self.command in ("GET", "HEAD") and route == "/shares":
+                with share_lock, share_db() as db:
+                    rows = db.execute("SELECT id,created,document FROM shares WHERE document IS NOT NULL ORDER BY created DESC").fetchall()
+                items = [{"id": token, "created": created, "name": str(json.loads(doc).get("deck", {}).get("name", "Shared deck"))[:300]} for token, created, doc in rows]
+                return self.share_json(200, {"shares": items, "publicUrl": PUBLIC_URL})
+            origin = self.headers.get("Origin")
+            if self.headers.get("Sec-Fetch-Site") == "cross-site" or (origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host")):
+                return self.share_json(403, {"message": "Open Proxy Press on this server to create or remove links."})
+            try:
+                length = int(self.headers.get("Content-Length", "-1"))
+            except ValueError:
+                length = -1
+            upload = re.fullmatch(r"/shares/(" + SHARE_TOKEN + r")/images", route)
+            if not 0 <= length <= (MAX_UPSTREAM if upload else MAX_BODY * 4):
+                self.close_connection = True
+                return self.share_json(413, {"message": "This image or deck is too large to share."})
+            body = self.rfile.read(length)
+            if len(body) != length:
+                return self.share_json(400, {"message": "The upload was interrupted. Try again."})
+            with share_lock, share_db() as db:
+                if route == "/shares" and self.command == "POST":
+                    prune_shares(db)
+                    if db.execute("SELECT COUNT(*) FROM shares").fetchone()[0] >= 1000:
+                        return self.share_json(409, {"message": "Remove an old share link before creating another."})
+                    token = base64.urlsafe_b64encode(os.urandom(24)).decode()
+                    db.execute("INSERT INTO shares VALUES (?,?,NULL)", (token, int(time.time())))
+                    return self.share_json(201, {"id": token})
+                match = re.fullmatch(r"/shares/(" + SHARE_TOKEN + r")(/images|/delete)?", route)
+                if not match:
+                    return self.share_json(404, {"message": "Share link not found."})
+                token, action = match.groups()
+                row = db.execute("SELECT document FROM shares WHERE id=?", (token,)).fetchone()
+                if not row:
+                    return self.share_json(404, {"message": "Share link not found."})
+                if action == "/delete":
+                    db.execute("DELETE FROM shares WHERE id=?", (token,))
+                    prune_shares(db)
+                    return self.share_json(200, {"removed": True})
+                if row[0] is not None:
+                    return self.share_json(409, {"message": "This link is already ready. Create a new link to share changes."})
+                if upload:
+                    mime = self.headers.get("Content-Type", "").split(";")[0].lower()
+                    if not body or mime not in ("image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/bmp", "image/svg+xml"):
+                        return self.share_json(400, {"message": "Please choose valid card artwork."})
+                    digest = hashlib.sha256(body).hexdigest()
+                    linked = db.execute("SELECT 1 FROM share_refs WHERE share=? AND image=?", (token, digest)).fetchone()
+                    deck_bytes = db.execute("SELECT COALESCE(SUM(length(data)),0) FROM share_images JOIN share_refs ON image=hash WHERE share=?", (token,)).fetchone()[0]
+                    if not linked and deck_bytes + length > SHARE_DECK_BYTES:
+                        return self.share_json(413, {"message": "This deck exceeds the per-deck artwork limit. Split it into smaller decks."})
+                    if not db.execute("SELECT 1 FROM share_images WHERE hash=?", (digest,)).fetchone():
+                        used = db.execute("SELECT COALESCE(SUM(length(data)),0) FROM share_images").fetchone()[0]
+                        if used + length > SHARE_BYTES:
+                            return self.share_json(507, {"message": "Share storage is full. Remove an old share link and try again."})
+                        db.execute("INSERT INTO share_images VALUES (?,?,?)", (digest, mime, body))
+                    db.execute("INSERT OR IGNORE INTO share_refs VALUES (?,?)", (token, digest))
+                    return self.share_json(200, {"hash": digest})
+                try:
+                    doc = json.loads(body)
+                except (ValueError, UnicodeError):
+                    doc = None
+                if not valid_share_document(doc):
+                    return self.share_json(400, {"message": "This shared deck is incomplete or too large."})
+                refs = {r[0] for r in db.execute("SELECT image FROM share_refs WHERE share=?", (token,))}
+                if not set(doc["images"].values()) <= refs:
+                    return self.share_json(400, {"message": "Some artwork has not finished uploading. Try again."})
+                db.execute("UPDATE shares SET document=? WHERE id=?", (json.dumps(doc, ensure_ascii=True), token))
+                return self.share_json(200, {"id": token, "path": "/share/" + token, "publicUrl": PUBLIC_URL})
+        except (OSError, sqlite3.Error):
+            return self.share_json(507, {"message": "Could not save this share. Check the server's storage and try again."})
+
+    def public_share(self, route):
+        match = re.fullmatch(r"/share/(" + SHARE_TOKEN + r")(?:/(.*))?", route)
+        if not match:
+            return None
+        token, path = match.groups()
+        try:
+            doc = shared_document(token)
+            if doc is None:
+                self.send(404, b"This share link was removed or is not ready.", "text/plain")
+                return False
+            if path == "deck.json":
+                self.send(200, doc.encode(), "application/json", [("Access-Control-Allow-Origin", "*")])
+                return False
+            if path and re.fullmatch(r"images/[a-f0-9]{64}", path):
+                with share_db() as db:
+                    image = db.execute("SELECT mime,data FROM share_images JOIN share_refs ON image=hash WHERE share=? AND hash=?", (token, path[7:])).fetchone()
+                if image:
+                    self.send(200, image[1], image[0], [("Content-Security-Policy", "default-src 'none'; sandbox"), ("Access-Control-Allow-Origin", "*"), ("Cross-Origin-Resource-Policy", "cross-origin")])
+                else:
+                    self.send(404, b"Image not found", "text/plain")
+                return False
+            allowed = not path or path == "deck" or path.startswith(("assets/", "mpc/", "sf/", "sym/", "suggest/"))
+            if not allowed:
+                self.send(404, b"Not found", "text/plain")
+                return False
+            self.path = "/" + (path or "") + ("?" + self.path.split("?", 1)[1] if "?" in self.path else "")
+            return True
+        except (OSError, sqlite3.Error):
+            self.share_json(503, {"message": "Shared decks are temporarily unavailable. Try again."})
+            return False
 
     def login(self):
         ip = self.client_ip()
@@ -575,8 +759,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(200, f.read(), "image/png", [("Cache-Control", "public, max-age=86400"), ("Cross-Origin-Resource-Policy", "cross-origin")])
         if route == "/logout":
             return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax")])
-        if not self.signed_in():
+        public = self.public_share(route) if route.startswith("/share/") else None
+        if public is False:
+            return
+        if not public and not self.signed_in():
             return self.refuse()
+        route = self.path.split("?")[0]
+        if route == "/shares":
+            return self.share_api(route)
         if route.startswith("/mpc/"):
             return self.relay("GET")
         if route == "/deck":
@@ -612,6 +802,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 body = f.read()
             csp = page_csp(body)
             body = body.replace(b"</title>", b"</title>\n" + self.preview_tags().encode(), 1)
+            body = body.replace(b"</head>", ('<meta name="public-url" content="' + html.escape(PUBLIC_URL, quote=True) + '"></head>').encode(), 1)
             return self.send(200, body, "text/html; charset=utf-8", [("Content-Security-Policy", csp)])
         self.send(404, b"Not found", "text/plain")
 
@@ -620,8 +811,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path.split("?")[0] == "/login" and PASSWORD:
             return self.login()
-        if not self.signed_in():
+        route = self.path.split("?")[0]
+        public = None
+        if re.fullmatch(r"/share/" + SHARE_TOKEN + r"/(mpc|sf)/.*", route):
+            public = self.public_share(route)
+            if public is False:
+                return
+        if not public and not self.signed_in():
             return self.refuse()
+        if self.path.split("?")[0].startswith("/shares"):
+            return self.share_api(self.path.split("?")[0])
         if self.path.startswith("/mpc/"):
             return self.relay("POST")
         if self.path.startswith("/sf/"):

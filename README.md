@@ -47,7 +47,9 @@ Paste a decklist or paste a link directly from Moxfield or Archidekt. Proxy Pres
 ### 2. Pick Your Favorite Art
 Click any card to browse official printings, retro borders, borderless treatments, and high-DPI community renders.
 
-Right-click a card and choose **Change card match…** to correct its Scryfall match or printing. The Suggestions box recommends cards based on the ones in your deck; use **+** to add one or **Explore suggestions** to browse them. **Share deck with art & layout** is available alongside the export options in both modes.
+Right-click a card and choose **Change card match…** to correct its Scryfall match or printing. The Suggestions box recommends cards based on the ones in your deck; use **+** to add one or **Explore suggestions** to browse them.
+
+On a home server, **Create share link** shares a copy with original artwork and layout. Anyone with the link can open it without signing in. Remove links under **Settings → Manage shared decks**. **Offline deck file** exports a smaller JSON file with compact artwork at up to 600 DPI; importing it restores the original artwork when this server is reachable. The desktop app also supports compact offline deck files.
 
 For tokens, choose **Choose token faces…** to use either face by itself or browse released two-sided token pairings. The selected printing's artwork is saved with your deck.
 
@@ -58,6 +60,8 @@ For tokens, choose **Choose token faces…** to use either face by itself or bro
 - **Order Online:** One-click bundle ready for MakePlayingCards with formatted order files and card images.
 
 Use the preview toolbar to switch paper size or orientation, fit the whole sheet in the window, or hide the sidebar for more room.
+
+For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across all shares. Identical images are stored once. Shares are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other share uses; copies already saved by recipients remain theirs.
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
 

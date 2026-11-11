@@ -12,7 +12,7 @@ Proxy Press is a single-page MTG proxy maker. It imports decklists, finds art on
 | `.github/workflows/` | Workflows for container image builds (`image.yml`) and desktop release packaging (`release.yml`). |
 | `assets/` | Fonts and frame packs (`fonts/`, `frames/<set>/`). |
 | `electron/`, `aur/` | Desktop app wrapper and release packaging (Windows `.exe`/`.msi`, Linux `.AppImage`, `.deb`, `.rpm`, `.pacman`, and AUR). |
-| `cache/` | Server cache plus `session.key`. Not in git. |
+| `cache/` | Server cache, `session.key`, and persistent `shares.sqlite3` (shared decks and deduplicated artwork). Not in git. |
 | `LICENSE` | GNU General Public License v3.0. |
 
 The page is split into sections marked `/* ---------- name ---------- */` (storage, layout, Scryfall, MPC Autofill, custom card maker, settings form, preview, PDF export, …). Find code by grepping for those or for function names; the file is too large to read whole.
@@ -76,7 +76,7 @@ Two things about adding a probe assertion, both learned by getting them wrong:
 - **Keep it single-file and dependency-free.** No bundler, no new CDN scripts, no Python packages. The only external script is jsPDF from cdnjs with an SRI hash. This is about the app: `tools/` holds development-only scripts that never ship, are not referenced by the page, and use nothing outside the standard library.
 - **CSP:** the server hashes each inline `<script>` block at startup (`page_csp`). Never use inline event handlers (`onclick="…"`), `eval`, or `new Function`; attach handlers in the script. Any new external host for images or fetches must be added to `page_csp`.
 - **Escape everything** put into HTML with `esc()`: card names, deck text, Scryfall and MPC data and filenames are untrusted.
-- **Server routes:** every route except `/healthz`, `/og.png` and the login requires sign-in (`signed_in()`). Upstream relays only reach allow-listed paths on fixed hosts. Keep request and response sizes bounded. Never let user input pick a host or a filesystem path outside `ASSETS`/`CACHE`.
+- **Server routes:** every route except `/healthz`, `/og.png`, login and published `/share/<token>/…` links requires sign-in (`signed_in()`). Share tokens grant read access to that deck's artwork, the app/assets and fixed upstream relays; creation, listing, uploads and revocation under `/shares` require sign-in. Upstream relays only reach allow-listed paths on fixed hosts. Keep request and response sizes bounded. Never let user input pick a host or a filesystem path outside `ASSETS`/`CACHE`.
 - **Never show "MPC" in the UI.** Say "art search", "order prints" or "the autofill tool" instead. Code and comments can say MPC.
 - **UI text:** short, plain labels; don't over-explain. The hint and help text is written in full sentences without jargon.
 - **Edits:** keep changes surgical. Match the surrounding style (2-space indent, terse one-liners, few comments). Don't reformat or refactor nearby code.
