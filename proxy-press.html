@@ -651,7 +651,7 @@ details.adv:not([open]){padding-bottom:10px}
           <button type="button" data-guide="all"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38" stroke-dasharray="2 2" opacity=".7"/><path d="M3 13V3h10m10 0h10v10M3 31v10h10m10 0h10V31"/><line x1="0" y1="3" x2="36" y2="3"/><line x1="0" y1="41" x2="36" y2="41"/><line x1="3" y1="0" x2="3" y2="44"/><line x1="33" y1="0" x2="33" y2="44"/></svg>All</button>
           <button type="button" data-guide="lines"><svg viewBox="0 0 36 44" aria-hidden="true"><line x1="0" y1="3" x2="36" y2="3"/><line x1="0" y1="41" x2="36" y2="41"/><line x1="3" y1="0" x2="3" y2="44"/><line x1="33" y1="0" x2="33" y2="44"/></svg>Sheet cut lines</button>
           <button type="button" data-guide="corners"><svg viewBox="0 0 36 44" aria-hidden="true"><path d="M3 13V3h10m10 0h10v10M3 31v10h10m10 0h10V31"/></svg>Corner brackets</button>
-          <button type="button" data-guide="outline"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38"/></svg>Full outline</button>
+          <button type="button" data-guide="outline" title="Full card rectangle outlines. Shows card boundaries without sheet-spanning cut lines (ideal for scissors or craft knives)."><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38"/></svg>Full outline</button>
           <button type="button" data-guide="none"><svg viewBox="0 0 36 44" aria-hidden="true"><rect x="3" y="3" width="30" height="38" stroke-dasharray="2 3" opacity=".3"/><path d="m6 36 24-28"/></svg>No guides</button>
         </div>
 
@@ -675,7 +675,7 @@ details.adv:not([open]){padding-bottom:10px}
             <div class="field"><label for="rotaryGuideShape">Corner shape</label><select id="rotaryGuideShape"><option value="brackets">L brackets</option><option value="ticks">Crop ticks</option></select></div>
             <div class="field"><label for="rotaryGuidePlacement">Placement</label><select id="rotaryGuidePlacement"><option value="inside">Inside trim</option><option value="outside">Outside trim</option></select></div>
             <div class="field"><label for="rotaryGuideStyle">Line style</label><select id="rotaryGuideStyle"><option value="solid">Solid</option><option value="dashed">Dashed</option></select></div>
-            <label class="check"><input type="checkbox" id="rotaryGuideHalo"> White outline</label>
+            <label class="check" title="Draws a contrasting halo around cut guides so they stay visible against any card background"><input type="checkbox" id="rotaryGuideHalo"> Contrasting outline</label>
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
@@ -1376,7 +1376,14 @@ function normalizeGuides(g) {
   if (g === 'margin') return 'margin';
   return composeGuides(activeGuides({guides: g}));
 }
-function guideLines(L, n) {
+function guideHaloColor(hex) {
+  const m = String(hex || '').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!m) return '#ffffff';
+  return (0.299 * parseInt(m[1], 16) + 0.587 * parseInt(m[2], 16) + 0.114 * parseInt(m[3], 16)) > 130 ? '#000000' : '#ffffff';
+}
+function guideLines(L, pageOrCount) {
+  const slots = Array.isArray(pageOrCount) ? pageOrCount : null;
+  const n = slots ? slots.length : (Number(pageOrCount) || 0);
   const s = S.settings, out = [];
   const g = activeGuides(s);
   if (!n || (!g.lines && !g.corners && !g.outline && !g.margin)) return out;
@@ -1412,6 +1419,7 @@ function guideLines(L, n) {
     const tickGap = isTicks ? 1.5 : 0;
     const len = s.guideLen || 6;
     for (let i = 0; i < n; i++) {
+      const cardCornerCol = (slots && slots[i]?.e?.cornerColor) ? slots[i].e.cornerColor : cornerCol;
       const p = slotPos(L, i, false), x1 = p.x + s.bleed, y1 = p.y + s.bleed;
       const x2 = p.x + s.bleed + L.cw, y2 = p.y + s.bleed + L.ch;
       const inLen = Math.max(0, Math.min(len, (x2 - x1) / 2 - tickGap, (y2 - y1) / 2 - tickGap));
@@ -1455,7 +1463,7 @@ function guideLines(L, n) {
           ];
         }
       }
-      out.push(...lines.filter(([a, b, c2, d]) => a !== c2 || b !== d).map(line => [...line, dash, cornerCol, true]));
+      out.push(...lines.filter(([a, b, c2, d]) => a !== c2 || b !== d).map(line => [...line, dash, cardCornerCol, true]));
     }
   }
   return s.guideStyle === 'dashed' ? out.map(line => [...line.slice(0, 4), true, line[5], line[6]]) : out;
@@ -1682,8 +1690,103 @@ async function importList(text, replace) {
       : `<div class="warn">Couldn't find: ${esc(missing.map(m => m.name).join(', '))}.</div>`;
     const auto = await mpcAutofill({auto:true});
     toast(`Added ${found.length} card${found.length === 1 ? '' : 's'}.` + autoSummary(auto) + (missing.length ? ` Not found: ${missing.map(m => m.name).join(', ')}` : ''), missing.length || auto?.missed?.length || auto?.offline ? 9000 : 4000);
+    if (missing.length) suggestMissingCards(missing, box); else { activeMissingSuggestions = []; suggestMissingRun++; }
   } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
   busy(false);
+}
+let suggestMissingRun = 0, activeMissingSuggestions = [];
+function replaceInListIn(origName, newName) {
+  const ta = $('#listIn'); if (!ta) return;
+  const lines = ta.value.split('\n'), origClean = (origName || '').split(' // ')[0].trim().toLowerCase();
+  let replaced = false;
+  ta.value = lines.map(line => {
+    if (replaced) return line;
+    const m = line.match(/^(\s*(?:(?:\d+\s*[xX]?\s+)|(?:SB:\s*))?)(.+?)(\s*(?:[\(\[][A-Za-z0-9]{2,6}[\)\]].*)?)$/);
+    if (m && (m[2].trim().toLowerCase() === origClean || (typeof normName === 'function' && normName(m[2]) === normName(origClean)))) {
+      replaced = true; return m[1] + newName + m[3];
+    }
+    const idx = line.toLowerCase().indexOf(origClean);
+    if (idx >= 0) { replaced = true; return line.slice(0, idx) + newName + line.slice(idx + origClean.length); }
+    return line;
+  }).join('\n');
+}
+function removeFromListIn(origName) {
+  const ta = $('#listIn'); if (!ta) return;
+  const lines = ta.value.split('\n'), origClean = (origName || '').split(' // ')[0].trim().toLowerCase();
+  let removed = false;
+  ta.value = lines.filter(line => {
+    if (removed) return true;
+    const m = line.match(/^(\s*(?:(?:\d+\s*[xX]?\s+)|(?:SB:\s*))?)(.+?)(\s*(?:[\(\[][A-Za-z0-9]{2,6}[\)\]].*)?)$/);
+    if (m && (m[2].trim().toLowerCase() === origClean || (typeof normName === 'function' && normName(m[2]) === normName(origClean)))) {
+      removed = true; return false;
+    }
+    const idx = line.toLowerCase().indexOf(origClean);
+    if (idx >= 0) { removed = true; return false; }
+    return true;
+  }).join('\n').trim();
+}
+function paintMissingSuggestions(box) {
+  const note = $('#importNote'); if (!note) return;
+  const items = activeMissingSuggestions.filter(it => !it.added);
+  if (!items.length) { note.innerHTML = ''; return; }
+  const boxCount = $('#listIn')?.value.trim().split(/\r?\n/).filter(l => l.trim() && !/^(\/\/|#)/.test(l)).length;
+  const total = box && boxCount ? boxCount : items.length;
+  const header = box
+    ? `Couldn't find ${total} card${total === 1 ? '' : 's'}. ${total === 1 ? 'It\'s' : 'They\'re'} left in the box above: check the spelling and press <b>Add to deck</b> again.`
+    : `Couldn't find: ${esc(items.map(it => it.req.name).join(', '))}.`;
+  const choiceHtml = (c, ci, ii, req) => `<b>${esc(c.name)}</b>${box ? ` <button type="button" data-suggest-replace="${esc(c.name)}" data-orig="${esc(req.name)}">Use</button>` : ''} <button type="button" data-suggest-add="${ci}" data-item="${ii}">Add</button>`;
+  let body = '';
+  if (items.length === 1 && total === 1) {
+    const it = items[0], ii = activeMissingSuggestions.indexOf(it);
+    body = `<div style="margin-top:6px">Did you mean ${it.choices.map((c, ci) => choiceHtml(c, ci, ii, it.req)).join(' or ')}?</div>`;
+  } else {
+    body = `<ul>${items.map(it => {
+      const ii = activeMissingSuggestions.indexOf(it);
+      return `<li>“${esc(it.req.name)}” — did you mean ${it.choices.map((c, ci) => choiceHtml(c, ci, ii, it.req)).join(' or ')}?</li>`;
+    }).join('')}</ul>`;
+  }
+  note.innerHTML = `<div class="warn">${header}${body}</div>`;
+}
+async function suggestMissingCards(missing, box) {
+  const run = ++suggestMissingRun;
+  activeMissingSuggestions = [];
+  const front = n => n.split(' // ')[0].trim(), candidates = [];
+  for (const m of missing.slice(0, 8)) {
+    const q = front(m.name);
+    if (!q) continue;
+    let card = null;
+    if (m.set) {
+      try { card = await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}&set=${encodeURIComponent(m.set)}`); } catch {}
+    }
+    if (run !== suggestMissingRun) return;
+    if (!card?.name) {
+      try { card = await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}`); } catch {}
+    }
+    if (run !== suggestMissingRun) return;
+    let list = [];
+    if (card?.name) {
+      if (card.id) cardCache.set(card.id, card);
+      list = [{name:card.name, card}];
+    } else {
+      try {
+        const auto = await sf(`${SF}/cards/autocomplete?q=${encodeURIComponent(q)}`);
+        if (Array.isArray(auto?.data)) {
+          const seen = new Set();
+          list = auto.data.filter(n => {
+            const base = front(n);
+            if (seen.has(normName(base))) return false;
+            seen.add(normName(base));
+            return true;
+          }).slice(0, 3).map(name => ({name}));
+        }
+      } catch {}
+    }
+    if (run !== suggestMissingRun) return;
+    if (list.length) candidates.push({req:m, choices:list});
+  }
+  if (run !== suggestMissingRun || !candidates.length) return;
+  activeMissingSuggestions = candidates;
+  paintMissingSuggestions(box);
 }
 async function addTokens() {
   const d = deck(), have = new Set(d.entries.map(e => e.scryId));
@@ -2708,7 +2811,7 @@ async function renderCards() {
       <div style="min-width:0">
         <div class="nm" title="${esc(e.name)}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</div>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
-          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">chosen art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Needs art</span>' : ''}</div>
+          ${e.faces.length > 1 ? '<span class="tag">DFC</span>' : ''}${e.faces.some(f => f.custom) && !e.custom ? '<span class="tag">chosen art</span>' : ''}${!e.custom && e.faces.some(isPreview) ? '<span class="tag bad" title="Low-resolution placeholder. Change the art before printing.">Needs art</span>' : ''}${e.cornerColor ? `<span class="tag" style="display:inline-flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:${esc(e.cornerColor)};display:inline-block"></span>corner</span>` : ''}</div>
       </div>
       <div class="ctl">
         <input type="checkbox" data-act="select" style="width:auto" aria-label="Select all copies of ${esc(e.name)}">
@@ -2786,6 +2889,46 @@ $('#btnImport').onclick = () => {
   importList(v, false);
 };
 $('#btnReplace').onclick = () => { if (!deck().entries.length || confirm('Replace every card in this deck?')) importList($('#listIn').value, true); };
+$('#importNote').addEventListener('click', async ev => {
+  const repBtn = ev.target.closest('[data-suggest-replace]');
+  if (repBtn && !repBtn.disabled) {
+    const orig = repBtn.dataset.orig, name = repBtn.dataset.suggestReplace;
+    replaceInListIn(orig, name);
+    $$('[data-orig]', $('#importNote')).filter(b => b.dataset.orig === orig && b.hasAttribute('data-suggest-replace')).forEach(b => {
+      b.disabled = true; b.textContent = b === repBtn ? '✓ Used' : 'Use';
+    });
+    return;
+  }
+  const addBtn = ev.target.closest('[data-suggest-add]');
+  if (addBtn && !addBtn.disabled) {
+    const itemIdx = +addBtn.dataset.item, candIdx = +addBtn.dataset.suggestAdd;
+    const item = activeMissingSuggestions[itemIdx];
+    if (!item) return;
+    const choice = item.choices[candIdx];
+    if (!choice) return;
+    addBtn.disabled = true; addBtn.textContent = 'Adding…';
+    try {
+      let card = choice.card;
+      if (!card?.id) {
+        card = await sf(`${SF}/cards/named?exact=${encodeURIComponent(choice.name)}`).catch(() => sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(choice.name)}`));
+      }
+      if (!card?.id) throw new Error('Card not found');
+      if (card.id) cardCache.set(card.id, card);
+      const d = deck(), entry = toEntry(card, item.req.qty || 1, card.name);
+      const ex = d.entries.find(e => e.scryId === entry.scryId && e.scryFace === entry.scryFace && e.faces.length === entry.faces.length);
+      if (ex) ex.qty += entry.qty; else d.entries.push(entry);
+      save(); renderAll();
+      item.added = true;
+      removeFromListIn(item.req.name);
+      paintMissingSuggestions($('#listIn') && $('#listIn').value.trim().length > 0);
+      const auto = await mpcAutofill({auto:true});
+      toast(`Added ${card.name}.` + autoSummary(auto));
+    } catch (err) {
+      addBtn.disabled = false; addBtn.textContent = 'Add';
+      toast('Could not add card: ' + err.message, 4000);
+    }
+  }
+});
 $('#btnLink').onclick = () => {
   openModal(`<div class="hd"><b>Import deck</b><button data-close>Close</button></div><div class="bd">
     <label for="linkIn">Moxfield or Archidekt link</label><div class="row" style="margin-top:6px"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0" placeholder="https://moxfield.com/decks/…"><button id="importLinkSubmit" class="primary">Import link</button></div>
@@ -4103,6 +4246,46 @@ function openCardMatch(e, copy, faceIndex = 0, options = {}) {
   });
   find('#matchQuery').focus(); search();
 }
+function openCornerColorPicker(entry) {
+  const cur = entry.cornerColor || S.settings.cornerGuideColor || '#00bfff';
+  const swatches = ['#00bfff', '#ffd600', '#ffffff', '#000000', '#ff0055', '#ff8800', '#39e600', '#aa44ff'];
+  const same = deck().entries.filter(x => normName(x.name) === normName(entry.name));
+  openModal(`<div class="hd"><b>${esc(entry.name)} · corner guide color</b><button data-close>Close</button></div>
+    <div class="bd">
+      <p class="hint">Override the corner bracket color for this card if the default color blends into the artwork.</p>
+      <div class="field" style="margin-top:12px">
+        <label for="cardCornerColor">Corner Bracket Color</label>
+        <div class="row" style="align-items:center;gap:10px;margin-top:6px">
+          <input type="color" id="cardCornerColor" value="${cur}" style="height:38px;width:60px;padding:2px;cursor:pointer">
+          <span id="cardCornerHex" style="font-family:monospace;font-size:13px">${cur}</span>
+        </div>
+        <div class="corner-guide-colors" style="margin-top:10px" aria-label="Corner bracket swatches">
+          ${swatches.map(hex => `<button type="button" data-pick-color="${hex}" style="--swatch:${hex}" aria-label="Pick ${hex}"></button>`).join('')}
+        </div>
+      </div>
+      <div class="row" style="margin-top:16px;gap:8px">
+        <button type="button" id="btnResetCardCorner" ${entry.cornerColor ? '' : 'disabled'}>Reset to sheet default (${esc(S.settings.cornerGuideColor || '#00bfff')})</button>
+        <button type="button" class="primary" data-close style="margin-left:auto">Done</button>
+      </div>
+    </div>`);
+  const applyColor = color => {
+    same.forEach(x => { if (color) x.cornerColor = color.toLowerCase(); else delete x.cornerColor; });
+    save(); renderAll();
+    const hexSpan = $('#cardCornerHex'), colorIn = $('#cardCornerColor'), resetBtn = $('#btnResetCardCorner');
+    const now = color || S.settings.cornerGuideColor || '#00bfff';
+    if (hexSpan) hexSpan.textContent = now;
+    if (colorIn) colorIn.value = now;
+    if (resetBtn) resetBtn.disabled = !color;
+  };
+  const modal = $('#modal');
+  modal.addEventListener('click', ev => {
+    const sw = ev.target.closest('[data-pick-color]');
+    if (sw) applyColor(sw.dataset.pickColor);
+    else if (ev.target.id === 'btnResetCardCorner') applyColor(null);
+  });
+  const ci = $('#cardCornerColor');
+  if (ci) ci.addEventListener('input', ev => applyColor(ev.target.value));
+}
 function closeCtx() { $('#ctx').classList.remove('on'); }
 function openCtx(x, y, e, i, copy) {
   const m = $('#ctx'), cardback = i === 'back';
@@ -4115,6 +4298,7 @@ function openCtx(x, y, e, i, copy) {
     : `<div class="ttl">${esc(e.faces[i]?.name || e.name)}</div>
        <button data-c="art" role="menuitem">${count ? `Change art for ${count} selected cop${count === 1 ? 'y' : 'ies'}…` : 'Change art…'}</button>
        ${allCount > 1 ? `<button data-c="allart" role="menuitem">Change art for all ${allCount} copies…</button>` : ''}
+       <button data-c="corner" role="menuitem">Corner guide color…</button>
        <button data-c="match" role="menuitem">${e.kind==='TOKEN'?'Choose token faces…':'Change card match…'}</button>
        <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
        <button data-c="upload" role="menuitem">${e.scryId && instanceArtAvailable()?'Upload &amp; share image…':'Upload image…'}</button>
@@ -4127,6 +4311,7 @@ function openCtx(x, y, e, i, copy) {
     closeCtx();
     if (c === 'back') openMpcPicker({cardback:true});
     else if (c === 'art') openMpcPicker(target);
+    else if (c === 'corner') openCornerColorPicker(e);
     else if (c === 'match') openCardMatch(e, copy, i);
     else if (c === 'allart') openMpcPicker({e, i, deckId:S.deckId, copies:same.map(x => ({uid:x.uid, copies:Array.from({length:x.qty}, (_, q) => q)}))});
     else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
@@ -4289,6 +4474,7 @@ function cleanDeck(raw) {
     entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => pick({
       uid:String(e.uid || uid()).slice(0, 64), name:String(e.name ?? '').slice(0, 300), qty:Math.min(999, Math.max(0, Math.floor(+e.qty) || 0)),
       set:str(e.set), cn:str(e.cn), scryId:id(e.scryId), scryFace:[0,1].includes(e.scryFace)?e.scryFace:undefined, kind:e.kind === 'TOKEN' ? 'TOKEN' : 'CARD', custom:e.custom ? true : undefined, mpc:e.mpc ? true : undefined,
+      cornerColor:/^#[0-9a-f]{6}$/i.test(e.cornerColor || '') ? e.cornerColor.toLowerCase() : undefined,
       faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(id).filter(Boolean) : [],
       type:str(e.type, 300), colorIdentity:Array.isArray(e.colorIdentity) ? [...new Set(e.colorIdentity.filter(c => /^[WUBRG]$/.test(c)))] : undefined
     }))
@@ -4487,11 +4673,14 @@ $('#presetSave').onclick = () => {
 
 /* ---------- preview ---------- */
 const guideCache = new Map();
-function cachedGuideLines(L, count) {
-  const s = S.settings, k = `${L.W},${L.H},${L.cols},${L.rows},${count},${settingsSig()},${s.guides},${s.guideColor},${s.cornerGuideColor},${s.guidePlacement}`;
+function cachedGuideLines(L, pageOrCount) {
+  const slots = Array.isArray(pageOrCount) ? pageOrCount : null;
+  const count = slots ? slots.length : (Number(pageOrCount) || 0);
+  const cardCols = slots ? slots.map(sl => sl?.e?.cornerColor || '').join(';') : '';
+  const s = S.settings, k = `${L.W},${L.H},${L.cols},${L.rows},${count},${settingsSig()},${s.guides},${s.guideColor},${s.cornerGuideColor},${s.guidePlacement},${cardCols}`;
   if (!guideCache.has(k)) {
     if (guideCache.size > 30) guideCache.clear();
-    guideCache.set(k, guideLines(L, count));
+    guideCache.set(k, guideLines(L, pageOrCount));
   }
   return guideCache.get(k);
 }
@@ -4518,6 +4707,7 @@ $$('.paper-direction button').forEach(button=>button.onclick=()=>{
   const input=$('#paperForm [data-k="orientation"]');input.value=button.dataset.orientation;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
 });
 async function drawPreview() {
+  clearTimeout(previewTimer);
   const gen = ++previewGen, s = S.settings, L = layout(), z = S.zoom;
   syncPreviewControls();
   const on = !s.silhouette && !!S.showCuts;
@@ -4552,12 +4742,12 @@ async function drawPreview() {
       el.className = 'pg'; el.style.width = L.W*z + 'px'; el.style.height = L.H*z + 'px';
       const backNote = back ? (L.W > L.H ? ' · back (inverted 180° for long-edge feed)' : ' · back') : '';
       el.innerHTML = `<span class="lbl">Page ${pi + 1}${backNote}</span>`;
-      const lines = back ? [] : cachedGuideLines(L, page.length), reg = back ? {rects:[], lines:[]} : regMarks(L);
+      const lines = back ? [] : cachedGuideLines(L, page), reg = back ? {rects:[], lines:[]} : regMarks(L);
       const underLines = lines.filter(l => !l[6]), overLines = lines.filter(l => l[6]);
       const sw = Math.max(0.75, s.guideWidth*z);
       if (underLines.length) {
         let uSvg = `<svg class="pg-under" width="${L.W*z}" height="${L.H*z}">`;
-        if (s.guideHalo) for (const [a, b, c, d] of underLines) uSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#fff" stroke-width="${sw*3}"/>`;
+        if (s.guideHalo) for (const [a, b, c, d, , lineCol] of underLines) uSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${guideHaloColor(lineCol || s.guideColor)}" stroke-width="${sw*3}"/>`;
         for (const [a, b, c, d, dash, lineCol] of underLines) uSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${lineCol || s.guideColor}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
         uSvg += `</svg>`;
         el.insertAdjacentHTML('beforeend', uSvg);
@@ -4587,7 +4777,7 @@ async function drawPreview() {
         }));
       });
       let oSvg = `<svg class="pg-over" width="${L.W*z}" height="${L.H*z}">`;
-      if (s.guideHalo) for (const [a, b, c, d] of overLines) oSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#fff" stroke-width="${sw*3}"/>`;
+      if (s.guideHalo) for (const [a, b, c, d, , lineCol] of overLines) oSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${guideHaloColor(lineCol || s.cornerGuideColor || '#00bfff')}" stroke-width="${sw*3}"/>`;
       for (const [a, b, c, d, dash, lineCol] of overLines) oSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${lineCol || s.cornerGuideColor || '#00bfff'}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
       for (const [x, y, w, h] of reg.rects) oSvg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
       for (const [a, b, c, d] of reg.lines) oSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="#000" stroke-width="${Math.max(1, reg.width*z)}"/>`;
@@ -4595,7 +4785,8 @@ async function drawPreview() {
         const p = slotPos(L, i, false);
         if (s.bleed > 0) oSvg += `<rect x="${T.x(p.x)*z}" y="${T.y(p.y)*z}" width="${T.w(L.sw)*z}" height="${T.h(L.sh)*z}" fill="none" stroke="#738194" stroke-width="0.7" stroke-dasharray="2 3"/>`;
         const x1 = T.x(p.x + s.bleed)*z, y1 = T.y(p.y + s.bleed)*z, x2 = x1 + T.w(L.cw)*z, y2 = y1 + T.h(L.ch)*z, arm = 6*z;
-        oSvg += `<path d="M${x1+arm} ${y1}H${x1}V${y1+arm}M${x2-arm} ${y1}H${x2}V${y1+arm}M${x1} ${y2-arm}V${y2}H${x1+arm}M${x2-arm} ${y2}H${x2}V${y2-arm}" fill="none" stroke="${s.cornerGuideColor || '#00bfff'}" stroke-width="${sw}"/>`;
+        const cCol = page[i]?.e?.cornerColor || s.cornerGuideColor || '#00bfff';
+        oSvg += `<path d="M${x1+arm} ${y1}H${x1}V${y1+arm}M${x2-arm} ${y1}H${x2}V${y1+arm}M${x1} ${y2-arm}V${y2}H${x1+arm}M${x2-arm} ${y2}H${x2}V${y2-arm}" fill="none" stroke="${cCol}" stroke-width="${sw}"/>`;
       });
       el.insertAdjacentHTML('beforeend', oSvg + '</svg>');
       frag.appendChild(el);
@@ -4685,7 +4876,8 @@ function newDoc(L) {
 function pdfLines(doc, T, lines, color, width) {
   doc.setLineWidth(width);
   for (const [a, b, c, d, dash, lineCol] of lines) {
-    doc.setDrawColor(color || lineCol || '#000000');
+    const drawCol = color === 'halo' ? guideHaloColor(lineCol) : (color || lineCol || '#000000');
+    doc.setDrawColor(drawCol);
     doc.setLineDashPattern(dash ? [3, 1.5] : [], 0);
     doc.line(T.x(a), T.y(b), T.x(c), T.y(d));
   }
@@ -4732,10 +4924,10 @@ async function exportPDF(skipWizard = true) {
         if (!first) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
         first = false;
         const T = makeT(L, back);
-        const glines = back ? [] : guideLines(L, page.length);
+        const glines = back ? [] : guideLines(L, page);
         const underLines = glines.filter(l => !l[6]), overLines = glines.filter(l => l[6]);
         if (!back && underLines.length) {
-          if (s.guideHalo) pdfLines(doc, T, underLines, '#ffffff', s.guideWidth * 3);
+          if (s.guideHalo) pdfLines(doc, T, underLines, 'halo', s.guideWidth * 3);
           pdfLines(doc, T, underLines, null, s.guideWidth);
         }
         for (let i = 0; i < page.length; i++) {
@@ -4751,7 +4943,7 @@ async function exportPDF(skipWizard = true) {
         }
         if (!back) {
           if (overLines.length) {
-            if (s.guideHalo) pdfLines(doc, T, overLines, '#ffffff', s.guideWidth * 3);
+            if (s.guideHalo) pdfLines(doc, T, overLines, 'halo', s.guideWidth * 3);
             pdfLines(doc, T, overLines, null, s.guideWidth);
           }
           const reg = regMarks(L);
