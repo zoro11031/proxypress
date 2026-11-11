@@ -531,7 +531,7 @@ if (app) {
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
-    mainWindow.loadURL(`http://127.0.0.1:${srv.port}/`);
+    mainWindow.loadURL(`http://127.0.0.1:${srv.port}/?desktop=1`);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -554,7 +554,7 @@ if (app) {
         });
         mainWindow.once('ready-to-show', () => mainWindow.show());
         configureNavigation(mainWindow, `http://127.0.0.1:${srv.port}`);
-        mainWindow.loadURL(`http://127.0.0.1:${srv.port}/`);
+        mainWindow.loadURL(`http://127.0.0.1:${srv.port}/?desktop=1`);
       }
     });
   });

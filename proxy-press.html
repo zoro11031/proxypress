@@ -777,9 +777,9 @@ details.adv:not([open]){padding-bottom:10px}
       </div>
       <div class="hero-card share-export">
         <div class="hero-card-title"><b>Share deck</b></div>
-        <p class="hint">Share a copy with its artwork and layout. Friends keep their own printer alignment.</p>
+        <p class="hint" id="shareHint">Share a copy with its artwork and layout. Friends keep their own printer alignment.</p>
         <button id="shareDeckLink" class="primary server-share">Create share link</button>
-        <details style="margin-top:8px"><summary>Offline deck file</summary><p class="hint">Includes compact artwork at up to 600 DPI. Original art is restored from this server when available.</p><button id="printDeckOut">Download deck file (.json)</button></details>
+        <details id="printDeckDetails" style="margin-top:8px"><summary>Offline deck file</summary><p class="hint">Includes compact artwork at up to 600 DPI. Original art is restored from this server when available.</p><button id="printDeckOut">Download deck file (.json)</button></details>
       </div>
 
       <div class="guide-tabs">
@@ -846,9 +846,9 @@ details.adv:not([open]){padding-bottom:10px}
       <p class="hint">The .zip has the order file and a <code>cards</code> folder with every image, including your uploads and cardback.</p>
       <div class="hero-card share-export">
         <div class="hero-card-title"><b>Share deck</b></div>
-        <p class="hint">Share a copy with its artwork and layout. Friends keep their own printer alignment.</p>
+        <p class="hint" id="orderShareHint">Share a copy with its artwork and layout. Friends keep their own printer alignment.</p>
         <button id="orderShareDeckLink" class="primary server-share">Create share link</button>
-        <details style="margin-top:8px"><summary>Offline deck file</summary><p class="hint">Includes compact artwork at up to 600 DPI. Original art is restored from this server when available.</p><button id="orderPrintDeckOut">Download deck file (.json)</button></details>
+        <details id="orderPrintDeckDetails" style="margin-top:8px"><summary>Offline deck file</summary><p class="hint">Includes compact artwork at up to 600 DPI. Original art is restored from this server when available.</p><button id="orderPrintDeckOut">Download deck file (.json)</button></details>
       </div>
       <details class="adv"><summary>Order file only</summary><p class="hint">The order tool downloads the online artwork. Uploaded images and custom cards are left out. Download the complete package (.zip) to include them.</p><p class="hint" id="xmlSummary"></p><button id="oXml">Download online-art order only</button></details>
       <h3>Placing the order</h3>
@@ -914,6 +914,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SHARE_TOKEN = location.pathname.match(/^\/share\/([A-Za-z0-9_-]{32})(?:\/|$)/)?.[1];
 const serverPath = path => (SHARE_TOKEN ? '/share/' + SHARE_TOKEN : '') + path;
+const isDesktop = () => !SHARE_TOKEN && (location.search.includes('desktop=1') || /Electron\//i.test(navigator.userAgent) || /ProxyPress/i.test(navigator.userAgent) || !location.protocol.startsWith('http'));
+const serverAvailable = () => !isDesktop() && !SHARE_TOKEN && location.protocol.startsWith('http');
 
 const PAGE_SIZES = {letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], a4:[210,297], a3:[297,420], a5:[148,210], a6:[105,148]};
 const CARD_SIZES = {mtg:[63,88], poker:[63.5,88.9], japanese:[59,86], tarot:[70,120]};
@@ -1140,9 +1142,22 @@ function save() {
 }
 
 async function load() {
-  S.decks = (await store.get('kv', 'decks')) || [];
-  S.presets = (await store.get('kv', 'presets')) || [];
-  const ui = await store.get('kv', 'ui');
+  const [decks, presets, ui, cachedAssets, mpcC, cc] = await Promise.all([
+    store.get('kv', 'decks'), store.get('kv', 'presets'), store.get('kv', 'ui'),
+    store.get('kv', 'server_assets'), store.get('kv', 'mpc_cache'), store.get('kv', 'card_cache')
+  ]);
+  S.decks = decks || [];
+  S.presets = presets || [];
+  if (cachedAssets?.sets?.length) {
+    serverAssetsSig = cachedAssets.sig;
+    serverSets.push(...cachedAssets.sets);
+    Object.assign(serverFonts, cachedAssets.fonts || {});
+  }
+  if (mpcC) {
+    if (mpcC.sources) mpcSources = mpcC.sources;
+    if (mpcC.details) for (const [k, v] of Object.entries(mpcC.details)) mpcDetails.set(k, v);
+  }
+  if (Array.isArray(cc)) for (const c of cc) if (c?.id) cardCache.set(c.id, c);
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
     S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
@@ -1182,6 +1197,12 @@ async function faceSrc(face, hi) {
   if (face.drive) return hi ? `https://cdn.mpcautofill.com/images/google_drive/full/${face.drive}.jpg?dpi=${Math.min(S.settings.dpi, 1200)}&jpgQuality=100`
     : `https://img.mpcautofill.com/${face.drive}-large-google_drive`;
   return hi ? face.png : face.normal;
+}
+function thumbSrcSync(face) {
+  if (!face) return '';
+  if (face.custom) return blobUrls.get(face.custom) || '';
+  if (face.drive) return `https://img.mpcautofill.com/${face.drive}-small-google_drive`;
+  return face.normal || '';
 }
 async function thumbSrc(face) {
   if (face.custom) return customUrl(face.custom);
@@ -1245,11 +1266,20 @@ function settingsSig() {
 }
 async function previewUrl(face, rot = 0) {
   const key = (face.custom || face.drive || face.normal) + '|' + settingsSig() + '|' + rot;
-  if (!previewCache.has(key)) previewCache.set(key, (async () => {
-    try { return (await renderFace(face, 110, false, rot)).toDataURL('image/jpeg', 0.85); }
-    catch { const u = await faceSrc(face, false); return u ? 'raw:' + u : null; }
-  })());
-  return previewCache.get(key);
+  if (previewCache.has(key)) return previewCache.get(key);
+  try {
+    const sess = sessionStorage.getItem('pp_p_' + key);
+    if (sess) { previewCache.set(key, sess); return sess; }
+  } catch {}
+  const p = (async () => {
+    try {
+      const u = (await renderFace(face, 110, false, rot)).toDataURL('image/jpeg', 0.85);
+      try { sessionStorage.setItem('pp_p_' + key, u); } catch { try { sessionStorage.clear(); sessionStorage.setItem('pp_p_' + key, u); } catch {} }
+      return u;
+    } catch { const u = await faceSrc(face, false); return u ? 'raw:' + u : null; }
+  })();
+  previewCache.set(key, p);
+  return p;
 }
 
 /* ---------- layout ---------- */
@@ -1566,19 +1596,48 @@ function matches(card, id) {
   const n = id.name.toLowerCase(), names = [card.name, ...(card.card_faces || []).map(f => f.name)].map(x => x.toLowerCase());
   return names.includes(n) && (!id.set || card.set === id.set);
 }
+const cardCache = new Map();
+let cardSaveTimer;
+function saveCardCache() {
+  clearTimeout(cardSaveTimer);
+  cardSaveTimer = setTimeout(() => { store.set('kv', 'card_cache', [...cardCache.values()].slice(-1000)); }, 1000);
+}
 async function fetchCollection(ids, progress) {
-  const found = [], missing = [];
-  for (let i = 0; i < ids.length; i += 75) {
-    const chunk = ids.slice(i, i + 75);
-    progress?.(i, ids.length);
+  const found = [], missing = [], need = [];
+  const cachedPool = [...cardCache.values()];
+  for (const c of ids) {
+    const k = cachedPool.findIndex(card => matches(card, c.id));
+    if (k >= 0) found.push({req:c, card:cachedPool[k]}); else need.push(c);
+  }
+  for (let i = 0; i < need.length; i += 75) {
+    const chunk = need.slice(i, i + 75);
+    progress?.(found.length + i, ids.length);
     const j = await sf(SF + '/cards/collection', {method:'POST', body:JSON.stringify({identifiers:chunk.map(c => c.id)})});
     const pool = [...(j.data || [])];
+    for (const card of pool) if (card?.id) cardCache.set(card.id, card);
+    saveCardCache();
     for (const c of chunk) {
       const k = pool.findIndex(card => matches(card, c.id));
       if (k >= 0) found.push({req:c, card:pool[k]}); else missing.push(c);
     }
   }
   return {found, missing};
+}
+const STAPLE_NAMES = [
+  'Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes',
+  'Sol Ring', 'Arcane Signet', 'Command Tower', 'Swords to Plowshares',
+  'Counterspell', 'Lightning Bolt', 'Cultivate', 'Demonic Tutor',
+  'Cyclonic Rift', 'Rhystic Study', 'Beast Within', 'Chaos Warp',
+  'Path to Exile', 'Lightning Greaves', 'Swiftfoot Boots', "Kodama's Reach",
+  'Heroic Intervention', 'Birds of Paradise', 'Blasphemous Act', 'Farseek'
+];
+function precacheStaples() {
+  const missing = STAPLE_NAMES.filter(name => {
+    const n = name.toLowerCase();
+    return ![...cardCache.values()].some(c => (c.name || '').toLowerCase() === n);
+  });
+  if (!missing.length) return;
+  fetchCollection(missing.map(name => ({id:{name}}))).catch(() => {});
 }
 async function importList(text, replace) {
   const box = !$('#listIn').value.trim() || $('#listIn').value.trim() === text.trim();
@@ -1747,7 +1806,7 @@ $('#suggestionExplore').onclick=()=>{
 
 /* ---------- uploads ---------- */
 async function storeImage(file) { const key = 'img-' + uid(); await store.set('images', key, file); return key; }
-const instanceArtAvailable = () => !SHARE_TOKEN && location.protocol.startsWith('http') && !/Electron\//.test(navigator.userAgent);
+const instanceArtAvailable = () => serverAvailable();
 async function uploadedBleed(blob) {
   const url=URL.createObjectURL(blob);
   try { const image=await loadImage(url); return Math.abs(image.naturalWidth/image.naturalHeight-2.75/3.75)<0.012 ? MPC_BLEED : 0; }
@@ -1885,11 +1944,18 @@ const MPC_DEFAULTS = {minDpi:300, preferDpi:800, maxDpi:1500, maxMb:30, lang:'',
 const MPC_STOCKS = ['(S27) Smooth', '(S30) Standard Smooth', '(S33) Superior Smooth', '(M31) Linen', '(P10) Plastic'];
 const MPC_BRACKETS = [18, 36, 55, 72, 90, 108, 126, 144, 162, 180, 198, 216, 234, 396, 504, 612];
 const mpcDetails = new Map();
-let mpcBaseP = null, mpcSources = null, mpcLangs = null;
+let mpcBaseP = null, mpcSources = null, mpcLangs = null, mpcSaveTimer;
+function saveMpcCache() {
+  clearTimeout(mpcSaveTimer);
+  mpcSaveTimer = setTimeout(() => {
+    store.set('kv', 'mpc_cache', {sources:mpcSources, details:Object.fromEntries([...mpcDetails].slice(-2000))}).catch(() => {});
+  }, 1000);
+}
 function mpcBase() {
   if (!mpcBaseP) mpcBaseP = (async () => {
     if (location.protocol.startsWith('http')) {
-      try { const r = await fetch(serverPath('/mpc/2/sources/')); if (r.ok) { mpcSources = (await r.json()).results; return serverPath('/mpc/'); } } catch {}
+      if (mpcSources) return serverPath('/mpc/');
+      try { const r = await fetch(serverPath('/mpc/2/sources/')); if (r.ok) { mpcSources = (await r.json()).results; saveMpcCache(); return serverPath('/mpc/'); } } catch {}
     }
     mpcBaseP = null; return null;
   })();
@@ -1927,6 +1993,7 @@ async function mpcCards(ids) {
   for (let i = 0; i < need.length; i += 1000) {
     const j = await mpcApi('2/cards/', {cardIdentifiers:need.slice(i, i + 1000)});
     for (const [k, v] of Object.entries(j.results || {})) mpcDetails.set(k, v);
+    saveMpcCache();
   }
   return ids.map(id => mpcDetails.get(id)).filter(Boolean);
 }
@@ -2489,6 +2556,7 @@ function renderOrder() {
   $('#oXml').disabled = !xml.slot;
   $('#xmlSummary').textContent = `${xml.slot} cards included · ${excluded} left out.${order.cardback && !xml.cardback ? ' Your uploaded cardback is also left out.' : ''}`;
   $('#orderSteps').innerHTML = orderStepsHtml();
+  applyServerShare();
 }
 $('#oStock').onchange = e => { S.mpc.stock = e.target.value; if (S.mpc.stock === '(P10) Plastic') S.mpc.foil = false; save(); renderOrder(); };
 $('#oFoil').onchange = e => { S.mpc.foil = e.target.checked; save(); };
@@ -2635,7 +2703,7 @@ async function renderCards() {
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; syncCardSelection(); return; }
   list.innerHTML = d.entries.map(e => `
     <div class="card" data-uid="${esc(e.uid)}">
-      <img data-act="art" alt="" tabindex="0" role="button" aria-label="Change artwork for ${esc(e.name)}" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
+      <img data-act="art" alt="" src="${esc(thumbSrcSync(e.faces[0]))}" tabindex="0" role="button" aria-label="Change artwork for ${esc(e.name)}" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
       <div style="min-width:0">
         <div class="nm" title="${esc(e.name)}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</div>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
@@ -2648,8 +2716,13 @@ async function renderCards() {
       </div>
     </div>`).join('');
   for (const e of d.entries) {
-    const img = list.querySelector(`[data-uid="${CSS.escape(e.uid)}"] img`);
-    const f = e.faces[0]; if (f) thumbSrc(f).then(u => { if (u) img.src = u; });
+    const f = e.faces[0];
+    if (f?.custom && !blobUrls.has(f.custom)) {
+      thumbSrc(f).then(u => {
+        const img = list.querySelector(`[data-uid="${CSS.escape(e.uid)}"] img`);
+        if (u && img) img.src = u;
+      });
+    }
   }
   applyDeckFilter(); syncCardSelection();
 }
@@ -2863,15 +2936,18 @@ const FRAME_LABELS = {'magic-m15':'Current (2014–now)', 'magic-m15-planeswalke
 const frameLabel = f => FRAME_LABELS[f.name] || f.name.replace(/^magic-/, '').replace(/[-_]+/g, ' ').replace(/\bm15\b/i, 'M15').replace(/\b\w/g, c => c.toUpperCase());
 const setOf = t => typeof t.style === 'string' && t.style.startsWith('set:') ? allSets().find(f => f.id === t.style.slice(4)) : null;
 // Fonts and frame sets kept on the server (assets/ next to the server script), for signed-in use.
-let serverAssetsP = Promise.resolve();
+let serverAssetsP = Promise.resolve(), serverAssetsSig = null;
 async function loadServerAssets() {
   if (!location.protocol.startsWith('http')) return;
   let man;
   try { const r = await fetch(serverPath('/assets/manifest.json')); if (!r.ok) return; man = await r.json(); } catch { return; }
+  const sig = JSON.stringify({f:man.fonts, s:(man.frames||[]).map(x => [x.name, x.files])});
+  if (serverAssetsSig === sig && serverSets.length) return;
+  serverAssetsSig = sig;
   for (const [slot, f] of Object.entries(assignFonts(man.fonts || []))) serverFonts[slot] = {url:serverPath('/assets/fonts/' + encodeURIComponent(f)), name:f};
   const sets = await Promise.all((man.frames || []).map(async fr => {
     try {
-      const base = serverPath(`/assets/frames/${encodeURIComponent(fr.name)}/`), layout = parseMseStyle(await (await fetch(base + 'style')).text());
+      const base = serverPath(`/assets/frames/${encodeURIComponent(fr.name)}/`), text = fr.style || await (await fetch(base + 'style')).text(), layout = parseMseStyle(text);
       if (!layout.image || !layout.text.box) return null;
       const images = {};
       for (const file of fr.files) { const m = file.match(/^([a-z]{1,3}(?:card|pt)2?)\.(jpe?g|png)$/i); if (m) images[m[1].toLowerCase()] = base + encodeURIComponent(file); }
@@ -2880,7 +2956,9 @@ async function loadServerAssets() {
       return {id:'srv-' + fr.name.replace(/[^\w-]/g, '_'), name:fr.name.replace(/\.mse-style$/i, ''), w:layout.w, h:layout.h, layout, images, files, mask, server:true};
     } catch { return null; }
   }));
+  serverSets.length = 0;
   serverSets.push(...sets.filter(Boolean));
+  store.set('kv', 'server_assets', {sig, sets:serverSets, fonts:serverFonts}).catch(() => {});
   await upgradeDrawnCards();
 }
 // Custom cards saved with the built-in drawn frames are re-rendered with the matching real frame set.
@@ -3022,11 +3100,43 @@ async function ccFonts() {
   }
   if (CC_FONT.rrules === CC_BASE.rrules && CC_FONT.rules !== CC_BASE.rules) CC_FONT.rrules = CC_FONT.rules;
 }
-let symbolMapP = null;
+let symbolMapP = null, symbolMapCache = null;
+const symbolImgCache = new Map();
+function loadSymbol(src) {
+  if (!symbolImgCache.has(src)) symbolImgCache.set(src, loadImage(src).catch(() => loadImage(src + (src.includes('?') ? '&' : '?') + 'cors')));
+  return symbolImgCache.get(src);
+}
 function symbolMap() {
-  // The server keeps copies of the symbols; without it they load from Scryfall.
-  if (!symbolMapP) symbolMapP = fetch(serverPath('/sym/index.json')).then(r => r.ok ? r.json() : Promise.reject()).then(m => Object.keys(m).length ? Object.fromEntries(Object.entries(m).map(([k,v]) => [k,v.startsWith('/sym/') ? serverPath(v) : v])) : Promise.reject())
-    .catch(() => sf(SF + '/symbology').then(j => Object.fromEntries((j.data || []).map(x => [x.symbol, x.svg_uri])))).catch(() => { symbolMapP = null; return {}; });
+  if (symbolMapCache) return Promise.resolve(symbolMapCache);
+  if (!symbolMapP) symbolMapP = (async () => {
+    const cached = await store.get('kv', 'symbol_map');
+    if (cached && Object.keys(cached).length) {
+      symbolMapCache = cached;
+      fetch(serverPath('/sym/index.json')).then(r => r.ok ? r.json() : null).then(m => {
+        if (m && Object.keys(m).length) {
+          symbolMapCache = Object.fromEntries(Object.entries(m).map(([k,v]) => [k,v.startsWith('/sym/') ? serverPath(v) : v]));
+          store.set('kv', 'symbol_map', symbolMapCache).catch(() => {});
+        }
+      }).catch(() => {});
+      return symbolMapCache;
+    }
+    let m = null;
+    try {
+      const r = await fetch(serverPath('/sym/index.json'));
+      if (r.ok) {
+        const j = await r.json();
+        if (Object.keys(j).length) m = Object.fromEntries(Object.entries(j).map(([k,v]) => [k,v.startsWith('/sym/') ? serverPath(v) : v]));
+      }
+    } catch {}
+    if (!m) {
+      try {
+        const j = await sf(SF + '/symbology');
+        m = Object.fromEntries((j.data || []).map(x => [x.symbol, x.svg_uri]));
+      } catch {}
+    }
+    if (m && Object.keys(m).length) { symbolMapCache = m; await store.set('kv', 'symbol_map', m).catch(() => {}); }
+    return symbolMapCache || {};
+  })();
   return symbolMapP;
 }
 const frameKey = t => t.color && t.color !== 'auto' ? t.color : (t.colors || []).length > 1 ? 'M' : (t.colors || []).length ? t.colors[0] : /Land/.test(t.type || '') ? 'L' : 'C';
@@ -3060,7 +3170,7 @@ async function renderCustomCard(t, art, k) {
   const rr = (X, Y, w, h, r) => { x.beginPath(); x.roundRect(X, Y, w, h, r); };
   const map = await symbolMap(), syms = new Map();
   const need = new Set([...`${t.mana || ''} ${t.text || ''}`.matchAll(/\{[^}]+\}/g)].map(m => m[0]));
-  await Promise.all([...need].map(async s => { if (map[s]) try { syms.set(s, await loadImage(map[s]).catch(() => loadImage(map[s] + (map[s].includes('?') ? '&' : '?') + 'cors'))); } catch {} }));
+  await Promise.all([...need].map(async s => { if (map[s]) try { syms.set(s, await loadSymbol(map[s])); } catch {} }));
   const texture = (rect, seed, cells, alpha, scale, r = 0) => {
     const pat = x.createPattern(noiseCanvas(seed, cells), 'repeat'); pat.setTransform(new DOMMatrix().scale(scale));
     x.save(); rr(...rect, r); x.clip(); x.globalCompositeOperation = 'overlay'; x.globalAlpha = alpha; x.fillStyle = pat; x.fillRect(...rect); x.restore();
@@ -4375,6 +4485,15 @@ $('#presetSave').onclick = () => {
 };
 
 /* ---------- preview ---------- */
+const guideCache = new Map();
+function cachedGuideLines(L, count) {
+  const s = S.settings, k = `${L.W},${L.H},${L.cols},${L.rows},${count},${settingsSig()},${s.guides},${s.guideColor},${s.cornerGuideColor},${s.guidePlacement}`;
+  if (!guideCache.has(k)) {
+    if (guideCache.size > 30) guideCache.clear();
+    guideCache.set(k, guideLines(L, count));
+  }
+  return guideCache.get(k);
+}
 let previewGen = 0, previewTimer;
 function renderPreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 60); }
 function syncPreviewControls() {
@@ -4432,7 +4551,7 @@ async function drawPreview() {
       el.className = 'pg'; el.style.width = L.W*z + 'px'; el.style.height = L.H*z + 'px';
       const backNote = back ? (L.W > L.H ? ' · back (inverted 180° for long-edge feed)' : ' · back') : '';
       el.innerHTML = `<span class="lbl">Page ${pi + 1}${backNote}</span>`;
-      const lines = back ? [] : guideLines(L, page.length), reg = back ? {rects:[], lines:[]} : regMarks(L);
+      const lines = back ? [] : cachedGuideLines(L, page.length), reg = back ? {rects:[], lines:[]} : regMarks(L);
       const underLines = lines.filter(l => !l[6]), overLines = lines.filter(l => l[6]);
       const sw = Math.max(0.75, s.guideWidth*z);
       if (underLines.length) {
@@ -4669,6 +4788,21 @@ function showBackSteps(sheets) {
   switchTab('guide');
 }
 
+function applyServerShare() {
+  const server = serverAvailable(), slots = buildSlots();
+  $('#shareDeckLink').disabled = $('#orderShareDeckLink').disabled = !server || !slots.length;
+  $$('.server-share').forEach(el => { el.hidden = !server; if (!server) el.disabled = true; });
+  if (!server) {
+    const hint = 'Save a deck file with its artwork and layout. Friends can open it in ProxyPress with their own printer alignment.';
+    const sh = $('#shareHint'), osh = $('#orderShareHint');
+    if (sh) sh.textContent = hint;
+    if (osh) osh.textContent = hint;
+    const pd = $('#printDeckDetails'), opd = $('#orderPrintDeckDetails');
+    if (pd) pd.open = true;
+    if (opd) opd.open = true;
+  }
+}
+
 function renderGuideTab() {
   const s = S.settings, L = layout(), slots = buildSlots();
   const pages = paginate(slots, L.per), sheets = pages.length;
@@ -4702,8 +4836,7 @@ function renderGuideTab() {
   }
   $('#btnExportPdfTab').disabled = !slots.length;
   $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
-  $('#shareDeckLink').disabled = $('#orderShareDeckLink').disabled = !slots.length;
-  $$('.server-share').forEach(el => el.hidden = !!SHARE_TOKEN || /Electron\//.test(navigator.userAgent) || !location.protocol.startsWith('http'));
+  applyServerShare();
   if ($('#btnPdf') && $('#tab-guide').classList.contains('on')) $('#btnPdf').disabled = !slots.length;
   const svgBtn = $('#btnExportSvgTab');
   if (svgBtn) svgBtn.style.display = isCameo ? 'block' : 'none';
@@ -5029,7 +5162,7 @@ $('#printDeckOut').onclick = async () => {
   try {
     const parts = [], packed = new Map(), aliases = new Map(), originalImages = Object.create(null);
     const editable = new Set(deck().entries.flatMap(e => e.faces.flatMap(f => [f.template?.artKey, f.template?.frameKey, f.template?.popKey])).filter(Boolean));
-    const server = !SHARE_TOKEN && location.protocol.startsWith('http') && !/Electron\//.test(navigator.userAgent);
+    const server = serverAvailable();
     if (server) token = (await shareRequest('/shares', {})).id;
     const data = await makePrintDeck(async (key, image) => {
       const hash = token ? (await shareRequest(`/shares/${token}/images`, image, image.type)).hash : undefined;
@@ -5074,6 +5207,7 @@ function showShareLink(url) {
   if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname)) status.textContent = 'This address works on this computer only. Set PUBLIC_URL on your server to share with other devices.';
 }
 async function createShareLink() {
+  if (!serverAvailable()) return;
   let token, complete = false;
   busy(true, 'Preparing share link…');
   try {
@@ -5092,6 +5226,7 @@ async function createShareLink() {
 }
 $('#shareDeckLink').onclick = $('#orderShareDeckLink').onclick = createShareLink;
 $('#manageShares').onclick = async () => {
+  if (!serverAvailable()) return;
   busy(true, 'Loading shared decks…');
   try {
     const data = await shareRequest('/shares');
@@ -5644,6 +5779,7 @@ function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); render
   setTimeout(() => { if (!S.welcomed && !SHARE_TOKEN) openTour(0); }, 50); $('#showCuts').checked = !!S.showCuts;
   renderAll();
   if (SHARE_TOKEN) await openServerDeck(SHARE_TOKEN);
+  (window.requestIdleCallback || (cb => setTimeout(cb, 1000)))(precacheStaples);
 })();
 </script>
 </body>

@@ -1,28 +1,65 @@
-# Proxy Press v1.0.8
+# Proxy Press v0.5.0
 
-Search Scryfall printings, share decks via public links, match uploads across the instance, and export compact JSON bundles with original artwork.
+Client-side and server-side caching engine for faster loads and rendering.
 
 ## What's new
 
-- **Scryfall art search:** Art search includes Scryfall printings alongside community art and shared uploads. Sources load independently, official choices are cached locally, and front/back selections keep the correct face.
-- **Instance art sharing:** Uploaded artwork can be matched to a card or skipped. Matched uploads appear in this server's art search, with thumbnails and full originals; duplicates are stored once and saved decks keep independent copies.
-- **Public deck sharing:** Share decks through public, revocable links with original artwork stored once on the server. Set `PUBLIC_URL` for your domain; storage defaults to 1 GB per deck and 20 GB total.
-- **Compact JSON export:** Export compact JSON with artwork at up to 600 DPI and references to server originals. Imports restore originals when available and work offline with embedded images. Mobile exports offer a Save file step after packing.
-- **Outside trim stability:** Preserve Outside trim across reloads and keep crop ticks within the available space between cards and at paper edges.
+- **HTTP caching & 304 Not Modified:** Added ETags and conditional request handling across the application page, static assets, symbols, instance art, and API relays.
+- **Pre-rendered page cache:** In-memory caching of the HTML document and script CSP hashes to eliminate disk reads and regex hashing on warm loads.
+- **Bundled asset manifest:** Embedded frame styles into the manifest to eliminate 18 individual HTTP roundtrips on startup.
+- **Client-side persistent caching:** Cached frame sets, fonts, symbol maps, and art search metadata in IndexedDB.
+- **Staple card pre-caching:** Background pre-caching for basic lands and common format staples to accelerate deck imports.
+- **UI render optimizations:** Synchronous thumbnail rendering in the card list and memoized cut guide calculations.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/Proxy-Press-1.0.8.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/Proxy-Press-1.0.8.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/Proxy-Press-1.0.8.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/Proxy-Press-1.0.8.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/Proxy-Press-1.0.8.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/Proxy-Press-1.0.8.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v1.0.8/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/Proxy-Press-0.5.0.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.0/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
+# Previous Releases
+
+### v0.4.0
+- **Public deck sharing:** Share decks via public, revocable links with deduplicated server storage.
+- **Instance art library:** Uploaded artwork matched to cards is indexed and searchable across the instance.
+- **Scryfall art search:** Browse and select official Scryfall printings alongside community art.
+- **Compact JSON export:** Export decks with compressed artwork and links to original server assets.
+
+### v0.3.3
+- **Layer ordering:** Sheet cut lines and outlines render strictly under cards; only corner marks render on top.
+- **Dropdown controls:** Restored corner shape and placement selector options.
+
+### v0.3.2
+- **Guide specs:** Proxxied 0.25 mm line thickness and colorblind-safe guide palettes.
+
+### v0.3.1
+- **Layered guides:** Combination guide toggle and All preset.
+
+### v0.3.0
+- **Cut guides:** Continuous sheet lines, custom cut/corner colors, and dark workspace.
+
+### v0.2.0
+- **Deck suggestions:** EDHREC suggestions for Commander and constructed decks.
+- **Token faces:** Support for selecting specific faces on tokens and double-faced cards.
+
+### v0.1.2
+- **Workflow fixes:** Tour navigation, deck import boards, and export button fixes.
+
+### v0.1.1
+- **Polish:** Brand icon redesign, dark warning styles, and window bounds fixes.
+
+### v0.1.0
+- **Initial release:** Desktop application packaging for Windows (.exe/.msi) and Linux (.AppImage, .deb, .rpm, .pacman, AUR).
 
 ## Thanks
 
