@@ -45,7 +45,7 @@ Then open `http://localhost:8642` on the server. To connect from other devices, 
 Paste a decklist or paste a link directly from Moxfield or Archidekt. Proxy Press imports your cards and can automatically add all required tokens and emblems with one click.
 
 ### 2. Pick Your Favorite Art
-Click any card to browse official printings, retro borders, borderless treatments, and high-DPI community renders.
+Choose **Change art…** from a card’s menu to search Scryfall printings, high-DPI community renders, and uploads shared on this server. Results show their source, and each source loads independently. Chosen Scryfall images are saved locally and kept when you use Auto fill art. DPI and file-size filters apply to community art.
 
 Uploading an image offers an optional card match. Matching keeps your image and adds it to this server's art search for everyone using the instance. Skip one image or the remaining batch to keep them unmatched in your deck. Images uploaded to an already-matched card are shared automatically. Shared artwork appears as **Uploaded here** in the art picker; selecting it saves a separate local copy. **Remove upload** removes it from search without changing anyone's saved decks. This library is available on the Python server; the desktop app keeps uploads local.
 

@@ -1,5 +1,6 @@
 # Unreleased
 
+- Art search includes Scryfall printings alongside community art and shared uploads. Sources load independently, official choices are cached locally, and front/back selections keep the correct face.
 - Uploaded artwork can be matched to a card or skipped. Matched uploads appear in this server's art search, with thumbnails and full originals; duplicates are stored once and saved decks keep independent copies.
 - Share decks through public, revocable links with original artwork stored once on the server. Set `PUBLIC_URL` for your domain; storage defaults to 1 GB per deck and 20 GB total.
 - Export compact JSON with artwork at up to 600 DPI and references to server originals. Imports restore originals when available and work offline with embedded images. Mobile exports offer a Save file step after packing.
