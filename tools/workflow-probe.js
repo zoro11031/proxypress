@@ -1,6 +1,6 @@
 // Browser regression checks for order exports, custom cards and shared print decks.
 (async () => {
-  const fails = [], original = JSON.parse(JSON.stringify(S)), created = [], downloads = [];
+  const fails = [], original = JSON.parse(JSON.stringify(S)), created = [], downloads = [], shares = [];
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
   const waitFor = async fn => { for (let i = 0; i < 100; i++) { if (fn()) return; await sleep(50); } throw new Error('Timed out waiting for UI'); };
   const originalDownload = download, originalFetch = window.fetch, originalSf = sf, originalConfirm = window.confirm;
@@ -101,17 +101,19 @@
     eq('lookup can select back face', $('#cc-name').value, 'Back');
     eq('lookup keeps uploaded art', $('#ccSave').disabled, false);
     closeModal(true); sf = originalSf;
-    // A standalone print deck must round-trip without fetching its original art.
+    // Compact print decks restore originals when the server is available.
     S.mode='print';applyMode();switchTab('guide');
+    $('#printDeckOut').closest('details').open=true;
     eq('share is a visible print export option',$('#printDeckOut').getClientRects().length>0,true);
     await $('#printDeckOut').onclick();
     const sharedDownload = downloads.at(-1);
     eq('share export downloads JSON', sharedDownload.name.endsWith('(print deck).json'), true);
-    const parsed = await readPrintDeck(sharedDownload.blob);
+    const parsed = await readPrintDeck(sharedDownload.blob); if(parsed.originalShare)shares.push(parsed.originalShare.token);
     S.mode='order';applyMode();switchTab('order');
+    $('#orderPrintDeckOut').closest('details').open=true;
     eq('share is a visible order export option',$('#orderPrintDeckOut').getClientRects().length>0,true);
     await $('#orderPrintDeckOut').onclick();
-    const orderShare=await readPrintDeck(downloads.at(-1).blob);
+    const orderShare=await readPrintDeck(downloads.at(-1).blob);if(orderShare.originalShare)shares.push(orderShare.originalShare.token);
     eq('order-mode share includes the same artwork',orderShare.images[f.custom],parsed.images[f.custom]);
     const tricky = {images:{'img-test':'data:image/png;base64,abc='}, deck:{name:'Unicode ☃ \"quoted\" \\ slash', entries:[{text:'braces { } [ ] and \\ escape'}]}, version:1, bool:true, empty:null};
     const bytes = new TextEncoder().encode(JSON.stringify(tricky, null, 2));
@@ -131,7 +133,7 @@
     eq('import creates a new deck', S.decks.length, oldCount + 1);
     eq('original deck remains', S.decks.includes(d), true);
     eq('import remaps rendered image key', recipient.entries[0].faces[0].custom !== f.custom, true);
-    eq('imported art matches bytes', await blobToData(await store.get('images', recipient.entries[0].faces[0].custom)), parsed.images[f.custom]);
+    eq('imported art restores original bytes', await blobToData(await store.get('images', recipient.entries[0].faces[0].custom)) === await blobToData(await store.get('images', f.custom)), true);
     eq('shared A4 layout restored', S.settings.pageSize, 'a4');
     eq('recipient offset preserved', S.settings.offsetX, -2); eq('recipient scale preserved', S.settings.scaleX, 101); eq('recipient printer preserved', S.printer, 'mf753');
     eq('import opens print setup', $('#tab-setup').classList.contains('on'), true); eq('import selects print mode', S.mode, 'print');
@@ -184,6 +186,7 @@
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally {
     closeModal(true); importList = originalImportList; download = originalDownload; window.fetch = originalFetch; sf = originalSf;
+    for(const id of shares){try{await shareRequest('/shares/'+id+'/delete',{});}catch{}}
     localIndex.splice(0, localIndex.length, ...originalLocal);
     mpcCardInfo = originalInfo; mpcApi = originalApi; mpcSearch = originalSearch; mpcCards = originalCards;
     window.confirm = originalConfirm; Object.assign(S, original); for (const key of new Set(created)) await removeImageIfUnused(key);

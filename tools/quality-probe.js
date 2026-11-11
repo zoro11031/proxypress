@@ -75,7 +75,7 @@
       near(`${orientation} full bracket length`,lines[0][2]-lines[0][0],6);
       for (const [a,b,c,e] of lines) eq(`${orientation} marks within paper`,a>=0&&b>=0&&c<=L.W&&e<=L.H,true);
       eq('partial sheet has no extra guides',guideLines(L,2).length,16);
-      S.settings.guidePlacement='inside'; eq('inside guide placement',guideLines(L,1)[0][0]>p.x+S.settings.bleed,true); S.settings.guidePlacement='outside';
+      S.settings.guidePlacement='inside'; near('inside bracket starts at trim',guideLines(L,1)[0][0],p.x+S.settings.bleed); S.settings.guidePlacement='outside';
       S.settings.guideStyle='dashed'; eq('all guide segments dashed',guideLines(L,1).every(l=>l[4]),true); S.settings.guideStyle='solid';
       S.settings.guides='outline'; eq('full outline uses four sides',guideLines(L,2).length,8); S.settings.guides='corners';
       let pdf;

@@ -9,6 +9,9 @@ services:
     environment:
       PASSWORD: "${PROXY_PRESS_PASSWORD:-}"
       BASIC_AUTH: "${PROXY_PRESS_AUTH:-}"
+      PUBLIC_URL: "${PUBLIC_URL:-}"
+      SHARE_STORAGE_MB: "${SHARE_STORAGE_MB:-20480}"
+      SHARE_DECK_MB: "${SHARE_DECK_MB:-1024}"
     read_only: true
     volumes:
       - ./assets:/app/assets:ro,z

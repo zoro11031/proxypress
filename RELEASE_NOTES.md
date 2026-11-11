@@ -1,3 +1,9 @@
+# Unreleased
+
+- Share decks through public, revocable links with original artwork stored once on the server. Set `PUBLIC_URL` for your domain; storage defaults to 1 GB per deck and 20 GB total.
+- Export compact JSON with artwork at up to 600 DPI and references to server originals. Imports restore originals when available and work offline with embedded images. Mobile exports offer a Save file step after packing.
+- Preserve Outside trim across reloads and keep crop ticks within the available space between cards and at paper edges.
+
 # Proxy Press v1.0.7
 
 Fix cut guides and outlines strictly under card faces with only corner cuts over, and restore functional corner shape and placement controls.
