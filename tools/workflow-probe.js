@@ -172,6 +172,7 @@
     eq('backup picker keeps printer alignment', S.settings.offsetX, -2);
     // Late art-search responses must not write into a closed or replacement modal.
     let resolveSearch;
+    sf=async()=>({data:[],has_more:false});
     mpcApi = async () => ({languages:[]}); mpcCards = async () => [];
     mpcSearch = () => new Promise(r => { resolveSearch = r; });
     const pickedFace = {name:'Slow search'}, localFile = new File([blob], 'Slow search.png', {type:'image/png'});

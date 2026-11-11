@@ -2,10 +2,11 @@
 (async () => {
   const original = JSON.parse(JSON.stringify(S)), originalSelection = [...selectedCopies], originalDeck = selectionDeck, originalAnchor = selectionAnchor;
   const api = mpcApi, search = mpcSearch, cards = mpcCards, index = [...localIndex], created = new Set(), fails = [];
+  const originalSf=sf;
   const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
   const waitFor = async fn => { for (let i = 0; i < 100; i++) { if (fn()) return; await sleep(30); } throw new Error('Timed out waiting for selection UI'); };
   try {
-    closeModal(true);
+    closeModal(true);sf=async()=>({data:[],has_more:false});
     const c = document.createElement('canvas'); c.width = 63; c.height = 88;
     c.getContext('2d').fillRect(0, 0, 63, 88);
     const blob = await new Promise(r => c.toBlob(r)), key = await storeImage(blob); created.add(key);
@@ -57,7 +58,7 @@
     eq('switching decks clears selection', selectedCopies.size, 0);
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally {
-    closeModal(true); mpcApi = api; mpcSearch = search; mpcCards = cards; localIndex.splice(0, localIndex.length, ...index);
+    closeModal(true);sf=originalSf; mpcApi = api; mpcSearch = search; mpcCards = cards; localIndex.splice(0, localIndex.length, ...index);
     Object.assign(S, original); selectedCopies = new Set(originalSelection); selectionDeck = originalDeck; selectionAnchor = originalAnchor;
     for (const key of created) await removeImageIfUnused(key);
     save(); applyMode(); renderAll();

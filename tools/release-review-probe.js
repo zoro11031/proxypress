@@ -1,8 +1,9 @@
 // Run with tools/console-check.js --probe. Guards recent tour and export changes.
 (async () => {
-  const fails = [], originalMode = S.mode, originalApi = mpcApi, originalSearch = mpcSearch;
+  const fails = [], originalMode = S.mode, originalApi = mpcApi, originalSearch = mpcSearch, originalSf=sf;
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
   try {
+    sf=async()=>({data:[],has_more:false});
     for (const mode of ['print', 'order']) {
       S.mode = mode; applyMode(); openTour();
       for (let i = 1; i <= 3; i++) { $('[data-tour="next"]').click(); eq(`${mode} tour forward ${i}`, tourStep, i); }
@@ -21,7 +22,7 @@
       eq(`${key} selects art exactly once`, clicks, 1);
     }
   } finally {
-    closeModal(true); mpcApi = originalApi; mpcSearch = originalSearch;
+    closeModal(true); mpcApi = originalApi; mpcSearch = originalSearch;sf=originalSf;
     S.mode = originalMode; applyMode(); switchTab('cards'); renderAll();
   }
   return fails.length ? {failed:fails} : true;

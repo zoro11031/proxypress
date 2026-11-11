@@ -1512,7 +1512,7 @@ async function sf(url, opts = {}) {
     try {
       const r = await fetch(serverPath('/sf' + url.slice(SF.length)), {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
       if (/json/.test(r.headers.get('Content-Type') || '')) j = await r.json();
-      if (j && (r.ok || j.object === 'error')) { if (!r.ok) throw new Error(j.details); return j; }
+      if (j && (r.ok || j.object === 'error')) { if (!r.ok) { const err=new Error(j.details);err.status=r.status;throw err; } return j; }
       if (r.status === 404 || r.status === 401) sfRelay = false;
     } catch (err) { if (j) throw err; sfRelay = false; }
   }
@@ -1520,7 +1520,7 @@ async function sf(url, opts = {}) {
   lastCall = Date.now();
   const r = await fetch(url, {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
   const j = await r.json();
-  if (!r.ok && j.object === 'error') throw new Error(j.details);
+  if (!r.ok && j.object === 'error') { const err=new Error(j.details);err.status=r.status;throw err; }
   return j;
 }
 function toEntry(card, qty, tokenFace = null) {
@@ -1755,7 +1755,7 @@ async function uploadedBleed(blob) {
 }
 async function publishMatchedArt(e, faceIndex = 0) {
   const face=e.faces[faceIndex];
-  if (!instanceArtAvailable() || !e.scryId || !face?.custom) return false;
+  if (!instanceArtAvailable() || !e.scryId || !face?.custom || face.scryArt) return false;
   const blob=await store.get('images',face.custom);
   if (!blob?.size || blob.size>20*1048576) throw new Error('Artwork must be 20 MB or smaller to appear in shared search.');
   const thumb=await compactShareImage(blob,true,352), bleed=face.srcBleed ?? await uploadedBleed(blob);
@@ -1956,7 +1956,7 @@ function localSearch(name) {
 }
 async function useLocalFile(f, file) {
   const old = f.custom;
-  for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'auto', 'template', 'lowRes']) delete f[k];
+  for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'auto', 'template', 'lowRes', 'scryArt']) delete f[k];
   Object.assign(f, {custom:await storeImage(file), srcBleed:MPC_BLEED, localName:file.name});
   await removeImageIfUnused(old);
 }
@@ -1985,8 +1985,17 @@ $('#fileLocalDir').onchange = async ev => {
   toast(`Indexed ${localIndex.length} images.` + (replaced ? ` Used ${replaced} folder image${replaced === 1 ? '' : 's'} in place of automatic picks.` : '') + autoSummary(auto), 7000);
 };
 
+function scryfallArt(card, query) {
+  const safe = url => /^https:\/\/cards\.scryfall\.io\//.test(url || '') ? url : '';
+  const faces=card.image_uris?[{...card,index:0}]:(card.card_faces || []).map((f,index)=>({...f,index}));
+  const named=faces.filter(f=>normName(f.name).includes(normName(query))), chosen=named.length?named:faces;
+  return chosen.flatMap(f=>{
+    const png=safe(f.image_uris?.png || f.image_uris?.large || f.image_uris?.normal);
+    return png?[{png,thumb:safe(f.image_uris?.small || f.image_uris?.normal),name:f.name,card,index:f.index}]:[];
+  });
+}
 async function openMpcPicker(target) {
-  let faceIdx = target.i || 0, ids = [], shown = 0, localHits = [], sharedHits = [], thumbs = [];
+  let faceIdx = target.i || 0, ids = [], shown = 0, localHits = [], sharedHits = [], sfHits = [], sfShown = 0, sfNext = null, sfBusy = false, thumbs = [];
   const e = target.e, isBack = !!target.cardback;
   const face = () => e?.faces[faceIdx];
   const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
@@ -2000,7 +2009,7 @@ async function openMpcPicker(target) {
         <select id="mpcType" style="width:auto"><option value="CARD">Card</option><option value="TOKEN" ${e.kind === 'TOKEN' ? 'selected' : ''}>Token</option></select>
         <button class="primary" id="mpcGo">Search</button>
       </div>`}
-      <details class="adv" style="margin:0 0 10px"><summary>Search filters</summary>
+      <details class="adv" style="margin:0 0 10px"><summary>Search filters</summary><p class="hint">DPI and file-size filters apply to community art.</p>
         <div class="grid2" style="margin-top:8px">
           <div class="field"><label>Min DPI</label><input type="number" data-m="minDpi" value="${S.mpc.minDpi}"></div>
           <div class="field"><label>Show first: DPI ≥ (0 = off)</label><input type="number" data-m="preferDpi" value="${S.mpc.preferDpi}"></div>
@@ -2016,57 +2025,81 @@ async function openMpcPicker(target) {
       ${!isBack && instanceArtAvailable()?'<p class="hint">Matched uploads appear in art search for everyone on this server.</p>':''}
       <p class="hint" id="mpcStatus"></p>
       <div class="prints" id="mpcGrid"></div>
-      <div class="row" style="justify-content:center;margin-top:12px"><button id="mpcMore" style="display:none">Load more</button></div>
+      <div class="row" style="justify-content:center;margin-top:12px"><button id="mpcMore" style="display:none">More community art</button><button id="sfArtMore" style="display:none">More Scryfall</button></div>
     </div>`);
   const bd = $('#modal .bd'), find = q => $(q, bd);
-  let revision = 0;
+  const pickerDeck=S.deckId, pickerActive=()=>bd.isConnected && $('#overlay').classList.contains('on') && S.deckId===pickerDeck;
+  let revision = 0, artMessage = false;
   const status = t => find('#mpcStatus').innerHTML = t;
   async function page() {
     const batch = ids.slice(shown, shown + 60); shown += batch.length;
     const runId = revision;
     const cards = await mpcCards(batch);
-    if (runId !== revision || !bd.isConnected) return;
-    find('#mpcGrid').insertAdjacentHTML('beforeend', cards.map(c => `<figure data-id="${esc(c.identifier)}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} art from ${esc(c.sourceName)}" class="${c.identifier === current() ? 'sel' : ''}">
+    if (runId !== revision || !pickerActive()) return;
+    find('#communityArt').insertAdjacentHTML('beforeend', cards.map(c => `<figure data-id="${esc(c.identifier)}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} art from ${esc(c.sourceName)}" class="${c.identifier === current() ? 'sel' : ''}">
       <img loading="lazy" src="https://img.mpcautofill.com/${esc(c.identifier)}-small-google_drive" alt="">
-      <figcaption>${esc(c.name)}<br>${esc(c.sourceName)} · ${S.mpc.preferDpi && c.dpi >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+c.dpi} DPI</b>` : +c.dpi + ' DPI'} · ${(+c.size / 1048576).toFixed(1)} MB</figcaption></figure>`).join(''));
+      <figcaption>${esc(c.name)}<br><b>Community art</b> · ${esc(c.sourceName)} · ${S.mpc.preferDpi && c.dpi >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+c.dpi} DPI</b>` : +c.dpi + ' DPI'} · ${(+c.size / 1048576).toFixed(1)} MB</figcaption></figure>`).join(''));
     find('#mpcMore').style.display = shown < ids.length ? '' : 'none';
   }
+  let moreScryfall=()=>{};
   async function run() {
-    const runId = ++revision;
-    thumbs.forEach(u => URL.revokeObjectURL(u)); thumbs = [];
-    localHits = !isBack && localIndex.length ? localSearch(find('#mpcQ').value).slice(0, 30) : [];
-    find('#mpcGrid').innerHTML = localHits.map((x, i) => {
-      const u = URL.createObjectURL(x.file); thumbs.push(u);
-      return `<figure data-local="${i}" tabindex="0" role="button" aria-label="Use ${esc(x.file.name)}"><img loading="lazy" src="${u}" alt=""><figcaption>${esc(x.file.name)}<br><b style="color:var(--accent2)">Your folder</b> · ${(x.file.size / 1048576).toFixed(1)} MB</figcaption></figure>`;
-    }).join('');
-    let local = localHits.length ? `${localHits.length} from your folder (shown first). ` : '';
-    shown = 0; find('#mpcMore').style.display = 'none'; status(local + 'Searching for art…');
-    sharedHits=[];
-    if (!isBack && instanceArtAvailable()) {
-      try {
-        const result=await shareRequest('/art?q='+encodeURIComponent(find('#mpcQ').value)+'&kind='+find('#mpcType').value);
-        if (runId!==revision || !bd.isConnected) return;
+    const runId=++revision, active=()=>runId===revision && pickerActive();
+    const query=isBack?'':find('#mpcQ').value.trim(), kind=isBack?'CARD':find('#mpcType').value;
+    const parts={local:'',shared:'',community:'Searching community art…',scryfall:isBack?'':'Searching Scryfall…'};
+    artMessage=false;
+    const update=(source,text)=>{if(active()){parts[source]=text;if(!artMessage)status(Object.values(parts).filter(Boolean).join(' '));}};
+    thumbs.forEach(u=>URL.revokeObjectURL(u));thumbs=[];
+    localHits=!isBack && localIndex.length?localSearch(query).slice(0,30):[];
+    find('#mpcGrid').innerHTML=localHits.map((x,i)=>{
+      const u=URL.createObjectURL(x.file);thumbs.push(u);
+      return `<figure data-local="${i}" tabindex="0" role="button" aria-label="Use ${esc(x.file.name)}"><img loading="lazy" src="${u}" alt=""><figcaption>${esc(x.file.name)}<br><b style="color:var(--accent2)">Your folder</b> · ${(x.file.size/1048576).toFixed(1)} MB</figcaption></figure>`;
+    }).join('')+'<div id="sharedArt" style="display:contents"></div><div id="communityArt" style="display:contents"></div><div id="scryfallArt" style="display:contents"></div>';
+    shown=0;sharedHits=[];sfHits=[];sfShown=0;sfNext=null;sfBusy=false;
+    find('#mpcMore').style.display=find('#sfArtMore').style.display='none';
+    update('local',localHits.length?`${localHits.length} from your folder.`:'');
+    const jobs=[];
+    if(!isBack && instanceArtAvailable())jobs.push((async()=>{
+      update('shared','Searching shared uploads…');
+      try{
+        const result=await shareRequest('/art?q='+encodeURIComponent(query)+'&kind='+kind);if(!active())return;
         sharedHits=result.art || [];
-        find('#mpcGrid').insertAdjacentHTML('beforeend',sharedHits.map(c=>`<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-label="Use uploaded ${esc(c.face)} artwork"><img loading="lazy" src="/art/${esc(c.id)}/thumb" alt=""><figcaption>${esc(c.face)}<br><b style="color:var(--accent2)">Uploaded here</b> · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join(''));
-        if(sharedHits.length)local+=`${sharedHits.length} uploaded here. `;
-      } catch { if(runId!==revision || !bd.isConnected)return;local+='Shared uploads are unavailable. '; }
-      status(local+'Searching online…');
+        find('#sharedArt').innerHTML=sharedHits.map(c=>`<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-label="Use uploaded ${esc(c.face)} artwork"><img loading="lazy" src="/art/${esc(c.id)}/thumb" alt=""><figcaption>${esc(c.face)}<br><b style="color:var(--accent2)">Uploaded here</b> · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join('');
+        update('shared',sharedHits.length?`${sharedHits.length} uploaded here.`:'');
+      }catch{update('shared','Shared uploads are unavailable.');}
+    })());
+    if(!isBack){
+      const q=(kind==='TOKEN'?'(t:token or t:emblem) ':'-t:token -t:emblem ')+`name:${JSON.stringify(query)}`+(/^[a-z]{2,3}$/.test(S.mpc.lang)?' lang:'+S.mpc.lang:'');
+      sfNext=query?`${SF}/cards/search?unique=prints&include_extras=true&order=released&q=${encodeURIComponent(q)}`:null;
+      moreScryfall=async()=>{
+        if(sfBusy || !active())return;
+        sfBusy=true;find('#sfArtMore').disabled=true;
+        try{
+          if(sfShown>=sfHits.length && sfNext){
+            const data=await sf(sfNext);if(!active())return;
+            sfHits.push(...(data.data || []).flatMap(card=>scryfallArt(card,query)));
+            sfNext=data.has_more && typeof data.next_page==='string' && data.next_page.startsWith(SF+'/cards/search?')?data.next_page:null;
+          }
+          const batch=sfHits.slice(sfShown,sfShown+60), offset=sfShown;sfShown+=batch.length;
+          find('#scryfallArt').insertAdjacentHTML('beforeend',batch.map((c,i)=>`<figure data-scryfall="${offset+i}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} from Scryfall" class="${face()?.scryArt===c.png?'sel':''}">${c.thumb?`<img loading="lazy" src="${esc(c.thumb)}" alt="">`:''}<figcaption>${esc(c.name)}<br><b style="color:var(--accent2)">Scryfall</b> · ${esc(c.card.set_name || c.card.set || '')} #${esc(c.card.collector_number || '')}</figcaption></figure>`).join(''));
+          find('#sfArtMore').style.display=sfShown<sfHits.length || sfNext?'':'none';
+          update('scryfall',sfHits.length?`${sfHits.length}${sfNext?'+':''} Scryfall printing${sfHits.length===1?'':'s'}.`:query?'No Scryfall printings found.':'Enter a card name to search Scryfall.');
+        }catch(err){if(active()){sfNext=null;find('#sfArtMore').style.display='none';update('scryfall',err.status===404?'No Scryfall printings found.':'Scryfall is unavailable.');}}
+        finally{if(active()){sfBusy=false;find('#sfArtMore').disabled=false;}}
+      };
+      jobs.push(moreScryfall());
     }
-    try {
-      let found;
-      if (isBack) found = (await mpcApi('2/cardbacks/', {searchSettings:await mpcSettings()})).cardbacks || [];
-      else {
-        const q = {query:mpcQuery(find('#mpcQ').value), cardType:find('#mpcType').value};
-        found = (await mpcSearch([q])).get(q.query + '|' + q.cardType);
-      }
-      found ||= [];
-      await mpcCards(found);
-      if (runId !== revision || !bd.isConnected) return;
-      ids = mpcRank(found);
-      const nHi = S.mpc.preferDpi ? ids.filter(id => mpcDetails.get(id)?.dpi >= S.mpc.preferDpi).length : 0;
-      status(local + (ids.length ? `${ids.length} online result${ids.length === 1 ? '' : 's'}${S.mpc.preferDpi ? `, ${nHi} at ${S.mpc.preferDpi}+ DPI shown first` : ', best matches first'}.` : 'No online results. Try another name, fuzzy search, or lower the min DPI.'));
-      if (ids.length) await page();
-    } catch (err) { if (runId !== revision || !bd.isConnected) return; status(local + (err.message === 'MPC_OFFLINE' ? mpcOfflineHtml() : 'Online search failed: ' + esc(err.message))); }
+    jobs.push((async()=>{
+      try{
+        const q={query:mpcQuery(query),cardType:kind};
+        const found=isBack?(await mpcApi('2/cardbacks/',{searchSettings:await mpcSettings()})).cardbacks || []:(await mpcSearch([q])).get(q.query+'|'+q.cardType) || [];
+        if(!active())return;
+        await mpcCards(found);if(!active())return;
+        ids=mpcRank(found);
+        update('community',ids.length?`${ids.length} community art result${ids.length===1?'':'s'}.`:'No community art found.');
+        if(ids.length)await page();
+      }catch{update('community','Community art is unavailable.');}
+    })());
+    await Promise.allSettled(jobs);
   }
   bd.addEventListener('click', async ev => {
     const fb = ev.target.closest('[data-face]');
@@ -2074,27 +2107,49 @@ async function openMpcPicker(target) {
     if (ev.target.id === 'mpcGo') return run();
     if (ev.target.id === 'mpcTokenFaces') return openCardMatch(e,target.copies?.length===1 && target.copies[0].copies.length===1?target.copies[0].copies[0]:undefined,faceIdx);
     if (ev.target.id === 'mpcMore') return page();
+    if (ev.target.id === 'sfArtMore') return moreScryfall();
     if (ev.target.id === 'mpcOwn') { faceTarget = {...target, e, i:faceIdx}; closeModal(); return $('#fileFace').click(); }
     if (ev.target.id === 'mpcMaker') { closeModal(); return openCardMaker({e, i:faceIdx}); }
     if (ev.target.dataset.removeArt) {
       const id=ev.target.dataset.removeArt;
       if(!confirm('Remove this upload from shared art search? Saved decks keep their copies.'))return;
+      artMessage=true;
       try { await shareRequest(`/art/${id}/delete`,{});if(bd.isConnected)run(); }
       catch(err){if(bd.isConnected)status(esc(err.message));}
       return;
     }
     const fig = ev.target.closest('figure'); if (!fig) return;
-    if (fig.dataset.instance) {
-      const item=sharedHits.find(c=>String(c.id)===fig.dataset.instance);if(!item)return;
+    if (fig.dataset.scryfall !== undefined) {
+      const item=sfHits[+fig.dataset.scryfall];if(!item)return;
+      const chosenFace=faceIdx, chosenRun=revision;
       let key;
       try {
+        artMessage=true;
+        status('Saving Scryfall artwork…');
+        const response=await fetch(item.png);if(!response.ok)throw new Error('This Scryfall image could not be downloaded.');
+        const blob=await response.blob();if(!blob.size || blob.size>20*1048576 || !blob.type.startsWith('image/'))throw new Error('This Scryfall image could not be opened.');
+        if(!pickerActive() || chosenRun!==revision)return;
+        key=await storeImage(blob);if(!pickerActive() || chosenRun!==revision)return;
+        await applyArtChoice(target,chosenFace,async f=>{const old=f.custom;for(const k of ['drive','file','mpcName','mpcSource','mpcDpi','auto','template','lowRes','localName'])delete f[k];Object.assign(f,{custom:key,png:item.png,normal:item.thumb || item.png,srcBleed:0,scryArt:item.png});await removeImageIfUnused(old);});
+        if(bd.isConnected)closeModal();save();renderAll();
+      } catch(err){if(pickerActive() && chosenRun===revision)status(esc(err.message));}
+      finally{if(key)await removeImageIfUnused(key);}
+      return;
+    }
+    if (fig.dataset.instance) {
+      const item=sharedHits.find(c=>String(c.id)===fig.dataset.instance);if(!item)return;
+      const chosenFace=faceIdx, chosenRun=revision;
+      let key;
+      try {
+        artMessage=true;
         status('Saving uploaded artwork…');
         const response=await fetch(`/art/${item.id}/image`);if(!response.ok)throw new Error('This upload is no longer available.');
         const blob=await response.blob();if(!blob.size || blob.size>20*1048576 || !blob.type.startsWith('image/'))throw new Error('This upload could not be opened.');
-        key=await storeImage(blob);if(!bd.isConnected)return;
-        await applyArtChoice(target,faceIdx,async f=>{const old=f.custom;for(const k of ['drive','file','mpcName','mpcSource','mpcDpi','auto','template','lowRes'])delete f[k];Object.assign(f,{custom:key,srcBleed:item.bleed,localName:item.face});await removeImageIfUnused(old);});
+        if(!pickerActive() || chosenRun!==revision)return;
+        key=await storeImage(blob);if(!pickerActive() || chosenRun!==revision)return;
+        await applyArtChoice(target,chosenFace,async f=>{const old=f.custom;for(const k of ['drive','file','mpcName','mpcSource','mpcDpi','auto','template','lowRes','scryArt'])delete f[k];Object.assign(f,{custom:key,srcBleed:item.bleed,localName:item.face});await removeImageIfUnused(old);});
         if(bd.isConnected)closeModal();save();renderAll();
-      } catch(err){if(bd.isConnected)status(esc(err.message));}
+      } catch(err){if(pickerActive() && chosenRun===revision)status(esc(err.message));}
       finally{if(key)await removeImageIfUnused(key);}
       return;
     }
@@ -2114,7 +2169,7 @@ async function openMpcPicker(target) {
     } else {
       await applyArtChoice(target, faceIdx, async f => {
         const old = f.custom;
-        delete f.custom; delete f.auto; delete f.template; delete f.lowRes; Object.assign(f, mpcArt(card));
+        delete f.custom; delete f.auto; delete f.template; delete f.lowRes; delete f.scryArt; Object.assign(f, mpcArt(card));
         await removeImageIfUnused(old);
       });
     }
@@ -2642,7 +2697,7 @@ $('#fileFace').onchange = async ev => {
   const key = await storeImage(f);
   await applyArtChoice(target, i, async face => {
     const old = face.custom; face.custom = key;
-    for (const k of ['srcBleed', 'drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'template', 'lowRes']) delete face[k];
+    for (const k of ['srcBleed', 'drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'template', 'lowRes', 'scryArt']) delete face[k];
     if (e.custom) face.name = e.name;
     await removeImageIfUnused(old);
   });
@@ -3738,7 +3793,7 @@ async function openCardMaker(target) {
       const key = await storeImage(await new Promise(r => c.toBlob(r, 'image/png')));
       if (!e) { e = {uid:uid(), qty:1, name:t.name || 'Custom card', custom:true, faces:[{name:t.name || 'Custom card'}], tokens:[]}; deck().entries.push(e); }
       const f = e.faces[i], old = f.custom;
-      for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'lowRes']) delete f[k];
+      for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'lowRes', 'scryArt']) delete f[k];
       Object.assign(f, {custom:key, srcBleed:MPC_BLEED, template:{...t, colors:t.colors || []}});
       if (e.custom) { f.name = t.name || f.name; e.name = e.faces.map(x => x.name).join(' // '); }
       await removeImageIfUnused(old);
@@ -4115,7 +4170,7 @@ function cleanDeck(raw) {
   const face = f => f && typeof f === 'object' ? pick({
     name:str(f.name) ?? '', png:url(f.png), normal:url(f.normal), custom:key(f.custom), drive:id(f.drive), file:str(f.file),
     mpcName:str(f.mpcName), mpcSource:str(f.mpcSource), mpcDpi:num(f.mpcDpi), localName:str(f.localName), srcBleed:num(f.srcBleed),
-    auto:f.auto ? true : undefined, lowRes:f.lowRes ? true : undefined, template:tpl(f.template)
+    scryArt:url(f.scryArt), auto:f.auto ? true : undefined, lowRes:f.lowRes ? true : undefined, template:tpl(f.template)
   }) : null;
   return {
     id:String(raw?.id || uid()).slice(0, 64), name:String(raw?.name || 'Imported deck').slice(0, 200), updated:+raw?.updated || Date.now(),
