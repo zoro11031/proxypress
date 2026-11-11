@@ -47,6 +47,8 @@ Paste a decklist or paste a link directly from Moxfield or Archidekt. Proxy Pres
 ### 2. Pick Your Favorite Art
 Click any card to browse official printings, retro borders, borderless treatments, and high-DPI community renders.
 
+Uploading an image offers an optional card match. Matching keeps your image and adds it to this server's art search for everyone using the instance. Skip one image or the remaining batch to keep them unmatched in your deck. Images uploaded to an already-matched card are shared automatically. Shared artwork appears as **Uploaded here** in the art picker; selecting it saves a separate local copy. **Remove upload** removes it from search without changing anyone's saved decks. This library is available on the Python server; the desktop app keeps uploads local.
+
 Right-click a card and choose **Change card match…** to correct its Scryfall match or printing. The Suggestions box recommends cards based on the ones in your deck; use **+** to add one or **Explore suggestions** to browse them.
 
 On a home server, **Create share link** shares a copy with original artwork and layout. Anyone with the link can choose **Save to my decks** to copy the deck and its artwork onto their device without signing in. Shared paper and layout settings are optional and off by default. Remove links under **Settings → Manage shared decks**. **Offline deck file** exports a smaller JSON file with compact artwork at up to 600 DPI; importing it restores the original artwork when this server is reachable. The desktop app also supports compact offline deck files.
@@ -61,7 +63,7 @@ For tokens, choose **Choose token faces…** to use either face by itself or bro
 
 Use the preview toolbar to switch paper size or orientation, fit the whole sheet in the window, or hide the sidebar for more room.
 
-For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across all shares. Identical images are stored once. Shares are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other share uses; copies already saved by recipients remain theirs.
+For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across shared decks and the instance art library. Identical images are stored once. Shares and the art library are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other shared deck or library entry uses; copies already saved by recipients remain theirs.
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
 

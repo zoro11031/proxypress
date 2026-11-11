@@ -36,6 +36,7 @@ import sqlite3
 import sys
 import threading
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -151,6 +152,7 @@ def share_db():
             db.execute("CREATE TABLE IF NOT EXISTS shares (id TEXT PRIMARY KEY, created INTEGER NOT NULL, document TEXT)")
             db.execute("CREATE TABLE IF NOT EXISTS share_images (hash TEXT PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS share_refs (share TEXT REFERENCES shares(id) ON DELETE CASCADE, image TEXT REFERENCES share_images(hash), PRIMARY KEY(share,image))")
+            db.execute("CREATE TABLE IF NOT EXISTS instance_art (id INTEGER PRIMARY KEY, image TEXT REFERENCES share_images(hash), thumb TEXT REFERENCES share_images(hash), card TEXT NOT NULL, oracle TEXT NOT NULL, name TEXT NOT NULL, face TEXT NOT NULL, kind TEXT NOT NULL, search TEXT NOT NULL, bleed REAL NOT NULL, created INTEGER NOT NULL, UNIQUE(image,oracle,face))")
             yield db
     finally:
         db.close()
@@ -158,7 +160,21 @@ def share_db():
 
 def prune_shares(db):
     db.execute("DELETE FROM shares WHERE document IS NULL AND created < ?", (int(time.time()) - 86400,))
-    db.execute("DELETE FROM share_images WHERE hash NOT IN (SELECT image FROM share_refs)")
+    db.execute("DELETE FROM share_images WHERE hash NOT IN (SELECT image FROM share_refs) AND hash NOT IN (SELECT image FROM instance_art UNION SELECT thumb FROM instance_art WHERE thumb IS NOT NULL)")
+
+
+def art_name(name):
+    text = unicodedata.normalize("NFKD", str(name).lower().replace("æ", "ae").replace("œ", "oe"))
+    return re.sub(r"[^a-z0-9]+", " ", "".join(c for c in text if not unicodedata.combining(c))).strip()
+
+
+def art_image(mime, body):
+    head = body[:4096].lstrip(b"\xef\xbb\xbf \t\r\n")
+    return {"image/png": body.startswith(b"\x89PNG\r\n\x1a\n"), "image/jpeg": body.startswith(b"\xff\xd8\xff"),
+            "image/gif": body.startswith((b"GIF87a", b"GIF89a")), "image/bmp": body.startswith(b"BM"),
+            "image/webp": body.startswith(b"RIFF") and body[8:12] == b"WEBP",
+            "image/avif": body[4:8] == b"ftyp" and (b"avif" in body[:64] or b"avis" in body[:64]),
+            "image/svg+xml": head.startswith((b"<svg", b"<?xml")) and b"<svg" in head}.get(mime, False)
 
 
 def shared_document(token):
@@ -483,7 +499,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return True
 
     def refuse(self):
-        if self.path.startswith(("/mpc/", "/assets/", "/deck", "/sym/", "/sf/", "/shares")):
+        if self.path.startswith(("/mpc/", "/assets/", "/deck", "/sym/", "/sf/", "/shares", "/art")):
             return self.send(401, b'{"name":"Signed out","message":"Sign in again"}', "application/json")
         if PASSWORD:
             return self.login_page(200)
@@ -565,6 +581,92 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.share_json(200, {"id": token, "path": "/share/" + token, "publicUrl": PUBLIC_URL})
         except (OSError, sqlite3.Error):
             return self.share_json(507, {"message": "Could not save this share. Check the server's storage and try again."})
+
+    def art_api(self, route):
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+        match = re.fullmatch(r"/art/([1-9][0-9]{0,12})/(image|thumb|delete)", route)
+        try:
+            if self.command in ("GET", "HEAD"):
+                with share_db() as db:
+                    if route == "/art":
+                        q = art_name(query.get("q", [""])[0][:300])
+                        kind = query.get("kind", ["CARD"])[0]
+                        rows = db.execute("SELECT id,name,face,bleed,length(data) FROM instance_art JOIN share_images ON image=hash WHERE instr(search,?)>0 AND kind=? ORDER BY created DESC,id DESC LIMIT 30", (q, kind)).fetchall() if q else []
+                        return self.share_json(200, {"art": [{"id": i, "name": name, "face": face, "bleed": bleed, "size": size} for i, name, face, bleed, size in rows]})
+                    if match and match[2] in ("image", "thumb"):
+                        row = db.execute("SELECT mime,data FROM share_images JOIN instance_art ON hash=CASE WHEN ?='thumb' THEN COALESCE(thumb,image) ELSE image END WHERE id=?", (match[2], int(match[1]))).fetchone()
+                        if row:
+                            return self.send(200, row[1], row[0], [("Content-Security-Policy", "default-src 'none'; sandbox")])
+                return self.share_json(404, {"message": "Artwork not found."})
+            origin = self.headers.get("Origin")
+            if self.headers.get("Sec-Fetch-Site") == "cross-site" or origin and urllib.parse.urlsplit(origin).netloc != self.headers.get("Host"):
+                return self.share_json(403, {"message": "Open Proxy Press on this server to share artwork."})
+            try:
+                length = int(self.headers.get("Content-Length", "-1"))
+            except ValueError:
+                length = -1
+            limit = 256 * 1024 if match else MAX_UPSTREAM
+            if not 0 <= length <= limit:
+                self.close_connection = True
+                return self.share_json(413, {"message": "Artwork must be 20 MB or smaller."})
+            body = self.rfile.read(length)
+            if len(body) != length:
+                return self.share_json(400, {"message": "The artwork upload was interrupted."})
+            if match and match[2] == "delete":
+                with share_lock, share_db() as db:
+                    db.execute("DELETE FROM instance_art WHERE id=?", (int(match[1]),))
+                    prune_shares(db)
+                return self.share_json(200, {"removed": True})
+            mime = self.headers.get("Content-Type", "").split(";")[0].lower()
+            if not body or not art_image(mime, body):
+                return self.share_json(400, {"message": "Choose valid card artwork."})
+            card = None
+            if route == "/art":
+                card_id = query.get("card", [""])[0]
+                if not re.fullmatch(r"[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}", card_id):
+                    return self.share_json(400, {"message": "Choose a card match before sharing this artwork."})
+                card = cache_get(ident_key({"id": card_id}), CARD_TTL)
+                if not isinstance(card, dict):
+                    status, card = scryfall("/cards/" + card_id)
+                    if status != 200 or not isinstance(card, dict) or card.get("id") != card_id:
+                        return self.share_json(400, {"message": "This card match could not be verified. Try another printing."})
+                    cache_put(ident_key({"id": card_id}), card)
+                try:
+                    index = int(query.get("face", ["0"])[0])
+                    bleed = float(query.get("bleed", ["0"])[0])
+                except ValueError:
+                    index, bleed = -1, -1
+                faces = [card] if card.get("image_uris") else card.get("card_faces", [])
+                if not 0 <= index < len(faces) or not 0 <= bleed <= 20:
+                    return self.share_json(400, {"message": "Choose a valid card face and bleed."})
+                face = faces[index].get("name", card.get("name", ""))
+            elif not match or match[2] != "thumb":
+                return self.share_json(404, {"message": "Artwork not found."})
+            digest = hashlib.sha256(body).hexdigest()
+            with share_lock, share_db() as db:
+                if card:
+                    oracle = card.get("oracle_id") or card["id"]
+                    duplicate = db.execute("SELECT id FROM instance_art WHERE image=? AND oracle=? AND face=?", (digest, oracle, face)).fetchone()
+                    if not duplicate and db.execute("SELECT COUNT(*) FROM instance_art").fetchone()[0] >= 100000:
+                        return self.share_json(409, {"message": "Remove an old upload before adding more shared artwork."})
+                if match and not db.execute("SELECT 1 FROM instance_art WHERE id=?", (int(match[1]),)).fetchone():
+                    return self.share_json(404, {"message": "Artwork not found."})
+                if not db.execute("SELECT 1 FROM share_images WHERE hash=?", (digest,)).fetchone():
+                    used = db.execute("SELECT COALESCE(SUM(length(data)),0) FROM share_images").fetchone()[0]
+                    if used + length > SHARE_BYTES:
+                        return self.share_json(507, {"message": "Artwork storage is full. Remove old shared decks or uploaded art."})
+                    db.execute("INSERT INTO share_images VALUES (?,?,?)", (digest, mime, body))
+                if card:
+                    kind = "TOKEN" if re.search(r"token|emblem", card.get("layout", "")) else "CARD"
+                    db.execute("INSERT INTO instance_art (image,card,oracle,name,face,kind,search,bleed,created) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(image,oracle,face) DO NOTHING", (digest, card["id"], oracle, card["name"], face, kind, art_name(face), bleed, int(time.time())))
+                    art_id = db.execute("SELECT id FROM instance_art WHERE image=? AND oracle=? AND face=?", (digest, oracle, face)).fetchone()[0]
+                else:
+                    art_id = int(match[1])
+                    db.execute("UPDATE instance_art SET thumb=? WHERE id=?", (digest, art_id))
+                prune_shares(db)
+            return self.share_json(200, {"id": art_id})
+        except (OSError, sqlite3.Error, urllib.error.URLError):
+            return self.share_json(503, {"message": "Could not save or search shared artwork. Your deck still keeps its image."})
 
     def public_share(self, route):
         match = re.fullmatch(r"/share/(" + SHARE_TOKEN + r")(?:/(.*))?", route)
@@ -765,6 +867,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not public and not self.signed_in():
             return self.refuse()
         route = self.path.split("?")[0]
+        if route == "/art" or route.startswith("/art/"):
+            return self.art_api(route)
         if route == "/shares":
             return self.share_api(route)
         if route.startswith("/mpc/"):
@@ -819,6 +923,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
         if not public and not self.signed_in():
             return self.refuse()
+        if route == "/art" or route.startswith("/art/"):
+            return self.art_api(route)
         if self.path.split("?")[0].startswith("/shares"):
             return self.share_api(self.path.split("?")[0])
         if self.path.startswith("/mpc/"):

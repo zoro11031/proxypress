@@ -75,7 +75,9 @@
     $('[data-cc="selfRef"]').value = 'dual'; $('[data-cc="selfRef"]').dispatchEvent(new Event('input', {bubbles:true}));
     $('#ccZoom').value = '2'; $('#ccZoom').dispatchEvent(new Event('input', {bubbles:true}));
     $('#ccArtReset').click(); eq('reset zoom', $('#ccZoom').value, '1');
-    await $('#ccSave').onclick();
+    const beforeMatchSf=sf;sf=async()=>({data:[],has_more:false});
+    await $('#ccSave').onclick();sf=beforeMatchSf;
+    eq('new custom card offers optional matching',!!$('#matchSkip'),true);$('#matchSkip').click();
     eq('custom card created', d.entries.length, 1);
     const f = d.entries[0].faces[0]; created.push(f.custom, f.template.artKey);
     const rendered = await loadImage(await customUrl(f.custom));
