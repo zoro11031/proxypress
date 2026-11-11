@@ -1,0 +1,23 @@
+name: sync-releases
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tools/sync-releases.py'
+      - '.github/workflows/sync-releases.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Sync historical releases to minimal 0.x.x notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/sync-releases.py
