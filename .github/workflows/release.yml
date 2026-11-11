@@ -32,10 +32,7 @@ jobs:
       - name: Install Linux packaging tools (rpm for Fedora/openSUSE, libarchive for Arch)
         if: runner.os == 'Linux'
         run: |
-          sudo mkdir -p /etc/needrestart/conf.d
-          echo '$nrconf{restart} = "l";' | sudo tee /etc/needrestart/conf.d/no-restart.conf 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y rpm libarchive-tools
+          sudo apt-get install -y --no-install-recommends rpm libarchive-tools || (sudo sed -i 's|http://azure\.archive\.ubuntu\.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null && sudo apt-get -o Acquire::http::Timeout=10 -o Acquire::Retries=2 -o Acquire::ForceIPv4=true update && sudo apt-get install -y --no-install-recommends rpm libarchive-tools)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
