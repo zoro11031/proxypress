@@ -4997,7 +4997,7 @@ async function importServerDeck(token, data, useLayout) {
     if (useLayout) { S.settings = {...settings, ...calibration}; S.showCuts = !!settings.showCuts; S.activePreset = null; }
     else S.settings.backImage = null;
     S.mode = 'print'; S.welcomed = true; save(); applyMode(); renderAll(); switchTab('setup');
-    toast(`Opened ${d.name}. Your copy is saved in this browser.`, 6000);
+    toast(`Saved ${d.name} and its artwork to your decks on this device.`, 6000);
     return d;
   } catch (err) { for (const key of written) await removeImageIfUnused(key); throw err; }
 }
@@ -5005,7 +5005,7 @@ async function openServerDeck(token) {
   try {
     const data = await shareRequest(`/share/${token}/deck.json`), d = cleanDeck(data.deck);
     if (data.app !== 'proxy-press' || data.type !== 'linked-deck' || data.version !== 1 || !d.entries.length) throw new Error('This share link is not a valid deck.');
-    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n,e) => n+e.qty,0)} cards</p><p class="hint">Save your own copy with its artwork. No account or server password is needed.</p><label class="check"><input type="checkbox" id="serverShareLayout" checked> Use the shared paper and layout settings</label><button id="serverShareOpen" class="primary" style="margin-top:12px">Open deck</button><p class="hint" id="serverShareStatus" role="status"></p></div>`);
+    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n,e) => n+e.qty,0)} cards</p><p class="hint">Save a copy of this deck and all its artwork to your decks on this device. Your existing decks and printer settings stay saved.</p><label class="check"><input type="checkbox" id="serverShareLayout"> Use the shared paper and layout settings</label><button id="serverShareOpen" class="primary" style="margin-top:12px">Save to my decks</button><p class="hint" id="serverShareStatus" role="status"></p></div>`);
     const button = $('#serverShareOpen'), useLayout = $('#serverShareLayout'), status = $('#serverShareStatus');
     button.onclick = async () => {
       button.disabled = true; busy(true, 'Loading shared artwork…');
@@ -5094,7 +5094,7 @@ async function openPrintDeckFile(file) {
     }
     if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Please choose a valid Proxy Press shared deck file.');
     const d = cleanDeck(data.deck);
-    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout" checked> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Import deck &amp; art</button></div>`);
+    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout"> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Save to my decks</button></div>`);
     $('#printDeckConfirm').onclick = async () => {
       const useLayout = $('#printDeckLayout').checked; closeModal(); busy(true, 'Adding deck and artwork…');
       try { await importPrintDeck(data, useLayout); } catch (err) { toast('Could not open shared deck: ' + err.message, 9000); }
