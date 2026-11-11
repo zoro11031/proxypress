@@ -880,7 +880,7 @@ details.adv:not([open]){padding-bottom:10px}
     <div class="stage-heading"><div class="stage-title"><b id="workspaceTitle">Untitled deck</b><span id="previewSummary"></span></div><button id="toggleSidebar" aria-pressed="false">Hide sidebar</button></div>
     <div class="toolbar">
       <div class="toolbar-cluster print-only">
-        <select id="quickPaper" aria-label="Preview paper size"><option value="letter">Letter</option><option value="a4">A4</option></select>
+        <select id="quickPaper" aria-label="Preview paper size"></select>
         <div class="seg paper-direction" role="group" aria-label="Paper orientation"><button data-orientation="portrait">Portrait</button><button data-orientation="landscape">Landscape</button></div>
       </div>
       <div class="toolbar-cluster">
@@ -4240,8 +4240,7 @@ let previewGen = 0, previewTimer;
 function renderPreview() { clearTimeout(previewTimer); previewTimer = setTimeout(drawPreview, 60); }
 function syncPreviewControls() {
   const s=S.settings, paper=$('#quickPaper');
-  const choices=[['letter','Letter'],['a4','A4']];
-  if (!choices.some(([value])=>value===s.pageSize)) choices.push([s.pageSize,FIELDS.find(f=>f.k==='pageSize').opts.find(([value])=>value===s.pageSize)?.[1] || 'Custom']);
+  const choices=FIELDS.find(f=>f.k==='pageSize').opts.map(([value,label])=>[value,label.replace(/ \(.*\)$/, '')]);
   paper.innerHTML=choices.map(([value,label])=>`<option value="${esc(value)}" ${value===s.pageSize?'selected':''}>${esc(label)}</option>`).join('');
   $$('.paper-direction button').forEach(b=>{const on=b.dataset.orientation===s.orientation;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
 }
@@ -4254,6 +4253,7 @@ function setPreviewFocus(on) {
 $('#toggleSidebar').onclick=()=>setPreviewFocus(!document.body.classList.contains('preview-focus'));
 $('#quickPaper').onchange=ev=>{
   const input=$('#paperForm [data-k="pageSize"]');input.value=ev.target.value;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
+  if (S.settings.pageSize==='custom') { switchTab('setup'); $('#paperForm').closest('details').open=true; $('#setting-pageW').focus(); }
 };
 $$('.paper-direction button').forEach(button=>button.onclick=()=>{
   const input=$('#paperForm [data-k="orientation"]');input.value=button.dataset.orientation;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
