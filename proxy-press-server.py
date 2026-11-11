@@ -910,9 +910,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(400, b'{"object":"error","details":"Bad identifiers"}', "application/json")
             status, j = collection(ids)
         else:
-            if not re.fullmatch(r"/cards/(named|search|[0-9a-f-]{36})|/symbology", route):
+            if not re.fullmatch(r"/cards/(named|search|autocomplete|[0-9a-f-]{36})|/symbology", route):
                 return self.send(404, b'{"object":"error","details":"Not relayed"}', "application/json")
-            ttl = SEARCH_TTL if route == "/cards/search" else CARD_TTL
+            ttl = SEARCH_TTL if route in ("/cards/search", "/cards/autocomplete") else CARD_TTL
             j = cache_get("get:" + path, ttl)
             status = 200
             if j is None:
@@ -922,7 +922,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         body = json.dumps(j).encode()
         extra = []
         if status == 200 and method == "GET":
-            extra = [("Cache-Control", f"private, max-age={3600 if route == '/cards/search' else 86400}"),
+            extra = [("Cache-Control", f"private, max-age={3600 if route in ('/cards/search', '/cards/autocomplete') else 86400}"),
                      ("ETag", f'"{hashlib.sha256(body).hexdigest()[:16]}"')]
         self.send(status, body, "application/json", extra)
 
