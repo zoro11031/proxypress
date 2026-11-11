@@ -22,3 +22,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 tools/sync-releases.py
+
+      - name: Inspect failed release run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run view 43057132698 --log-failed || gh run view 43055898046 --log-failed || true
