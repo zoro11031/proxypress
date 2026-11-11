@@ -24,6 +24,19 @@ HEADERS = {
 # Mapping of previous releases:
 # old_tag -> (new_tag, new_name, commit_sha, body)
 RELEASES_MAP = {
+    "v1.0.8": {
+        "tag_name": "v0.4.0",
+        "name": "Proxy Press v0.4.0",
+        "target_commitish": "39a768a",
+        "body": (
+            "# Proxy Press v0.4.0\n\n"
+            "- **Public deck sharing:** Share decks via public, revocable links with deduplicated server storage.\n"
+            "- **Instance art library:** Uploaded artwork matched to cards is indexed and searchable across the instance.\n"
+            "- **Scryfall art search:** Browse and select official Scryfall printings alongside community art.\n"
+            "- **Compact JSON export:** Export decks with compressed artwork and links to original server assets."
+        ),
+        "draft": False
+    },
     "v1.0.7": {
         "tag_name": "v0.3.3",
         "name": "Proxy Press v0.3.3",
@@ -130,6 +143,8 @@ def sync():
         target_info = None
         if tag in RELEASES_MAP:
             target_info = RELEASES_MAP[tag]
+        elif current_name and "v1.0.8" in current_name:
+            target_info = RELEASES_MAP["v1.0.8"]
         else:
             # Maybe already updated tag?
             for old_tag, info in RELEASES_MAP.items():
@@ -144,6 +159,7 @@ def sync():
                 "target_commitish": target_info["target_commitish"],
                 "name": target_info["name"],
                 "body": target_info["body"],
+                "draft": target_info.get("draft", False),
                 "make_latest": "false"
             }
             try:
@@ -155,6 +171,7 @@ def sync():
                 payload_fallback = {
                     "name": target_info["name"],
                     "body": target_info["body"],
+                    "draft": target_info.get("draft", False),
                     "make_latest": "false"
                 }
                 updated = api_request("PATCH", f"/releases/{rel_id}", payload_fallback)
