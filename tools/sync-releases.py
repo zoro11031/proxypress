@@ -134,6 +134,18 @@ def sync():
     print(f"Fetching releases for {REPO}...")
     releases = api_request("GET", "/releases?per_page=100")
     print(f"Found {len(releases)} releases.")
+    for r in releases:
+        print(f"  Release: id={r.get('id')}, tag={r.get('tag_name')}, name={r.get('name')}, draft={r.get('draft')}, latest={r.get('make_latest')}")
+
+    try:
+        check = api_request("GET", "/check-runs/130649491922")
+        print("Check run 130649491922:")
+        print("  status:", check.get("status"), "conclusion:", check.get("conclusion"))
+        print("  output:", json.dumps(check.get("output"), indent=2))
+        annos = api_request("GET", "/check-runs/130649491922/annotations")
+        print("  annotations:", json.dumps(annos, indent=2))
+    except Exception as e:
+        print("  Error querying check-run 130649491922:", e)
 
     for r in releases:
         tag = r.get("tag_name")

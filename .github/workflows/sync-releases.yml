@@ -21,17 +21,11 @@ jobs:
       - name: Sync historical releases to minimal 0.x.x notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 tools/sync-releases.py
-
-      - name: Inspect failed release run
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## Run 43057132698" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          gh run view 43057132698 --log-failed >> $GITHUB_STEP_SUMMARY 2>&1 || true
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "## Run 43055898046" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          gh run view 43055898046 --log-failed >> $GITHUB_STEP_SUMMARY 2>&1 || true
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          python3 tools/sync-releases.py > sync_output.txt 2>&1 || true
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout -B diag-log
+          git add -f sync_output.txt
+          git commit -m "diagnostics" || true
+          git push -f origin diag-log || true
