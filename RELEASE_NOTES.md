@@ -1,31 +1,36 @@
-# Proxy Press v0.5.2
+# Proxy Press v0.5.3
 
-Spelling suggestions for deck imports, per-card corner guide color overrides, and contrasting cut guide outlines.
+Automatic corner guide contrast against card borders and artwork, and smooth deck import warning animations.
 
 ## What's new
 
-- **Deck import spelling suggestions:** When imported cards cannot be found, Proxy Press searches Scryfall with fuzzy matching and autocomplete to suggest likely card names, with one-click **Use** (updates the import box) and **Add** (adds directly to deck).
-- **Per-card corner guide colors:** Override the corner bracket color for individual cards (via right-click or the `⋯` card menu) so guide marks never blend into card artwork. Persists in deck saves and prints in exported PDFs.
-- **Contrasting guide outline:** Upgraded the guide outline halo from a fixed white border to an automatic contrast calculation based on line luminance (dark halo for bright guides like cyan, yellow, or white; white halo for dark guides like black or slate).
-- **Full outline guidance:** Clarified the Full outline guide preset tooltip for hand-cutting cards when sheet-spanning cut lines are toggled off.
+- **Automatic corner guide contrast:** Corner cut marks now automatically adapt their color to contrast against each card's border color or sampled corner artwork (e.g. black corner guides on white-bordered cards like Revised/4th Edition or bright borderless art, and bright cyan corner guides on dark/black-bordered cards), ensuring cut guides never blend into card edges. Manual per-card corner color overrides continue to be respected.
+- **Deck import warning animations:** The missing card alert banner and Scryfall spelling suggestions now animate smoothly into view with subtle downward motion, micro-scale, and an amber accent bloom, providing polished visual feedback during deck imports.
+- **Cut guide cache precision:** Guide lines caching now incorporates corner mark shape, length, and style settings alongside per-card colors for instant, artifact-free updates across layout changes.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/Proxy-Press-0.5.3.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/Proxy-Press-0.5.3.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/Proxy-Press-0.5.3.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/Proxy-Press-0.5.3.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/Proxy-Press-0.5.3.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/Proxy-Press-0.5.3.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.3/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
 ---
 
 # Previous Releases
+
+### v0.5.2
+- **Deck import spelling suggestions:** When imported cards cannot be found, Proxy Press searches Scryfall with fuzzy matching and autocomplete to suggest likely card names, with one-click **Use** (updates the import box) and **Add** (adds directly to deck).
+- **Per-card corner guide colors:** Override the corner bracket color for individual cards (via right-click or the `⋯` card menu) so guide marks never blend into card artwork. Persists in deck saves and prints in exported PDFs.
+- **Contrasting guide outline:** Upgraded the guide outline halo from a fixed white border to an automatic contrast calculation based on line luminance (dark halo for bright guides like cyan, yellow, or white; white halo for dark guides like black or slate).
+- **Full outline guidance:** Clarified the Full outline guide preset tooltip for hand-cutting cards when sheet-spanning cut lines are toggled off.
 
 ### v0.5.1
 - **Scryfall art DPI:** Scryfall card printings in art search now display their resolution (300 DPI) alongside set code and collector number, matching community art metadata formatting and respecting high-DPI threshold highlighting.
