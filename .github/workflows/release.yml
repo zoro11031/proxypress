@@ -32,7 +32,12 @@ jobs:
       - name: Install Linux packaging tools (rpm for Fedora/openSUSE, libarchive for Arch)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y --no-install-recommends rpm libarchive-tools || (sudo sed -i 's|http://azure\.archive\.ubuntu\.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null && sudo apt-get -o Acquire::http::Timeout=10 -o Acquire::Retries=2 -o Acquire::ForceIPv4=true update && sudo apt-get install -y --no-install-recommends rpm libarchive-tools)
+          echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4
+          echo 'Acquire::http::Timeout "10";' | sudo tee /etc/apt/apt.conf.d/99timeouts
+          echo 'Acquire::Retries "3";' | sudo tee -a /etc/apt/apt.conf.d/99timeouts
+          sudo sed -i 's|http://azure\.archive\.ubuntu\.com|http://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null || true
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends rpm libarchive-tools
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
