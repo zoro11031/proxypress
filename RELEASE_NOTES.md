@@ -1,28 +1,34 @@
-# Proxy Press v0.5.1
+# Proxy Press v0.5.2
 
-Resolution metadata for official Scryfall card imagery in art search.
+Spelling suggestions for deck imports, per-card corner guide color overrides, and contrasting cut guide outlines.
 
 ## What's new
 
-- **Scryfall art DPI:** Scryfall card printings in art search now display their resolution (300 DPI) alongside set code and collector number, matching community art metadata formatting and respecting high-DPI threshold highlighting.
+- **Deck import spelling suggestions:** When imported cards cannot be found, Proxy Press searches Scryfall with fuzzy matching and autocomplete to suggest likely card names, with one-click **Use** (updates the import box) and **Add** (adds directly to deck).
+- **Per-card corner guide colors:** Override the corner bracket color for individual cards (via right-click or the `⋯` card menu) so guide marks never blend into card artwork. Persists in deck saves and prints in exported PDFs.
+- **Contrasting guide outline:** Upgraded the guide outline halo from a fixed white border to an automatic contrast calculation based on line luminance (dark halo for bright guides like cyan, yellow, or white; white halo for dark guides like black or slate).
+- **Full outline guidance:** Clarified the Full outline guide preset tooltip for hand-cutting cards when sheet-spanning cut lines are toggled off.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/Proxy-Press-0.5.1.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.1/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/Proxy-Press-0.5.2.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.2/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
 ---
 
 # Previous Releases
+
+### v0.5.1
+- **Scryfall art DPI:** Scryfall card printings in art search now display their resolution (300 DPI) alongside set code and collector number, matching community art metadata formatting and respecting high-DPI threshold highlighting.
 
 ### v0.5.0
 - **HTTP caching & 304 Not Modified:** Added ETags and conditional request handling across the application page, static assets, symbols, instance art, and API relays.
