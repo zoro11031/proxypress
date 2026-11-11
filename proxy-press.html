@@ -1747,22 +1747,46 @@ $('#suggestionExplore').onclick=()=>{
 
 /* ---------- uploads ---------- */
 async function storeImage(file) { const key = 'img-' + uid(); await store.set('images', key, file); return key; }
+const instanceArtAvailable = () => !SHARE_TOKEN && location.protocol.startsWith('http') && !/Electron\//.test(navigator.userAgent);
+async function uploadedBleed(blob) {
+  const url=URL.createObjectURL(blob);
+  try { const image=await loadImage(url); return Math.abs(image.naturalWidth/image.naturalHeight-2.75/3.75)<0.012 ? MPC_BLEED : 0; }
+  finally { URL.revokeObjectURL(url); imgCache.delete(url); }
+}
+async function publishMatchedArt(e, faceIndex = 0) {
+  const face=e.faces[faceIndex];
+  if (!instanceArtAvailable() || !e.scryId || !face?.custom) return false;
+  const blob=await store.get('images',face.custom);
+  if (!blob?.size || blob.size>20*1048576) throw new Error('Artwork must be 20 MB or smaller to appear in shared search.');
+  const thumb=await compactShareImage(blob,true,352), bleed=face.srcBleed ?? await uploadedBleed(blob);
+  const index=e.scryFace ?? faceIndex;
+  const result=await shareRequest(`/art?card=${encodeURIComponent(e.scryId)}&face=${index}&bleed=${bleed}`,blob,blob.type);
+  await shareRequest(`/art/${result.id}/thumb`,thumb,thumb.type);
+  return true;
+}
+async function shareUploadedArt(e, faceIndex = 0) {
+  try { if(await publishMatchedArt(e,faceIndex))toast('Artwork added to shared art search.'); }
+  catch(err){toast('Image saved in your deck. Could not share artwork: '+err.message,9000);}
+}
+function promptUploadedMatches(entries, at = 0) {
+  const e=entries[at];if(!e || !deck().entries.includes(e))return;
+  openCardMatch(e,undefined,0,{upload:true,position:entries.length>1?`${at+1} of ${entries.length}`:'',next:()=>promptUploadedMatches(entries,at+1),remaining:entries.length-at-1});
+}
 async function uploadImages(files) {
-  const d = deck(); let n = 0;
+  const d = deck(), added = []; let n = 0;
   for (const f of files) {
     if (!f.type.startsWith('image/')) continue;
     const key = await storeImage(f);
     const name = f.name.replace(/\.[^.]+$/, '');
     let srcBleed = undefined;
     try {
-      const u = URL.createObjectURL(f), img = await loadImage(u);
-      URL.revokeObjectURL(u);
-      if (Math.abs((img.naturalWidth / img.naturalHeight) - (2.75 / 3.75)) < 0.012) srcBleed = MPC_BLEED;
+      srcBleed = await uploadedBleed(f);
     } catch {}
-    d.entries.push({uid:uid(), qty:1, name, custom:true, faces:[{name, custom:key, ...(srcBleed ? {srcBleed} : {}) }], tokens:[]});
+    const e={uid:uid(), qty:1, name, custom:true, faces:[{name, custom:key, ...(srcBleed ? {srcBleed} : {}) }], tokens:[]};
+    d.entries.push(e); added.push(e);
     n++;
   }
-  save(); renderAll(); if (n) toast(`Added ${n} custom image${n === 1 ? '' : 's'}.`);
+  save(); renderAll(); if (n) { toast(`Added ${n} custom image${n === 1 ? '' : 's'}.`); promptUploadedMatches(added); }
 }
 async function removeImageIfUnused(key) {
   if (!key) return;
@@ -1954,7 +1978,7 @@ $('#fileLocalDir').onchange = async ev => {
   for (const e of deck().entries) if (!e.mpc) for (const f of e.faces) {
     if (!f.auto || f.custom) continue;
     const hit = localSearch(f.name).find(x => x.key === normName(f.name));
-    if (hit) { await useLocalFile(f, hit.file); replaced++; }
+    if (hit) { await useLocalFile(f, hit.file); if(e.scryId)await shareUploadedArt(e,e.faces.indexOf(f)); replaced++; }
   }
   busy(false); if (replaced) { save(); renderAll(); }
   const auto = await mpcAutofill({auto:true});
@@ -1962,7 +1986,7 @@ $('#fileLocalDir').onchange = async ev => {
 };
 
 async function openMpcPicker(target) {
-  let faceIdx = target.i || 0, ids = [], shown = 0, localHits = [], thumbs = [];
+  let faceIdx = target.i || 0, ids = [], shown = 0, localHits = [], sharedHits = [], thumbs = [];
   const e = target.e, isBack = !!target.cardback;
   const face = () => e?.faces[faceIdx];
   const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
@@ -1989,6 +2013,7 @@ async function openMpcPicker(target) {
       </details>
       ${!isBack && e.kind==='TOKEN'?'<p class="hint"><button id="mpcTokenFaces">Choose token faces…</button></p>':''}
       ${isBack ? '' : `<p class="hint">Your own art: ${copyCount ? '' : '<button class="icon" id="mpcMaker">Make custom card…</button>'} <button class="icon" id="mpcOwn">Upload image…</button> · or design one on <a href="https://mtg.design" target="_blank" rel="noopener">MTG.Design</a>, <a href="https://cardconjurer.app" target="_blank" rel="noopener">Card Conjurer</a> or <a href="https://mtgcardsmith.com" target="_blank" rel="noopener">MTG Cardsmith</a>.</p>`}
+      ${!isBack && instanceArtAvailable()?'<p class="hint">Matched uploads appear in art search for everyone on this server.</p>':''}
       <p class="hint" id="mpcStatus"></p>
       <div class="prints" id="mpcGrid"></div>
       <div class="row" style="justify-content:center;margin-top:12px"><button id="mpcMore" style="display:none">Load more</button></div>
@@ -2014,8 +2039,19 @@ async function openMpcPicker(target) {
       const u = URL.createObjectURL(x.file); thumbs.push(u);
       return `<figure data-local="${i}" tabindex="0" role="button" aria-label="Use ${esc(x.file.name)}"><img loading="lazy" src="${u}" alt=""><figcaption>${esc(x.file.name)}<br><b style="color:var(--accent2)">Your folder</b> · ${(x.file.size / 1048576).toFixed(1)} MB</figcaption></figure>`;
     }).join('');
-    const local = localHits.length ? `${localHits.length} from your folder (shown first). ` : '';
+    let local = localHits.length ? `${localHits.length} from your folder (shown first). ` : '';
     shown = 0; find('#mpcMore').style.display = 'none'; status(local + 'Searching for art…');
+    sharedHits=[];
+    if (!isBack && instanceArtAvailable()) {
+      try {
+        const result=await shareRequest('/art?q='+encodeURIComponent(find('#mpcQ').value)+'&kind='+find('#mpcType').value);
+        if (runId!==revision || !bd.isConnected) return;
+        sharedHits=result.art || [];
+        find('#mpcGrid').insertAdjacentHTML('beforeend',sharedHits.map(c=>`<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-label="Use uploaded ${esc(c.face)} artwork"><img loading="lazy" src="/art/${esc(c.id)}/thumb" alt=""><figcaption>${esc(c.face)}<br><b style="color:var(--accent2)">Uploaded here</b> · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join(''));
+        if(sharedHits.length)local+=`${sharedHits.length} uploaded here. `;
+      } catch { if(runId!==revision || !bd.isConnected)return;local+='Shared uploads are unavailable. '; }
+      status(local+'Searching online…');
+    }
     try {
       let found;
       if (isBack) found = (await mpcApi('2/cardbacks/', {searchSettings:await mpcSettings()})).cardbacks || [];
@@ -2040,10 +2076,33 @@ async function openMpcPicker(target) {
     if (ev.target.id === 'mpcMore') return page();
     if (ev.target.id === 'mpcOwn') { faceTarget = {...target, e, i:faceIdx}; closeModal(); return $('#fileFace').click(); }
     if (ev.target.id === 'mpcMaker') { closeModal(); return openCardMaker({e, i:faceIdx}); }
+    if (ev.target.dataset.removeArt) {
+      const id=ev.target.dataset.removeArt;
+      if(!confirm('Remove this upload from shared art search? Saved decks keep their copies.'))return;
+      try { await shareRequest(`/art/${id}/delete`,{});if(bd.isConnected)run(); }
+      catch(err){if(bd.isConnected)status(esc(err.message));}
+      return;
+    }
     const fig = ev.target.closest('figure'); if (!fig) return;
+    if (fig.dataset.instance) {
+      const item=sharedHits.find(c=>String(c.id)===fig.dataset.instance);if(!item)return;
+      let key;
+      try {
+        status('Saving uploaded artwork…');
+        const response=await fetch(`/art/${item.id}/image`);if(!response.ok)throw new Error('This upload is no longer available.');
+        const blob=await response.blob();if(!blob.size || blob.size>20*1048576 || !blob.type.startsWith('image/'))throw new Error('This upload could not be opened.');
+        key=await storeImage(blob);if(!bd.isConnected)return;
+        await applyArtChoice(target,faceIdx,async f=>{const old=f.custom;for(const k of ['drive','file','mpcName','mpcSource','mpcDpi','auto','template','lowRes'])delete f[k];Object.assign(f,{custom:key,srcBleed:item.bleed,localName:item.face});await removeImageIfUnused(old);});
+        if(bd.isConnected)closeModal();save();renderAll();
+      } catch(err){if(bd.isConnected)status(esc(err.message));}
+      finally{if(key)await removeImageIfUnused(key);}
+      return;
+    }
     if (fig.dataset.local !== undefined) {
       await applyArtChoice(target, faceIdx, f => useLocalFile(f, localHits[+fig.dataset.local].file));
-      closeModal(); save(); renderAll(); return;
+      closeModal(); save(); renderAll();
+      for(const entry of deck().entries)if(entry.scryId)for(let n=0;n<entry.faces.length;n++)if(entry.faces[n].custom && entry.faces[n].localName===localHits[+fig.dataset.local].file.name)await shareUploadedArt(entry,n);
+      return;
     }
     const card = mpcDetails.get(fig.dataset.id); if (!card) return;
     if (isBack) {
@@ -2079,14 +2138,14 @@ async function openMpcPicker(target) {
 const isPreview = f => !!f.lowRes || (!f.custom && !f.drive);
 async function mpcAutofill({auto = false} = {}) {
   const d = deck(), targets = [];
-  for (const e of d.entries) e.faces.forEach(f => { if (!e.mpc && isPreview(f)) targets.push({f, q:{query:mpcQuery(f.name), cardType:e.kind || 'CARD'}}); });
+  for (const e of d.entries) e.faces.forEach(f => { if (!e.mpc && isPreview(f)) targets.push({e,f, q:{query:mpcQuery(f.name), cardType:e.kind || 'CARD'}}); });
   const result = {total:targets.length, picked:0, local:0, missed:[]};
   if (!targets.length) { if (!auto) toast('Every card already has high-res or custom art.'); return result; }
   if (localIndex.length) {
     busy(true, 'Matching images from your folder…');
     for (const t of targets) {
       const hit = localSearch(t.f.name).find(x => x.key === normName(t.f.name));
-      if (hit) { await useLocalFile(t.f, hit.file); result.picked++; result.local++; }
+      if (hit) { await useLocalFile(t.f, hit.file); if(t.e.scryId)await shareUploadedArt(t.e,t.e.faces.indexOf(t.f)); result.picked++; result.local++; }
     }
     busy(false);
     targets.splice(0, targets.length, ...targets.filter(t => isPreview(t.f)));
@@ -2588,6 +2647,9 @@ $('#fileFace').onchange = async ev => {
     await removeImageIfUnused(old);
   });
   save(); renderAll();
+  const changed=deck().entries.filter(entry=>entry.faces.some(face=>face.custom===key));
+  for(const entry of changed)if(entry.scryId)for(let n=0;n<entry.faces.length;n++)if(entry.faces[n].custom===key)await shareUploadedArt(entry,n);
+  promptUploadedMatches(changed.filter(entry=>!entry.scryId));
 };
 $('#btnImport').onclick = () => {
   const v = $('#listIn').value;
@@ -3681,6 +3743,7 @@ async function openCardMaker(target) {
       if (e.custom) { f.name = t.name || f.name; e.name = e.faces.map(x => x.name).join(' // '); }
       await removeImageIfUnused(old);
       save(); renderAll(); closeModal(true); toast(`Saved ${t.name || 'your card'}.`);
+      if(e.scryId)await shareUploadedArt(e,i);else promptUploadedMatches([e]);
     } catch (err) { toast('Could not save the card: ' + err.message, 6000); }
     busy(false);
   };
@@ -3774,7 +3837,12 @@ async function applyCardMatch(target, card, keepArt, tokenFace = null) {
   const e = target.e, replacement = toEntry(card, e.qty, tokenFace);
   if (!replacement.faces.length) throw new Error('This printing has no card image. Choose another printing.');
   if (keepArt) {
-    if(replacement.kind==='TOKEN') {
+    if (target.upload && e.faces.length===1) {
+      const index=tokenFace ?? 0;
+      if (replacement.faces.length>1) { replacement.faces=[replacement.faces[index]]; replacement.name=replacement.faces[0].name; }
+      if (!card.image_uris && card.card_faces?.[index]?.image_uris) replacement.scryFace=index;
+      replacement.faces=[{...JSON.parse(JSON.stringify(e.faces[0])),...replacement.faces[0]}];
+    } else if(replacement.kind==='TOKEN') {
       replacement.faces=replacement.faces.map(f=>{const old=e.faces.find(o=>normName(o.name)===normName(f.name));if(!old)throw new Error('This token face has no matching artwork. Turn off Keep chosen artwork to use it.');return {...JSON.parse(JSON.stringify(old)),...f};});
     } else {
       if (replacement.faces.length !== e.faces.length) throw new Error('This card has a different number of faces. Turn off Keep chosen artwork to use it.');
@@ -3790,29 +3858,41 @@ async function applyCardMatch(target, card, keepArt, tokenFace = null) {
   }
   replacement.qty=e.qty;
   const oldKeys = e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]).filter(Boolean);
+  let matched=e;
   if (copy !== undefined && e.qty > 1) {
     const at = deck().entries.indexOf(e), parts = [];
     if (copy > 0) parts.push({...JSON.parse(JSON.stringify(e)), qty:copy});
     parts.push({...replacement, uid:copy ? uid() : e.uid, qty:1});
     if (copy < e.qty - 1) parts.push({...JSON.parse(JSON.stringify(e)), uid:uid(), qty:e.qty-copy-1});
     deck().entries.splice(at, 1, ...parts);
+    matched=parts[copy>0?1:0];
   } else Object.assign(e, replacement, {uid:e.uid});
+  delete matched.custom;
   selectedCopies.clear(); selectionAnchor = null;
   save(); renderAll();
   for (const key of oldKeys) await removeImageIfUnused(key);
+  return matched;
 }
-function openCardMatch(e, copy, faceIndex = 0) {
-  const target = {e, copy, deckId:S.deckId}, token=e.kind==='TOKEN', manualArt = !token && e.faces.some(f => (f.custom || f.drive) && !f.auto);
-  openModal(`<div class="hd"><b>${token?'Choose token faces':'Change card match'}</b><button data-close>Close</button></div><div class="bd">
-    <p class="hint">Choose the correct card or printing for ${esc(e.name)}. Changes ${copy === undefined && e.qty>1 ? `all ${e.qty} copies in this entry` : 'this copy'}.</p>
+function openCardMatch(e, copy, faceIndex = 0, options = {}) {
+  if(e.custom && !e.scryId && e.faces.length===1 && e.faces[0].custom)options={...options,upload:true};
+  const target = {e, copy, deckId:S.deckId,upload:!!options.upload}, token=e.kind==='TOKEN', manualArt = !token && e.faces.some(f => (f.custom || f.drive) && !f.auto);
+  openModal(`<div class="hd"><b>${options.upload?'Match uploaded art'+(options.position?' · '+esc(options.position):''):token?'Choose token faces':'Change card match'}</b><button data-close>Close</button></div><div class="bd">
+    <p class="hint">${options.upload?`Choose the card shown in ${esc(e.name)}. ${instanceArtAvailable()?'Matching adds its artwork to art search for everyone on this server.':'Your uploaded artwork stays with the card.'} Skip to keep it unmatched.`:`Choose the correct card or printing for ${esc(e.name)}. Changes ${copy === undefined && e.qty>1 ? `all ${e.qty} copies in this entry` : 'this copy'}.`}</p>
+    ${options.upload?'<img id="matchUploadPreview" alt="Uploaded artwork" style="display:block;width:100px;max-height:140px;object-fit:contain;margin-bottom:10px">':''}
+    ${options.upload?`<div class="row"><button id="matchSkip">Skip</button>${options.remaining?'<button id="matchSkipAll">Skip remaining</button>':''}</div>`:''}
     ${token?'<p class="hint">Choose either face on its own, or use both sides of a printed token.</p>':''}
     <form id="matchForm" class="row"><input id="matchQuery" type="search" aria-label="Card name or Scryfall search" value="${esc(token?e.faces[faceIndex]?.name || e.name.split(' // ')[0]:e.name.split(' // ')[0])}" placeholder="${token?'Treasure, Food, Soldier…':'Card name or Scryfall search'}" style="flex:1;min-width:180px">${token?'<select id="matchTokenMode" aria-label="Token printings" style="width:auto"><option value="all">All token printings</option><option value="pairs">Two-sided tokens</option></select>':''}<button class="primary">Search</button></form>
-    <label class="check" style="margin-top:12px"><input type="checkbox" id="matchKeepArt" ${manualArt ? 'checked' : ''}> Keep chosen artwork</label>
-    <p id="matchStatus" class="hint" role="status"></p><div class="prints ${token?'token-results':''}" id="matchResults"></div>
+    <label class="check" style="margin-top:12px" ${options.upload?'hidden':''}><input type="checkbox" id="matchKeepArt" ${manualArt || options.upload ? 'checked' : ''}> Keep chosen artwork</label>
+    <p id="matchStatus" class="hint" role="status"></p><div class="prints ${token || options.upload?'token-results':''}" id="matchResults"></div>
     <button id="matchMore" style="display:none;margin-top:12px">Load more printings</button></div>`);
   const bd = $('#modal .bd'), find = q => $(q, bd);
   let revision = 0, cards = [], next = null, choosing = false;
   const active = () => bd.isConnected && $('#overlay').classList.contains('on') && S.deckId === target.deckId;
+  if(options.upload) {
+    customUrl(e.faces[faceIndex]?.custom).then(url=>{if(active() && url)find('#matchUploadPreview').src=url;});
+    find('#matchSkip').onclick=()=>{closeModal(true);options.next?.();};
+    if(find('#matchSkipAll'))find('#matchSkipAll').onclick=()=>closeModal(true);
+  }
   async function search(more = false) {
     const query = find('#matchQuery').value.trim(); if ((!query && !token) || choosing) return;
     const run = ++revision;
@@ -3820,19 +3900,19 @@ function openCardMatch(e, copy, faceIndex = 0) {
     find('#matchMore').style.display = 'none'; find('#matchStatus').textContent = 'Searching Scryfall…';
     try {
       const q=token?`${query?'('+query+') ':''}(t:token or t:emblem)${find('#matchTokenMode').value==='pairs'?' layout:double_faced_token':''}`:query;
-      const j = await sf(more ? next : `${SF}/cards/search?unique=prints&include_extras=true&order=${token?'released':'name'}&q=${encodeURIComponent(q)}`);
+      const j = await sf(more ? next : `${SF}/cards/search?unique=${options.upload?'cards':'prints'}&include_extras=true&order=${token?'released':'name'}&q=${encodeURIComponent(q)}`);
       if (run !== revision || !active()) return;
       const offset = cards.length; cards.push(...(j.data || []));
       find('#matchResults').insertAdjacentHTML('beforeend', cards.slice(offset).map((c, i) => {
-        const index=offset+i, faces=/token/.test(c.layout)?(c.card_faces || []).filter(f=>f.image_uris):[];
-        if(faces.length>1)return `<article class="token-printing ${c.id===e.scryId?'sel':''}"><b>${esc(c.name)}</b><div class="hint">${esc(c.set_name || c.set)} · #${esc(c.collector_number)} · ${esc((c.lang || '').toUpperCase())}</div><div class="token-pair">${faces.map((f,n)=>`<figure><img loading="lazy" src="${/^https:\/\/cards\.scryfall\.io\//.test(f.image_uris.normal || '')?esc(f.image_uris.normal):''}" alt="${esc(f.name)}"><button data-match="${index}" data-token-face="${n}" ${c.id===e.scryId && e.scryFace===n?'class="primary"':''}>Use ${esc(f.name)} only</button></figure>`).join('')}</div><button data-match="${index}" data-token-face="both">Use both sides</button></article>`;
+        const index=offset+i, faces=/token/.test(c.layout) || options.upload && !c.image_uris?(c.card_faces || []).filter(f=>f.image_uris):[];
+        if(faces.length>1)return `<article class="token-printing ${c.id===e.scryId?'sel':''}"><b>${esc(c.name)}</b><div class="hint">${esc(c.set_name || c.set)} · #${esc(c.collector_number)} · ${esc((c.lang || '').toUpperCase())}</div><div class="token-pair">${faces.map((f,n)=>`<figure><img loading="lazy" src="${/^https:\/\/cards\.scryfall\.io\//.test(f.image_uris.normal || '')?esc(f.image_uris.normal):''}" alt="${esc(f.name)}"><button data-match="${index}" data-token-face="${n}" ${c.id===e.scryId && e.scryFace===n?'class="primary"':''}>Use ${esc(f.name)} only</button></figure>`).join('')}</div>${options.upload?'':`<button data-match="${index}" data-token-face="both">Use both sides</button>`}</article>`;
         const image = c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || '';
         const src = /^https:\/\/cards\.scryfall\.io\//.test(image) ? image : '';
         return `<figure data-match="${offset+i}" tabindex="0" role="button" aria-label="Use ${esc(c.name)}, ${esc(c.set_name)} ${esc(c.collector_number)}" class="${c.id === e.scryId ? 'sel' : ''}"><img loading="lazy" src="${esc(src)}" alt="${esc(c.name)}"><figcaption>${esc(c.name)}<br>${esc(c.set_name || c.set)} · #${esc(c.collector_number)} · ${esc((c.lang || '').toUpperCase())}${c.id === e.scryId ? '<br>Current match' : ''}</figcaption></figure>`;
       }).join(''));
       next = j.has_more && typeof j.next_page === 'string' && j.next_page.startsWith(SF + '/cards/search?') ? j.next_page : null;
       find('#matchMore').style.display = next ? '' : 'none';
-      find('#matchStatus').textContent = cards.length ? `${cards.length} printing${cards.length === 1 ? '' : 's'}. Select one to use it.` : 'No cards found. Try another name.';
+      find('#matchStatus').textContent = cards.length ? `${cards.length} ${options.upload?'card':'printing'}${cards.length === 1 ? '' : 's'}. Select one to use it.` : 'No cards found. Try another name.';
     } catch (err) { if (run === revision && active()) find('#matchStatus').textContent = err.message; }
   }
   find('#matchForm').onsubmit = ev => { ev.preventDefault(); search(); };
@@ -3845,9 +3925,13 @@ function openCardMatch(e, copy, faceIndex = 0) {
     try {
       const face=result.dataset.tokenFace;
       if(token)find('#matchStatus').textContent='Saving token artwork…';
-      await applyCardMatch(target, cards[+result.dataset.match], find('#matchKeepArt').checked,face===undefined || face==='both'?null:+face);
+      const matched=await applyCardMatch(target, cards[+result.dataset.match], options.upload || find('#matchKeepArt').checked,face===undefined || face==='both'?null:+face);
+      target.e=matched;target.copy=undefined;
+      if(options.upload)find('#matchStatus').textContent='Saving shared artwork…';
+      if (options.upload || find('#matchKeepArt').checked) for(let i=0;i<matched.faces.length;i++)if(matched.faces[i].custom)await publishMatchedArt(matched,i);
       if (active()) closeModal();
-      toast('Card match updated.');
+      toast(options.upload && instanceArtAvailable()?'Card matched and artwork added to shared search.':'Card match updated.');
+      if(options.upload)options.next?.();
     } catch (err) { if (active()) find('#matchStatus').textContent = err.message; }
     finally { choosing = false; }
   });
@@ -3867,7 +3951,7 @@ function openCtx(x, y, e, i, copy) {
        ${allCount > 1 ? `<button data-c="allart" role="menuitem">Change art for all ${allCount} copies…</button>` : ''}
        <button data-c="match" role="menuitem">${e.kind==='TOKEN'?'Choose token faces…':'Change card match…'}</button>
        <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
-       <button data-c="upload" role="menuitem">Upload image…</button>
+       <button data-c="upload" role="menuitem">${e.scryId && instanceArtAvailable()?'Upload &amp; share image…':'Upload image…'}</button>
        <button data-c="del" class="danger" role="menuitem">Remove card</button>`;
   m.classList.add('on');
   m.style.left = Math.min(x, innerWidth - m.offsetWidth - 8) + 'px';
@@ -4038,7 +4122,7 @@ function cleanDeck(raw) {
     cardback:face(raw?.cardback),
     entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => pick({
       uid:String(e.uid || uid()).slice(0, 64), name:String(e.name ?? '').slice(0, 300), qty:Math.min(999, Math.max(0, Math.floor(+e.qty) || 0)),
-      set:str(e.set), cn:str(e.cn), scryId:id(e.scryId), scryFace:e.kind==='TOKEN' && [0,1].includes(e.scryFace)?e.scryFace:undefined, kind:e.kind === 'TOKEN' ? 'TOKEN' : 'CARD', custom:e.custom ? true : undefined, mpc:e.mpc ? true : undefined,
+      set:str(e.set), cn:str(e.cn), scryId:id(e.scryId), scryFace:[0,1].includes(e.scryFace)?e.scryFace:undefined, kind:e.kind === 'TOKEN' ? 'TOKEN' : 'CARD', custom:e.custom ? true : undefined, mpc:e.mpc ? true : undefined,
       faces:(Array.isArray(e.faces) ? e.faces : []).map(face).filter(Boolean), tokens:Array.isArray(e.tokens) ? e.tokens.map(id).filter(Boolean) : [],
       type:str(e.type, 300), colorIdentity:Array.isArray(e.colorIdentity) ? [...new Set(e.colorIdentity.filter(c => /^[WUBRG]$/.test(c)))] : undefined
     }))
@@ -4786,11 +4870,11 @@ async function imageJsonBlob(key, blob) {
   }
   return new Blob([...parts, '"']);
 }
-async function compactShareImage(blob, opaque) {
+async function compactShareImage(blob, opaque, maxSide) {
   const url = URL.createObjectURL(blob), image = new Image(), canvas = document.createElement('canvas');
   try {
     await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error('A card image could not be opened.')); image.src = url; });
-    const max = Math.ceil((Math.max(S.settings.cardW, S.settings.cardH) + 2 * MPC_BLEED) * 600 / 25.4);
+    const max = maxSide || Math.ceil((Math.max(S.settings.cardW, S.settings.cardH) + 2 * MPC_BLEED) * 600 / 25.4);
     const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
     canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
     const ctx = canvas.getContext('2d'), jpeg = opaque || blob.type === 'image/jpeg';
@@ -4798,7 +4882,7 @@ async function compactShareImage(blob, opaque) {
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     const compact = await new Promise(resolve => canvas.toBlob(resolve, jpeg ? 'image/jpeg' : 'image/png', 0.9));
     if (!compact) throw new Error('A card image could not be compressed.');
-    return compact.size < blob.size ? compact : blob;
+    return maxSide || compact.size < blob.size ? compact : blob;
   } finally { image.src = ''; URL.revokeObjectURL(url); canvas.width = canvas.height = 1; }
 }
 const PRINT_DECK_LIMIT = 2 * 1024 * 1048576;
