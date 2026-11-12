@@ -138,7 +138,7 @@
     orSelectRot.value = 'portrait';
     orSelectRot.dispatchEvent(new Event('change', {bubbles: true}));
     eq('rotary dropdown portrait fits nine', `${layout().cols}x${layout().rows}`, '3x3');
-    eq('rotary dropdown portrait ready', $('#cutStatus')?.textContent.includes('Layout ready for Rotary Trimmer'), true);
+    eq('rotary dropdown portrait ready', $('#cutStatus')?.textContent.includes('Layout ready for the trimmer'), true);
 
     // 3. Assert next/prev wizard buttons
     $('#btnStep4Prev').click();

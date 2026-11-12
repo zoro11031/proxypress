@@ -53,14 +53,18 @@ aside{border-right:1px solid var(--line);background:var(--panel);display:flex;fl
 .pane.on{display:block;animation:paneIn .15s ease}
 @keyframes paneIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .step-hdr{margin-bottom:18px}
-.step-num{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:2px}
+.step-num{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px}
 .step-hdr h2{font-size:20px;font-weight:650;margin:3px 0 6px;color:var(--text);letter-spacing:-.4px}
 .step-hdr .hint{font-size:12px;color:var(--muted);margin:0;line-height:1.4}
 .wiz-nav{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
 .wiz-nav button{padding:10px 16px;font-weight:600;font-size:13px;border-radius:7px;transition:all .15s}
-.wiz-nav button.primary{box-shadow:0 2px 8px rgba(224,163,58,.25)}
-h3{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:16px 0 8px}
-h3:first-child{margin-top:2px}
+.wiz-nav button.primary{background:transparent;color:var(--accent2);border-color:var(--accent);box-shadow:none}
+.wiz-nav button.primary:hover{background:rgba(224,163,58,.12);box-shadow:none}
+h3{font-size:13px;font-weight:650;color:var(--text);margin:22px 0 9px;padding-top:12px;border-top:1px solid var(--line)}
+h3:first-child{margin-top:2px;padding-top:0;border-top:0}
+/* Field groups inside a section are subordinate: no rule, lighter, tighter. */
+#settingsForm h3{font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 7px;padding-top:0;border-top:0}
+#settingsForm h3:first-child{margin-top:4px}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 [hidden]{display:none!important}
 .row>*{flex:0 0 auto}
@@ -115,6 +119,12 @@ h3:first-child{margin-top:2px}
 .import-panel .row button{min-height:38px;font-size:12px}
 .source-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .source-actions button{white-space:normal;padding:9px 6px}
+.source-wide{grid-column:1/-1}
+/* Once there is a deck to look at, the tools that made it step back to one row. */
+body.has-cards .source-actions{grid-template-columns:repeat(3,1fr);margin-bottom:8px}
+body.has-cards .source-actions button{font-size:12px;padding:8px 3px}
+body.has-cards .source-wide{grid-column:auto}
+body.has-cards .import-panel{padding:10px}
 .suggestion-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px}
 .suggestion-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
 .suggestion-row small{display:block;color:var(--muted);margin-top:3px}
@@ -143,7 +153,7 @@ h3:first-child{margin-top:2px}
 .paper-direction button.on{background:#39311f;color:var(--accent2)}
 #toggleSidebar{font-size:11px;color:var(--muted);background:transparent;padding:6px 9px}
 @media (min-width:821px){body.preview-focus main{grid-template-columns:minmax(0,1fr)}body.preview-focus main>aside{display:none}}
-@media (max-width:820px){.stage-controls{margin:-12px -8px 44px;padding:12px}.stage-heading b{font-size:17px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}.tabs .step-index{display:none}}
+@media (max-width:820px){.stage-controls{margin:-12px -8px 36px;padding:10px 12px}.stage-heading{margin-bottom:10px}.stage-heading b{font-size:17px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}.tabs .step-index{display:none}}
 #stage .toolbar input[type=range]{width:90px;vertical-align:middle;accent-color:var(--accent)}
 #zoomValue{font-variant-numeric:tabular-nums;min-width:36px;display:inline-block;text-align:right}
 .guide-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:12px 0}
@@ -181,6 +191,7 @@ h3:first-child{margin-top:2px}
 .modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .modal .hd b{flex:1;min-width:0;overflow-wrap:anywhere}
 .modal .bd{overflow:auto;padding:14px}
+.modal .bd p,.modal .bd li,.modal .bd dd,.modal .bd>.hint,.modal .bd .wizard-step>.hint,.modal .bd .wiz-pane>.hint,.modal .bd>div>.hint{max-width:74ch}
 .prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .prints figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px}
 .prints figure.sel{border-color:var(--accent)}
@@ -308,7 +319,8 @@ h3:first-child{margin-top:2px}
 .cut-card-check input[type="radio"]{cursor:pointer;margin:0;width:16px;height:16px;accent-color:var(--accent)}
 .cut-card-content{flex:1;min-width:0}
 .cut-card-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
-.cut-card-icon{font-size:18px;line-height:1}
+.cut-card-icon{width:26px;height:26px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}
+.cut-card.selected .cut-card-icon{color:var(--accent)}
 .cut-card-titles{flex:1;min-width:120px}
 .cut-card-titles b{display:block;font-size:14px;color:var(--text);letter-spacing:-.1px}
 .cut-card-sub{display:block;font-size:11px;color:var(--muted);margin-top:1px}
@@ -319,12 +331,11 @@ h3:first-child{margin-top:2px}
 .setup-hero-pill{background:rgba(224,163,58,.08);border:1px solid rgba(224,163,58,.2);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:12.5px;line-height:1.4}
 .setup-hero-pill b{color:var(--accent2)}
 .setup-hero-pill span{color:var(--muted);display:block;font-size:11.5px;margin-top:2px}
-.hero-card{background:var(--panel2);border:1.5px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.hero-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .hero-card-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .hero-card-title b{font-size:15px;color:var(--text)}
 .hero-card-summary{font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.4}
 .hero-card-summary b{color:var(--text)}
-.share-export{border-color:#4d7996}
 .share-export button{width:100%;padding:11px 8px;font-size:14px;background:#254c7b;border-color:#457aae;color:#edf5ff}
 .share-export button:hover{background:#32649f}
 .guide-tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px}
@@ -376,7 +387,7 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px;transition:background .12s,color .12s}
 .menu-list button:hover{background:var(--panel2)}
 .kbd{margin-left:auto}
-.empty{max-width:480px;margin:48px auto;text-align:left;background:linear-gradient(150deg,#222c39,var(--panel));border:1px solid var(--line);border-radius:18px;padding:28px 30px;color:var(--text);box-shadow:0 16px 50px #0003}
+.empty{max-width:480px;margin:28px auto 48px;text-align:left;background:linear-gradient(150deg,#222c39,var(--panel));border:1px solid var(--line);border-radius:18px;padding:28px 30px;color:var(--text);box-shadow:0 16px 50px #0003}
 .empty h2{margin:0 0 12px;font-size:24px;font-weight:600;letter-spacing:-.6px}
 .empty-art{height:112px;position:relative;margin-bottom:14px}
 .empty-art i{position:absolute;left:42px;top:8px;width:59px;height:83px;border:1px solid #6589ad;border-radius:7px;background:linear-gradient(140deg,#345a7d,#172733);transform:rotate(-17deg);box-shadow:0 5px 16px #0004}
@@ -461,11 +472,11 @@ details.adv:not([open]){padding-bottom:10px}
       <div class="step-hdr">
         <div class="step-num" id="cardsStepLabel">Step 1 of 4</div>
         <h2>Add cards</h2>
-        <p class="hint">Paste a decklist or bring your own images. Pick artwork directly on the sheet.</p>
+        <p class="hint" id="cardsStepHint">Paste a decklist or bring your own images. Pick artwork directly on the sheet.</p>
       </div>
       <div class="import-panel">
-      <button id="btnLink" style="width:100%;margin-bottom:8px" title="Import from Moxfield, Archidekt or a local file">Import deck…</button>
       <div class="source-actions">
+        <button id="btnLink" class="source-wide" title="Import from Moxfield, Archidekt or a local file">Import deck…</button>
         <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
         <button id="btnMaker" title="Put your own art into a card frame with the card’s text">Create a card…</button>
       </div>
@@ -495,14 +506,6 @@ details.adv:not([open]){padding-bottom:10px}
           <p class="hint">Only needed for order files that link to image files on your computer. Online art is found automatically when running Proxy Press.</p>
         </div>
       </details>
-      <details id="suggestionDrawer" open>
-        <summary>Suggestions</summary>
-        <button id="suggestionExplore" class="primary">Explore suggestions</button>
-        <p class="hint" id="suggestionStatus" role="status">Add cards to see suggestions for your deck.</p>
-        <button id="suggestionRetry" class="icon" hidden>Try again</button>
-        <div id="suggestionList"></div>
-        <p class="hint" id="suggestionSource" hidden>Based on your deck · <a href="https://edhrec.com" target="_blank" rel="noopener">EDHREC</a></p>
-      </details>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
       <input type="file" id="fileMpcImgs" accept="image/*" multiple hidden>
@@ -511,11 +514,19 @@ details.adv:not([open]){padding-bottom:10px}
       <input type="file" id="fileFace" accept="image/*" hidden>
       <h3 class="row" style="justify-content:space-between;align-items:center;margin-top:18px"><span>Deck <span id="deckCount"></span></span>
         <span class="row"><span id="deckHealth" class="hint"></span><button class="icon" id="btnMpcAuto" title="Pick the best high-res art for every card that still needs it">Auto fill art</button></span></h3>
-      <p class="hint" style="margin:-2px 0 8px">Click cards in the preview to select copies. Shift-click to select a range. Right-click for more options.</p>
+      <p class="hint" id="deckSelectHint" style="margin:-2px 0 8px">Click cards in the preview to select copies. Shift-click to select a range. Right-click for more options.</p>
       <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden style="margin-bottom:6px">
       <div id="cardSelection" hidden><span id="cardSelectionCount" class="hint" aria-live="polite"></span><div class="row"><button id="changeSelectedArt" class="primary">Change selected art…</button><button id="selectAllCopies">Select all copies</button><button id="clearCardSelection">Clear</button></div></div>
       <div class="cards" id="cardList"></div>
       <p class="hint" id="deckFilterEmpty" hidden>No cards match your search.</p>
+      <details id="suggestionDrawer">
+        <summary>Cards that go with this deck</summary>
+        <button id="suggestionExplore">Explore suggestions</button>
+        <p class="hint" id="suggestionStatus" role="status">Add cards to see suggestions for your deck.</p>
+        <button id="suggestionRetry" class="icon" hidden>Try again</button>
+        <div id="suggestionList"></div>
+        <p class="hint" id="suggestionSource" hidden>Based on your deck · <a href="https://edhrec.com" target="_blank" rel="noopener">EDHREC</a></p>
+      </details>
       <div class="wiz-nav">
         <button type="button" class="primary" id="btnStep1Next" style="flex:1">Next: 2. Print →</button>
       </div>
@@ -544,7 +555,7 @@ details.adv:not([open]){padding-bottom:10px}
       <h3>Card &amp; print options</h3>
       <div id="settingsForm"></div>
       <details class="adv" id="calDrawer" style="margin-top:14px">
-        <summary>Printer Alignment &amp; Test Sheets</summary>
+        <summary>Printer alignment &amp; test sheets</summary>
         <p class="hint">Two test sheets, in this order. The <b>alignment sheet</b> makes the cards come out the right size in the right place on one side of the paper. The <b>double-sided test</b> and the wizard then get the backs sitting behind the fronts.</p>
         <div class="row" style="margin-top:8px">
           <button id="btnCal" title="Print it once, measure the two marked lines, and type what you measured in">1. Alignment sheet</button>
@@ -581,7 +592,7 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <div class="cut-card-content">
             <div class="cut-card-header">
-              <span class="cut-card-icon">⚡</span>
+              <svg class="cut-card-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5v-6h6"/><path d="M20.5 14.5v6h-6"/><rect x="8" y="6.5" width="8" height="11" rx="1.6"/></svg>
               <div class="cut-card-titles">
                 <b>Silhouette Cameo (Plotter)</b>
                 <span class="cut-card-sub">Cameo 4 / 5 or Portrait</span>
@@ -598,7 +609,7 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <div class="cut-card-content">
             <div class="cut-card-header">
-              <span class="cut-card-icon">📐</span>
+              <svg class="cut-card-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="9" r="4.5"/><circle cx="9.5" cy="9" r="1.1"/><path d="M2.5 15.5h19"/><path d="M6 20h12" stroke-dasharray="2.5 2.5"/></svg>
               <div class="cut-card-titles">
                 <b>Rotary Trimmer &amp; Punch</b>
                 <span class="cut-card-sub">Dahle / Fiskars + Kadomaru</span>
@@ -615,9 +626,9 @@ details.adv:not([open]){padding-bottom:10px}
         <div id="cameoStatus"></div>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
-          <summary>⚙️ Advanced Silhouette Registration Settings</summary>
+          <summary>Advanced registration settings</summary>
           <div class="field full" style="margin-top:8px">
-            <label for="cameoRegPattern">Registration Mark Pattern</label>
+            <label for="cameoRegPattern">Registration mark pattern</label>
             <select id="cameoRegPattern">
               <option value="3">3 marks — standard (Cameo 4, Cameo 5, Portrait)</option>
               <option value="4">4 marks — Cameo 5 Alpha only</option>
@@ -625,24 +636,24 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
-              <label for="cameoRegInset">Mark Inset (mm)</label>
+              <label for="cameoRegInset">Mark inset (mm)</label>
               <input type="number" id="cameoRegInset" step="0.5" min="3.5" max="25" value="10">
               <span class="hint" style="font-size:11px">10 mm standard · 3.5 mm borderless</span>
             </div>
             <div class="field">
-              <label for="cameoRegThickness">Line Thickness (mm)</label>
+              <label for="cameoRegThickness">Line thickness (mm)</label>
               <input type="number" id="cameoRegThickness" step="0.1" min="0.5" max="1" value="1">
               <span class="hint" style="font-size:11px">1.0 mm for dark cardstock</span>
             </div>
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
-              <label for="cameoRegLen">Mark Arm Length (mm)</label>
+              <label for="cameoRegLen">Mark arm length (mm)</label>
               <input type="number" id="cameoRegLen" step="0.5" min="0" max="20" value="0">
               <span class="hint" style="font-size:11px">0 = auto (longest that clears cards)</span>
             </div>
             <div class="field">
-              <label for="cameoCornerRadius">Cut Corner Radius (mm)</label>
+              <label for="cameoCornerRadius">Cut corner radius (mm)</label>
               <input type="number" id="cameoCornerRadius" step="0.1" min="0" max="10" value="3.2">
               <span class="hint" style="font-size:11px">3.2 mm MTG · 3.0 mm Kadomaru</span>
             </div>
@@ -650,7 +661,7 @@ details.adv:not([open]){padding-bottom:10px}
         </details>
 
         <details class="adv" id="cameoSpecsDrawer" style="margin-top:10px">
-          <summary>💡 Cameo Specs &amp; Sensor Trick (ProxyJak 330gsm)</summary>
+          <summary>Cameo settings and the sensor trick</summary>
           <p class="hint">Find the force, speed and passes with a small test cut on your cutter and stock. Start with one pass and inspect without unloading the mat before repeating.</p>
           <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> provides Cameo 5 reference settings and explains how to tune them. Your cutter and stock need their own test.</p>
 
@@ -681,7 +692,7 @@ details.adv:not([open]){padding-bottom:10px}
         <details class="adv" id="rotaryAdvDrawer" style="margin-top:12px">
           <summary>Guide appearance</summary>
           <div class="field full" style="margin-top:8px">
-            <label for="rotaryGuides">Printed Cut Guides</label>
+            <label for="rotaryGuides">Printed cut guides</label>
             <select id="rotaryGuides">
               <option value="both">Sheet cut lines + corners</option>
               <option value="all">All (lines, corners, outline)</option>
@@ -702,11 +713,11 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
-              <label for="rotaryGuideLen">Corner Mark Length (mm)</label>
+              <label for="rotaryGuideLen">Corner mark length (mm)</label>
               <input type="number" id="rotaryGuideLen" step="0.5" min="0.5" max="10" value="3">
             </div>
             <div class="field">
-              <label for="rotaryGuideWidth">Line Width (mm)</label>
+              <label for="rotaryGuideWidth">Line width (mm)</label>
               <input type="number" id="rotaryGuideWidth" step="0.05" min="0.05" max="1" value="0.25">
             </div>
           </div>
@@ -717,12 +728,12 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
           <div class="grid2" style="margin-top:8px">
             <div class="field">
-              <label for="rotaryGuideColor">Cut Line Colour</label>
+              <label for="rotaryGuideColor">Cut line color</label>
               <input type="color" id="rotaryGuideColor" value="#000000" style="height:38px;padding:2px;cursor:pointer">
               <div class="guide-colors" aria-label="Cut line colors"><button type="button" data-guide-color="#000000" style="--swatch:#000000" aria-label="Black cut lines"></button><button type="button" data-guide-color="#ffffff" style="--swatch:#ffffff" aria-label="White cut lines"></button><button type="button" data-guide-color="#00bfff" style="--swatch:#00bfff" aria-label="Blue cut lines"></button><button type="button" data-guide-color="#ffd600" style="--swatch:#ffd600" aria-label="Yellow cut lines"></button><button type="button" data-guide-color="#4a5568" style="--swatch:#4a5568" aria-label="Gray cut lines"></button><button type="button" data-guide-color="#39e600" style="--swatch:#39e600" aria-label="Green cut lines"></button></div>
             </div>
             <div class="field">
-              <label for="rotaryCornerColor">Corner Guide Colour</label>
+              <label for="rotaryCornerColor">Corner guide color</label>
               <input type="color" id="rotaryCornerColor" value="#00bfff" style="height:38px;padding:2px;cursor:pointer">
               <div class="corner-guide-colors" aria-label="Corner bracket colors"><button type="button" data-corner-color="#00bfff" style="--swatch:#00bfff" aria-label="Cyan blue corner brackets (colorblind-friendly)"></button><button type="button" data-corner-color="#ffd600" style="--swatch:#ffd600" aria-label="Yellow corner brackets"></button><button type="button" data-corner-color="#ffffff" style="--swatch:#ffffff" aria-label="White corner brackets"></button><button type="button" data-corner-color="#000000" style="--swatch:#000000" aria-label="Black corner brackets"></button><button type="button" data-corner-color="#39e600" style="--swatch:#39e600" aria-label="Green corner brackets"></button><button type="button" data-corner-color="#e0a33a" style="--swatch:#e0a33a" aria-label="Gold corner brackets"></button></div>
             </div>
@@ -730,9 +741,9 @@ details.adv:not([open]){padding-bottom:10px}
         </details>
 
         <details class="adv" id="rotarySpecsDrawer" style="margin-top:10px">
-          <summary>💡 Trimmer Tips &amp; Stop-Block Technique</summary>
+          <summary>Trimmer tips and the stop-block technique</summary>
           <div class="callout-box" style="margin-top:8px">
-            <b>Standard MTG Proxy Specs (Eliminate White Edges)</b>
+            <b>Standard proxy sizes, and why bleed stops white edges</b>
             <p class="hint" style="margin:4px 0 0">
               • <b>Trim size (finished card):</b> 2.5″ × 3.5″ (63 × 88 mm)<br>
               • <b>Standard bleed:</b> 0.125″ (3 mm) on each side<br>
@@ -742,7 +753,7 @@ details.adv:not([open]){padding-bottom:10px}
           </div>
 
           <div class="callout-box" style="margin-top:8px">
-            <b>Uniform Sizing Trick: Stop-Block Technique</b>
+            <b>Cutting every card the same size: the stop block</b>
             <p class="hint" style="margin:4px 0 0">Don't measure cards by eye! Build a physical stop on your trimmer fence: stack painter's tape or clamp a block at <b>88 mm</b> (strip cross-cut) and <b>63 mm</b> (card width). Slide paper against the stop block before each cut for 0.1 mm precision across your deck.</p>
           </div>
 
@@ -885,6 +896,7 @@ details.adv:not([open]){padding-bottom:10px}
     </div>
 
     <div class="pane" id="tab-data">
+      <h3>Shared decks</h3>
       <button id="manageShares" class="server-share">Manage shared decks…</button>
       <h3>Backup</h3>
       <p class="hint">Your decks, presets, settings, and uploaded images are stored in this browser. Card and art searches use online services. Save a backup to move your data to another browser or device.</p>
@@ -1002,13 +1014,13 @@ const LASER_TIPS = [
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
   'Print the PDF from a PDF app (Adobe Reader, Okular, Preview), not from the browser. Firefox\'s PDF viewer prints at about 150 DPI, so the cards come out soft.',
-  'Run the <b>Alignment sheet</b> once, under Printer Alignment &amp; Test Sheets, and type what you measure into the boxes there.',
+  'Run the <b>Alignment sheet</b> once, under Printer alignment &amp; test sheets, and type what you measure into the boxes there.',
   'Double-faced cards and card backs print on the back of the sheet. After you export, you get step-by-step re-feed instructions.',
 ];
 const EPSON_INKJET = [
   ['Paper source', 'Rear paper feed'],
   ['Paper size', 'Letter'],
-  ['Paper type', 'Premium Photo Paper Semi-Gloss (or Glossy for punchier colour)'],
+  ['Paper type', 'Premium Photo Paper Semi-Gloss (or Glossy for punchier color)'],
   ['Quality', 'High'],
   ['Orientation', 'Match the preset'],
 ];
@@ -1897,6 +1909,7 @@ async function addTokens() {
 /* ---------- deck suggestions ---------- */
 const suggestionCache = new Map();
 let suggestionTimer, suggestionRun = 0, suggestionState = {deckId:null, key:null, cards:[], status:'', error:false};
+let suggestionsWanted = false;
 const suggestionSlug = name => name.split(' // ')[0].normalize('NFKD').replace(/Æ/gi,'ae').replace(/Œ/gi,'oe').replace(/[\u0300-\u036f'’]/g,'').toLowerCase().replace(/[^a-z0-9 -]/g,'').trim().replace(/[ -]+/g,'-').slice(0,160);
 function suggestionSeeds(d) {
   const names = [...new Set(d.entries.filter(e => e.qty && (!e.custom || e.scryId) && e.kind !== 'TOKEN' && !/\bLand\b/.test(e.type || '') && !/^(?:Snow-Covered )?(Plains|Island|Swamp|Mountain|Forest|Wastes)$/i.test(e.name)).map(e => e.name))];
@@ -1967,6 +1980,7 @@ async function collectSuggestions(d, key, run, seeds) {
   if (active()) paintSuggestions();
 }
 function renderSuggestions(force = false) {
+  if (!suggestionsWanted) { suggestionState={deckId:null,key:null,cards:[],status:' ',error:false}; return paintSuggestions(); }
   const d=deck(), seeds=suggestionSeeds(d), key=JSON.stringify([...new Set(d.entries.filter(e=>e.qty).map(e=>e.name))].sort());
   if (!force && suggestionState.deckId===d.id && suggestionState.key===key) return paintSuggestions();
   clearTimeout(suggestionTimer); const run=++suggestionRun, previous=currentSuggestions().filter(item=>item.reasons.some(reason=>seeds.includes(reason.from)));
@@ -1986,6 +2000,10 @@ async function addDeckSuggestion(id, d = deck(), candidate) {
   if (deck()===d) toast('Added '+item.card.name+'.'+autoSummary(result));
 }
 $('#suggestionList').addEventListener('click', ev=>{const button=ev.target.closest('[data-suggest-add]');if(button&&!button.disabled)addDeckSuggestion(button.dataset.suggestAdd);});
+$('#suggestionDrawer').addEventListener('toggle', () => {
+  if (!$('#suggestionDrawer').open || suggestionsWanted) return;
+  suggestionsWanted = true; renderSuggestions(true);
+});
 $('#suggestionRetry').onclick=()=>renderSuggestions(true);
 $('#suggestionExplore').onclick=()=>{
   const d=deck(), cards=currentSuggestions();
@@ -2891,6 +2909,11 @@ async function renderCards() {
   const total = d.entries.reduce((a, e) => a + e.qty, 0);
   $('#deckCount').textContent = `(${total})`;
   $('#listIn').classList.toggle('compact', d.entries.length > 0);
+  document.body.classList.toggle('has-cards', d.entries.length > 0);
+  const any = d.entries.length > 0;
+  $('#btnMpcAuto').hidden = !any;
+  $('#deckSelectHint').hidden = !any;
+  $('#suggestionDrawer').hidden = !any;
   $('#deckFilter').hidden = d.entries.length <= 12;
   const need = d.entries.filter(e => !e.mpc && e.qty > 0 && e.faces.some(isPreview)).reduce((n, e) => n + e.qty, 0);
   $('#deckHealth').innerHTML = need ? `<span style="color:#ff9c95">${need} need${need === 1 ? 's' : ''} art</span>` : '';
@@ -3079,7 +3102,7 @@ $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttr
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(); $('#deckMenu').removeAttribute('open'); } });
 
 /* ---------- custom card maker ---------- */
-const CC_COLORS = [['auto', 'Auto (card colours)'], ['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['M', 'Gold (multicolour)'], ['C', 'Colourless / artifact'], ['L', 'Land']];
+const CC_COLORS = [['auto', 'Auto (card colors)'], ['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['M', 'Gold (multicolor)'], ['C', 'Colorless / artifact'], ['L', 'Land']];
 const CC_BASE = {name:'"Spectral", "Palatino Linotype", Georgia, serif', type:'"Spectral", "Palatino Linotype", Georgia, serif', rules:'"Crimson Text", "Palatino Linotype", Georgia, serif',
   italic:'"Crimson Text", "Palatino Linotype", Georgia, serif', rname:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif',
   rtype:'"Goudy Bookletter 1911", "Palatino Linotype", Georgia, serif', rrules:'"Crimson Text", "Palatino Linotype", Georgia, serif',
@@ -3913,7 +3936,7 @@ async function openCardMaker(target) {
       </div>
       <div>
         <div class="field" style="margin-bottom:10px"><label for="ccLookup">Start from a real card (optional)</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Load card text</button></div>
-          <select id="ccSet" style="margin-top:6px" aria-label="Printing" hidden></select><select id="ccFace" style="margin-top:6px" aria-label="Card face" hidden></select><p class="hint">Loads the card text and colours. Your chosen art stays in place.</p></div>
+          <select id="ccSet" style="margin-top:6px" aria-label="Printing" hidden></select><select id="ccFace" style="margin-top:6px" aria-label="Card face" hidden></select><p class="hint">Loads the card text and colors. Your chosen art stays in place.</p></div>
         <div class="row" style="margin-bottom:8px"><button class="primary" id="ccArt">${art ? 'Change art…' : 'Choose your art…'}</button><input type="file" id="ccFile" accept="image/*" hidden></div>
         <h3>Card text</h3>
         <div class="grid2">${F.filter(([k]) => !['skin', 'artist'].includes(k)).map(textField).join('')}</div>
@@ -3922,7 +3945,7 @@ async function openCardMaker(target) {
         ${sets.length ? '' : '<p class="hint">Basic frames are available. Load a frame set below for more styles.</p>'}
         <div class="grid2">
           <div class="field"><label for="ccZoom">Art zoom</label><input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}"><button class="icon" id="ccArtReset">Reset position &amp; zoom</button></div>
-          <div class="field"><label for="ccColor">Frame colour</label><select id="ccColor">${CC_COLORS.map(([v, n]) => `<option value="${v}" ${v === (t.color || 'auto') ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+          <div class="field"><label for="ccColor">Frame color</label><select id="ccColor">${CC_COLORS.map(([v, n]) => `<option value="${v}" ${v === (t.color || 'auto') ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
           <div class="field"><label for="ccStyle">Frame</label><select id="ccStyle">${primary.length
               ? primary.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')
               : `<option value="modern" ${t.style === 'modern' ? 'selected' : ''}>Modern (basic)</option><option value="retro" ${t.style === 'retro' ? 'selected' : ''}>Retro (basic)</option>`}
@@ -4168,7 +4191,7 @@ const TOUR = {
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>
     <p class="hint">Community art drives are run by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting the autofill tool's maintenance costs on Patreon</a>.</p>`},
   print:{title:'3 · Print at home', body:() => `<ol class="steps"><li>Choose your printer, paper and double-sided method in <b>2. Print</b>.</li>
-    <li>Print the <b>alignment sheet</b> once, from Printer Alignment &amp; Test Sheets, so cards come out exactly the right size. Printing backs too? The <b>duplex calibration wizard</b> in the same place lines them up.</li>
+    <li>Print the <b>alignment sheet</b> once, from Printer alignment &amp; test sheets, so cards come out exactly the right size. Printing backs too? The <b>duplex calibration wizard</b> in the same place lines them up.</li>
     <li>Choose Cameo or rotary in <b>3. Cut</b>. The layout and guides update for your tool.</li>
     <li>In <b>4. Export</b>, review the sheet and download your PDF and cut file. Follow the printing, paper-flip and cutting instructions there.</li></ol>`},
   order:{title:'3 · Order prints', body:() => `<ol class="steps"><li>Choose a cardstock and a cardback in the <b>Order</b> tab.</li>
@@ -4461,12 +4484,12 @@ const FIELDS = [
   {k:'cardRotation', adv:true, label:'Card direction', type:'select', opts:[['auto','Auto (most cards per page)'],['upright','Always upright'],['rotated','Always sideways']]},
   {k:'cardW', label:'Card width (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
-  {sec:'Sheet Layout & Margins'},
+  {sec:'Sheet layout & margins'},
   {k:'gap', adv:true, label:'Gap between cards (mm)', type:'num', step:0.1, min:0},
   {k:'margin', adv:true, label:'Min. page margin (mm)', type:'num', step:0.1, min:0},
   {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
   {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
-  {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border colour']]},
+  {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border color']]},
   {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
   {sec:'Double-faced cards & backs'},
   {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, show:() => deck().entries.some(e => e.qty > 0 && e.kind!=='TOKEN' && e.faces.length > 1), opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
@@ -4745,7 +4768,7 @@ function renderPrinter() {
     <details class="adv" id="driverDetails" style="margin:6px 0 14px" ${driverOpen ? 'open' : ''}>
       <summary>Driver settings &amp; tips</summary>
       <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-      <p class="hint" style="margin-top:6px">💡 <b>Recommended paper:</b> ${esc(pr.paper)}</p>
+      <p class="hint" style="margin-top:6px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
       <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
       ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
       ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
@@ -4868,11 +4891,14 @@ async function drawPreview() {
   }
   const slots = buildSlots(), pages = paginate(slots, L.per), wrap = $('#pages');
   $('#workspaceTitle').textContent = deck().name;
-  $('#previewSummary').textContent = slots.length ? `${slots.length} card${slots.length===1?'':'s'} · ${pages.length} sheet${pages.length === 1 ? '' : 's'} · ${L.W} × ${L.H} mm` : 'Your print workspace';
+  const cardCount = `${slots.length} card${slots.length === 1 ? '' : 's'}`;
+  $('#previewSummary').textContent = !slots.length ? (S.mode === 'order' ? 'Your order workspace' : 'Your print workspace')
+    : S.mode === 'order' ? `${cardCount} in this order`
+    : `${cardCount} · ${pages.length} sheet${pages.length === 1 ? '' : 's'} · ${L.W} × ${L.H} mm`;
   $('#zoomValue').textContent = Math.round(z / 2.4 * 100) + '%';
   $('#stage').style.setProperty('--stage-controls-height',$('.stage-controls').offsetHeight+'px');
   if (!slots.length) {
-    wrap.innerHTML = `<div class="empty"><div class="empty-art" aria-hidden="true"><i></i><i></i><i>P</i></div><h2>${S.mode === 'order' ? 'Build your next order' : 'Your next deck starts here'}</h2><p class="hint">Bring a decklist or your favorite artwork. Your sheets update as you work.</p><div class="row" style="margin:20px 0"><button class="primary" data-start="import">Import a deck…</button><button data-start="upload">Upload images…</button></div><ol>
+    wrap.innerHTML = `<div class="empty"><div class="empty-art" aria-hidden="true"><i></i><i></i><i>P</i></div><h2>${S.mode === 'order' ? 'Build your next order' : 'Your next deck starts here'}</h2><p class="hint">Bring a decklist or your favorite artwork. ${S.mode === 'order' ? 'Your order' : 'Your sheets'} update${S.mode === 'order' ? 's' : ''} as you work.</p><div class="row" style="margin:20px 0"><button class="primary" data-start="import">Import a deck…</button><button data-start="upload">Upload images…</button></div><ol>
       <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or choose <b>Import deck…</b> for a deck link or local file.</li>
       <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
       <li>${S.mode === 'order' ? 'Choose a cardback in the <b>Order</b> tab, then press <b>Review order</b>.' : 'Pick your printer in <b>2. Print</b>, choose your tool in <b>3. Cut</b>, then download your files in <b>4. Export</b>.'}</li></ol></div>`;
@@ -6189,10 +6215,12 @@ function switchTab(name) {
       btnPdf.textContent = 'Download PDF';
       btnPdf.title = 'Download print-ready PDF files';
       btnPdf.disabled = !buildSlots().length;
+      btnPdf.classList.remove('primary');
     } else {
       btnPdf.textContent = 'Review & export';
       btnPdf.title = 'Review your print setup and download files';
       btnPdf.disabled = false;
+      btnPdf.classList.add('primary');
     }
   }
   const btnXml = $('#btnXml');
@@ -6200,9 +6228,11 @@ function switchTab(name) {
     if (name === 'order') {
       btnXml.textContent = 'Download order (.zip)';
       btnXml.title = 'Download your formatted order file and images';
+      btnXml.classList.remove('primary');
     } else {
       btnXml.textContent = 'Review order';
       btnXml.title = 'Review your cards, cardback and order settings';
+      btnXml.classList.add('primary');
     }
     btnXml.disabled = name === 'order' && $('#oZip').disabled;
   }
@@ -6393,7 +6423,7 @@ function renderCutStatus() {
     const noConflict = !regConflict(L);
     const cameoOk = s.silhouette && L.fits && noConflict && s.guides === 'none' && s.bleed <= 1;
     if (cameoOk) {
-      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Layout ready for Silhouette Cameo</b> — ${L.cols}×${L.rows} (${L.per} cards) with optical registration marks.</div>`;
+      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Layout ready for the Cameo</b> — ${L.cols}×${L.rows} (${L.per} cards) with optical registration marks.</div>`;
     } else {
       const why = [];
       if (!s.silhouette) why.push('registration marks are off');
@@ -6441,7 +6471,7 @@ function renderCutStatus() {
       if (g.outline) list.push('full outlines');
       return list.length ? list.join(' and ') + ' enabled' : 'No guides will be printed';
     })();
-    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for Rotary Trimmer</b> — ${guideDesc} (${s.bleed} mm bleed).</div>`
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for the trimmer</b> — ${guideDesc} (${s.bleed} mm bleed).</div>`
       : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
   }
   const b = $('#cutApply');
@@ -6500,6 +6530,9 @@ $('#pages').addEventListener('click', ev => {
 function applyMode() {
   document.body.dataset.mode = S.mode;
   $('#cardsStepLabel').textContent = S.mode === 'order' ? 'Step 1 of 2' : 'Step 1 of 4';
+  $('#cardsStepHint').textContent = S.mode === 'order'
+    ? 'Paste a decklist or bring your own images. Pick artwork straight from the gallery.'
+    : 'Paste a decklist or bring your own images. Pick artwork directly on the sheet.';
   $('#btnStep1Next').textContent = S.mode === 'order' ? 'Next: 2. Order →' : 'Next: 2. Print →';
   $$('#modeSeg button').forEach(b => { const on = b.dataset.mode === S.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   const active = $('.tabs button.on');
