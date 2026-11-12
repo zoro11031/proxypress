@@ -53,6 +53,12 @@
     // A back offset of 0 meant "never calibrated" and must follow the front.
     S.settings = cleanSettings({offsetX:-1, backOffsetX:0});
     eq('uncalibrated back follows front', makeT(layout(), true).x(0), -1);
+    S.settings = cleanSettings({...DEFAULTS, backScaleX:101, backScaleY:99});
+    const frontT = makeT(layout(), false), backT = makeT(layout(), true);
+    eq('front scale remains independent', frontT.w(10), 10);
+    eq('back scale X applies only to backs', backT.w(10), 10.1);
+    eq('back scale Y applies only to backs', backT.h(10), 9.9);
+    eq('back offset unit migration', cleanSettings({backOffsetUnit:'in'}).backOffsetUnit, 'in');
 
     // Margin guides must stop short of the sheet edge. A printer's full-bleed mode
     // relaxes its declared margin without promising ink at 0.0 mm, so a guide drawn

@@ -541,6 +541,12 @@ details.adv:not([open]){padding-bottom:10px}
           <button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button>
           <button id="btnDuplexWizard" title="Print a duplex test and calibrate the back-page offset">Duplex calibration wizard</button>
         </div>
+        <div class="row" style="margin-top:10px;align-items:end">
+          <div class="field" style="flex:1"><label for="calProfileSel">Printer calibration profile</label><select id="calProfileSel"><option value="">No saved profile</option></select></div>
+          <div class="field" style="flex:1"><label for="calProfileName">Profile name</label><input id="calProfileName" placeholder="Canon cardstock"></div>
+          <button id="calProfileSave">Save profile</button>
+          <button id="calProfileDelete" class="danger">Delete</button>
+        </div>
         <div class="grid2" id="calForm"></div>
       </details>
       <div class="wiz-nav">
@@ -930,7 +936,7 @@ const DEFAULTS = {
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
-  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
+  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
@@ -1132,7 +1138,7 @@ const store = (() => {
 })();
 
 /* ---------- state ---------- */
-const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, zoom:2.4, showBacks:true, orderShowBacks:false };
+const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, calibrationProfiles:[], zoom:2.4, showBacks:true, orderShowBacks:false };
 const deck = () => S.decks.find(d => d.id === S.deckId);
 
 let saveTimer;
@@ -1141,7 +1147,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, calibrationProfiles:S.calibrationProfiles, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -1165,7 +1171,7 @@ async function load() {
   if (Array.isArray(cc)) for (const c of cc) if (c?.id) cardCache.set(c.id, c);
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
+    S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.calibrationProfiles = Array.isArray(ui.calibrationProfiles) ? ui.calibrationProfiles : []; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -1358,7 +1364,7 @@ function faceRot(L, back) {
   return L.mirrorX ? (L.rot ? -90 : 0) : (L.rot ? 90 : 180);
 }
 function makeT(L, back) {
-  const s = S.settings, kx = s.scaleX/100, ky = s.scaleY/100;
+  const s = S.settings, kx = (back ? s.backScaleX : s.scaleX)/100, ky = (back ? s.backScaleY : s.scaleY)/100;
   // The printer's own placement error is the same on both passes of a sheet, so the
   // printer offset applies to fronts and backs alike. The back offset is only the
   // extra drift the second pass adds, on top of it.
@@ -4437,16 +4443,19 @@ const FIELDS = [
   {sec:'Calibration (from calibration sheet)'},
   {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01},
   {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
+  {k:'backOffsetUnit', adv:true, label:'Back offset units', type:'select', opts:[['mm','Millimetres (mm)'],['in','Inches (in)']]},
   {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet.'},
   {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
-  {k:'backOffsetX', adv:true, label:'Extra back-page offset X (mm)', type:'num', step:0.1, hint:'Added on top of the printer offset, on back pages only. Leave these at 0 until the fronts land right and the backs still do not.'},
-  {k:'backOffsetY', adv:true, label:'Extra back-page offset Y (mm)', type:'num', step:0.1},
+  {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only. Leave these at 0 until the fronts land right and the backs still do not.'},
+  {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
+  {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment. 100% leaves the calibrated size unchanged.'},
+  {k:'backScaleY', adv:true, label:'Back-page scale Y (%)', type:'num', step:0.01, min:90, max:110},
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
 ];
-const CAL_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY'];
+const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
@@ -4482,6 +4491,7 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
+  if (!['mm', 'in'].includes(out.backOffsetUnit)) out.backOffsetUnit = 'mm';
   for (const f of FIELDS) if (f.type === 'num') {
     if (f.min !== undefined) out[f.k] = Math.max(f.min, out[f.k]);
     if (f.max !== undefined) out[f.k] = Math.min(f.max, out[f.k]);
@@ -4540,6 +4550,8 @@ function renderSettings() {
   // printer stays silent rather than being told its paper is wrong.
   if (sheetFeedable(S.printer, L.W, L.H) === false)
     html += `<div class="warn">${esc(printerOf(S.printer).name.replace(/ \(.*\)$/, ''))} can't feed this paper size, so it won't print on that printer. It is fine for a print shop or another printer.</div>`;
+  const offsetUnit = s.backOffsetUnit === 'in' ? 'in' : 'mm';
+  const offsetValue = k => offsetUnit === 'in' ? s[k] / 25.4 : s[k];
   const fieldHtml = f => {
     const hint = typeof f.hint === 'function' ? f.hint() : f.hint;
     if (f.type === 'check') return `<label class="check"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
@@ -4549,10 +4561,13 @@ function renderSettings() {
       return `<div class="field full"><label>Card back image</label><div class="row"><img id="backThumb" style="width:40px;height:56px;object-fit:cover;border-radius:3px;background:#000;${has ? '' : 'display:none'}"><button data-backup>Upload back…</button><button data-mpcback>Browse cardbacks…</button>${has ? '<button class="danger" data-backclear>Remove</button>' : ''}</div>${has ? '' : '<p class="hint">Upload a back image or browse the cardback library.</p>'}<input type="file" accept="image/*" hidden id="fileBack"></div>`;
     }
     let input;
+    const label = ['backOffsetX', 'backOffsetY'].includes(f.k) ? `${f.label} (${offsetUnit})` : f.label;
+    const value = ['backOffsetX', 'backOffsetY'].includes(f.k) ? offsetValue(f.k) : s[f.k];
+    const step = ['backOffsetX', 'backOffsetY'].includes(f.k) && offsetUnit === 'in' ? 0.001 : f.step ?? 1;
     if (f.type === 'select') input = `<select id="setting-${f.k}" data-k="${f.k}" ${f.num ? 'data-num' : ''}>${f.opts.map(([v, t]) => `<option value="${v}" ${String(s[f.k]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
     else if (f.type === 'color') input = `<input id="setting-${f.k}" type="color" data-k="${f.k}" value="${esc(s[f.k])}">`;
-    else input = `<input id="setting-${f.k}" type="number" data-k="${f.k}" data-num value="${esc(s[f.k])}" step="${f.step ?? 1}" ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}>`;
-    return `<div class="field ${f.full || hint ? 'full' : ''}"><label for="setting-${f.k}">${f.label}</label>${input}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+    else input = `<input id="setting-${f.k}" type="number" data-k="${f.k}" data-num value="${esc(value)}" step="${step}" ${f.min != null && !['backOffsetX', 'backOffsetY'].includes(f.k) ? `min="${f.min}"` : ''} ${f.max != null && !['backOffsetX', 'backOffsetY'].includes(f.k) ? `max="${f.max}"` : ''}>`;
+    return `<div class="field ${f.full || hint ? 'full' : ''}"><label for="setting-${f.k}">${label}</label>${input}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
   };
   const paperKeys = ['pageSize', 'orientation', 'pageW', 'pageH'];
   $('#paperForm').innerHTML = FIELDS.filter(f => paperKeys.includes(f.k) && (!f.show || f.show(s))).map(fieldHtml).join('');
@@ -4578,12 +4593,29 @@ function renderSettings() {
   form.closest('.pane').scrollTop = st;
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
+  renderCalibrationProfiles();
+}
+const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
+function renderCalibrationProfiles() {
+  const sel = $('#calProfileSel');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = `<option value="">No saved profile</option>${S.calibrationProfiles.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}`;
+  if (S.calibrationProfiles.some(p => p.id === current)) sel.value = current;
 }
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
-  if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) { t.reportValidity(); t.value = s[k]; return; }
-  s[k] = t.type === 'checkbox' ? t.checked : t.hasAttribute('data-num') ? (parseFloat(t.value) || 0) : t.value;
+  if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) {
+    t.reportValidity();
+    t.value = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? s[k] / 25.4 : s[k];
+    return;
+  }
+  if (t.type === 'checkbox') s[k] = t.checked;
+  else if (t.hasAttribute('data-num')) {
+    const n = parseFloat(t.value) || 0;
+    s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
+  } else s[k] = t.value;
   if (k === 'orientation') s.cardRotation = 'upright';
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
@@ -4611,6 +4643,33 @@ $('#settingsForm').addEventListener('change', async ev => {
   const old = S.settings.backImage; S.settings.backImage = await storeImage(ev.target.files[0]);
   await removeImageIfUnused(old); save(); renderAll();
 });
+$('#calProfileSel').onchange = ev => {
+  const p = S.calibrationProfiles.find(x => x.id === ev.target.value);
+  if (!p) return;
+  S.settings = cleanSettings({...S.settings, ...p.settings});
+  if (PRINTERS.some(x => x.id === p.printer)) {
+    S.printer = p.printer;
+    S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
+  }
+  S.activePreset = null; save(); renderAll();
+};
+$('#calProfileSave').onclick = () => {
+  const name = $('#calProfileName').value.trim();
+  if (!name) return toast('Enter a profile name first.');
+  const settings = Object.fromEntries(CAL_PROFILE_KEYS.map(k => [k, S.settings[k]]));
+  const existing = S.calibrationProfiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (existing) Object.assign(existing, {name, printer:S.printer, settings});
+  else S.calibrationProfiles.push({id:uid(), name:name.slice(0, 100), printer:S.printer, settings});
+  save(); renderCalibrationProfiles(); toast(`Saved calibration profile "${name}".`);
+};
+$('#calProfileDelete').onclick = () => {
+  const id = $('#calProfileSel').value;
+  if (!id) return toast('Choose a saved profile first.');
+  const p = S.calibrationProfiles.find(x => x.id === id);
+  if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
+  S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
+  save(); renderCalibrationProfiles();
+};
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
@@ -5188,49 +5247,59 @@ $('#btnPdf').onclick = async () => {
 
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
-  const s = S.settings, L = layout(), doc = newDoc(L), t = duplexTurn(L);
+  const L = layout(), doc = newDoc(L), t = duplexTurn(L);
+  const T = {x:v => v, y:v => v, w:v => v, h:v => v};
+  const targetSize = Math.min(18, Math.min(L.W, L.H) * 0.12), margin = Math.max(12, Math.min(22, Math.min(L.W, L.H) * 0.1));
+  const targets = [[margin, margin], [L.W - margin - targetSize, margin], [margin, L.H - margin - targetSize], [L.W - margin - targetSize, L.H - margin - targetSize], [L.W / 2 - targetSize / 2, L.H / 2 - targetSize / 2]];
+  const color = back => back ? '#c0392b' : '#111827';
+  const drawRulers = back => {
+    const c = color(back), x0 = 12, y0 = 12;
+    doc.setDrawColor(c); doc.setTextColor(c); doc.setLineWidth(0.15); doc.setFontSize(6);
+    doc.line(T.x(x0), T.y(y0), T.x(L.W - x0), T.y(y0));
+    doc.line(T.x(x0), T.y(y0), T.x(x0), T.y(L.H - x0));
+    for (let n = 0; n <= L.W - 2*x0; n++) {
+      const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
+      doc.line(T.x(x0 + n), T.y(y0), T.x(x0 + n), T.y(y0 + tick));
+      if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 - 2), {align:'center'});
+      const inch = n / 25.4;
+      if (Math.abs(inch - Math.round(inch)) < 0.01) doc.text(`${Math.round(inch)} in`, T.x(x0 + n), T.y(y0 + 8), {align:'center'});
+    }
+    for (let n = 0; n <= L.H - 2*x0; n++) {
+      const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
+      doc.line(T.x(x0), T.y(y0 + n), T.x(x0 + tick), T.y(y0 + n));
+      if (n % 10 === 0) doc.text(String(n), T.x(x0 - 2), T.y(y0 + n + 1.5), {align:'right'});
+    }
+    doc.setFontSize(7); doc.text('mm', T.x(L.W - x0), T.y(y0 - 2), {align:'right'});
+    doc.text('1 in = 25.4 mm', T.x(L.W - x0), T.y(y0 + 6), {align:'right'});
+  };
+  const drawTarget = ([x, y], back, n) => {
+    const c = color(back), cx = T.x(x + targetSize / 2), cy = T.y(y + targetSize / 2);
+    doc.setDrawColor(c); doc.setTextColor(c); doc.setLineWidth(0.35);
+    doc.rect(T.x(x), T.y(y), T.w(targetSize), T.h(targetSize));
+    doc.line(cx - 7, cy, cx + 7, cy); doc.line(cx, cy - 7, cx, cy + 7);
+    doc.setFontSize(7); doc.text(String(n), cx, cy + 11, {align:'center'});
+  };
   for (const back of [false, true]) {
     if (back) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
-    const T = makeT(L, back);
-    doc.setDrawColor(back ? '#c0392b' : '#000000'); doc.setLineWidth(0.3);
-    for (let i = 0; i < L.per; i++) {
-      const p = slotPos(L, i, back);
-      doc.rect(T.x(p.x + s.bleed), T.y(p.y + s.bleed), T.w(L.cw), T.h(L.ch));
-      const cx = T.x(p.x + L.sw / 2), cy = T.y(p.y + L.sh / 2);
-      doc.line(cx - 6, cy, cx + 6, cy); doc.line(cx, cy - 6, cx, cy + 6);
-      if (i === 0) {
-        const x0 = p.x + s.bleed, y0 = p.y + s.bleed;
-        doc.setLineWidth(0.15); doc.setFontSize(6); doc.setTextColor(back ? '#c0392b' : '#000000');
-        doc.line(T.x(x0), T.y(y0 + 4), T.x(x0 + L.cw), T.y(y0 + 4));
-        doc.line(T.x(x0), T.y(y0 + L.ch - 4), T.x(x0 + L.cw), T.y(y0 + L.ch - 4));
-        doc.line(T.x(x0 + 4), T.y(y0), T.x(x0 + 4), T.y(y0 + L.ch));
-        doc.line(T.x(x0 + L.cw - 4), T.y(y0), T.x(x0 + L.cw - 4), T.y(y0 + L.ch));
-        for (let n = 0; n <= L.cw; n++) {
-          const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
-          doc.line(T.x(x0 + n), T.y(y0 + 4), T.x(x0 + n), T.y(y0 + 4 + tick));
-          doc.line(T.x(x0 + n), T.y(y0 + L.ch - 4), T.x(x0 + n), T.y(y0 + L.ch - 4 - tick));
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + 10), {align:'center'});
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + L.ch - 10), {align:'center'});
-        }
-        for (let n = 0; n <= L.ch; n++) {
-          const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
-          doc.line(T.x(x0 + 4), T.y(y0 + n), T.x(x0 + 4 + tick), T.y(y0 + n));
-          doc.line(T.x(x0 + L.cw - 4), T.y(y0 + n), T.x(x0 + L.cw - 4 - tick), T.y(y0 + n));
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + 10), T.y(y0 + n + 1.5), {align:'left'});
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + L.cw - 10), T.y(y0 + n + 1.5), {align:'right'});
-        }
-      }
-    }
-    // A TOP mark on each side, placed so that after the right flip the two land on
-    // top of each other. A square grid of outlines looks nearly correct under a wrong
-    // flip; these do not.
-    // Off-centre on the axis that mirrors, so a wrong turn moves it visibly.
-    const off = Math.min(40, L.W / 4);
-    doc.setFontSize(11);
-    doc.text(back ? 'TOP (back)' : 'TOP (front)',
-      T.x(L.W / 2 + (t.lr ? (back ? off : -off) : 0)), T.y(!t.lr && back ? L.H - 8 : 8), {align:'center'});
+    drawRulers(back);
+    targets.forEach((p, i) => {
+      const q = back ? (t.lr ? [L.W - p[0] - targetSize, p[1]] : [p[0], L.H - p[1] - targetSize]) : p;
+      drawTarget(q, back, i + 1);
+    });
+    doc.setFontSize(13); doc.setTextColor(color(back));
+    doc.text(back ? 'TOP / BACK' : 'TOP / FRONT', L.W / 2, 8, {align:'center'});
+    doc.setFontSize(8);
+    doc.text(back ? 'Hold this page to the front. Red targets should sit exactly over black targets.'
+      : `Turn ${t.axis} and ${t.sameEdge ? 'feed the same edge first' : 'feed the opposite edge first'} for page 2.`, L.W / 2, L.H - 8, {align:'center'});
+    const lx = Math.max(12, L.W - 92), ly = Math.max(30, L.H - 70), lw = Math.min(80, L.W - lx - 8);
+    doc.setDrawColor(color(back)); doc.setLineWidth(0.2); doc.rect(lx, ly, lw, 28);
+    doc.setFontSize(7); doc.setTextColor(color(back));
+    doc.text('MEASURE BACK - FRONT', lx + 3, ly + 5);
+    doc.text('+X: back is right   -X: back is left', lx + 3, ly + 11);
+    doc.text('+Y: back is down    -Y: back is up', lx + 3, ly + 17);
+    doc.text('Enter the opposite sign as correction.', lx + 3, ly + 23);
   }
-  doc.save('double-sided-test.pdf');
+  doc.save('duplex-alignment-calibration.pdf');
 };
 $('#btnDuplexWizard').onclick = () => {
   const s = S.settings, L = layout(), edge = s.duplexFlip === 'short' ? 'short' : 'long';
@@ -5397,7 +5466,7 @@ async function compactShareImage(blob, opaque, maxSide) {
   } finally { image.src = ''; URL.revokeObjectURL(url); canvas.width = canvas.height = 1; }
 }
 const PRINT_DECK_LIMIT = 2 * 1024 * 1048576;
-const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY', 'backOffsetRel'];
+const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backOffsetRel'];
 function printDeckKeys(d, s) {
   return [...new Set([s.backImage, d.cardback?.custom, ...d.entries.flatMap(e => e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]))].filter(Boolean))];
 }
