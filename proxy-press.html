@@ -5305,7 +5305,7 @@ $('#btnDuplexTest').onclick = () => {
 };
 $('#btnDuplexWizard').onclick = () => {
   const s = S.settings, L = layout(), edge = s.duplexFlip === 'short' ? 'short' : 'long';
-  const frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
+  let frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
   const turnFor = (mode, landscape = L.W > L.H) => {
     const lr = (!landscape) === (mode === 'long');
     return {axis:lr ? 'left to right' : 'top to bottom'};
@@ -5313,7 +5313,7 @@ $('#btnDuplexWizard').onclick = () => {
   const bindingSvg = (mode, landscape) => {
     const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
     const D = {W:landscape ? 279.4 : 215.9, H:landscape ? 215.9 : 279.4};
-    const turn = turnFor(mode, landscape), demoFront = landscape ? 'left' : 'top';
+    const turn = turnFor(mode, landscape), demoFront = frontEdge;
     const backEdge = mode === 'short' ? opposite[demoFront] : demoFront;
     const rw = landscape ? 100 : 60, rh = landscape ? 64 : 100, y = (150 - rh) / 2;
     const paper = (x, fill, stroke, edge, label, angle) => {
@@ -5333,9 +5333,15 @@ $('#btnDuplexWizard').onclick = () => {
   };
   const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
   const bindingExample = mode => `<div style="margin:0;text-align:center;background:#1b2028;border:2px solid ${edge === mode ? '#f59e0b' : '#3e4650'};padding:10px 12px;border-radius:6px"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' <span style="background:#f59e0b;color:#17130d;padding:2px 6px;border-radius:6px;font-size:11px">selected</span>' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px"><div><div class="hint">Landscape</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait</div>${bindingSvg(mode, false)}</div></div></div>`;
+  const bindingExamples = () => `<div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>`;
+  const edgeOptionLabel = x => {
+    const side = x[0].toUpperCase() + x.slice(1);
+    const length = paperEdgeName(x, L).split(' ')[1];
+    return `${length[0].toUpperCase()}${length.slice(1)} edge on the ${side.toLowerCase()}`;
+  };
   openModal(`<div class="hd"><b>Duplex Calibration Wizard</b><button data-close>Close</button></div><div class="bd">
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>
-    <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">The highlighted diagram is the selected ${edge}-edge flip. Choose the actual leading edge; the wizard will tell you which edge must lead for page 2.</div></div>
+    <div id="duplexWizardBindings">${bindingExamples()}</div>
+    <div class="field full"><label for="duplexWizardFrontEdge">Which physical edge of page 1 entered the printer first?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${edgeOptionLabel(x)}</option>`).join('')}</select><div class="hint">The yellow edge in both diagrams follows this choice. Select the edge that physically led into the printer, not the edge nearest you.</div></div>
     <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
     <ol class="steps">
       <li>First run the <b>Alignment sheet</b> and correct scale and printer offsets until the front page measures correctly.</li>
@@ -5355,7 +5361,11 @@ $('#btnDuplexWizard').onclick = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 feed direction:</b> ${esc(feed.text)}<br><span class="hint">Keep the printed side facing the other way after turning the sheet.</span>`;
   };
-  $('#duplexWizardFrontEdge').onchange = updateFeed;
+  $('#duplexWizardFrontEdge').onchange = () => {
+    frontEdge = $('#duplexWizardFrontEdge').value;
+    $('#duplexWizardBindings').innerHTML = bindingExamples();
+    updateFeed();
+  };
   updateFeed();
   $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
   $('#duplexWizardApply').onclick = () => {
