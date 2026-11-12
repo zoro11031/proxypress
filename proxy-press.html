@@ -5304,32 +5304,29 @@ $('#btnDuplexTest').onclick = () => {
 $('#btnDuplexWizard').onclick = () => {
   const s = S.settings, L = layout(), edge = s.duplexFlip === 'short' ? 'short' : 'long';
   const frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
+  const turnFor = mode => {
+    const lr = (L.W <= L.H) === (mode === 'long');
+    return {axis:lr ? 'left to right' : 'top to bottom'};
+  };
+  const bindingSvg = (mode, turn) => {
+    const horizontal = turn.axis === 'left to right';
+    const front = horizontal ? '<rect x="18" y="12" width="48" height="82" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="84" y="12" width="48" height="82" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><path d="M68 53h14M73 48l-5 5 5 5M77 48l5 5-5 5" fill="none" stroke="#475569" stroke-width="2"/><path d="M14 12v82" stroke="#0f172a" stroke-width="4"/><text x="42" y="106" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text><text x="108" y="106" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>'
+      : '<rect x="34" y="8" width="82" height="42" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="34" y="62" width="82" height="42" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><path d="M75 53v14M70 58l5-5 5 5M70 62l5 5 5-5" fill="none" stroke="#475569" stroke-width="2"/><path d="M34 5h82" stroke="#0f172a" stroke-width="4"/><text x="75" y="35" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text><text x="75" y="89" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>';
+    return `<svg viewBox="0 0 150 112" role="img" aria-label="${mode}-side binding: turn ${turn.axis}" style="width:100%;height:auto">${front}</svg>`;
+  };
+  const longTurn = turnFor('long'), shortTurn = turnFor('short');
   openModal(`<div class="hd"><b>Duplex calibration wizard</b><button data-close>Close</button></div><div class="bd">
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">
-      <div class="callout-box" style="margin:0;text-align:center">
-        <svg viewBox="0 0 150 112" role="img" aria-label="Long-side binding: turn the sheet left to right" style="width:100%;height:auto">
-          <rect x="18" y="12" width="48" height="82" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-          <rect x="84" y="12" width="48" height="82" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
-          <path d="M68 53h14M73 48l-5 5 5 5M77 48l5 5-5 5" fill="none" stroke="#475569" stroke-width="2"/>
-          <path d="M14 12v82" stroke="#0f172a" stroke-width="4"/>
-          <text x="42" y="106" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text>
-          <text x="108" y="106" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>
-        </svg>
-        <b>Long-side binding</b><div class="hint">Turn left to right</div>
+      <div class="callout-box" style="margin:0;text-align:center;${edge === 'long' ? 'outline:2px solid #f59e0b;' : ''}">
+        ${bindingSvg('long', longTurn)}
+        <b>Long-side binding${edge === 'long' ? ' · selected' : ''}</b><div class="hint">Turn ${longTurn.axis}</div>
       </div>
-      <div class="callout-box" style="margin:0;text-align:center">
-        <svg viewBox="0 0 150 112" role="img" aria-label="Short-side binding: turn the sheet top to bottom" style="width:100%;height:auto">
-          <rect x="34" y="8" width="82" height="42" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-          <rect x="34" y="62" width="82" height="42" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
-          <path d="M75 53v14M70 58l5-5 5 5M70 62l5 5 5-5" fill="none" stroke="#475569" stroke-width="2"/>
-          <path d="M34 5h82" stroke="#0f172a" stroke-width="4"/>
-          <text x="75" y="35" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text>
-          <text x="75" y="89" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>
-        </svg>
-        <b>Short-side binding</b><div class="hint">Turn top to bottom</div>
+      <div class="callout-box" style="margin:0;text-align:center;${edge === 'short' ? 'outline:2px solid #f59e0b;' : ''}">
+        ${bindingSvg('short', shortTurn)}
+        <b>Short-side binding${edge === 'short' ? ' · selected' : ''}</b><div class="hint">Turn ${shortTurn.axis}</div>
       </div>
     </div>
-    <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">Choose the actual edge you fed first. The wizard will tell you which edge must lead when you feed page 2.</div></div>
+    <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">The highlighted diagram is the selected ${edge}-edge flip. Choose the actual leading edge; the wizard will tell you which edge must lead for page 2.</div></div>
     <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
     <ol class="steps">
       <li>First run the <b>Alignment sheet</b> and correct scale and printer offsets until the front page measures correctly.</li>
