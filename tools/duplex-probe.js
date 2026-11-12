@@ -84,6 +84,97 @@
     eq('quiet: canon + a6 (newly added)', warned('mf753', 'a6'), false);
     eq('quiet: unknown printer + tabloid', warned('et2800', 'tabloid'), false);
     S.printer = savedPrinter;
+
+    // Which edge leads on the second pass. Turning the sheet mirrors one axis and
+    // leaves the other alone, so the edge only changes when it lies on the mirrored
+    // axis. Deciding it from the flip setting alone - short edge means "feed the
+    // opposite edge" - is right for the edge a short-edge-feeding printer actually
+    // takes and wrong for the other two, which is why both are checked here.
+    const feedCase = (orientation, flip, edge) => {
+      S.settings = {...DEFAULTS, pageSize:'letter', orientation, duplexFlip:flip, cardRotation:'upright', bleed:1, margin:5};
+      return backFeedEdge(layout(), edge);
+    };
+    eq('portrait long, top in first', feedCase('portrait', 'long', 'top'), 'top');
+    eq('portrait long, left in first', feedCase('portrait', 'long', 'left'), 'right');
+    eq('portrait short, top in first', feedCase('portrait', 'short', 'top'), 'bottom');
+    eq('portrait short, left in first', feedCase('portrait', 'short', 'left'), 'left');
+    eq('landscape long, left in first', feedCase('landscape', 'long', 'left'), 'left');
+    eq('landscape long, top in first', feedCase('landscape', 'long', 'top'), 'bottom');
+    eq('landscape short, left in first', feedCase('landscape', 'short', 'left'), 'right');
+    eq('landscape short, top in first', feedCase('landscape', 'short', 'top'), 'top');
+
+    // The double-sided test's reading rule, which is the whole reason the sheet can
+    // ask for a number instead of a sign. The mark sits at the page centre on the
+    // front; the grid sits where that point lands on the back. Read in the back
+    // page's own coordinates, the offset between them is exactly the correction to
+    // ADD to the back-page offset - on both axes, for either flip, and whatever the
+    // back-page scale is, because the centre is the one point scaling cannot move.
+    // Measured from the front instead, the two axes would need opposite signs.
+    const gridReading = () => {
+      const L3 = layout(), Tf = makeT(L3, false), Tb = makeT(L3, true), c = {x:L3.W / 2, y:L3.H / 2};
+      const hole = backPoint(L3, {x:Tf.x(c.x), y:Tf.y(c.y)}), g = backPoint(L3, c);
+      return {x: +(hole.x - Tb.x(g.x)).toFixed(4), y: +(hole.y - Tb.y(g.y)).toFixed(4)};
+    };
+    for (const orientation of ['portrait', 'landscape']) for (const flip of ['long', 'short']) {
+      S.settings = {...DEFAULTS, pageSize:'letter', orientation, duplexFlip:flip, cardRotation:'upright', bleed:1, margin:5,
+        backOffsetX:0.7, backOffsetY:-0.4, backScaleX:103, backScaleY:97};
+      const r = gridReading();
+      eq(`${orientation} ${flip} reading X`, r.x, -0.7);
+      eq(`${orientation} ${flip} reading Y`, r.y, 0.4);
+      S.settings.backOffsetX += r.x; S.settings.backOffsetY += r.y;
+      const after = gridReading();
+      eq(`${orientation} ${flip} reading clears`, `${after.x},${after.y}`, '0,0');
+    }
+    eq('back point is its own inverse', JSON.stringify(backPoint(layout(), backPoint(layout(), {x:30, y:40}))), '{"x":30,"y":40}');
+    // backPoint has to be the same mirror the layout already uses to put a back
+    // behind its front, because that mirror is what the turn the user is told to
+    // make physically does. Without this, backPoint could mirror the other axis
+    // and every check above would still pass while the test sheet's marks landed
+    // in the wrong corners.
+    for (const orientation of ['portrait', 'landscape']) for (const flip of ['long', 'short']) {
+      S.settings = {...DEFAULTS, pageSize:'letter', orientation, duplexFlip:flip, cardRotation:'upright', bleed:1, margin:5};
+      const L4 = layout(), f = slotPos(L4, 0, false), b = slotPos(L4, 0, true);
+      const mapped = backPoint(L4, {x:f.x + L4.sw / 2, y:f.y + L4.sh / 2});
+      eq(`${orientation} ${flip} back point follows the layout`,
+        `${mapped.x.toFixed(3)},${mapped.y.toFixed(3)}`,
+        `${(b.x + L4.sw / 2).toFixed(3)},${(b.y + L4.sh / 2).toFixed(3)}`);
+    }
+
+    // The wizard adds the reading to what is already there. Replacing it would make
+    // the second run of the test undo the first correction instead of confirming it.
+    S.settings = {...DEFAULTS, backOffsetX:0.5, backOffsetY:-0.25};
+    openDuplexWizard();
+    document.querySelector('#duplexWizardX').value = '-0.75';
+    document.querySelector('#duplexWizardY').value = '1';
+    document.querySelector('#duplexWizardApply').click();
+    eq('wizard adds the X reading', S.settings.backOffsetX, -0.25);
+    eq('wizard adds the Y reading', S.settings.backOffsetY, 0.75);
+    document.querySelector('#duplexWizardZero').click();
+    eq('wizard can clear the correction', `${S.settings.backOffsetX},${S.settings.backOffsetY}`, '0,0');
+    closeModal(true);
+
+    // Both calibration sheets have to build. They are only drawn when a button is
+    // pressed, so a missing helper or a bad jsPDF call leaves the page loading
+    // clean and every other assertion here passing, and is only found by printing.
+    // Each orientation is built, because the two sheets lay themselves out
+    // differently on a wide page and a tall one.
+    const real = window.jspdf.jsPDF, built = {};
+    window.jspdf = Object.assign({}, window.jspdf, {jsPDF: function (...a) {
+      const d = new real(...a);
+      d.save = n => { built[n] = d.internal.getNumberOfPages(); return d; };
+      return d;
+    }});
+    try {
+      for (const orientation of ['portrait', 'landscape']) {
+        S.settings = {...DEFAULTS, pageSize:'letter', orientation, cardRotation:'upright', bleed:1, margin:5};
+        delete built['alignment-sheet.pdf']; delete built['double-sided-test.pdf'];
+        for (const id of ['#btnCal', '#btnDuplexTest']) {
+          try { document.querySelector(id).click(); } catch (e) { fails.push(`${id} ${orientation}: ${e}`); }
+        }
+        eq(`alignment sheet builds (${orientation})`, built['alignment-sheet.pdf'], 1);
+        eq(`double-sided test builds (${orientation})`, built['double-sided-test.pdf'], 2);
+      }
+    } finally { window.jspdf = Object.assign({}, window.jspdf, {jsPDF: real}); }
   } finally { S.settings = saved; }
   return fails.length ? {failed: fails} : true;
 })()
