@@ -1,3 +1,31 @@
+# Proxy Press v0.5.4.2
+
+Duplex calibration helper and physical feed-orientation improvements.
+
+## What's new
+
+- **Duplex alignment calibration PDF:** Two-page paper-sized calibration sheets with targets, rulers, signed X/Y measurement guidance, and long-/short-edge orientation.
+- **Back-page compensation:** Apply back-only X/Y offsets and fine X/Y scale corrections without changing front-page coordinates.
+- **Calibration profiles:** Save named printer calibration settings locally and restore them when switching printers.
+- **Physical feed diagrams:** Show landscape and portrait examples with every paper edge labeled and the exact leading edge highlighted.
+- **MPC bleed handling:** Standard MPC artwork uses its built-in 3.048 mm bleed by default.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.4.1
 
 Duplex feed-direction and offset measurement refinements.
