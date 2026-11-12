@@ -5202,16 +5202,22 @@ $('#btnDuplexTest').onclick = () => {
         const x0 = p.x + s.bleed, y0 = p.y + s.bleed;
         doc.setLineWidth(0.15); doc.setFontSize(6); doc.setTextColor(back ? '#c0392b' : '#000000');
         doc.line(T.x(x0), T.y(y0 + 4), T.x(x0 + L.cw), T.y(y0 + 4));
+        doc.line(T.x(x0), T.y(y0 + L.ch - 4), T.x(x0 + L.cw), T.y(y0 + L.ch - 4));
         doc.line(T.x(x0 + 4), T.y(y0), T.x(x0 + 4), T.y(y0 + L.ch));
+        doc.line(T.x(x0 + L.cw - 4), T.y(y0), T.x(x0 + L.cw - 4), T.y(y0 + L.ch));
         for (let n = 0; n <= L.cw; n++) {
           const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
           doc.line(T.x(x0 + n), T.y(y0 + 4), T.x(x0 + n), T.y(y0 + 4 + tick));
+          doc.line(T.x(x0 + n), T.y(y0 + L.ch - 4), T.x(x0 + n), T.y(y0 + L.ch - 4 - tick));
           if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + 10), {align:'center'});
+          if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + L.ch - 10), {align:'center'});
         }
         for (let n = 0; n <= L.ch; n++) {
           const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
           doc.line(T.x(x0 + 4), T.y(y0 + n), T.x(x0 + 4 + tick), T.y(y0 + n));
+          doc.line(T.x(x0 + L.cw - 4), T.y(y0 + n), T.x(x0 + L.cw - 4 - tick), T.y(y0 + n));
           if (n % 10 === 0) doc.text(String(n), T.x(x0 + 10), T.y(y0 + n + 1.5), {align:'left'});
+          if (n % 10 === 0) doc.text(String(n), T.x(x0 + L.cw - 10), T.y(y0 + n + 1.5), {align:'right'});
         }
       }
     }
