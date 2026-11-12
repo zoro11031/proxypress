@@ -1,3 +1,28 @@
+# Proxy Press v0.5.6
+
+Duplex calibration wizard readability improvements.
+
+## What's new
+
+- **Larger calibration wizard:** The popup now uses more available screen space.
+- **Readable feed diagrams:** Long-/short-side binding examples are shown in full-width rows with larger labels and clearer edge markings.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/Proxy-Press-0.5.6.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/Proxy-Press-0.5.6.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/Proxy-Press-0.5.6.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/Proxy-Press-0.5.6.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/Proxy-Press-0.5.6.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/Proxy-Press-0.5.6.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.6/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.5
 
 Duplex calibration helper and physical feed-orientation improvements.
