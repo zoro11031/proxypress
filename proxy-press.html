@@ -5316,24 +5316,24 @@ $('#btnDuplexWizard').onclick = () => {
     const turn = turnFor(mode, landscape), demoFront = landscape ? 'left' : 'top';
     const backEdge = mode === 'short' ? opposite[demoFront] : demoFront;
     const rw = landscape ? 100 : 60, rh = landscape ? 64 : 100, y = (150 - rh) / 2;
-    const paper = (x, fill, stroke, edge, label) => {
-      const lines = {
-        left:`<line x1="${x}" y1="${y}" x2="${x}" y2="${y + rh}"`,
-        right:`<line x1="${x + rw}" y1="${y}" x2="${x + rw}" y2="${y + rh}"`,
-        top:`<line x1="${x}" y1="${y}" x2="${x + rw}" y2="${y}"`,
-        bottom:`<line x1="${x}" y1="${y + rh}" x2="${x + rw}" y2="${y + rh}"`
-      };
-      return `<rect x="${x}" y="${y}" width="${rw}" height="${rh}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>${lines[edge]} stroke="#f59e0b" stroke-width="6"/><text x="${x + rw / 2}" y="${y + rh / 2 + 4}" text-anchor="middle" font-size="12" fill="${stroke}">${label}</text><text x="${x + rw / 2}" y="${y - 6}" text-anchor="middle" font-size="9" fill="#cbd5e1">${paperEdgeName('top', D)}</text><text x="${x + rw / 2}" y="${y + rh + 13}" text-anchor="middle" font-size="9" fill="#cbd5e1">${paperEdgeName('bottom', D)}</text><text x="${x - 5}" y="${y + rh / 2 + 3}" text-anchor="end" font-size="9" fill="#cbd5e1">${paperEdgeName('left', D)}</text><text x="${x + rw + 5}" y="${y + rh / 2 + 3}" font-size="9" fill="#cbd5e1">${paperEdgeName('right', D)}</text>`;
+    const paper = (x, fill, stroke, edge, label, angle) => {
+      const points = `${x + 2},${y + 3} ${x + rw - 2},${y} ${x + rw},${y + rh - 5} ${x + 4},${y + rh}`;
+      const shadow = `${x + 5},${y + 7} ${x + rw + 1},${y + 4} ${x + rw + 3},${y + rh + 1} ${x + 7},${y + rh + 5}`;
+      const edgeLine = edge === 'left' ? `<line x1="${x + 3}" y1="${y + 4}" x2="${x + 5}" y2="${y + rh - 1}"` :
+        edge === 'right' ? `<line x1="${x + rw - 1}" y1="${y + 2}" x2="${x + rw + 1}" y2="${y + rh - 5}"` :
+        edge === 'top' ? `<line x1="${x + 2}" y1="${y + 3}" x2="${x + rw - 2}" y2="${y}"` :
+        `<line x1="${x + 4}" y1="${y + rh}" x2="${x + rw}" y2="${y + rh - 5}"`;
+      const lines = label.split(' / ');
+      const labelText = lines.map((line, i) => `<tspan x="${x + rw / 2}" dy="${i ? 15 : 0}">${line}</tspan>`).join('');
+      return `<g transform="rotate(${angle} ${x + rw / 2} ${y + rh / 2})"><polygon points="${shadow}" fill="#070b10" opacity=".65"/><polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>${edgeLine} stroke="#facc15" stroke-width="5"/><polygon points="${x + rw - 17},${y + 1} ${x + rw - 2},${y} ${x + rw - 4},${y + 15}" fill="#fff" opacity=".3"/><text x="${x + rw / 2}" y="${y + rh / 2 - (lines.length > 1 ? 7 : 0)}" text-anchor="middle" font-size="12" fill="#111827">${labelText}</text></g>`;
     };
-    const arrow = edge => edge === 'left' ? '<path d="M4 75h10l-4-4m4 4-4 4" fill="none" stroke="#f59e0b" stroke-width="2"/>' :
-      edge === 'right' ? '<path d="M286 75h-10l4-4m-4 4 4 4" fill="none" stroke="#f59e0b" stroke-width="2"/>' :
-      edge === 'top' ? '<path d="M150 4v10l-4-4m4 4 4-4" fill="none" stroke="#f59e0b" stroke-width="2"/>' :
-      '<path d="M150 146v-10l-4 4m4-4 4 4" fill="none" stroke="#f59e0b" stroke-width="2"/>';
-    return `<svg viewBox="0 0 300 150" role="img" aria-label="${mode}-side ${landscape ? 'landscape' : 'portrait'} example: page 1 ${paperEdgeName(demoFront, D)} first, page 2 ${paperEdgeName(backEdge, D)} first" style="width:100%;height:auto">${paper(18, '#dbeafe', '#2563eb', demoFront, 'PAGE 1 / FRONT')}${paper(182, '#fee2e2', '#dc2626', backEdge, 'PAGE 2 / BACK')}${arrow(demoFront)}<text x="150" y="12" text-anchor="middle" font-size="10" fill="#f59e0b">YELLOW EDGE = FEED FIRST</text><text x="150" y="143" text-anchor="middle" font-size="10" fill="#f59e0b">TURN ${turn.axis.toUpperCase()} · PAGE 2: ${paperEdgeName(backEdge, D).toUpperCase()} FIRST</text></svg>`;
+    const arrow = landscape ? '<path d="M126 78 C124 58 111 53 106 68 C103 75 105 82 110 86 M110 86 l-2 -10 M110 86 l9 -5" fill="none" stroke="#d7dde5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' :
+      '<path d="M143 79 C164 79 168 59 151 56 C143 54 138 58 134 63 M134 63 l11 -1 M134 63 l5 9" fill="none" stroke="#d7dde5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+    return `<svg viewBox="0 0 300 150" role="img" aria-label="${mode}-side ${landscape ? 'landscape' : 'portrait'} example: page 1 ${paperEdgeName(demoFront, D)} first, page 2 ${paperEdgeName(backEdge, D)} first" style="width:100%;height:auto"><text x="150" y="12" text-anchor="middle" font-size="10" fill="#f6c453">YELLOW EDGE = FEED FIRST</text>${paper(18, '#cfe6f8', '#2563eb', demoFront, 'PAGE 1 / FRONT', -3)}${paper(182, '#ed8b88', '#b91c1c', backEdge, 'PAGE 2 / BACK', 2)}${arrow}<text x="150" y="143" text-anchor="middle" font-size="10" fill="#f6c453">TURN ${turn.axis.toUpperCase()} · <tspan fill="#cbd5e1">PAGE 2: ${paperEdgeName(backEdge, D).toUpperCase()} FIRST</tspan></text></svg>`;
   };
   const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
-  const bindingExample = mode => `<div class="callout-box" style="margin:0;text-align:center;${edge === mode ? 'outline:2px solid #f59e0b;' : ''}"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' · selected' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px"><div><div class="hint">Landscape page</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait page</div>${bindingSvg(mode, false)}</div></div></div>`;
-  openModal(`<div class="hd"><b>Duplex calibration wizard</b><button data-close>Close</button></div><div class="bd">
+  const bindingExample = mode => `<div style="margin:0;text-align:center;background:#1b2028;border:2px solid ${edge === mode ? '#f59e0b' : '#3e4650'};padding:10px 12px;border-radius:6px"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' <span style="background:#f59e0b;color:#17130d;padding:2px 6px;border-radius:6px;font-size:11px">selected</span>' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px"><div><div class="hint">Landscape</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait</div>${bindingSvg(mode, false)}</div></div></div>`;
+  openModal(`<div class="hd"><b>Duplex Calibration Wizard</b><button data-close>Close</button></div><div class="bd">
     <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>
     <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">The highlighted diagram is the selected ${edge}-edge flip. Choose the actual leading edge; the wizard will tell you which edge must lead for page 2.</div></div>
     <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
