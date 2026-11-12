@@ -1,3 +1,28 @@
+# Proxy Press v0.5.7
+
+Reference-style duplex wizard diagrams.
+
+## What's new
+
+- **Turn-sheet illustrations:** Feed diagrams now show skewed paper sheets, shadows, folded corners, and curved arrows to make the physical refeed motion clearer.
+- **Feed-edge emphasis:** Yellow leading-edge markers and the selected binding badge make the intended feed direction easier to identify.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/Proxy-Press-0.5.7.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/Proxy-Press-0.5.7.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/Proxy-Press-0.5.7.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/Proxy-Press-0.5.7.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/Proxy-Press-0.5.7.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/Proxy-Press-0.5.7.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.7/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.6
 
 Duplex calibration wizard readability improvements.
