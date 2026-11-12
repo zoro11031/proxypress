@@ -168,6 +168,7 @@ h3:first-child{margin-top:2px}
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
 #overlay.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.65);animation:modalIn .18s cubic-bezier(.16,1,.3,1)}
+.modal.duplex{width:min(1200px,calc(100vw - 16px));max-height:calc(100vh - 24px)}
 @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .modal .hd b{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -225,6 +226,7 @@ h3:first-child{margin-top:2px}
   input,select,textarea{font-size:16px}
   #overlay{align-items:stretch}
   .modal{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border:0}
+  .modal.duplex{width:100vw;max-height:100dvh}
   .modal .hd{position:sticky;top:0;background:var(--panel);z-index:2}
   .modal .bd{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #ctx button{padding:11px 12px;font-size:15px}
@@ -3019,7 +3021,7 @@ function openModal(html) {
   if (!$('#overlay').classList.contains('on')) modalReturnFocus = document.activeElement;
   parkData();
   modalBeforeClose = null;
-  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow'); $('#overlay').classList.add('on');
+  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex'); $('#overlay').classList.add('on');
   const title = $('#modal .hd b');
   if (title) { title.id = 'modalTitle'; $('#modal').setAttribute('aria-labelledby', title.id); }
   else $('#modal').removeAttribute('aria-labelledby');
@@ -5321,18 +5323,18 @@ $('#btnDuplexWizard').onclick = () => {
         top:`<line x1="${x}" y1="${y}" x2="${x + rw}" y2="${y}"`,
         bottom:`<line x1="${x}" y1="${y + rh}" x2="${x + rw}" y2="${y + rh}"`
       };
-      return `<rect x="${x}" y="${y}" width="${rw}" height="${rh}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>${lines[edge]} stroke="#f59e0b" stroke-width="5"/><text x="${x + rw / 2}" y="${y + rh / 2 + 3}" text-anchor="middle" font-size="10" fill="${stroke}">${label}</text><text x="${x + rw / 2}" y="${y - 5}" text-anchor="middle" font-size="7" fill="#cbd5e1">${paperEdgeName('top', D)}</text><text x="${x + rw / 2}" y="${y + rh + 11}" text-anchor="middle" font-size="7" fill="#cbd5e1">${paperEdgeName('bottom', D)}</text><text x="${x - 4}" y="${y + rh / 2 + 2}" text-anchor="end" font-size="7" fill="#cbd5e1">${paperEdgeName('left', D)}</text><text x="${x + rw + 4}" y="${y + rh / 2 + 2}" font-size="7" fill="#cbd5e1">${paperEdgeName('right', D)}</text>`;
+      return `<rect x="${x}" y="${y}" width="${rw}" height="${rh}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>${lines[edge]} stroke="#f59e0b" stroke-width="6"/><text x="${x + rw / 2}" y="${y + rh / 2 + 4}" text-anchor="middle" font-size="12" fill="${stroke}">${label}</text><text x="${x + rw / 2}" y="${y - 6}" text-anchor="middle" font-size="9" fill="#cbd5e1">${paperEdgeName('top', D)}</text><text x="${x + rw / 2}" y="${y + rh + 13}" text-anchor="middle" font-size="9" fill="#cbd5e1">${paperEdgeName('bottom', D)}</text><text x="${x - 5}" y="${y + rh / 2 + 3}" text-anchor="end" font-size="9" fill="#cbd5e1">${paperEdgeName('left', D)}</text><text x="${x + rw + 5}" y="${y + rh / 2 + 3}" font-size="9" fill="#cbd5e1">${paperEdgeName('right', D)}</text>`;
     };
     const arrow = edge => edge === 'left' ? '<path d="M4 75h10l-4-4m4 4-4 4" fill="none" stroke="#f59e0b" stroke-width="2"/>' :
       edge === 'right' ? '<path d="M286 75h-10l4-4m-4 4 4 4" fill="none" stroke="#f59e0b" stroke-width="2"/>' :
       edge === 'top' ? '<path d="M150 4v10l-4-4m4 4 4-4" fill="none" stroke="#f59e0b" stroke-width="2"/>' :
       '<path d="M150 146v-10l-4 4m4-4 4 4" fill="none" stroke="#f59e0b" stroke-width="2"/>';
-    return `<svg viewBox="0 0 300 150" role="img" aria-label="${mode}-side ${landscape ? 'landscape' : 'portrait'} example: page 1 ${paperEdgeName(demoFront, D)} first, page 2 ${paperEdgeName(backEdge, D)} first" style="width:100%;height:auto">${paper(18, '#dbeafe', '#2563eb', demoFront, 'PAGE 1 / FRONT')}${paper(182, '#fee2e2', '#dc2626', backEdge, 'PAGE 2 / BACK')}${arrow(demoFront)}<text x="150" y="12" text-anchor="middle" font-size="8" fill="#f59e0b">YELLOW EDGE = FEED FIRST</text><text x="150" y="143" text-anchor="middle" font-size="8" fill="#f59e0b">TURN ${turn.axis.toUpperCase()} · PAGE 2: ${paperEdgeName(backEdge, D).toUpperCase()} FIRST</text></svg>`;
+    return `<svg viewBox="0 0 300 150" role="img" aria-label="${mode}-side ${landscape ? 'landscape' : 'portrait'} example: page 1 ${paperEdgeName(demoFront, D)} first, page 2 ${paperEdgeName(backEdge, D)} first" style="width:100%;height:auto">${paper(18, '#dbeafe', '#2563eb', demoFront, 'PAGE 1 / FRONT')}${paper(182, '#fee2e2', '#dc2626', backEdge, 'PAGE 2 / BACK')}${arrow(demoFront)}<text x="150" y="12" text-anchor="middle" font-size="10" fill="#f59e0b">YELLOW EDGE = FEED FIRST</text><text x="150" y="143" text-anchor="middle" font-size="10" fill="#f59e0b">TURN ${turn.axis.toUpperCase()} · PAGE 2: ${paperEdgeName(backEdge, D).toUpperCase()} FIRST</text></svg>`;
   };
   const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
-  const bindingExample = mode => `<div class="callout-box" style="margin:0;text-align:center;${edge === mode ? 'outline:2px solid #f59e0b;' : ''}"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' · selected' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px"><div><div class="hint">Landscape page</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait page</div>${bindingSvg(mode, false)}</div></div></div>`;
+  const bindingExample = mode => `<div class="callout-box" style="margin:0;text-align:center;${edge === mode ? 'outline:2px solid #f59e0b;' : ''}"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' · selected' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px"><div><div class="hint">Landscape page</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait page</div>${bindingSvg(mode, false)}</div></div></div>`;
   openModal(`<div class="hd"><b>Duplex calibration wizard</b><button data-close>Close</button></div><div class="bd">
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>
     <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">The highlighted diagram is the selected ${edge}-edge flip. Choose the actual leading edge; the wizard will tell you which edge must lead for page 2.</div></div>
     <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
     <ol class="steps">
@@ -5348,6 +5350,7 @@ $('#btnDuplexWizard').onclick = () => {
     <div class="row" style="margin-top:12px"><button id="duplexWizardApply" class="primary">Save back-page correction</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
   </div>`);
+  $('#modal').classList.add('duplex');
   const updateFeed = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 feed direction:</b> ${esc(feed.text)}<br><span class="hint">Keep the printed side facing the other way after turning the sheet.</span>`;
