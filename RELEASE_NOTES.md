@@ -1,4 +1,4 @@
-# Proxy Press v0.5.4.2
+# Proxy Press v0.5.5
 
 Duplex calibration helper and physical feed-orientation improvements.
 
@@ -12,15 +12,15 @@ Duplex calibration helper and physical feed-orientation improvements.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/Proxy-Press-0.5.5.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/Proxy-Press-0.5.5.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/Proxy-Press-0.5.4.2.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.2/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/Proxy-Press-0.5.5.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/Proxy-Press-0.5.5.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/Proxy-Press-0.5.5.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/Proxy-Press-0.5.5.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.5/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
