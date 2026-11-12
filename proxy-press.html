@@ -1338,6 +1338,20 @@ function duplexTurn(L) {
               : 'The cards along the top edge must end up along the bottom edge, and the left of the picture must stay on the left.'
   };
 }
+function paperEdgeName(edge, L) {
+  const short = L.W > L.H ? ['left', 'right'].includes(edge) : ['top', 'bottom'].includes(edge);
+  return `${edge} ${short ? 'short' : 'long'} edge`;
+}
+function duplexFeedInstruction(L, frontEdge) {
+  const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
+  const backEdge = S.settings.duplexFlip === 'short' ? opposite[frontEdge] : frontEdge;
+  return {
+    front: paperEdgeName(frontEdge, L),
+    back: paperEdgeName(backEdge, L),
+    backEdge,
+    text: `If the ${paperEdgeName(frontEdge, L)} entered first for the front, feed the ${paperEdgeName(backEdge, L)} first for the back.`
+  };
+}
 // Rotation of a card image so its back reads the right way up after the sheet is turned over.
 function faceRot(L, back) {
   if (!back) return L.rot ? 90 : 0;
@@ -5155,7 +5169,7 @@ function backStepsHtml(sheets) {
   <ol class="steps">
     <li><b>Print the front.</b> In the print dialog choose <b>Pages: 1</b> (then repeat sheet by sheet), <b>Actual size / 100%</b>, and the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print. Use its recommended feed tray.</li>
     <li><b>Let it dry / cool.</b> Let ink dry or the laser-printed sheet cool before handling. Follow the paper and printer guidance.</li>
-    <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b> ${t.sameEdge ? 'The edge that went into the printer first must go in first again.' : 'The edge that went in first now goes in last: the opposite edge leads.'}</li>
+    <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b> Mark the edge that went into the printer first: ${t.sameEdge ? 'feed that same edge first again.' : 'feed the opposite edge first for page 2.'}</li>
     <li><b>Put it back with the printed side facing the other way.</b> If your printer printed on the side facing you, the printed side now faces away from you, and the blank side faces you.</li>
     <li><b>Print the back.</b> Choose <b>Pages: 2</b> (then repeat sheet by sheet), same settings. Repeat for each sheet${sheets > 1 ? ': pages 3 then 4, and so on' : ''}.</li>
     <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Printer Alignment &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> in that drawer.</li>
@@ -5185,11 +5199,28 @@ $('#btnDuplexTest').onclick = () => {
       const cx = T.x(p.x + L.sw / 2), cy = T.y(p.y + L.sh / 2);
       doc.line(cx - 6, cy, cx + 6, cy); doc.line(cx, cy - 6, cx, cy + 6);
     }
+    const rx = L.W / 2 - 50, ry = L.H / 2 - 60;
+    doc.setLineWidth(0.15);
+    doc.line(T.x(rx), T.y(ry), T.x(rx + 100), T.y(ry));
+    doc.line(T.x(rx), T.y(ry), T.x(rx), T.y(ry + 100));
+    doc.setFontSize(6);
+    for (let i = 0; i <= 100; i++) {
+      const tick = i % 10 === 0 ? 4 : i % 5 === 0 ? 2.5 : 1.5;
+      doc.line(T.x(rx + i), T.y(ry), T.x(rx + i), T.y(ry - tick));
+      doc.line(T.x(rx), T.y(ry + i), T.x(rx - tick), T.y(ry + i));
+      if (i % 10 === 0) {
+        doc.text(String(i), T.x(rx + i), T.y(ry - 5), {align:'center'});
+        doc.text(String(i), T.x(rx - 6), T.y(ry + i + 1.5), {align:'right'});
+      }
+    }
     doc.setFontSize(14); doc.setTextColor(back ? '#c0392b' : '#000000');
     doc.text(back ? 'BACK' : 'FRONT', L.W / 2, L.H / 2 - 10, {align:'center'});
     doc.setFontSize(9);
     doc.text(back ? 'Hold the sheet up to a light: the red outlines should sit exactly behind the black ones.'
       : `Print this page, turn the sheet over ${t.axis} as you see it here, ${t.sameEdge ? 're-feed the same edge first' : 'feed the opposite edge first'}, then print page 2.`, L.W / 2, L.H / 2 + 14, {align:'center'});
+    doc.setFontSize(8);
+    doc.text(back ? 'Use the 1 mm rulers to measure red-minus-black displacement: right/down is positive.'
+      : 'The rulers are 1 mm apart. Measure red-minus-black displacement on page 2 after holding both sides to light.', L.W / 2, L.H / 2 + 24, {align:'center'});
     // A TOP mark on each side, placed so that after the right flip the two land on
     // top of each other. A square grid of outlines looks nearly correct under a wrong
     // flip; these do not.
@@ -5202,7 +5233,8 @@ $('#btnDuplexTest').onclick = () => {
   doc.save('double-sided-test.pdf');
 };
 $('#btnDuplexWizard').onclick = () => {
-  const s = S.settings, edge = s.duplexFlip === 'short' ? 'short' : 'long';
+  const s = S.settings, L = layout(), edge = s.duplexFlip === 'short' ? 'short' : 'long';
+  const frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
   openModal(`<div class="hd"><b>Duplex calibration wizard</b><button data-close>Close</button></div><div class="bd">
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">
       <div class="callout-box" style="margin:0;text-align:center">
@@ -5228,6 +5260,8 @@ $('#btnDuplexWizard').onclick = () => {
         <b>Short-side binding</b><div class="hint">Turn top to bottom</div>
       </div>
     </div>
+    <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">Choose the actual edge you fed first. The wizard will tell you which edge must lead when you feed page 2.</div></div>
+    <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
     <ol class="steps">
       <li>First run the <b>Alignment sheet</b> and correct scale and printer offsets until the front page measures correctly.</li>
       <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button>. Print page 1 at Actual size / 100%, turn the sheet over for a <b>${edge}-edge</b> feed, then print page 2.</li>
@@ -5241,6 +5275,12 @@ $('#btnDuplexWizard').onclick = () => {
     <div class="row" style="margin-top:12px"><button id="duplexWizardApply" class="primary">Save back-page correction</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
   </div>`);
+  const updateFeed = () => {
+    const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
+    $('#duplexWizardFeed').innerHTML = `<b>Page 2 feed direction:</b> ${esc(feed.text)}<br><span class="hint">Keep the printed side facing the other way after turning the sheet.</span>`;
+  };
+  $('#duplexWizardFrontEdge').onchange = updateFeed;
+  updateFeed();
   $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
   $('#duplexWizardApply').onclick = () => {
     const x = $('#duplexWizardX').valueAsNumber, y = $('#duplexWizardY').valueAsNumber;
