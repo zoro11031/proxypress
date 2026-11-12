@@ -26,6 +26,7 @@
     eq('landscape short mirrorX', L.mirrorX, true);
     eq('landscape short turn', duplexTurn(L).axis, 'left to right');
     eq('landscape short back rotation', faceRot(L, true), 0);
+    eq('landscape short left feed', duplexFeedInstruction(L, 'left').back, 'right short edge');
 
     // Portrait is the other way round.
     S.settings = {...DEFAULTS, pageSize:'letter', orientation:'portrait', cardRotation:'auto', bleed:0.5, margin:5, dfcMode:'duplex'};
@@ -39,6 +40,7 @@
     eq('portrait short mirrorX', L.mirrorX, false);
     eq('portrait short turn', duplexTurn(L).axis, 'top to bottom');
     eq('portrait short back rotation', faceRot(L, true), 180);
+    eq('portrait short top feed', duplexFeedInstruction(L, 'top').back, 'bottom short edge');
     eq('MPC uploaded bleed default', cleanSettings({}).customSrcBleed, 3.048);
 
     // The printer offset reaches both sides; the back offset is a delta on top.

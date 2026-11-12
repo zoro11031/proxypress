@@ -1,4 +1,31 @@
-# Proxy Press v0.5.4
+# Proxy Press v0.5.4.1
+
+Duplex feed-direction and offset measurement refinements.
+
+## What's new
+
+- **Explicit re-feed direction:** The duplex wizard asks which edge entered first and identifies the exact edge to feed for the back page.
+- **Offset measurement rulers:** The double-sided test now includes 1 mm X/Y rulers and signed displacement guidance.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
+# Previous Releases
+
+### v0.5.4
 
 Duplex printing and uploaded-image bleed calibration improvements.
 
@@ -24,8 +51,6 @@ Duplex printing and uploaded-image bleed calibration improvements.
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
 ---
-
-# Previous Releases
 
 ### v0.5.3
 
