@@ -1,6 +1,6 @@
 pkgbase = proxypress-bin
 	pkgdesc = Turn a decklist into print-ready Magic proxies (desktop application)
-	pkgver = 0.5.4
+	pkgver = 0.5.4.1
 	pkgrel = 1
 	url = https://github.com/zoro11031/proxypress
 	arch = x86_64
@@ -32,7 +32,7 @@ pkgbase = proxypress-bin
 	optdepends = cups: print directly to local or network printers
 	provides = proxypress
 	conflicts = proxypress
-	source = https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.deb
+	source = https://github.com/zoro11031/proxypress/releases/download/v0.5.4.1/Proxy-Press-0.5.4.1.deb
 	sha256sums = SKIP
 
 pkgname = proxypress-bin
