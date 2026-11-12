@@ -5613,8 +5613,8 @@ function openDuplexWizard(state = {}) {
     <p class="hint">Page 2 tells you where to look. Find where the centre of the ring on the front lands on the back — hold it to a light, or push a pin through it if the stock is opaque — and read it off the grid.</p>
     <div class="duplex-read">${duplexReadSvg()}</div>
     <div class="grid2" style="margin-top:10px">
-      <div class="field"><label for="duplexWizardX">X reading from the sheet (mm)</label><input id="duplexWizardX" type="number" step="0.05" value="${esc(keep(state.x))}"></div>
-      <div class="field"><label for="duplexWizardY">Y reading from the sheet (mm)</label><input id="duplexWizardY" type="number" step="0.05" value="${esc(keep(state.y))}"></div>
+      <div class="field"><label for="duplexWizardX">X reading from the sheet (mm)</label><input id="duplexWizardX" type="text" inputmode="decimal" value="${esc(keep(state.x))}"></div>
+      <div class="field"><label for="duplexWizardY">Y reading from the sheet (mm)</label><input id="duplexWizardY" type="text" inputmode="decimal" value="${esc(keep(state.y))}"></div>
     </div>
     <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
     <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Add the reading</button><button id="duplexWizardZero">Back to no correction</button></div>
@@ -5623,7 +5623,7 @@ function openDuplexWizard(state = {}) {
   </div>`);
   $('#modal').classList.add('duplex');
 
-  const reading = () => [$('#duplexWizardX').valueAsNumber, $('#duplexWizardY').valueAsNumber];
+  const reading = () => [$('#duplexWizardX').value.trim(), $('#duplexWizardY').value.trim()].map(v => v === '' ? NaN : Number(v));
   const refresh = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 goes in ${esc(feed.back)} first.</b> ${esc(feed.text)}<br><span class="hint">Put the sheet back with the printed side facing the other way.</span>`;

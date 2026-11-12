@@ -145,7 +145,7 @@
     S.settings = {...DEFAULTS, backOffsetX:0.5, backOffsetY:-0.25};
     openDuplexWizard();
     document.querySelector('#duplexWizardX').value = '-0.75';
-    document.querySelector('#duplexWizardY').value = '1';
+    document.querySelector('#duplexWizardY').value = '+1';
     document.querySelector('#duplexWizardApply').click();
     eq('wizard adds the X reading', S.settings.backOffsetX, -0.25);
     eq('wizard adds the Y reading', S.settings.backOffsetY, 0.75);
