@@ -5198,29 +5198,23 @@ $('#btnDuplexTest').onclick = () => {
       doc.rect(T.x(p.x + s.bleed), T.y(p.y + s.bleed), T.w(L.cw), T.h(L.ch));
       const cx = T.x(p.x + L.sw / 2), cy = T.y(p.y + L.sh / 2);
       doc.line(cx - 6, cy, cx + 6, cy); doc.line(cx, cy - 6, cx, cy + 6);
-    }
-    const rx = L.W / 2 - 50, ry = L.H / 2 - 60;
-    doc.setLineWidth(0.15);
-    doc.line(T.x(rx), T.y(ry), T.x(rx + 100), T.y(ry));
-    doc.line(T.x(rx), T.y(ry), T.x(rx), T.y(ry + 100));
-    doc.setFontSize(6);
-    for (let i = 0; i <= 100; i++) {
-      const tick = i % 10 === 0 ? 4 : i % 5 === 0 ? 2.5 : 1.5;
-      doc.line(T.x(rx + i), T.y(ry), T.x(rx + i), T.y(ry - tick));
-      doc.line(T.x(rx), T.y(ry + i), T.x(rx - tick), T.y(ry + i));
-      if (i % 10 === 0) {
-        doc.text(String(i), T.x(rx + i), T.y(ry - 5), {align:'center'});
-        doc.text(String(i), T.x(rx - 6), T.y(ry + i + 1.5), {align:'right'});
+      if (i === 0) {
+        const x0 = p.x + s.bleed, y0 = p.y + s.bleed;
+        doc.setLineWidth(0.15); doc.setFontSize(6); doc.setTextColor(back ? '#c0392b' : '#000000');
+        doc.line(T.x(x0), T.y(y0 + 4), T.x(x0 + L.cw), T.y(y0 + 4));
+        doc.line(T.x(x0 + 4), T.y(y0), T.x(x0 + 4), T.y(y0 + L.ch));
+        for (let n = 0; n <= L.cw; n++) {
+          const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
+          doc.line(T.x(x0 + n), T.y(y0 + 4), T.x(x0 + n), T.y(y0 + 4 + tick));
+          if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + 10), {align:'center'});
+        }
+        for (let n = 0; n <= L.ch; n++) {
+          const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
+          doc.line(T.x(x0 + 4), T.y(y0 + n), T.x(x0 + 4 + tick), T.y(y0 + n));
+          if (n % 10 === 0) doc.text(String(n), T.x(x0 + 10), T.y(y0 + n + 1.5), {align:'left'});
+        }
       }
     }
-    doc.setFontSize(14); doc.setTextColor(back ? '#c0392b' : '#000000');
-    doc.text(back ? 'BACK' : 'FRONT', L.W / 2, L.H / 2 - 10, {align:'center'});
-    doc.setFontSize(9);
-    doc.text(back ? 'Hold the sheet up to a light: the red outlines should sit exactly behind the black ones.'
-      : `Print this page, turn the sheet over ${t.axis} as you see it here, ${t.sameEdge ? 're-feed the same edge first' : 'feed the opposite edge first'}, then print page 2.`, L.W / 2, L.H / 2 + 14, {align:'center'});
-    doc.setFontSize(8);
-    doc.text(back ? 'Use the 1 mm rulers to measure red-minus-black displacement: right/down is positive.'
-      : 'The rulers are 1 mm apart. Measure red-minus-black displacement on page 2 after holding both sides to light.', L.W / 2, L.H / 2 + 24, {align:'center'});
     // A TOP mark on each side, placed so that after the right flip the two land on
     // top of each other. A square grid of outlines looks nearly correct under a wrong
     // flip; these do not.
