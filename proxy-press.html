@@ -168,6 +168,7 @@ h3:first-child{margin-top:2px}
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
 #overlay.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.65);animation:modalIn .18s cubic-bezier(.16,1,.3,1)}
+.modal.duplex{width:min(1200px,calc(100vw - 16px));max-height:calc(100vh - 24px)}
 @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .modal .hd b{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -225,6 +226,7 @@ h3:first-child{margin-top:2px}
   input,select,textarea{font-size:16px}
   #overlay{align-items:stretch}
   .modal{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border:0}
+  .modal.duplex{width:100vw;max-height:100dvh}
   .modal .hd{position:sticky;top:0;background:var(--panel);z-index:2}
   .modal .bd{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #ctx button{padding:11px 12px;font-size:15px}
@@ -540,6 +542,12 @@ details.adv:not([open]){padding-bottom:10px}
           <button id="btnCal" title="Print once on your paper, measure, and enter the results below">Alignment sheet</button>
           <button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button>
           <button id="btnDuplexWizard" title="Print a duplex test and calibrate the back-page offset">Duplex calibration wizard</button>
+        </div>
+        <div class="row" style="margin-top:10px;align-items:end">
+          <div class="field" style="flex:1"><label for="calProfileSel">Printer calibration profile</label><select id="calProfileSel"><option value="">No saved profile</option></select></div>
+          <div class="field" style="flex:1"><label for="calProfileName">Profile name</label><input id="calProfileName" placeholder="Canon cardstock"></div>
+          <button id="calProfileSave">Save profile</button>
+          <button id="calProfileDelete" class="danger">Delete</button>
         </div>
         <div class="grid2" id="calForm"></div>
       </details>
@@ -930,7 +938,7 @@ const DEFAULTS = {
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
-  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
+  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
@@ -1132,7 +1140,7 @@ const store = (() => {
 })();
 
 /* ---------- state ---------- */
-const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, zoom:2.4, showBacks:true, orderShowBacks:false };
+const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePreset:null, calibrationProfiles:[], zoom:2.4, showBacks:true, orderShowBacks:false };
 const deck = () => S.decks.find(d => d.id === S.deckId);
 
 let saveTimer;
@@ -1141,7 +1149,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     const d = deck(); if (d) d.updated = Date.now();
     await store.set('kv', 'decks', S.decks);
-    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
+    await store.set('kv', 'ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, calibrationProfiles:S.calibrationProfiles, zoom:S.zoom, showBacks:S.showBacks, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle});
     await store.set('kv', 'presets', S.presets);
   }, 250);
 }
@@ -1165,7 +1173,7 @@ async function load() {
   if (Array.isArray(cc)) for (const c of cc) if (c?.id) cardCache.set(c.id, c);
   if (ui) {
     S.deckId = ui.deckId; S.settings = cleanSettings(ui.settings);
-    S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
+    S.activePreset = ['b-cameo','b-cameo-letter','b-cameo-a4'].includes(ui.activePreset) ? null : ui.activePreset; S.calibrationProfiles = Array.isArray(ui.calibrationProfiles) ? ui.calibrationProfiles : []; S.zoom = ui.zoom || S.zoom; S.showBacks = ui.showBacks ?? true; S.orderShowBacks = !!ui.orderShowBacks; S.advOpen = !!ui.advOpen; S.printer = ui.printer || 'et2800'; S.printerByKind = ui.printerByKind || {}; S.mpc = {...MPC_DEFAULTS, ...ui.mpc}; S.showCuts = !!(ui.showCuts ?? ui.settings?.showCuts); S.mode = ui.mode === 'order' ? 'order' : 'print'; S.welcomed = !!ui.welcomed; S.manaAdv = !!ui.manaAdv; S.ccFonts = ui.ccFonts || {}; S.ccFontNames = ui.ccFontNames || {}; S.frameSets = Array.isArray(ui.frameSets) ? ui.frameSets : []; S.ccStyle = typeof ui.ccStyle === 'string' ? ui.ccStyle : null;
   } else {
     S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings}; S.activePreset = BUILTIN_PRESETS[0].id; S.printer = 'et2800'; S.mpc = {...MPC_DEFAULTS};
   }
@@ -1358,7 +1366,7 @@ function faceRot(L, back) {
   return L.mirrorX ? (L.rot ? -90 : 0) : (L.rot ? 90 : 180);
 }
 function makeT(L, back) {
-  const s = S.settings, kx = s.scaleX/100, ky = s.scaleY/100;
+  const s = S.settings, kx = (back ? s.backScaleX : s.scaleX)/100, ky = (back ? s.backScaleY : s.scaleY)/100;
   // The printer's own placement error is the same on both passes of a sheet, so the
   // printer offset applies to fronts and backs alike. The back offset is only the
   // extra drift the second pass adds, on top of it.
@@ -3013,7 +3021,7 @@ function openModal(html) {
   if (!$('#overlay').classList.contains('on')) modalReturnFocus = document.activeElement;
   parkData();
   modalBeforeClose = null;
-  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow'); $('#overlay').classList.add('on');
+  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex'); $('#overlay').classList.add('on');
   const title = $('#modal .hd b');
   if (title) { title.id = 'modalTitle'; $('#modal').setAttribute('aria-labelledby', title.id); }
   else $('#modal').removeAttribute('aria-labelledby');
@@ -4437,16 +4445,19 @@ const FIELDS = [
   {sec:'Calibration (from calibration sheet)'},
   {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01},
   {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
+  {k:'backOffsetUnit', adv:true, label:'Back offset units', type:'select', opts:[['mm','Millimetres (mm)'],['in','Inches (in)']]},
   {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet.'},
   {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
-  {k:'backOffsetX', adv:true, label:'Extra back-page offset X (mm)', type:'num', step:0.1, hint:'Added on top of the printer offset, on back pages only. Leave these at 0 until the fronts land right and the backs still do not.'},
-  {k:'backOffsetY', adv:true, label:'Extra back-page offset Y (mm)', type:'num', step:0.1},
+  {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only. Leave these at 0 until the fronts land right and the backs still do not.'},
+  {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
+  {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment. 100% leaves the calibrated size unchanged.'},
+  {k:'backScaleY', adv:true, label:'Back-page scale Y (%)', type:'num', step:0.01, min:90, max:110},
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
 ];
-const CAL_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY'];
+const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
@@ -4482,6 +4493,7 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
+  if (!['mm', 'in'].includes(out.backOffsetUnit)) out.backOffsetUnit = 'mm';
   for (const f of FIELDS) if (f.type === 'num') {
     if (f.min !== undefined) out[f.k] = Math.max(f.min, out[f.k]);
     if (f.max !== undefined) out[f.k] = Math.min(f.max, out[f.k]);
@@ -4540,6 +4552,8 @@ function renderSettings() {
   // printer stays silent rather than being told its paper is wrong.
   if (sheetFeedable(S.printer, L.W, L.H) === false)
     html += `<div class="warn">${esc(printerOf(S.printer).name.replace(/ \(.*\)$/, ''))} can't feed this paper size, so it won't print on that printer. It is fine for a print shop or another printer.</div>`;
+  const offsetUnit = s.backOffsetUnit === 'in' ? 'in' : 'mm';
+  const offsetValue = k => offsetUnit === 'in' ? s[k] / 25.4 : s[k];
   const fieldHtml = f => {
     const hint = typeof f.hint === 'function' ? f.hint() : f.hint;
     if (f.type === 'check') return `<label class="check"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
@@ -4549,10 +4563,13 @@ function renderSettings() {
       return `<div class="field full"><label>Card back image</label><div class="row"><img id="backThumb" style="width:40px;height:56px;object-fit:cover;border-radius:3px;background:#000;${has ? '' : 'display:none'}"><button data-backup>Upload back…</button><button data-mpcback>Browse cardbacks…</button>${has ? '<button class="danger" data-backclear>Remove</button>' : ''}</div>${has ? '' : '<p class="hint">Upload a back image or browse the cardback library.</p>'}<input type="file" accept="image/*" hidden id="fileBack"></div>`;
     }
     let input;
+    const label = ['backOffsetX', 'backOffsetY'].includes(f.k) ? `${f.label} (${offsetUnit})` : f.label;
+    const value = ['backOffsetX', 'backOffsetY'].includes(f.k) ? offsetValue(f.k) : s[f.k];
+    const step = ['backOffsetX', 'backOffsetY'].includes(f.k) && offsetUnit === 'in' ? 0.001 : f.step ?? 1;
     if (f.type === 'select') input = `<select id="setting-${f.k}" data-k="${f.k}" ${f.num ? 'data-num' : ''}>${f.opts.map(([v, t]) => `<option value="${v}" ${String(s[f.k]) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
     else if (f.type === 'color') input = `<input id="setting-${f.k}" type="color" data-k="${f.k}" value="${esc(s[f.k])}">`;
-    else input = `<input id="setting-${f.k}" type="number" data-k="${f.k}" data-num value="${esc(s[f.k])}" step="${f.step ?? 1}" ${f.min != null ? `min="${f.min}"` : ''} ${f.max != null ? `max="${f.max}"` : ''}>`;
-    return `<div class="field ${f.full || hint ? 'full' : ''}"><label for="setting-${f.k}">${f.label}</label>${input}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+    else input = `<input id="setting-${f.k}" type="number" data-k="${f.k}" data-num value="${esc(value)}" step="${step}" ${f.min != null && !['backOffsetX', 'backOffsetY'].includes(f.k) ? `min="${f.min}"` : ''} ${f.max != null && !['backOffsetX', 'backOffsetY'].includes(f.k) ? `max="${f.max}"` : ''}>`;
+    return `<div class="field ${f.full || hint ? 'full' : ''}"><label for="setting-${f.k}">${label}</label>${input}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
   };
   const paperKeys = ['pageSize', 'orientation', 'pageW', 'pageH'];
   $('#paperForm').innerHTML = FIELDS.filter(f => paperKeys.includes(f.k) && (!f.show || f.show(s))).map(fieldHtml).join('');
@@ -4578,12 +4595,29 @@ function renderSettings() {
   form.closest('.pane').scrollTop = st;
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
+  renderCalibrationProfiles();
+}
+const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
+function renderCalibrationProfiles() {
+  const sel = $('#calProfileSel');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = `<option value="">No saved profile</option>${S.calibrationProfiles.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}`;
+  if (S.calibrationProfiles.some(p => p.id === current)) sel.value = current;
 }
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
-  if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) { t.reportValidity(); t.value = s[k]; return; }
-  s[k] = t.type === 'checkbox' ? t.checked : t.hasAttribute('data-num') ? (parseFloat(t.value) || 0) : t.value;
+  if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) {
+    t.reportValidity();
+    t.value = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? s[k] / 25.4 : s[k];
+    return;
+  }
+  if (t.type === 'checkbox') s[k] = t.checked;
+  else if (t.hasAttribute('data-num')) {
+    const n = parseFloat(t.value) || 0;
+    s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
+  } else s[k] = t.value;
   if (k === 'orientation') s.cardRotation = 'upright';
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
@@ -4611,6 +4645,33 @@ $('#settingsForm').addEventListener('change', async ev => {
   const old = S.settings.backImage; S.settings.backImage = await storeImage(ev.target.files[0]);
   await removeImageIfUnused(old); save(); renderAll();
 });
+$('#calProfileSel').onchange = ev => {
+  const p = S.calibrationProfiles.find(x => x.id === ev.target.value);
+  if (!p) return;
+  S.settings = cleanSettings({...S.settings, ...p.settings});
+  if (PRINTERS.some(x => x.id === p.printer)) {
+    S.printer = p.printer;
+    S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
+  }
+  S.activePreset = null; save(); renderAll();
+};
+$('#calProfileSave').onclick = () => {
+  const name = $('#calProfileName').value.trim();
+  if (!name) return toast('Enter a profile name first.');
+  const settings = Object.fromEntries(CAL_PROFILE_KEYS.map(k => [k, S.settings[k]]));
+  const existing = S.calibrationProfiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (existing) Object.assign(existing, {name, printer:S.printer, settings});
+  else S.calibrationProfiles.push({id:uid(), name:name.slice(0, 100), printer:S.printer, settings});
+  save(); renderCalibrationProfiles(); toast(`Saved calibration profile "${name}".`);
+};
+$('#calProfileDelete').onclick = () => {
+  const id = $('#calProfileSel').value;
+  if (!id) return toast('Choose a saved profile first.');
+  const p = S.calibrationProfiles.find(x => x.id === id);
+  if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
+  S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
+  save(); renderCalibrationProfiles();
+};
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
@@ -5188,79 +5249,99 @@ $('#btnPdf').onclick = async () => {
 
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
-  const s = S.settings, L = layout(), doc = newDoc(L), t = duplexTurn(L);
+  const L = layout(), doc = newDoc(L), t = duplexTurn(L);
+  const T = {x:v => v, y:v => v, w:v => v, h:v => v};
+  const targetSize = Math.min(18, Math.min(L.W, L.H) * 0.12), margin = Math.max(12, Math.min(22, Math.min(L.W, L.H) * 0.1));
+  const targets = [[margin, margin], [L.W - margin - targetSize, margin], [margin, L.H - margin - targetSize], [L.W - margin - targetSize, L.H - margin - targetSize], [L.W / 2 - targetSize / 2, L.H / 2 - targetSize / 2]];
+  const color = back => back ? '#c0392b' : '#111827';
+  const drawRulers = back => {
+    const c = color(back), x0 = 12, y0 = 12;
+    doc.setDrawColor(c); doc.setTextColor(c); doc.setLineWidth(0.15); doc.setFontSize(6);
+    doc.line(T.x(x0), T.y(y0), T.x(L.W - x0), T.y(y0));
+    doc.line(T.x(x0), T.y(y0), T.x(x0), T.y(L.H - x0));
+    for (let n = 0; n <= L.W - 2*x0; n++) {
+      const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
+      doc.line(T.x(x0 + n), T.y(y0), T.x(x0 + n), T.y(y0 + tick));
+      if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 - 2), {align:'center'});
+      const inch = n / 25.4;
+      if (Math.abs(inch - Math.round(inch)) < 0.01) doc.text(`${Math.round(inch)} in`, T.x(x0 + n), T.y(y0 + 8), {align:'center'});
+    }
+    for (let n = 0; n <= L.H - 2*x0; n++) {
+      const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
+      doc.line(T.x(x0), T.y(y0 + n), T.x(x0 + tick), T.y(y0 + n));
+      if (n % 10 === 0) doc.text(String(n), T.x(x0 - 2), T.y(y0 + n + 1.5), {align:'right'});
+    }
+    doc.setFontSize(7); doc.text('mm', T.x(L.W - x0), T.y(y0 - 2), {align:'right'});
+    doc.text('1 in = 25.4 mm', T.x(L.W - x0), T.y(y0 + 6), {align:'right'});
+  };
+  const drawTarget = ([x, y], back, n) => {
+    const c = color(back), cx = T.x(x + targetSize / 2), cy = T.y(y + targetSize / 2);
+    doc.setDrawColor(c); doc.setTextColor(c); doc.setLineWidth(0.35);
+    doc.rect(T.x(x), T.y(y), T.w(targetSize), T.h(targetSize));
+    doc.line(cx - 7, cy, cx + 7, cy); doc.line(cx, cy - 7, cx, cy + 7);
+    doc.setFontSize(7); doc.text(String(n), cx, cy + 11, {align:'center'});
+  };
   for (const back of [false, true]) {
     if (back) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
-    const T = makeT(L, back);
-    doc.setDrawColor(back ? '#c0392b' : '#000000'); doc.setLineWidth(0.3);
-    for (let i = 0; i < L.per; i++) {
-      const p = slotPos(L, i, back);
-      doc.rect(T.x(p.x + s.bleed), T.y(p.y + s.bleed), T.w(L.cw), T.h(L.ch));
-      const cx = T.x(p.x + L.sw / 2), cy = T.y(p.y + L.sh / 2);
-      doc.line(cx - 6, cy, cx + 6, cy); doc.line(cx, cy - 6, cx, cy + 6);
-      if (i === 0) {
-        const x0 = p.x + s.bleed, y0 = p.y + s.bleed;
-        doc.setLineWidth(0.15); doc.setFontSize(6); doc.setTextColor(back ? '#c0392b' : '#000000');
-        doc.line(T.x(x0), T.y(y0 + 4), T.x(x0 + L.cw), T.y(y0 + 4));
-        doc.line(T.x(x0), T.y(y0 + L.ch - 4), T.x(x0 + L.cw), T.y(y0 + L.ch - 4));
-        doc.line(T.x(x0 + 4), T.y(y0), T.x(x0 + 4), T.y(y0 + L.ch));
-        doc.line(T.x(x0 + L.cw - 4), T.y(y0), T.x(x0 + L.cw - 4), T.y(y0 + L.ch));
-        for (let n = 0; n <= L.cw; n++) {
-          const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
-          doc.line(T.x(x0 + n), T.y(y0 + 4), T.x(x0 + n), T.y(y0 + 4 + tick));
-          doc.line(T.x(x0 + n), T.y(y0 + L.ch - 4), T.x(x0 + n), T.y(y0 + L.ch - 4 - tick));
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + 10), {align:'center'});
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 + L.ch - 10), {align:'center'});
-        }
-        for (let n = 0; n <= L.ch; n++) {
-          const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
-          doc.line(T.x(x0 + 4), T.y(y0 + n), T.x(x0 + 4 + tick), T.y(y0 + n));
-          doc.line(T.x(x0 + L.cw - 4), T.y(y0 + n), T.x(x0 + L.cw - 4 - tick), T.y(y0 + n));
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + 10), T.y(y0 + n + 1.5), {align:'left'});
-          if (n % 10 === 0) doc.text(String(n), T.x(x0 + L.cw - 10), T.y(y0 + n + 1.5), {align:'right'});
-        }
-      }
-    }
-    // A TOP mark on each side, placed so that after the right flip the two land on
-    // top of each other. A square grid of outlines looks nearly correct under a wrong
-    // flip; these do not.
-    // Off-centre on the axis that mirrors, so a wrong turn moves it visibly.
-    const off = Math.min(40, L.W / 4);
-    doc.setFontSize(11);
-    doc.text(back ? 'TOP (back)' : 'TOP (front)',
-      T.x(L.W / 2 + (t.lr ? (back ? off : -off) : 0)), T.y(!t.lr && back ? L.H - 8 : 8), {align:'center'});
+    drawRulers(back);
+    targets.forEach((p, i) => {
+      const q = back ? (t.lr ? [L.W - p[0] - targetSize, p[1]] : [p[0], L.H - p[1] - targetSize]) : p;
+      drawTarget(q, back, i + 1);
+    });
+    doc.setFontSize(13); doc.setTextColor(color(back));
+    doc.text(back ? 'TOP / BACK' : 'TOP / FRONT', L.W / 2, 8, {align:'center'});
+    doc.setFontSize(8);
+    doc.text(back ? 'Hold this page to the front. Red targets should sit exactly over black targets.'
+      : `Turn ${t.axis} and ${t.sameEdge ? 'feed the same edge first' : 'feed the opposite edge first'} for page 2.`, L.W / 2, L.H - 8, {align:'center'});
+    const lx = Math.max(12, L.W - 92), ly = Math.max(30, L.H - 70), lw = Math.min(80, L.W - lx - 8);
+    doc.setDrawColor(color(back)); doc.setLineWidth(0.2); doc.rect(lx, ly, lw, 28);
+    doc.setFontSize(7); doc.setTextColor(color(back));
+    doc.text('MEASURE BACK - FRONT', lx + 3, ly + 5);
+    doc.text('+X: back is right   -X: back is left', lx + 3, ly + 11);
+    doc.text('+Y: back is down    -Y: back is up', lx + 3, ly + 17);
+    doc.text('Enter the opposite sign as correction.', lx + 3, ly + 23);
   }
-  doc.save('double-sided-test.pdf');
+  doc.save('duplex-alignment-calibration.pdf');
 };
 $('#btnDuplexWizard').onclick = () => {
   const s = S.settings, L = layout(), edge = s.duplexFlip === 'short' ? 'short' : 'long';
-  const frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
-  openModal(`<div class="hd"><b>Duplex calibration wizard</b><button data-close>Close</button></div><div class="bd">
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">
-      <div class="callout-box" style="margin:0;text-align:center">
-        <svg viewBox="0 0 150 112" role="img" aria-label="Long-side binding: turn the sheet left to right" style="width:100%;height:auto">
-          <rect x="18" y="12" width="48" height="82" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-          <rect x="84" y="12" width="48" height="82" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
-          <path d="M68 53h14M73 48l-5 5 5 5M77 48l5 5-5 5" fill="none" stroke="#475569" stroke-width="2"/>
-          <path d="M14 12v82" stroke="#0f172a" stroke-width="4"/>
-          <text x="42" y="106" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text>
-          <text x="108" y="106" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>
-        </svg>
-        <b>Long-side binding</b><div class="hint">Turn left to right</div>
-      </div>
-      <div class="callout-box" style="margin:0;text-align:center">
-        <svg viewBox="0 0 150 112" role="img" aria-label="Short-side binding: turn the sheet top to bottom" style="width:100%;height:auto">
-          <rect x="34" y="8" width="82" height="42" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-          <rect x="34" y="62" width="82" height="42" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
-          <path d="M75 53v14M70 58l5-5 5 5M70 62l5 5 5-5" fill="none" stroke="#475569" stroke-width="2"/>
-          <path d="M34 5h82" stroke="#0f172a" stroke-width="4"/>
-          <text x="75" y="35" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text>
-          <text x="75" y="89" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>
-        </svg>
-        <b>Short-side binding</b><div class="hint">Turn top to bottom</div>
-      </div>
-    </div>
-    <div class="field full"><label for="duplexWizardFrontEdge">Which edge entered the printer first for page 1?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${paperEdgeName(x, L)}</option>`).join('')}</select><div class="hint">Choose the actual edge you fed first. The wizard will tell you which edge must lead when you feed page 2.</div></div>
+  let frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
+  const turnFor = (mode, landscape = L.W > L.H) => {
+    const lr = (!landscape) === (mode === 'long');
+    return {axis:lr ? 'left to right' : 'top to bottom'};
+  };
+  const bindingSvg = (mode, landscape) => {
+    const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
+    const D = {W:landscape ? 279.4 : 215.9, H:landscape ? 215.9 : 279.4};
+    const turn = turnFor(mode, landscape), demoFront = frontEdge;
+    const backEdge = mode === 'short' ? opposite[demoFront] : demoFront;
+    const rw = landscape ? 100 : 60, rh = landscape ? 64 : 100, y = (150 - rh) / 2;
+    const paper = (x, fill, stroke, edge, label, angle) => {
+      const points = `${x + 2},${y + 3} ${x + rw - 2},${y} ${x + rw},${y + rh - 5} ${x + 4},${y + rh}`;
+      const shadow = `${x + 5},${y + 7} ${x + rw + 1},${y + 4} ${x + rw + 3},${y + rh + 1} ${x + 7},${y + rh + 5}`;
+      const edgeLine = edge === 'left' ? `<line x1="${x + 3}" y1="${y + 4}" x2="${x + 5}" y2="${y + rh - 1}"` :
+        edge === 'right' ? `<line x1="${x + rw - 1}" y1="${y + 2}" x2="${x + rw + 1}" y2="${y + rh - 5}"` :
+        edge === 'top' ? `<line x1="${x + 2}" y1="${y + 3}" x2="${x + rw - 2}" y2="${y}"` :
+        `<line x1="${x + 4}" y1="${y + rh}" x2="${x + rw}" y2="${y + rh - 5}"`;
+      const lines = label.split(' / ');
+      const labelText = lines.map((line, i) => `<tspan x="${x + rw / 2}" dy="${i ? 15 : 0}">${line}</tspan>`).join('');
+      return `<g transform="rotate(${angle} ${x + rw / 2} ${y + rh / 2})"><polygon points="${shadow}" fill="#070b10" opacity=".65"/><polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>${edgeLine} stroke="#facc15" stroke-width="5"/><polygon points="${x + rw - 17},${y + 1} ${x + rw - 2},${y} ${x + rw - 4},${y + 15}" fill="#fff" opacity=".3"/><text x="${x + rw / 2}" y="${y + rh / 2 - (lines.length > 1 ? 7 : 0)}" text-anchor="middle" font-size="12" fill="#111827">${labelText}</text></g>`;
+    };
+    const arrow = landscape ? '<path d="M126 78 C124 58 111 53 106 68 C103 75 105 82 110 86 M110 86 l-2 -10 M110 86 l9 -5" fill="none" stroke="#d7dde5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' :
+      '<path d="M143 79 C164 79 168 59 151 56 C143 54 138 58 134 63 M134 63 l11 -1 M134 63 l5 9" fill="none" stroke="#d7dde5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+    return `<svg viewBox="0 0 300 150" role="img" aria-label="${mode}-side ${landscape ? 'landscape' : 'portrait'} example: page 1 ${paperEdgeName(demoFront, D)} first, page 2 ${paperEdgeName(backEdge, D)} first" style="width:100%;height:auto"><text x="150" y="12" text-anchor="middle" font-size="10" fill="#f6c453">YELLOW EDGE = FEED FIRST</text>${paper(18, '#cfe6f8', '#2563eb', demoFront, 'PAGE 1 / FRONT', -3)}${paper(182, '#ed8b88', '#b91c1c', backEdge, 'PAGE 2 / BACK', 2)}${arrow}<text x="150" y="143" text-anchor="middle" font-size="10" fill="#f6c453">TURN ${turn.axis.toUpperCase()} · <tspan fill="#cbd5e1">PAGE 2: ${paperEdgeName(backEdge, D).toUpperCase()} FIRST</tspan></text></svg>`;
+  };
+  const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
+  const bindingExample = mode => `<div style="margin:0;text-align:center;background:#1b2028;border:2px solid ${edge === mode ? '#f59e0b' : '#3e4650'};padding:10px 12px;border-radius:6px"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' <span style="background:#f59e0b;color:#17130d;padding:2px 6px;border-radius:6px;font-size:11px">selected</span>' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px"><div><div class="hint">Landscape</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait</div>${bindingSvg(mode, false)}</div></div></div>`;
+  const bindingExamples = () => `<div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>`;
+  const edgeOptionLabel = x => {
+    const side = x[0].toUpperCase() + x.slice(1);
+    const length = paperEdgeName(x, L).split(' ')[1];
+    return `${length[0].toUpperCase()}${length.slice(1)} edge on the ${side.toLowerCase()}`;
+  };
+  openModal(`<div class="hd"><b>Duplex Calibration Wizard</b><button data-close>Close</button></div><div class="bd">
+    <div id="duplexWizardBindings">${bindingExamples()}</div>
+    <div class="field full"><label for="duplexWizardFrontEdge">Which physical edge of page 1 entered the printer first?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${edgeOptionLabel(x)}</option>`).join('')}</select><div class="hint">The yellow edge in both diagrams follows this choice. Select the edge that physically led into the printer, not the edge nearest you.</div></div>
     <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
     <ol class="steps">
       <li>First run the <b>Alignment sheet</b> and correct scale and printer offsets until the front page measures correctly.</li>
@@ -5275,11 +5356,16 @@ $('#btnDuplexWizard').onclick = () => {
     <div class="row" style="margin-top:12px"><button id="duplexWizardApply" class="primary">Save back-page correction</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
   </div>`);
+  $('#modal').classList.add('duplex');
   const updateFeed = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 feed direction:</b> ${esc(feed.text)}<br><span class="hint">Keep the printed side facing the other way after turning the sheet.</span>`;
   };
-  $('#duplexWizardFrontEdge').onchange = updateFeed;
+  $('#duplexWizardFrontEdge').onchange = () => {
+    frontEdge = $('#duplexWizardFrontEdge').value;
+    $('#duplexWizardBindings').innerHTML = bindingExamples();
+    updateFeed();
+  };
   updateFeed();
   $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
   $('#duplexWizardApply').onclick = () => {
@@ -5397,7 +5483,7 @@ async function compactShareImage(blob, opaque, maxSide) {
   } finally { image.src = ''; URL.revokeObjectURL(url); canvas.width = canvas.height = 1; }
 }
 const PRINT_DECK_LIMIT = 2 * 1024 * 1048576;
-const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY', 'backOffsetRel'];
+const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backOffsetRel'];
 function printDeckKeys(d, s) {
   return [...new Set([s.backImage, d.cardback?.custom, ...d.entries.flatMap(e => e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]))].filter(Boolean))];
 }
