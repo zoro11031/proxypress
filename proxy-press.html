@@ -168,7 +168,15 @@ h3:first-child{margin-top:2px}
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
 #overlay.on{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.65);animation:modalIn .18s cubic-bezier(.16,1,.3,1)}
-.modal.duplex{width:min(1200px,calc(100vw - 16px));max-height:calc(100vh - 24px)}
+.modal.duplex{width:min(1100px,calc(100vw - 16px));max-height:calc(100vh - 24px)}
+.wiz-h{margin:18px 0 4px;font-size:14px;color:var(--accent2);border-top:1px solid var(--line);padding-top:12px}
+.wiz-h:first-of-type{border-top:0}
+.duplex-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.duplex-choice{display:block;width:100%;text-align:left;background:#161b22;border:2px solid var(--line);border-radius:8px;padding:10px 12px 4px;cursor:pointer;transition:border-color .15s,background .15s}
+.duplex-choice:hover{border-color:#5a6472}
+.duplex-choice.on{border-color:var(--accent);background:rgba(224,163,58,.07)}
+.duplex-choice-hd{display:block;font-weight:600;font-size:13px;margin-bottom:2px}
+.duplex-read{background:#161b22;border:1px solid var(--line);border-radius:8px;padding:10px;max-width:480px}
 @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .modal .hd b{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -537,18 +545,20 @@ details.adv:not([open]){padding-bottom:10px}
       <div id="settingsForm"></div>
       <details class="adv" id="calDrawer" style="margin-top:14px">
         <summary>Printer Alignment &amp; Test Sheets</summary>
-        <p class="hint">Print on your paper to verify scale and front-to-back alignment.</p>
+        <p class="hint">Two test sheets, in this order. The <b>alignment sheet</b> makes the cards come out the right size in the right place on one side of the paper. The <b>double-sided test</b> and the wizard then get the backs sitting behind the fronts.</p>
         <div class="row" style="margin-top:8px">
-          <button id="btnCal" title="Print once on your paper, measure, and enter the results below">Alignment sheet</button>
-          <button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button>
-          <button id="btnDuplexWizard" title="Print a duplex test and calibrate the back-page offset">Duplex calibration wizard</button>
+          <button id="btnCal" title="Print it once, measure the two marked lines, and type what you measured in">1. Alignment sheet</button>
+          <button id="btnDuplexTest" title="Two pages: print one on each side of a sheet, then read the number off the back">2. Double-sided test</button>
+          <button id="btnDuplexWizard" title="Walks through the double-sided test and does the arithmetic for you">Duplex calibration wizard</button>
         </div>
+        <p class="hint">Print both at Actual size / 100%, never "Fit to page" — a sheet that has been scaled to fit measures the printer's guesswork rather than yours.</p>
         <div class="row" style="margin-top:10px;align-items:end">
           <div class="field" style="flex:1"><label for="calProfileSel">Printer calibration profile</label><select id="calProfileSel"><option value="">No saved profile</option></select></div>
           <div class="field" style="flex:1"><label for="calProfileName">Profile name</label><input id="calProfileName" placeholder="Canon cardstock"></div>
           <button id="calProfileSave">Save profile</button>
           <button id="calProfileDelete" class="danger">Delete</button>
         </div>
+        <p class="hint">A profile remembers the double-sided settings for one printer and stock: the flip, the extra back-page offset and the back-page scale. The printer offset and scale below are not part of it, because they belong to the printer rather than to the job.</p>
         <div class="grid2" id="calForm"></div>
       </details>
       <div class="wiz-nav">
@@ -736,31 +746,36 @@ details.adv:not([open]){padding-bottom:10px}
             <p class="hint" style="margin:4px 0 0">Don't measure cards by eye! Build a physical stop on your trimmer fence: stack painter's tape or clamp a block at <b>88 mm</b> (strip cross-cut) and <b>63 mm</b> (card width). Slide paper against the stop block before each cut for 0.1 mm precision across your deck.</p>
           </div>
 
-          <svg viewBox="0 0 340 190" style="width:100%;height:auto;background:#fff;border-radius:8px;margin:8px 0 6px" role="img" aria-label="Diagram of cut guides">
-            <rect x="40" y="40" width="130" height="150" fill="#9aa7b8"/><rect x="170" y="40" width="130" height="150" fill="#b8a99a"/>
-            <rect x="50" y="50" width="110" height="140" fill="#3d5a80"/><rect x="180" y="50" width="110" height="140" fill="#7a5c3d"/>
-            <g stroke="#000" stroke-width="1.2">
-              <line x1="50" y1="0" x2="50" y2="40"/><line x1="160" y1="0" x2="160" y2="40"/><line x1="180" y1="0" x2="180" y2="40"/><line x1="290" y1="0" x2="290" y2="40"/>
-              <line x1="0" y1="50" x2="40" y2="50"/><line x1="300" y1="50" x2="340" y2="50"/>
-              <line x1="160" y1="50" x2="170" y2="50"/><line x1="170" y1="50" x2="180" y2="50"/>
-              <line x1="40" y1="50" x2="50" y2="50"/><line x1="50" y1="40" x2="50" y2="50"/><line x1="290" y1="40" x2="290" y2="50"/><line x1="290" y1="50" x2="300" y2="50"/>
-              <line x1="50" y1="34" x2="290" y2="34" stroke-dasharray="6 3"/>
+          <svg viewBox="0 0 340 200" style="width:100%;height:auto;background:#fff;border-radius:8px;margin:8px 0 6px" role="img" aria-label="Two cards side by side on the sheet: the bleed strip between them, the margin ticks in the page margin, and the corner marks at each card corner">
+            <rect width="340" height="200" fill="#fff"/>
+            <rect x="42" y="56" width="128" height="144" fill="#9ab4d4"/><rect x="170" y="56" width="128" height="144" fill="#d6b995"/>
+            <rect x="54" y="68" width="104" height="132" fill="#3d5a80"/><rect x="182" y="68" width="104" height="132" fill="#7a5c3d"/>
+            <g stroke="#111" stroke-width="1.4">
+              <line x1="54" y1="24" x2="54" y2="52"/><line x1="158" y1="24" x2="158" y2="52"/>
+              <line x1="182" y1="24" x2="182" y2="52"/><line x1="286" y1="24" x2="286" y2="52"/>
+              <line x1="8" y1="68" x2="36" y2="68"/><line x1="304" y1="68" x2="332" y2="68"/>
             </g>
-            <line x1="160" y1="0" x2="160" y2="190" stroke="#d55e00" stroke-width="1.5" stroke-dasharray="5 3"/>
-            <line x1="180" y1="0" x2="180" y2="190" stroke="#d55e00" stroke-width="1.5" stroke-dasharray="5 3"/>
-            <g font-size="10" font-family="system-ui,sans-serif">
-              <text x="54" y="22" fill="#000">margin tick</text><text x="196" y="30" fill="#000">square-check line</text>
-              <text x="196" y="72" fill="#fff">corner mark ↖</text>
-              <text x="58" y="120" fill="#fff">card</text><text x="188" y="120" fill="#fff">card</text>
-              <text x="128" y="182" fill="#d55e00">cut</text><text x="184" y="182" fill="#d55e00">cut</text>
-              <text x="58" y="160" fill="#fff" font-size="9">light band = bleed</text>
+            <line x1="170" y1="0" x2="170" y2="200" stroke="#d55e00" stroke-width="1.6" stroke-dasharray="6 4"/>
+            <line x1="0" y1="68" x2="340" y2="68" stroke="#d55e00" stroke-width="1.6" stroke-dasharray="6 4"/>
+            <g stroke="#111" stroke-width="2.2" fill="none">
+              <path d="M42 68 H54 V56"/><path d="M158 56 V68 H170"/><path d="M182 56 V68 H170"/><path d="M286 56 V68 H298"/>
+            </g>
+            <g font-size="10" font-family="system-ui,sans-serif" fill="#d55e00">
+              <text x="176" y="14">cut</text><text x="336" y="84" text-anchor="end">cut</text>
+            </g>
+            <g font-size="10" font-family="system-ui,sans-serif" fill="#fff"><text x="92" y="140">card</text><text x="220" y="140">card</text></g>
+            <g stroke="#111" stroke-width="1.2"><line x1="64" y1="38" x2="56" y2="38"/><line x1="310" y1="46" x2="297" y2="59"/></g>
+            <g font-size="11" font-weight="700" font-family="system-ui,sans-serif" text-anchor="middle">
+              <circle cx="170" cy="168" r="9" fill="#111"/><text x="170" y="172" fill="#fff">1</text>
+              <circle cx="74" cy="38" r="9" fill="#111"/><text x="74" y="42" fill="#fff">2</text>
+              <circle cx="318" cy="40" r="9" fill="#111"/><text x="318" y="44" fill="#fff">3</text>
             </g>
           </svg>
           <ul class="tips hint" style="padding-left:18px">
-            <li><b>2–3 mm bleed:</b> Gives the trimmer blade enough paper thickness to shear cleanly without tearing, and prevents white slivers from normal cut drift.</li>
-            <li><b>Margin ticks:</b> Guide outer cuts so margins drop off cleanly.</li>
-            <li><b>Corner marks:</b> Remain visible on strips after margins are gone to guide cross-cuts.</li>
-            <li><b>Kadomaru Pro:</b> Use the 3 mm slot on single cards face-up for authentic corner radius.</li>
+            <li><b>1 · Bleed, 2–3 mm:</b> each card's art runs past where you cut, so the pale band between the two cards is art from both. It gives the blade enough paper to shear cleanly and swallows the half-millimetre or so your cuts drift, which is what keeps white slivers off the card edge.</li>
+            <li><b>2 · Margin ticks:</b> short marks out in the page margin, in line with each cut. Line the blade up with a pair of them and the cut runs true across the sheet.</li>
+            <li><b>3 · Corner marks:</b> brackets at each card's corners. They sit in the bleed, so they survive the first cuts and still show you where to cross-cut once the sheet is in strips.</li>
+            <li><b>Kadomaru Pro:</b> use the 3 mm slot on single cards, face up, for the authentic corner radius.</li>
           </ul>
         </details>
       </div>
@@ -987,7 +1002,7 @@ const LASER_TIPS = [
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
   'Print the PDF from a PDF app (Adobe Reader, Okular, Preview), not from the browser. Firefox\'s PDF viewer prints at about 150 DPI, so the cards come out soft.',
-  'Run the <b>Calibration sheet</b> once and enter the results below.',
+  'Run the <b>Alignment sheet</b> once, under Printer Alignment &amp; Test Sheets, and type what you measure into the boxes there.',
   'Double-faced cards and card backs print on the back of the sheet. After you export, you get step-by-step re-feed instructions.',
 ];
 const EPSON_INKJET = [
@@ -1334,13 +1349,23 @@ function slotPos(L, i, back) {
 // one, because a landscape page comes out sideways on short-edge-fed paper, so the
 // paper-relative wording means the opposite thing in the two cases. Everything the
 // user is told comes from here.
+const OPPOSITE_EDGE = {left:'right', right:'left', top:'bottom', bottom:'top'};
+// Turning the sheet over mirrors one axis of it and leaves the other alone. A
+// left-to-right turn swaps the left and right edges and keeps the top at the top;
+// a top-to-bottom turn does the reverse. So whether the edge that led into the
+// printer leads again depends on which edge led, not on the flip setting by
+// itself: "short-edge flip means feed the opposite edge" is wrong for any sheet
+// whose leading edge lies on the axis the turn leaves alone.
+function edgeSwaps(lr, edge) { return lr === (edge === 'left' || edge === 'right'); }
+// The edge that goes in first on a printer that feeds the paper short edge first,
+// named in the page's own terms: the top of a portrait page, a side of a landscape
+// one, because a landscape page is turned 90 degrees on the same paper.
+function leadEdge(L) { return L.W > L.H ? 'left' : 'top'; }
 function duplexTurn(L) {
   const lr = L.mirrorX;
   return {
     lr,
-    // A flip about the paper's long edge keeps the leading edge leading; about the
-    // short edge the opposite edge goes in first.
-    sameEdge: S.settings.duplexFlip !== 'short',
+    lead: leadEdge(L),
     axis: lr ? 'left to right' : 'top to bottom',
     keeps: lr ? 'The cards along the left edge must end up along the right edge, and the top of the picture must stay at the top.'
               : 'The cards along the top edge must end up along the bottom edge, and the left of the picture must stay on the left.'
@@ -1350,15 +1375,24 @@ function paperEdgeName(edge, L) {
   const short = L.W > L.H ? ['left', 'right'].includes(edge) : ['top', 'bottom'].includes(edge);
   return `${edge} ${short ? 'short' : 'long'} edge`;
 }
+function backFeedEdge(L, frontEdge) {
+  return edgeSwaps(L.mirrorX, frontEdge) ? OPPOSITE_EDGE[frontEdge] : frontEdge;
+}
 function duplexFeedInstruction(L, frontEdge) {
-  const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
-  const backEdge = S.settings.duplexFlip === 'short' ? opposite[frontEdge] : frontEdge;
+  const backEdge = backFeedEdge(L, frontEdge), same = backEdge === frontEdge;
+  const front = paperEdgeName(frontEdge, L), back = paperEdgeName(backEdge, L);
   return {
-    front: paperEdgeName(frontEdge, L),
-    back: paperEdgeName(backEdge, L),
-    backEdge,
-    text: `If the ${paperEdgeName(frontEdge, L)} entered first for the front, feed the ${paperEdgeName(backEdge, L)} first for the back.`
+    front, back, backEdge, same,
+    text: same
+      ? `The ${front} went in first for page 1. Turning the sheet ${duplexTurn(L).axis} leaves that edge where it is, so feed the ${front} first again for page 2.`
+      : `The ${front} went in first for page 1. Turning the sheet ${duplexTurn(L).axis} moves that edge to the far end, so feed the ${back} first for page 2.`
   };
+}
+// Where a point on the front page lands on the back page, and the other way round:
+// the same mirror slotPos uses to put a back behind its front. It is its own
+// inverse, which is what makes the test sheet's reading work out on both axes.
+function backPoint(L, p) {
+  return L.mirrorX ? {x:L.W - p.x, y:p.y} : {x:p.x, y:L.H - p.y};
 }
 // Rotation of a card image so its back reads the right way up after the sheet is turned over.
 function faceRot(L, back) {
@@ -4134,7 +4168,7 @@ const TOUR = {
     <p><b>Right-click any card</b>, in the list or the preview, to change its art, upload your own image, or make a <b>custom card</b> that puts your art in a frame with the card's text.</p>
     <p class="hint">Community art drives are run by volunteers. Consider <a href="https://www.patreon.com/mpcfill" target="_blank" rel="noopener">supporting the autofill tool's maintenance costs on Patreon</a>.</p>`},
   print:{title:'3 · Print at home', body:() => `<ol class="steps"><li>Choose your printer, paper and double-sided method in <b>2. Print</b>.</li>
-    <li>Print the <b>calibration sheet</b> once so cards come out exactly the right size.</li>
+    <li>Print the <b>alignment sheet</b> once, from Printer Alignment &amp; Test Sheets, so cards come out exactly the right size. Printing backs too? The <b>duplex calibration wizard</b> in the same place lines them up.</li>
     <li>Choose Cameo or rotary in <b>3. Cut</b>. The layout and guides update for your tool.</li>
     <li>In <b>4. Export</b>, review the sheet and download your PDF and cut file. Follow the printing, paper-flip and cutting instructions there.</li></ol>`},
   order:{title:'3 · Order prints', body:() => `<ol class="steps"><li>Choose a cardstock and a cardback in the <b>Order</b> tab.</li>
@@ -4439,16 +4473,16 @@ const FIELDS = [
   {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['manual','I re-feed the paper by hand (recommended for 330gsm ProxyJak)'],['auto','My printer prints double-sided automatically']],
     hint:'330gsm ProxyJak stock exceeds many duplexer ratings. Use manual re-feeding and test one sheet first.'},
   {k:'duplexFlip', adv:true, label:'Double-sided flip', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['long','Flip on long edge'],['short','Flip on short edge']],
-    hint:'The long edge is the tall edge of the paper itself, not of the picture on it. Printing automatically, this has to match your print dialog. Re-feeding by hand, it is the edge you turn the sheet over along — the steps after export spell out which way that is for your layout.'},
+    hint:'The long edge is the tall edge of the paper itself, not of the picture on it. Printing automatically, this has to match your print dialog. Re-feeding by hand, it is the edge you turn the sheet over along. The duplex calibration wizard shows both turns as pictures for your layout.'},
   {k:'backs', label:'Print card backs on back pages', type:'check'},
   {k:'backImage', type:'backimg'},
-  {sec:'Calibration (from calibration sheet)'},
-  {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01},
+  {sec:'Calibration (from the alignment and double-sided test sheets)'},
+  {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01, hint:'From the alignment sheet: the A and B lines on it should both measure exactly 100 mm. The sheet carries a table of the new values.'},
   {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
   {k:'backOffsetUnit', adv:true, label:'Back offset units', type:'select', opts:[['mm','Millimetres (mm)'],['in','Inches (in)']]},
   {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet.'},
   {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
-  {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only. Leave these at 0 until the fronts land right and the backs still do not.'},
+  {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only, for the drift the second pass adds. Leave these at 0 until the fronts land right and the backs still do not — then let the duplex calibration wizard fill them in.'},
   {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
   {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment. 100% leaves the calibrated size unchanged.'},
   {k:'backScaleY', adv:true, label:'Back-page scale Y (%)', type:'num', step:0.01, min:90, max:110},
@@ -5218,25 +5252,28 @@ function renderGuideTab() {
 }
 
 function backStepsHtml(sheets) {
-  const s = S.settings, L = layout();
+  const s = S.settings, L = layout(), t = duplexTurn(L), feed = duplexFeedInstruction(L, t.lead);
+  const other = s.duplexFlip === 'short' ? 'long' : 'short';
+  const wizard = '<button class="icon" data-duplex-wizard>duplex calibration wizard</button>';
+  const wrongWay = `<p class="hint">If the backs come out mirrored or upside down, rather than slightly off, the sheet is being turned the other way: switch <b>Double-sided flip</b> under Print → Advanced to <b>${other} edge</b> and export again${s.duplexMethod === 'auto' ? '' : ', or turn the sheet the other way'}. The ${wizard} shows both turns as pictures.</p>`;
   if (s.duplexMethod === 'auto') return `<ol class="steps">
-    <li>Open the PDF in a dedicated PDF application, not the browser, and print it at <b>Actual size / 100%</b>.</li>
-    <li>Turn on <b>double-sided printing</b> and choose <b>flip on ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>, matching Print → Advanced → Double-sided flip.</li>
-    <li>Use the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print. Check that your printer supports automatic duplex with the stock you loaded.</li>
-    <li>Hold the first sheet up to a light. If the backs are shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Printer Alignment &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> in that drawer.</li>
-  </ol><p class="hint">On this layout the backs are laid out for a sheet turned over ${duplexTurn(L).axis} as the cards are printed. If they come out mirrored or upside down rather than slightly off, your printer's flip is the other one: switch <b>Double-sided flip</b> to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again. If heavy 330gsm cardstock jams or scuffs in the duplexer, switch to re-feeding by hand.</p>`;
-  const t = duplexTurn(L);
-  return `<p class="hint">Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), not the browser. Use the feed tray recommended in step 2, Print. Print one sheet at a time. Every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
+    <li><b>Print at 100%.</b> Open the PDF in a dedicated PDF application, not the browser, and choose <b>Actual size / 100%</b>.</li>
+    <li><b>Match the flip.</b> Turn on double-sided printing and choose <b>flip on the ${s.duplexFlip === 'short' ? 'short' : 'long'} edge</b>. It has to match <b>Double-sided flip</b> under Print → Advanced: on this layout the backs are laid out for a sheet turned ${t.axis} as the cards are printed.</li>
+    <li><b>Media settings.</b> Use the settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print, and check the printer will duplex the stock you have loaded.</li>
+    <li><b>Check the first sheet.</b> The backs should sit right behind the fronts. If they are a millimetre or two out, open the ${wizard} — it prints a test sheet and takes two numbers off it.</li>
+  </ol>${wrongWay}<p class="hint">330gsm stock is past most duplexer ratings and will jam or scuff. Re-feeding by hand is slower and safer.</p>`;
+  return `<p class="hint">Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), not the browser, and use the feed tray from step 2, Print. One sheet at a time: every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
   <ol class="steps">
-    <li><b>Print the front.</b> In the print dialog choose <b>Pages: 1</b> (then repeat sheet by sheet), <b>Actual size / 100%</b>, and the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print. Use its recommended feed tray.</li>
-    <li><b>Let it dry / cool.</b> Let ink dry or the laser-printed sheet cool before handling. Follow the paper and printer guidance.</li>
-    <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b> Mark the edge that went into the printer first: ${t.sameEdge ? 'feed that same edge first again.' : 'feed the opposite edge first for page 2.'}</li>
-    <li><b>Put it back with the printed side facing the other way.</b> If your printer printed on the side facing you, the printed side now faces away from you, and the blank side faces you.</li>
-    <li><b>Print the back.</b> Choose <b>Pages: 2</b> (then repeat sheet by sheet), same settings. Repeat for each sheet${sheets > 1 ? ': pages 3 then 4, and so on' : ''}.</li>
-    <li><b>Check the first sheet against a light.</b> The backs should sit right behind the fronts. If they're shifted by a millimetre or two, print the <b>double-sided test</b> (Print → Printer Alignment &amp; Test Sheets) and adjust <b>Extra back-page offset X / Y</b> in that drawer.</li>
+    <li><b>Print the front.</b> Choose <b>Pages: 1</b>, <b>Actual size / 100%</b>, and the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print.</li>
+    <li><b>Let it dry or cool</b> before you handle it.</li>
+    <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b></li>
+    <li><b>Put it back in the tray</b> with the printed side facing the other way: if the printer printed on the side that was facing you, that side now faces away. ${esc(feed.text)}</li>
+    <li><b>Print the back.</b> Choose <b>Pages: 2</b>, same settings. Then repeat for each sheet${sheets > 1 ? ': pages 3 and 4, then 5 and 6, and so on' : ''}.</li>
+    <li><b>Check the first sheet.</b> The backs should sit right behind the fronts. If they are a millimetre or two out, open the ${wizard} — it prints a test sheet and takes two numbers off it.</li>
   </ol>
-  <p class="hint">${L.W > L.H ? 'This is a landscape layout, so the sheet comes out of the printer with the cards sideways on it. Turning it over ' + t.axis + ' as the cards are printed means turning the paper over along its ' + (t.sameEdge ? 'long' : 'short') + ' edge. ' : ''}If the backs come out mirrored or upside down rather than slightly off, the sheet was turned the other way: either turn it the other way or switch <b>Double-sided flip</b> under Print → Advanced to <b>${s.duplexFlip === 'short' ? 'long' : 'short'} edge</b> and export again.</p>
-  <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print the double-sided test's first page, and see which side the X ended up on.</p>`;
+  ${L.W > L.H ? `<p class="hint">This is a landscape layout, so the sheet comes out of the printer with the cards sideways on it. Turning it ${t.axis} as the cards are printed means turning the paper over along its ${t.lr ? 'short' : 'long'} edge.</p>` : ''}
+  ${wrongWay}
+  <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print page 1 of the double-sided test on it, and see which side the X ended up on.</p>`;
 }
 
 $('#btnPdf').onclick = async () => {
@@ -5247,162 +5284,456 @@ $('#btnPdf').onclick = async () => {
   }
 };
 
+// The reading grid on the back page of the double-sided test.
+//
+// It is drawn in the back page's own coordinates, around the point the front
+// page's pin ring lands on. That one fact is what makes the sheet readable: the
+// mirror the sheet gets when it is turned over cancels against the mirror used to
+// lay the back page out, exactly once, on both axes and for either flip. So the
+// number the pin hole sits on IS the number to add to the back-page offset. No
+// sign has to be worked out, and the old "measure back minus front, enter the
+// opposite sign" rule - which was right on one axis and wrong on the other,
+// depending on the flip - is gone.
+//
+// pt(dx, dy) maps a grid offset in millimetres to a point on the page.
+function drawReadGrid(doc, pt, k, opt = {}) {
+  const R = 3, w = n => n * (k > 1 ? 2 : 1), seg = (a, b) => doc.line(a[0], a[1], b[0], b[1]);
+  doc.setLineWidth(w(0.08));
+  for (let n = -R; n <= R; n++) {
+    if (!n) continue;
+    seg(pt(n, -R), pt(n, R));
+    seg(pt(-R, n), pt(R, n));
+  }
+  // Half-millimetre marks sit on the centre lines but stay short, so the middle of
+  // the grid - where the hole usually is - does not fill up with ink.
+  doc.setLineWidth(w(0.1));
+  for (let h = -R + 0.5; h < R; h++) {
+    seg(pt(h, -0.28), pt(h, 0.28));
+    seg(pt(-0.28, h), pt(0.28, h));
+  }
+  doc.setLineWidth(w(0.28));
+  seg(pt(0, -R), pt(0, R));
+  seg(pt(-R, 0), pt(R, 0));
+  doc.setLineWidth(w(0.2));
+  const a = pt(-R, -R), b = pt(R, R);
+  doc.rect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]));
+  if (opt.labels === false) return;
+  doc.setFontSize(opt.font || 5.2);
+  for (let n = -R; n <= R; n++) {
+    const txt = n > 0 ? `+${n}` : String(n), far = Math.abs(n) % 2 === 1;
+    const px = pt(n, far ? R : -R);
+    doc.text(txt, px[0], px[1] + (far ? 2.5 * k : -1.4 * k), {align:'center'});
+    const py = pt(far ? R : -R, n);
+    doc.text(txt, py[0] + (far ? 1.2 * k : -1.2 * k), py[1] + 0.7 * k, {align: far ? 'left' : 'right'});
+  }
+}
+
+// Shared PDF furniture for the two calibration sheets.
+// A dimension is read tip to tip between two filled arrowheads: a tick mark's own
+// line width is a tenth of a millimetre, which is a sizeable part of what is being
+// measured, and "measure between the lines" never said which part of the line.
+function pdfArrow(doc, T, x, y, dir, len = 3.2, half = 1.1) {
+  const dx = dir === 'left' ? -1 : dir === 'right' ? 1 : 0, dy = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
+  const bx = x + dx * len, by = y + dy * len;
+  doc.triangle(T.x(x), T.y(y), T.x(bx - dy * half), T.y(by - dx * half), T.x(bx + dy * half), T.y(by + dx * half), 'F');
+}
+function pdfCross(doc, T, x, y, arm = 7) {
+  doc.setLineWidth(0.25);
+  doc.line(T.x(x - arm), T.y(y), T.x(x + arm), T.y(y));
+  doc.line(T.x(x), T.y(y - arm), T.x(x), T.y(y + arm));
+  doc.circle(T.x(x), T.y(y), T.w(2));
+}
+// A cursor that writes wrapped lines down the page and reports where it got to.
+function pdfText(doc, x, y, width, size = 7.5, lead = 4.1, align = null) {
+  let cy = y;
+  return {
+    at: () => cy,
+    gap: (n = 2) => { cy += n; },
+    write(txt, opt = {}) {
+      doc.setFontSize(opt.size || size);
+      doc.setFont('helvetica', opt.bold ? 'bold' : 'normal');
+      const indent = opt.indent || 0;
+      for (const ln of doc.splitTextToSize(txt, width - indent)) {
+        doc.text(ln, x + indent, cy, align ? {align} : undefined);
+        cy += opt.lead || lead;
+      }
+      doc.setFont('helvetica', 'normal');
+    }
+  };
+}
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
-  const L = layout(), doc = newDoc(L), t = duplexTurn(L);
-  const T = {x:v => v, y:v => v, w:v => v, h:v => v};
-  const targetSize = Math.min(18, Math.min(L.W, L.H) * 0.12), margin = Math.max(12, Math.min(22, Math.min(L.W, L.H) * 0.1));
-  const targets = [[margin, margin], [L.W - margin - targetSize, margin], [margin, L.H - margin - targetSize], [L.W - margin - targetSize, L.H - margin - targetSize], [L.W / 2 - targetSize / 2, L.H / 2 - targetSize / 2]];
-  const color = back => back ? '#c0392b' : '#111827';
-  const drawRulers = back => {
-    const c = color(back), x0 = 12, y0 = 12;
-    doc.setDrawColor(c); doc.setTextColor(c); doc.setLineWidth(0.15); doc.setFontSize(6);
-    doc.line(T.x(x0), T.y(y0), T.x(L.W - x0), T.y(y0));
-    doc.line(T.x(x0), T.y(y0), T.x(x0), T.y(L.H - x0));
-    for (let n = 0; n <= L.W - 2*x0; n++) {
-      const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
-      doc.line(T.x(x0 + n), T.y(y0), T.x(x0 + n), T.y(y0 + tick));
-      if (n % 10 === 0) doc.text(String(n), T.x(x0 + n), T.y(y0 - 2), {align:'center'});
-      const inch = n / 25.4;
-      if (Math.abs(inch - Math.round(inch)) < 0.01) doc.text(`${Math.round(inch)} in`, T.x(x0 + n), T.y(y0 + 8), {align:'center'});
-    }
-    for (let n = 0; n <= L.H - 2*x0; n++) {
-      const tick = n % 10 === 0 ? 3 : n % 5 === 0 ? 2 : 1;
-      doc.line(T.x(x0), T.y(y0 + n), T.x(x0 + tick), T.y(y0 + n));
-      if (n % 10 === 0) doc.text(String(n), T.x(x0 - 2), T.y(y0 + n + 1.5), {align:'right'});
-    }
-    doc.setFontSize(7); doc.text('mm', T.x(L.W - x0), T.y(y0 - 2), {align:'right'});
-    doc.text('1 in = 25.4 mm', T.x(L.W - x0), T.y(y0 + 6), {align:'right'});
+  const s = S.settings, L = layout(), doc = newDoc(L), t = duplexTurn(L);
+  const feed = duplexFeedInstruction(L, leadEdge(L));
+  const wide = L.W > L.H, cx = L.W / 2, cy = L.H / 2;
+  const BLACK = '#111827', RED = '#c0392b';
+  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const inset = Math.max(20, Math.min(30, Math.min(L.W, L.H) * 0.11));
+  const corners = [[inset, inset], [L.W - inset, inset], [inset, L.H - inset], [L.W - inset, L.H - inset]];
+  const signed = v => (v >= 0 ? '+' : '') + v.toFixed(2);
+
+  const square = (T, x, y, half, n) => {
+    doc.setLineWidth(0.3);
+    doc.rect(T.x(x - half), T.y(y - half), T.w(half * 2), T.h(half * 2));
+    doc.setLineWidth(0.15);
+    doc.line(T.x(x - half - 3), T.y(y), T.x(x + half + 3), T.y(y));
+    doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y + half + 3));
+    doc.setFontSize(7);
+    doc.text(String(n), T.x(x + half + 4.5), T.y(y - half + 1));
   };
-  const drawTarget = ([x, y], back, n) => {
-    const c = color(back), cx = T.x(x + targetSize / 2), cy = T.y(y + targetSize / 2);
-    doc.setDrawColor(c); doc.setTextColor(c); doc.setLineWidth(0.35);
-    doc.rect(T.x(x), T.y(y), T.w(targetSize), T.h(targetSize));
-    doc.line(cx - 7, cy, cx + 7, cy); doc.line(cx, cy - 7, cx, cy + 7);
-    doc.setFontSize(7); doc.text(String(n), cx, cy + 11, {align:'center'});
-  };
-  for (const back of [false, true]) {
-    if (back) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
-    drawRulers(back);
-    targets.forEach((p, i) => {
-      const q = back ? (t.lr ? [L.W - p[0] - targetSize, p[1]] : [p[0], L.H - p[1] - targetSize]) : p;
-      drawTarget(q, back, i + 1);
-    });
-    doc.setFontSize(13); doc.setTextColor(color(back));
-    doc.text(back ? 'TOP / BACK' : 'TOP / FRONT', L.W / 2, 8, {align:'center'});
-    doc.setFontSize(8);
-    doc.text(back ? 'Hold this page to the front. Red targets should sit exactly over black targets.'
-      : `Turn ${t.axis} and ${t.sameEdge ? 'feed the same edge first' : 'feed the opposite edge first'} for page 2.`, L.W / 2, L.H - 8, {align:'center'});
-    const lx = Math.max(12, L.W - 92), ly = Math.max(30, L.H - 70), lw = Math.min(80, L.W - lx - 8);
-    doc.setDrawColor(color(back)); doc.setLineWidth(0.2); doc.rect(lx, ly, lw, 28);
-    doc.setFontSize(7); doc.setTextColor(color(back));
-    doc.text('MEASURE BACK - FRONT', lx + 3, ly + 5);
-    doc.text('+X: back is right   -X: back is left', lx + 3, ly + 11);
-    doc.text('+Y: back is down    -Y: back is up', lx + 3, ly + 17);
-    doc.text('Enter the opposite sign as correction.', lx + 3, ly + 23);
-  }
-  doc.save('duplex-alignment-calibration.pdf');
+
+  /* ---------- page 1, the front ---------- */
+  const Tf = makeT(L, false);
+  doc.setTextColor(BLACK); doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
+  corners.forEach(([x, y], i) => square(Tf, x, y, 8, i + 1));
+
+  // The pin ring. Its centre is the one point on the sheet that both pages agree
+  // on, and it sits at the page centre, where the scale settings have no effect -
+  // so this measures the offset on its own.
+  doc.setLineWidth(0.25);
+  doc.circle(Tf.x(cx), Tf.y(cy), Tf.w(6));
+  doc.setLineWidth(0.15);
+  doc.circle(Tf.x(cx), Tf.y(cy), Tf.w(3));
+  for (const [a, b, c, d] of [[-16, 0, -1, 0], [1, 0, 16, 0], [0, -16, 0, -1], [0, 1, 0, 16]])
+    doc.line(Tf.x(cx + a), Tf.y(cy + b), Tf.x(cx + c), Tf.y(cy + d));
+  doc.setLineWidth(0.12);
+  doc.circle(Tf.x(cx), Tf.y(cy), Tf.w(0.4));
+  doc.setFontSize(7.5);
+  doc.text('PIERCE THE CENTRE OF THIS RING', Tf.x(cx), Tf.y(cy - 20), {align:'center'});
+  doc.setFontSize(6.5);
+  doc.text('push the pin in from this side, so the hole shows on page 2', Tf.x(cx), Tf.y(cy + 23), {align:'center'});
+
+  const headW = L.W - 2 * (inset + 16);
+  const head1 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
+  head1.write('DOUBLE-SIDED TEST  ·  PAGE 1, THE FRONT', {bold:true, size:12, lead:5.5});
+  head1.write(`${paper} ${s.orientation}  ·  flip on the ${s.duplexFlip === 'short' ? 'short' : 'long'} edge  ·  back-page offset now X ${signed(s.backOffsetX)} mm, Y ${signed(s.backOffsetY)} mm`, {size:7.5});
+
+  const bodyW = Math.min(L.W - 32, 186), body1 = pdfText(doc, (L.W - bodyW) / 2, cy + 30, bodyW, 8, 4.5);
+  body1.write('PRINT PAGE 2 ON THE BACK OF THIS SHEET', {bold:true, size:9, lead:5.5});
+  body1.write('1   Print this page at Actual size / 100%, never "Fit to page". Use plain paper the first time, so that you can hold the sheet up to a light; check on your real stock at the end.');
+  body1.write(`2   Take the sheet out and turn it over ${t.axis}, looking at the printed side. ${t.keeps} Do not spin it any other way.`);
+  body1.write(`3   Put it back in the tray with the printed side facing the other way. ${feed.text}`);
+  body1.write('4   Print page 2 on the back of this same sheet, with the same settings.');
+
+  /* ---------- page 2, the back ---------- */
+  doc.addPage([L.W, L.H], wide ? 'l' : 'p');
+  const Tb = makeT(L, true);
+  doc.setDrawColor(RED); doc.setFillColor(RED); doc.setTextColor(RED);
+  corners.forEach(([x, y], i) => {
+    const p = backPoint(L, {x, y});
+    square(Tb, p.x, p.y, 5, i + 1);
+  });
+  doc.setLineWidth(0.25);
+  doc.circle(Tb.x(cx), Tb.y(cy), Tb.w(12));
+  drawReadGrid(doc, (dx, dy) => [Tb.x(cx + dx), Tb.y(cy + dy)], 1);
+  doc.setFontSize(7.5);
+  doc.text('THE PIN HOLE LANDS IN HERE', Tb.x(cx), Tb.y(cy - 15.5), {align:'center'});
+  doc.setFontSize(6.5);
+  doc.text('one square = 1 mm', Tb.x(cx), Tb.y(cy + 18), {align:'center'});
+
+  doc.setTextColor(BLACK); doc.setDrawColor(BLACK);
+  const head2 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
+  head2.write('DOUBLE-SIDED TEST  ·  PAGE 2, THE BACK', {bold:true, size:12, lead:5.5});
+  head2.write('Read this side with this text the right way up. The red marks are printed on this side; the black ones are on the other side.', {size:7.5});
+
+  // A worked example, three times life size, because the real grid is 6 mm across.
+  doc.setDrawColor(RED);
+  const ex = {x: inset + 36, y: wide ? cy - 6 : 82};
+  doc.setLineWidth(0.2);
+  drawReadGrid(doc, (dx, dy) => [ex.x + dx * 3, ex.y + dy * 3], 3, {font:7});
+  doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
+  doc.circle(ex.x + 1.5, ex.y - 3, 0.9, 'F');
+  doc.setLineWidth(0.25);
+  doc.circle(ex.x + 1.5, ex.y - 3, 2.2);
+  const cap = pdfText(doc, ex.x - 15, ex.y + 23, 64, 7, 3.6);
+  cap.write('EXAMPLE, THREE TIMES LIFE SIZE', {bold:true, size:7, lead:4});
+  cap.write('This hole sits half a square to the right of 0 and one whole square above it.');
+  cap.write('Reading:  X = +0.5    Y = -1.0', {bold:true});
+
+  const col = wide ? {x:cx + 30, y:44, w:L.W - 16 - (cx + 30)} : {x:16, y:cy + 32, w:L.W - 32};
+  const body2 = pdfText(doc, col.x, col.y, col.w, 8, 4.5);
+  body2.write('HOW TO READ IT', {bold:true, size:9, lead:5.5});
+  body2.write('1   Find where the centre of the ring on the front lands on this side. On plain paper, hold the sheet up to a light. On card stock, push a pin through the exact centre of that ring, from the front, and look at the hole from this side.');
+  body2.write('2   Read the hole against the ringed grid in the middle of this page. One square is 1 mm, and the short ticks on the centre lines are half a square.');
+  body2.write('3   Those two numbers go straight into the duplex calibration wizard, which adds them for you. By hand, add them to the current values:');
+  body2.gap(1);
+  body2.write(`Extra back-page offset X  =  ${signed(s.backOffsetX)}  +  (the X you read)`, {indent:6, size:7.5});
+  body2.write(`Extra back-page offset Y  =  ${signed(s.backOffsetY)}  +  (the Y you read)`, {indent:6, size:7.5});
+  body2.gap(1);
+  body2.write('4   Print the test again. Both readings should now be 0.');
+  body2.gap(2);
+  body2.write('If the hole is off the grid altogether, or the red squares are nowhere near the black ones, the sheet was turned over the wrong way. Switch Double-sided flip to the other edge, or turn the sheet the other way, and start again.', {size:7.5, lead:4});
+  body2.gap(1.5);
+  body2.write('The small red squares should sit centred inside the big black ones. If the middle reads 0 but the corners are visibly out, and out by different amounts at opposite corners, the backs are printing at a slightly different size: adjust Back-page scale X / Y.', {size:7.5, lead:4});
+
+  doc.save('double-sided-test.pdf');
 };
-$('#btnDuplexWizard').onclick = () => {
-  const s = S.settings, L = layout(), edge = s.duplexFlip === 'short' ? 'short' : 'long';
-  let frontEdge = L.W > L.H ? 'left' : 'top', feedEdges = ['left', 'right', 'top', 'bottom'];
-  const turnFor = (mode, landscape = L.W > L.H) => {
-    const lr = (!landscape) === (mode === 'long');
-    return {axis:lr ? 'left to right' : 'top to bottom'};
+// The duplex wizard. Three questions in order: is the sheet turned the right way,
+// print the test, type in the two numbers it gives you. The readings are a
+// correction to add, not a value to replace, because the test sheet is printed
+// through the current calibration - so printing it again is a real check, and the
+// second reading comes back 0 when the first one was right.
+const DUPLEX_FLIPS = [['long', 'Flip on the long edge'], ['short', 'Flip on the short edge']];
+function duplexFlipDiagram(L, mode, frontEdge) {
+  const landscape = L.W > L.H;
+  const lr = (L.W <= L.H) === (mode === 'long');
+  const backEdge = edgeSwaps(lr, frontEdge) ? OPPOSITE_EDGE[frontEdge] : frontEdge;
+  const w = landscape ? 96 : 74, h = landscape ? 74 : 96, top = 34, mid = top + 48;
+  const ax = 26, bx = 320 - 26 - w, ay = top + (96 - h) / 2;
+  // The turn is drawn in whatever is left between the two sheets once their feed
+  // arrows are allowed for, so the arc never lands on top of one of them.
+  const mL = ax + w + (frontEdge === 'right' ? 20 : 3), mR = bx - (backEdge === 'left' ? 20 : 3);
+  const mx = (mL + mR) / 2, half = Math.max(14, Math.min(28, (mR - mL) / 2 - 2));
+  const chevron = (x, y, dir) => {
+    const d = {left:[-1, 0], right:[1, 0], up:[0, -1], down:[0, 1]}[dir];
+    const arrows = [0, 7].map(o => {
+      const px = x + d[0] * o, py = y + d[1] * o;
+      return d[0] ? `<path d="M${px} ${py - 5} L${px + d[0] * 5} ${py} L${px} ${py + 5}" fill="none" stroke="#f6c453" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
+                  : `<path d="M${px - 5} ${py} L${px} ${py + d[1] * 5} L${px + 5} ${py}" fill="none" stroke="#f6c453" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }).join('');
+    const sx = x + d[0] * 16, sy = y + d[1] * 16;
+    const slot = d[0] ? `<line x1="${sx}" y1="${sy - 12}" x2="${sx}" y2="${sy + 12}" stroke="#6b7482" stroke-width="4" stroke-linecap="round"/>`
+                      : `<line x1="${sx - 12}" y1="${sy}" x2="${sx + 12}" y2="${sy}" stroke="#6b7482" stroke-width="4" stroke-linecap="round"/>`;
+    return arrows + slot;
   };
-  const bindingSvg = (mode, landscape) => {
-    const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
-    const D = {W:landscape ? 279.4 : 215.9, H:landscape ? 215.9 : 279.4};
-    const turn = turnFor(mode, landscape), demoFront = frontEdge;
-    const backEdge = mode === 'short' ? opposite[demoFront] : demoFront;
-    const rw = landscape ? 100 : 60, rh = landscape ? 64 : 100, y = (150 - rh) / 2;
-    const paper = (x, fill, stroke, edge, label, angle) => {
-      const points = `${x + 2},${y + 3} ${x + rw - 2},${y} ${x + rw},${y + rh - 5} ${x + 4},${y + rh}`;
-      const shadow = `${x + 5},${y + 7} ${x + rw + 1},${y + 4} ${x + rw + 3},${y + rh + 1} ${x + 7},${y + rh + 5}`;
-      const edgeLine = edge === 'left' ? `<line x1="${x + 3}" y1="${y + 4}" x2="${x + 5}" y2="${y + rh - 1}"` :
-        edge === 'right' ? `<line x1="${x + rw - 1}" y1="${y + 2}" x2="${x + rw + 1}" y2="${y + rh - 5}"` :
-        edge === 'top' ? `<line x1="${x + 2}" y1="${y + 3}" x2="${x + rw - 2}" y2="${y}"` :
-        `<line x1="${x + 4}" y1="${y + rh}" x2="${x + rw}" y2="${y + rh - 5}"`;
-      const lines = label.split(' / ');
-      const labelText = lines.map((line, i) => `<tspan x="${x + rw / 2}" dy="${i ? 15 : 0}">${line}</tspan>`).join('');
-      return `<g transform="rotate(${angle} ${x + rw / 2} ${y + rh / 2})"><polygon points="${shadow}" fill="#070b10" opacity=".65"/><polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>${edgeLine} stroke="#facc15" stroke-width="5"/><polygon points="${x + rw - 17},${y + 1} ${x + rw - 2},${y} ${x + rw - 4},${y + 15}" fill="#fff" opacity=".3"/><text x="${x + rw / 2}" y="${y + rh / 2 - (lines.length > 1 ? 7 : 0)}" text-anchor="middle" font-size="12" fill="#111827">${labelText}</text></g>`;
-    };
-    const arrow = landscape ? '<path d="M126 78 C124 58 111 53 106 68 C103 75 105 82 110 86 M110 86 l-2 -10 M110 86 l9 -5" fill="none" stroke="#d7dde5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' :
-      '<path d="M143 79 C164 79 168 59 151 56 C143 54 138 58 134 63 M134 63 l11 -1 M134 63 l5 9" fill="none" stroke="#d7dde5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
-    return `<svg viewBox="0 0 300 150" role="img" aria-label="${mode}-side ${landscape ? 'landscape' : 'portrait'} example: page 1 ${paperEdgeName(demoFront, D)} first, page 2 ${paperEdgeName(backEdge, D)} first" style="width:100%;height:auto"><text x="150" y="12" text-anchor="middle" font-size="10" fill="#f6c453">YELLOW EDGE = FEED FIRST</text>${paper(18, '#cfe6f8', '#2563eb', demoFront, 'PAGE 1 / FRONT', -3)}${paper(182, '#ed8b88', '#b91c1c', backEdge, 'PAGE 2 / BACK', 2)}${arrow}<text x="150" y="143" text-anchor="middle" font-size="10" fill="#f6c453">TURN ${turn.axis.toUpperCase()} · <tspan fill="#cbd5e1">PAGE 2: ${paperEdgeName(backEdge, D).toUpperCase()} FIRST</tspan></text></svg>`;
+  // The sheet, with a blocky F for the printed side. On the turned sheet the F is
+  // mirrored and ghosted, which is what you see when page 1 is face down.
+  const sheet = (x, y, edge, turned) => {
+    const cx = x + w / 2, cy = y + h / 2;
+    const flip = !turned ? '' : lr ? `translate(${2 * cx} 0) scale(-1 1)` : `translate(0 ${2 * cy}) scale(1 -1)`;
+    const glyph = `<g transform="${flip ? flip + ' ' : ''}translate(${cx - 13} ${cy - 20}) scale(1.05)">` +
+      `<path d="M0 0 H24 V7 H8 V16 H20 V23 H8 V38 H0 Z" fill="${turned ? 'none' : '#2f3e52'}" stroke="${turned ? '#8e9bad' : 'none'}" stroke-width="1.5" stroke-dasharray="${turned ? '3 3' : '0'}"/></g>`;
+    const edgeLine = {
+      left:   [x, y, x, y + h, x - 11, cy, 'left'],
+      right:  [x + w, y, x + w, y + h, x + w + 11, cy, 'right'],
+      top:    [x, y, x + w, y, cx, y - 11, 'up'],
+      bottom: [x, y + h, x + w, y + h, cx, y + h + 11, 'down'],
+    }[edge];
+    const note = turned ? `<text x="${cx}" y="${y + h - 7}" text-anchor="middle" font-size="7.5" fill="#8e9bad">page 1, face down</text>` : '';
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${turned ? '#20262f' : '#e8edf4'}" stroke="#7d8898" stroke-width="1.5"/>${glyph}${note}` +
+      `<line x1="${edgeLine[0]}" y1="${edgeLine[1]}" x2="${edgeLine[2]}" y2="${edgeLine[3]}" stroke="#f6c453" stroke-width="5" stroke-linecap="round"/>` +
+      chevron(edgeLine[4], edgeLine[5], edgeLine[6]);
   };
-  const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
-  const bindingExample = mode => `<div style="margin:0;text-align:center;background:#1b2028;border:2px solid ${edge === mode ? '#f59e0b' : '#3e4650'};padding:10px 12px;border-radius:6px"><b>${mode === 'long' ? 'Long-side' : 'Short-side'} binding${edge === mode ? ' <span style="background:#f59e0b;color:#17130d;padding:2px 6px;border-radius:6px;font-size:11px">selected</span>' : ''}</b><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px"><div><div class="hint">Landscape</div>${bindingSvg(mode, true)}</div><div><div class="hint">Portrait</div>${bindingSvg(mode, false)}</div></div></div>`;
-  const bindingExamples = () => `<div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px">${bindingExample('long')}${bindingExample('short')}</div>`;
-  const edgeOptionLabel = x => {
-    const side = x[0].toUpperCase() + x.slice(1);
-    const length = paperEdgeName(x, L).split(' ')[1];
-    return `${length[0].toUpperCase()}${length.slice(1)} edge on the ${side.toLowerCase()}`;
-  };
-  openModal(`<div class="hd"><b>Duplex Calibration Wizard</b><button data-close>Close</button></div><div class="bd">
-    <div id="duplexWizardBindings">${bindingExamples()}</div>
-    <div class="field full"><label for="duplexWizardFrontEdge">Which physical edge of page 1 entered the printer first?</label><select id="duplexWizardFrontEdge">${feedEdges.map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${edgeOptionLabel(x)}</option>`).join('')}</select><div class="hint">The yellow edge in both diagrams follows this choice. Select the edge that physically led into the printer, not the edge nearest you.</div></div>
-    <p id="duplexWizardFeed" class="callout-box" style="margin:10px 0"></p>
+  const turnArt = lr
+    ? `<line x1="${mx}" y1="${top + 4}" x2="${mx}" y2="${top + 92}" stroke="#4a515c" stroke-width="1.5" stroke-dasharray="5 4"/>
+       <path d="M${mx - half} ${mid + 4} A ${half} ${half * 0.63} 0 0 1 ${mx + half} ${mid + 4}" fill="none" stroke="#d7dde5" stroke-width="2.5" stroke-linecap="round"/>
+       <path d="M${mx + half} ${mid + 4} l-7 -5 M${mx + half} ${mid + 4} l-2 8" fill="none" stroke="#d7dde5" stroke-width="2.5" stroke-linecap="round"/>`
+    : `<line x1="${mx - half}" y1="${mid + 4}" x2="${mx + half}" y2="${mid + 4}" stroke="#4a515c" stroke-width="1.5" stroke-dasharray="5 4"/>
+       <path d="M${mx} ${mid - 23} A 17 27 0 0 1 ${mx} ${mid + 31}" fill="none" stroke="#d7dde5" stroke-width="2.5" stroke-linecap="round"/>
+       <path d="M${mx} ${mid + 31} l-5 -7 M${mx} ${mid + 31} l8 -2" fill="none" stroke="#d7dde5" stroke-width="2.5" stroke-linecap="round"/>`;
+  const label = (x, line1, line2) => `<text x="${x + w / 2}" y="22" text-anchor="middle" font-size="11" fill="#edf0f5" font-weight="600">${line1}</text>` +
+    `<text x="${x + w / 2}" y="${top + 104}" text-anchor="middle" font-size="10" fill="#f6c453">${line2}</text>`;
+  return `<svg viewBox="0 0 320 166" role="img" aria-label="Page 1 goes in ${paperEdgeName(frontEdge, L)} first, the sheet is turned ${lr ? 'left to right' : 'top to bottom'}, page 2 goes in ${paperEdgeName(backEdge, L)} first" style="width:100%;height:auto">
+    ${sheet(ax, ay, frontEdge, false)}${sheet(bx, ay, backEdge, true)}${turnArt}
+    ${label(ax, 'PAGE 1 printed', `${paperEdgeName(frontEdge, L)} first`)}
+    ${label(bx, 'PAGE 2 on the back', `${paperEdgeName(backEdge, L)} first`)}
+    <text x="160" y="158" text-anchor="middle" font-size="10" fill="#d7dde5">turn it ${lr ? 'left to right' : 'top to bottom'} · ${backEdge === frontEdge ? 'the same edge goes in first' : 'the other edge goes in first'}</text>
+  </svg>`;
+}
+// The life-size grid is 6 mm across, so the wizard shows the same picture the back
+// of the test sheet carries, blown up, with a worked reading on it.
+function duplexReadSvg() {
+  const g = 22, o = 14, cells = [];
+  for (let n = -3; n <= 3; n++) {
+    cells.push(`<line x1="${o + (n + 3) * g}" y1="${o}" x2="${o + (n + 3) * g}" y2="${o + 6 * g}" stroke="${n ? '#55606f' : '#aab4c2'}" stroke-width="${n ? 1 : 2}"/>`);
+    cells.push(`<line x1="${o}" y1="${o + (n + 3) * g}" x2="${o + 6 * g}" y2="${o + (n + 3) * g}" stroke="${n ? '#55606f' : '#aab4c2'}" stroke-width="${n ? 1 : 2}"/>`);
+    const t = n > 0 ? `+${n}` : String(n);
+    cells.push(`<text x="${o + (n + 3) * g}" y="${o - 5}" text-anchor="middle" font-size="11" fill="#a0aab9">${t}</text>`);
+    cells.push(`<text x="${o - 6}" y="${o + (n + 3) * g + 4}" text-anchor="end" font-size="11" fill="#a0aab9">${t}</text>`);
+  }
+  const hx = o + 3.5 * g, hy = o + 2 * g;
+  return `<svg viewBox="0 0 430 180" role="img" aria-label="A pin hole half a square right of zero and one square above it reads X plus 0.5 and Y minus 1.0" style="width:100%;height:auto">
+    ${cells.join('')}
+    <circle cx="${hx}" cy="${hy}" r="11" fill="none" stroke="#e0a33a" stroke-width="2"/>
+    <circle cx="${hx}" cy="${hy}" r="4" fill="#e0a33a"/>
+    <text x="192" y="46" font-size="12" fill="#edf0f5" font-weight="600">The pin hole</text>
+    <text x="192" y="66" font-size="12" fill="#a0aab9">half a square right of 0,</text>
+    <text x="192" y="82" font-size="12" fill="#a0aab9">one square above it</text>
+    <text x="192" y="108" font-size="13" fill="#f2c26b" font-weight="600">X = +0.5   Y = -1.0</text>
+    <text x="192" y="128" font-size="11.5" fill="#a0aab9">Type those two numbers in.</text>
+    <text x="192" y="144" font-size="11.5" fill="#a0aab9">One square is 1 mm.</text>
+  </svg>`;
+}
+function openDuplexWizard(state = {}) {
+  const s = S.settings, L = layout();
+  const frontEdge = ['left', 'right', 'top', 'bottom'].includes(state.frontEdge) ? state.frontEdge : leadEdge(L);
+  const inUnit = v => s.backOffsetUnit === 'in' ? `${(v / 25.4).toFixed(3)} in` : `${v.toFixed(2)} mm`;
+  // Re-opening the wizard carries the readings over, but an empty box reads back as
+  // NaN, which would put the word NaN in the input and leave it permanently invalid.
+  const keep = v => Number.isFinite(v) ? v : 0;
+  const edgeOptionLabel = x => `${x[0].toUpperCase()}${x.slice(1)} edge — the paper's ${paperEdgeName(x, L).split(' ')[1]} edge`;
+  const choice = ([mode, name]) => `<button type="button" class="duplex-choice${s.duplexFlip === mode ? ' on' : ''}" data-flip="${mode}" role="radio" aria-checked="${s.duplexFlip === mode}">
+    <span class="duplex-choice-hd">${name}${s.duplexFlip === mode ? '<span class="tag">selected</span>' : ''}</span>
+    ${duplexFlipDiagram(L, mode, frontEdge)}</button>`;
+  openModal(`<div class="hd"><b>Double-sided calibration</b><button data-close>Close</button></div><div class="bd">
+    <p class="hint" style="margin-top:0">Get the fronts right first with the <b>Alignment sheet</b>. Then this: check the sheet is turned the right way, print the two-page test, and type in the two numbers it gives you.</p>
+
+    <h4 class="wiz-h">1 · How you turn the sheet over</h4>
+    <p class="hint">Pick the one that matches what you actually do. It is the same setting as <b>Double-sided flip</b> under Print → Advanced, and the layout of the backs follows it.</p>
+    <div class="duplex-choices" id="duplexWizardChoices" role="radiogroup" aria-label="Double-sided flip">${DUPLEX_FLIPS.map(choice).join('')}</div>
+    <div class="field full" style="margin-top:10px"><label for="duplexWizardFrontEdge">Which edge of page 1 went into the printer first?</label>
+      <select id="duplexWizardFrontEdge">${['left', 'right', 'top', 'bottom'].map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${esc(edgeOptionLabel(x))}</option>`).join('')}</select>
+      <div class="hint">The edge that physically led into the printer, not the edge nearest you. Most printers take the paper short edge first. This only changes the wording — the yellow edge in the pictures follows it.</div></div>
+    <p class="callout-box" id="duplexWizardFeed" style="margin:10px 0"></p>
+
+    <h4 class="wiz-h">2 · Print the test</h4>
     <ol class="steps">
-      <li>First run the <b>Alignment sheet</b> and correct scale and printer offsets until the front page measures correctly.</li>
-      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button>. Print page 1 at Actual size / 100%, turn the sheet over for a <b>${edge}-edge</b> feed, then print page 2.</li>
-      <li>Hold the sheet up to a light. If the backs are mirrored or upside down, change <b>Double-sided flip</b> to the other edge and print the test again. If they line up but are shifted, enter the measured correction below.</li>
+      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b>. Plain paper is fine for this and you can see through it.</li>
+      <li>Turn the sheet over as shown above and print page 2 on the back of it.</li>
+      <li>If the backs come out mirrored or upside down rather than slightly off, the other flip in step 1 is the right one. Switch it and print again.</li>
     </ol>
-    <p class="hint">Enter the correction needed to move the back into place. For example, if the back is 1 mm too far right, enter <b>-1</b> for X. This replaces the extra back-page correction; printer offsets above remain unchanged.</p>
-    <div class="grid2">
-      <div class="field"><label for="duplexWizardX">Extra back-page offset X (mm)</label><input id="duplexWizardX" type="number" step="0.1" value="${esc(s.backOffsetX)}"></div>
-      <div class="field"><label for="duplexWizardY">Extra back-page offset Y (mm)</label><input id="duplexWizardY" type="number" step="0.1" value="${esc(s.backOffsetY)}"></div>
+
+    <h4 class="wiz-h">3 · Read it and type the two numbers in</h4>
+    <p class="hint">Page 2 tells you where to look. Find where the centre of the ring on the front lands on the back — hold it to a light, or push a pin through it if the stock is opaque — and read it off the grid.</p>
+    <div class="duplex-read">${duplexReadSvg()}</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label for="duplexWizardX">X reading from the sheet (mm)</label><input id="duplexWizardX" type="number" step="0.05" value="${esc(keep(state.x))}"></div>
+      <div class="field"><label for="duplexWizardY">Y reading from the sheet (mm)</label><input id="duplexWizardY" type="number" step="0.05" value="${esc(keep(state.y))}"></div>
     </div>
-    <div class="row" style="margin-top:12px"><button id="duplexWizardApply" class="primary">Save back-page correction</button></div>
+    <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
+    <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Add the reading</button><button id="duplexWizardZero">Back to no correction</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
+    <p class="hint">Then print the test again. Both readings should come back 0. Nothing here touches the printer offsets from the alignment sheet.</p>
   </div>`);
   $('#modal').classList.add('duplex');
-  const updateFeed = () => {
+
+  const reading = () => [$('#duplexWizardX').valueAsNumber, $('#duplexWizardY').valueAsNumber];
+  const refresh = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
-    $('#duplexWizardFeed').innerHTML = `<b>Page 2 feed direction:</b> ${esc(feed.text)}<br><span class="hint">Keep the printed side facing the other way after turning the sheet.</span>`;
+    $('#duplexWizardFeed').innerHTML = `<b>Page 2 goes in ${esc(feed.back)} first.</b> ${esc(feed.text)}<br><span class="hint">Put the sheet back with the printed side facing the other way.</span>`;
+    const [x, y] = reading();
+    $('#duplexWizardSum').innerHTML = Number.isFinite(x) && Number.isFinite(y)
+      ? `Extra back-page offset: X ${esc(inUnit(s.backOffsetX))} ${x < 0 ? '−' : '+'} ${esc(Math.abs(x).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetX + x))}</b> · Y ${esc(inUnit(s.backOffsetY))} ${y < 0 ? '−' : '+'} ${esc(Math.abs(y).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetY + y))}</b>`
+      : 'Enter a number for both X and Y.';
+  };
+  $('#duplexWizardChoices').onclick = ev => {
+    const b = ev.target.closest('[data-flip]');
+    if (!b || b.dataset.flip === s.duplexFlip) return;
+    s.duplexFlip = b.dataset.flip; S.activePreset = null; save(); renderAll();
+    const [x, y] = reading();
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, x, y});
   };
   $('#duplexWizardFrontEdge').onchange = () => {
-    frontEdge = $('#duplexWizardFrontEdge').value;
-    $('#duplexWizardBindings').innerHTML = bindingExamples();
-    updateFeed();
+    const [x, y] = reading();
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, x, y});
   };
-  updateFeed();
+  $('#duplexWizardX').oninput = $('#duplexWizardY').oninput = refresh;
   $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
   $('#duplexWizardApply').onclick = () => {
-    const x = $('#duplexWizardX').valueAsNumber, y = $('#duplexWizardY').valueAsNumber;
-    if (!Number.isFinite(x) || !Number.isFinite(y)) {
-      $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.';
-      return;
-    }
-    s.backOffsetX = x; s.backOffsetY = y; s.backOffsetRel = true;
-    save(); renderAll(); $('#duplexWizardStatus').textContent = 'Saved. Export the duplex test again to verify the correction.';
+    const [x, y] = reading();
+    if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
+    s.backOffsetX = +(s.backOffsetX + x).toFixed(3); s.backOffsetY = +(s.backOffsetY + y).toFixed(3); s.backOffsetRel = true;
+    S.activePreset = null; save(); renderAll();
+    $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
+    $('#duplexWizardStatus').textContent = `Saved. Extra back-page offset is now X ${inUnit(s.backOffsetX)}, Y ${inUnit(s.backOffsetY)}. Print the test again to check.`;
   };
-};
+  $('#duplexWizardZero').onclick = () => {
+    s.backOffsetX = 0; s.backOffsetY = 0; s.backOffsetRel = true;
+    S.activePreset = null; save(); renderAll();
+    $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
+    $('#duplexWizardStatus').textContent = 'Back-page correction cleared.';
+  };
+  refresh();
+}
+$('#btnDuplexWizard').onclick = () => openDuplexWizard();
 $('#btnCal').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
   const s = S.settings, L = layout(), doc = newDoc(L), T = makeT(L, false);
-  const cx = L.W/2, cy = L.H/2;
-  doc.setDrawColor('#000000'); doc.setLineWidth(0.2);
-  doc.line(T.x(cx-50), T.y(cy-60), T.x(cx+50), T.y(cy-60));
-  for (let i = 0; i <= 100; i += 1) { const h = i % 10 ? 1.5 : 4; doc.line(T.x(cx-50+i), T.y(cy-60), T.x(cx-50+i), T.y(cy-60-h)); }
-  doc.line(T.x(cx-70), T.y(cy-40), T.x(cx-70), T.y(cy+60));
-  for (let i = 0; i <= 100; i += 1) { const w = i % 10 ? 1.5 : 4; doc.line(T.x(cx-70), T.y(cy-40+i), T.x(cx-70-w), T.y(cy-40+i)); }
-  doc.rect(T.x(cx-s.cardW/2+10), T.y(cy-30), T.w(s.cardW), T.h(s.cardH));
-  for (const [a, b, c, d] of [[10,0,10,25],[0,10,25,10],[L.W-10,0,L.W-10,25],[L.W-25,10,L.W,10],[10,L.H-25,10,L.H],[0,L.H-10,25,L.H-10],[L.W-10,L.H-25,L.W-10,L.H],[L.W-25,L.H-10,L.W,L.H-10]])
-    doc.line(T.x(a), T.y(b), T.x(c), T.y(d));
-  doc.setFontSize(9);
-  const txt = [
-    'Calibration sheet. Print at Actual size / 100% on the paper you will use.',
-    '1. The horizontal and vertical rulers should both measure exactly 100 mm.',
-    '   If not, set Scale = current scale × 100 / measured length.',
-    `2. The rectangle should measure ${s.cardW} × ${s.cardH} mm.`,
-    '3. Each corner cross should sit exactly 10 mm from both page edges.',
-    '   If the left crosses are at 11 mm, set Printer offset X to -1 (Y works the same way).',
-    '4. The printer offsets apply to both sides. If the backs are still off, print this',
-    '   page on the back of a calibrated sheet and add the rest under Extra back-page offset.'
-  ];
-  txt.forEach((t, i) => doc.text(t, T.x(cx-70), T.y(cy+70+i*5)));
-  doc.save('calibration.pdf');
+  const wide = L.W > L.H, cx = L.W / 2, D = 100;
+  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  doc.setTextColor('#111827'); doc.setDrawColor('#111827'); doc.setFillColor('#111827');
+
+  // Corner crosses, 10 mm in from both edges. The centre of the cross is the point
+  // to measure to, so it gets a ring to make the centre findable with a rule.
+  for (const [x, y] of [[10, 10], [L.W - 10, 10], [10, L.H - 10], [L.W - 10, L.H - 10]]) pdfCross(doc, T, x, y);
+  doc.setFontSize(6.5);
+  doc.text('10.0 mm from the left edge and 10.0 mm from the top edge', T.x(20), T.y(12.5));
+
+  // The measuring group: dimension A across, dimension B down, card outline.
+  const g = wide ? {x:16, y:40} : {x:cx - 59, y:44};
+  const ay = g.y + 11, ax0 = g.x + 4;
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+  doc.text(`A  must measure ${D.toFixed(1)} mm`, T.x(ax0 + D / 2), T.y(g.y + 5), {align:'center'});
+  doc.setFont('helvetica', 'normal');
+  doc.setLineWidth(0.2);
+  doc.line(T.x(ax0), T.y(ay), T.x(ax0 + D), T.y(ay));
+  pdfArrow(doc, T, ax0, ay, 'right'); pdfArrow(doc, T, ax0 + D, ay, 'left');
+  doc.setFontSize(6);
+  for (let n = 0; n <= D; n += 5) {
+    doc.line(T.x(ax0 + n), T.y(ay), T.x(ax0 + n), T.y(ay + (n % 10 ? 1.6 : 2.8)));
+    if (n % 10 === 0) doc.text(String(n), T.x(ax0 + n), T.y(ay + 6.4), {align:'center'});
+  }
+
+  const bx = g.x + 10, by0 = g.y + 30;
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+  doc.text(`B  ${D.toFixed(1)} mm`, T.x(bx + 1), T.y(by0 - 3));
+  doc.setFont('helvetica', 'normal');
+  doc.setLineWidth(0.2);
+  doc.line(T.x(bx), T.y(by0), T.x(bx), T.y(by0 + D));
+  pdfArrow(doc, T, bx, by0, 'down'); pdfArrow(doc, T, bx, by0 + D, 'up');
+  doc.setFontSize(6);
+  for (let n = 0; n <= D; n += 5) {
+    doc.line(T.x(bx), T.y(by0 + n), T.x(bx - (n % 10 ? 1.6 : 2.8)), T.y(by0 + n));
+    if (n % 10 === 0) doc.text(String(n), T.x(bx - 3.6), T.y(by0 + n + 1), {align:'right'});
+  }
+
+  const cardFits = s.cardW <= 96 && s.cardH <= 96;
+  if (cardFits) {
+    const rx = g.x + 30, ry = g.y + 34;
+    doc.setLineWidth(0.3);
+    doc.rect(T.x(rx), T.y(ry), T.w(s.cardW), T.h(s.cardH));
+    doc.setFontSize(7);
+    doc.text(`card outline`, T.x(rx + s.cardW / 2), T.y(ry + s.cardH / 2 - 2), {align:'center'});
+    doc.text(`${s.cardW.toFixed(1)} x ${s.cardH.toFixed(1)} mm`, T.x(rx + s.cardW / 2), T.y(ry + s.cardH / 2 + 3), {align:'center'});
+  }
+
+  // Title block.
+  const head = pdfText(doc, 20, 24, L.W - 40);
+  head.write('ALIGNMENT SHEET', {bold:true, size:13, lead:5.5});
+  head.write(`${paper} ${L.W.toFixed(1)} x ${L.H.toFixed(1)} mm, ${s.orientation}. Print at Actual size / 100% on the paper you will use.`, {size:8, lead:4});
+  head.write(`Printed with horizontal scale ${s.scaleX.toFixed(2)}%, vertical scale ${s.scaleY.toFixed(2)}%, printer offset X ${s.offsetX.toFixed(2)} mm, printer offset Y ${s.offsetY.toFixed(2)} mm.`, {size:7});
+
+  // Instructions.
+  const tb = wide ? {x:148, y:34, w:116} : {x:16, y:188, w:124};
+  const t = pdfText(doc, tb.x, tb.y, tb.w);
+  t.write('WHAT TO DO', {bold:true, size:9, lead:5});
+  t.write('1   Measure A and B tip to tip, from the point of one arrowhead to the point of the other. Both must read 100.0 mm.', {indent:0});
+  t.gap(1.5);
+  t.write('2   If either is wrong, find the measurement in the table and type the new value into Horizontal scale (%) for A, or Vertical scale (%) for B. Then print this sheet again.');
+  t.gap(1.5);
+  t.write('3   Once A and B read 100.0 mm, measure from the paper edge to the centre of the top-left cross. It should be 10.0 mm from the left edge and 10.0 mm from the top edge. If it is not:');
+  t.gap(1);
+  t.write(`Printer offset X (mm)  =  ${s.offsetX.toFixed(2)}  -  (measured from the left edge  -  10.0)`, {indent:6, size:7});
+  t.write(`Printer offset Y (mm)  =  ${s.offsetY.toFixed(2)}  -  (measured from the top edge  -  10.0)`, {indent:6, size:7});
+  t.gap(1.5);
+  t.write(`4   Print the sheet again to check. A, B, the crosses${cardFits ? ` and the ${s.cardW.toFixed(1)} x ${s.cardH.toFixed(1)} mm card outline` : ''} should all be right before you print cards.`);
+  t.gap(3);
+  t.write('These three settings live in Print, under Printer Alignment & Test Sheets. They move both sides of the sheet by the same amount. Getting the backs to line up with the fronts is a separate job: print the double-sided test and use the duplex calibration wizard.', {size:7});
+
+  // Ready reckoner, so nobody has to work out current x 100 / measured by hand.
+  const tab = {x: wide ? 148 : 150, y: wide ? Math.max(120, t.at() + 9) : 196};
+  const rows = [99, 99.25, 99.5, 99.75, 100, 100.25, 100.5, 100.75, 101];
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+  doc.text('NEW SCALE VALUES', tab.x, tab.y);
+  doc.setFontSize(6.5);
+  doc.text('measured', tab.x, tab.y + 7);
+  doc.text('horizontal', tab.x + 24, tab.y + 7, {align:'right'});
+  doc.text('vertical', tab.x + 46, tab.y + 7, {align:'right'});
+  doc.setFont('helvetica', 'normal');
+  doc.setLineWidth(0.15);
+  doc.line(tab.x, tab.y + 8.8, tab.x + 46, tab.y + 8.8);
+  rows.forEach((m, i) => {
+    const y = tab.y + 13.4 + i * 4.3, exact = m === 100;
+    doc.setFont('helvetica', exact ? 'bold' : 'normal');
+    doc.text(`${m.toFixed(2)} mm`, tab.x, y);
+    doc.text(exact ? 'no change' : (s.scaleX * 100 / m).toFixed(2), tab.x + 24, y, {align:'right'});
+    doc.text(exact ? 'no change' : (s.scaleY * 100 / m).toFixed(2), tab.x + 46, y, {align:'right'});
+  });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.text('Between two rows? Split the difference.', tab.x, tab.y + 17.4 + rows.length * 4.3);
+
+  doc.save('alignment-sheet.pdf');
 };
 
 function cutSvg(sheet = 0) {
@@ -5903,6 +6234,7 @@ if (tabGuideBtnPrint && tabGuideBtnCut) {
 }
 
 $('#exportReview').addEventListener('click', e => { const b = e.target.closest('[data-review-tab]'); if (b) switchTab(b.dataset.reviewTab); });
+$('#tab-guide').addEventListener('click', e => { if (e.target.closest('[data-duplex-wizard]')) openDuplexWizard(); });
 
 if ($('#btnExportPdfTab')) $('#btnExportPdfTab').onclick = async () => { await exportPDF(true); };
 if ($('#btnExportSvgTab')) $('#btnExportSvgTab').onclick = () => downloadCutSvg();
