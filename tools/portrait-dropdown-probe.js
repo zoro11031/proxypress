@@ -28,7 +28,7 @@
         eq(`${printer} ${paper} cameo orientation changed`, S.settings.orientation, 'portrait');
         eq(`${printer} ${paper} cameo portrait 9 cards`, layout().per, 9);
         eq(`${printer} ${paper} cameo portrait regConflict false`, regConflict(layout()), false);
-        eq(`${printer} ${paper} cameo status ready`, $('#cameoStatus')?.textContent.includes('Layout ready for Silhouette Cameo'), true);
+        eq(`${printer} ${paper} cameo status ready`, $('#cameoStatus')?.textContent.includes('Layout ready for the Cameo'), true);
 
         // 2. Rotary
         $('#btnCutModeRotary').click();
@@ -42,7 +42,7 @@
 
         eq(`${printer} ${paper} rotary orientation changed`, S.settings.orientation, 'portrait');
         eq(`${printer} ${paper} rotary portrait 9 cards`, layout().per, 9);
-        eq(`${printer} ${paper} rotary status ready`, $('#cutStatus')?.textContent.includes('Layout ready for Rotary Trimmer'), true);
+        eq(`${printer} ${paper} rotary status ready`, $('#cutStatus')?.textContent.includes('Layout ready for the trimmer'), true);
       }
     }
   } catch (err) {
