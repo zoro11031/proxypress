@@ -1,4 +1,33 @@
-# Proxy Press v0.5.3
+# Proxy Press v0.5.4
+
+Duplex printing and uploaded-image bleed calibration improvements.
+
+## What's new
+
+- **Long-edge and short-edge duplex printing:** Back pages now follow the selected binding edge in both preview and exported PDFs.
+- **Duplex calibration wizard:** Print a two-sided alignment test, identify the correct binding direction, and save backside X/Y correction.
+- **MPC image bleed:** Uploaded-image bleed defaults to 3.048 mm (0.12 in), matching the bleed already included in standard card images.
+- **Binding visuals:** The duplex wizard includes diagrams for long-side and short-side binding.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/Proxy-Press-0.5.4.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.4/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
+# Previous Releases
+
+### v0.5.3
 
 Automatic corner guide contrast against card borders and artwork, and smooth deck import warning animations.
 
@@ -23,8 +52,6 @@ Automatic corner guide contrast against card borders and artwork, and smooth dec
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
 ---
-
-# Previous Releases
 
 ### v0.5.2
 - **Deck import spelling suggestions:** When imported cards cannot be found, Proxy Press searches Scryfall with fuzzy matching and autocomplete to suggest likely card names, with one-click **Use** (updates the import box) and **Add** (adds directly to deck).

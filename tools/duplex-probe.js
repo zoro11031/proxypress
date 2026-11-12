@@ -21,6 +21,11 @@
     eq('landscape manual steps', /top to bottom/.test(backStepsHtml(1)), true);
     S.settings.duplexMethod = 'auto';
     eq('landscape auto steps', /top to bottom/.test(backStepsHtml(1)), true);
+    S.settings.duplexFlip = 'short';
+    L = layout();
+    eq('landscape short mirrorX', L.mirrorX, true);
+    eq('landscape short turn', duplexTurn(L).axis, 'left to right');
+    eq('landscape short back rotation', faceRot(L, true), 0);
 
     // Portrait is the other way round.
     S.settings = {...DEFAULTS, pageSize:'letter', orientation:'portrait', cardRotation:'auto', bleed:0.5, margin:5, dfcMode:'duplex'};
@@ -29,6 +34,12 @@
     eq('portrait turn', duplexTurn(L).axis, 'left to right');
     eq('portrait back rotation', faceRot(L, true), 0);
     eq('portrait manual steps', /left to right/.test(backStepsHtml(1)), true);
+    S.settings.duplexFlip = 'short';
+    L = layout();
+    eq('portrait short mirrorX', L.mirrorX, false);
+    eq('portrait short turn', duplexTurn(L).axis, 'top to bottom');
+    eq('portrait short back rotation', faceRot(L, true), 180);
+    eq('MPC uploaded bleed default', cleanSettings({}).customSrcBleed, 3.048);
 
     // The printer offset reaches both sides; the back offset is a delta on top.
     // A pre-change saved setting measured the back absolutely and must land in
