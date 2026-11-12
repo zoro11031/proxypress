@@ -93,8 +93,14 @@ function owns(port) {
       for (let i = 0; i < 60 && portFree(sp); i++) await sleep(250);
     }
     const cdp = freePort(9400);
+    // A desktop viewport, pinned. Headless chromium defaults to 780x493 here, under the
+    // 821px breakpoint, so the page loads its narrow layout: the sidebar toggle is
+    // display:none and preview focus mode does not exist. A probe asserting anything
+    // about the desktop layout then fails for the window size rather than the code,
+    // and the default is not contractual, so it has to be stated.
     browser = spawn('chromium', ['--headless=new', `--remote-debugging-port=${cdp}`, '--no-first-run',
-      '--no-default-browser-check', '--disable-gpu', `--user-data-dir=${PROF}`, 'about:blank'], {stdio: 'ignore'});
+      '--no-default-browser-check', '--disable-gpu', '--window-size=1280,900',
+      `--user-data-dir=${PROF}`, 'about:blank'], {stdio: 'ignore'});
     setTimeout(() => { try { browser.kill(); } catch {} }, 180000).unref();
     for (let i = 0; i < 60; i++) { try { await fetch(`http://127.0.0.1:${cdp}/json/version`); break; } catch { await sleep(250); } }
     let bad = owns(cdp);

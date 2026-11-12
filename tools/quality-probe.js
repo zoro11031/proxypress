@@ -45,7 +45,7 @@
     cardRecommendations=async name=>[{name:'Mission Briefing',score:70,kind:'Similar card'},{name:'Counterspell',score:100,kind:'Similar card'},
       ...(name==='Snapcaster Mage'?[{name:'Torrential Gearhulk',score:80,kind:'Often played together'},{name:'Off-color card',score:90,kind:'Similar card'}]:[])];
     sf=async()=>({data:[mission,gearhulk,offColor]}); mpcAutofill=async()=>({});
-    renderSuggestions(true); clearTimeout(suggestionTimer);
+    suggestionsWanted = true; renderSuggestions(true); clearTimeout(suggestionTimer);
     await collectSuggestions(d,suggestionState.key,suggestionRun,suggestionSeeds(d));
     eq('suggestions exclude existing cards and off-color cards',currentSuggestions().length,2);
     eq('cards supported by multiple deck cards rank first',currentSuggestions()[0].card.name,'Mission Briefing');
