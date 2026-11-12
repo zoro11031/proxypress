@@ -539,6 +539,7 @@ details.adv:not([open]){padding-bottom:10px}
         <div class="row" style="margin-top:8px">
           <button id="btnCal" title="Print once on your paper, measure, and enter the results below">Alignment sheet</button>
           <button id="btnDuplexTest" title="Two pages to check that backs line up with fronts">Double-sided test</button>
+          <button id="btnDuplexWizard" title="Print a duplex test and calibrate the back-page offset">Duplex calibration wizard</button>
         </div>
         <div class="grid2" id="calForm"></div>
       </details>
@@ -930,7 +931,7 @@ const DEFAULTS = {
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, scaleX:100, scaleY:100,
-  dpi:1200, jpeg:92, brightness:100, customSrcBleed:0,
+  dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
 };
@@ -1274,7 +1275,7 @@ async function renderFace(face, dpi, hi, rot = 0) {
 const previewCache = new Map();
 function settingsSig() {
   const s = S.settings;
-  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.customSrcBleed].join(',');
+  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.customSrcBleed, s.duplexFlip].join(',');
 }
 async function previewUrl(face, rot = 0) {
   const key = (face.custom || face.drive || face.normal) + '|' + settingsSig() + '|' + rot;
@@ -1309,8 +1310,8 @@ function layout() {
   const up = fit(s.cardW, s.cardH), side = fit(s.cardH, s.cardW);
   const useSide = s.cardRotation === 'rotated' || (s.cardRotation === 'auto' && side.fits && (!up.fits || side.per > up.per));
   const g = useSide ? side : up;
-  const flip = s.duplexFlip;
-  return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2, mirrorX:(W <= H) === (flip === 'long')};
+  const mirrorX = (W <= H) === (s.duplexFlip === 'long');
+  return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2, mirrorX};
 }
 function slotPos(L, i, back) {
   const s = S.settings, c = i % L.cols, r = Math.floor(i / L.cols);
@@ -4776,7 +4777,9 @@ async function drawPreview() {
     for (const back of sides) {
       const T = makeT(L, back), el = document.createElement('div');
       el.className = 'pg'; el.style.width = L.W*z + 'px'; el.style.height = L.H*z + 'px';
-      const backNote = back ? (L.W > L.H ? ' · back (inverted 180° for long-edge feed)' : ' · back') : '';
+      const backRot = faceRot(L, true), edge = s.duplexFlip === 'short' ? 'short-edge' : 'long-edge';
+      const backTransform = backRot === 180 ? 'inverted 180°' : backRot ? `rotated ${Math.abs(backRot)}°` : 'not rotated';
+      const backNote = back ? ` · back (${backTransform} for ${edge} feed)` : '';
       el.innerHTML = `<span class="lbl">Page ${pi + 1}${backNote}</span>`;
       const lines = back ? [] : cachedGuideLines(L, page), reg = back ? {rects:[], lines:[]} : regMarks(L);
       const underLines = lines.filter(l => !l[6]), overLines = lines.filter(l => l[6]);
@@ -5197,6 +5200,57 @@ $('#btnDuplexTest').onclick = () => {
       T.x(L.W / 2 + (t.lr ? (back ? off : -off) : 0)), T.y(!t.lr && back ? L.H - 8 : 8), {align:'center'});
   }
   doc.save('double-sided-test.pdf');
+};
+$('#btnDuplexWizard').onclick = () => {
+  const s = S.settings, edge = s.duplexFlip === 'short' ? 'short' : 'long';
+  openModal(`<div class="hd"><b>Duplex calibration wizard</b><button data-close>Close</button></div><div class="bd">
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">
+      <div class="callout-box" style="margin:0;text-align:center">
+        <svg viewBox="0 0 150 112" role="img" aria-label="Long-side binding: turn the sheet left to right" style="width:100%;height:auto">
+          <rect x="18" y="12" width="48" height="82" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+          <rect x="84" y="12" width="48" height="82" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+          <path d="M68 53h14M73 48l-5 5 5 5M77 48l5 5-5 5" fill="none" stroke="#475569" stroke-width="2"/>
+          <path d="M14 12v82" stroke="#0f172a" stroke-width="4"/>
+          <text x="42" y="106" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text>
+          <text x="108" y="106" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>
+        </svg>
+        <b>Long-side binding</b><div class="hint">Turn left to right</div>
+      </div>
+      <div class="callout-box" style="margin:0;text-align:center">
+        <svg viewBox="0 0 150 112" role="img" aria-label="Short-side binding: turn the sheet top to bottom" style="width:100%;height:auto">
+          <rect x="34" y="8" width="82" height="42" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+          <rect x="34" y="62" width="82" height="42" rx="2" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+          <path d="M75 53v14M70 58l5-5 5 5M70 62l5 5 5-5" fill="none" stroke="#475569" stroke-width="2"/>
+          <path d="M34 5h82" stroke="#0f172a" stroke-width="4"/>
+          <text x="75" y="35" text-anchor="middle" font-size="9" fill="#1e3a8a">FRONT</text>
+          <text x="75" y="89" text-anchor="middle" font-size="9" fill="#991b1b">BACK</text>
+        </svg>
+        <b>Short-side binding</b><div class="hint">Turn top to bottom</div>
+      </div>
+    </div>
+    <ol class="steps">
+      <li>First run the <b>Alignment sheet</b> and correct scale and printer offsets until the front page measures correctly.</li>
+      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button>. Print page 1 at Actual size / 100%, turn the sheet over for a <b>${edge}-edge</b> feed, then print page 2.</li>
+      <li>Hold the sheet up to a light. If the backs are mirrored or upside down, change <b>Double-sided flip</b> to the other edge and print the test again. If they line up but are shifted, enter the measured correction below.</li>
+    </ol>
+    <p class="hint">Enter the correction needed to move the back into place. For example, if the back is 1 mm too far right, enter <b>-1</b> for X. This replaces the extra back-page correction; printer offsets above remain unchanged.</p>
+    <div class="grid2">
+      <div class="field"><label for="duplexWizardX">Extra back-page offset X (mm)</label><input id="duplexWizardX" type="number" step="0.1" value="${esc(s.backOffsetX)}"></div>
+      <div class="field"><label for="duplexWizardY">Extra back-page offset Y (mm)</label><input id="duplexWizardY" type="number" step="0.1" value="${esc(s.backOffsetY)}"></div>
+    </div>
+    <div class="row" style="margin-top:12px"><button id="duplexWizardApply" class="primary">Save back-page correction</button></div>
+    <p id="duplexWizardStatus" class="hint" role="status"></p>
+  </div>`);
+  $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
+  $('#duplexWizardApply').onclick = () => {
+    const x = $('#duplexWizardX').valueAsNumber, y = $('#duplexWizardY').valueAsNumber;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.';
+      return;
+    }
+    s.backOffsetX = x; s.backOffsetY = y; s.backOffsetRel = true;
+    save(); renderAll(); $('#duplexWizardStatus').textContent = 'Saved. Export the duplex test again to verify the correction.';
+  };
 };
 $('#btnCal').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
