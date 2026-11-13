@@ -4720,16 +4720,19 @@ function renderSettings() {
 const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
 // Offsets read off a double-sided test sheet on one machine. A starting point that
 // saves a first pass of the wizard, not a fact about the model: print the test and
-// read it anyway. Both numbers are second-pass drift; they differ only in what
-// brings them on. The Y drift showed up on every paper tried on that machine, the
-// X drift only on ProxyJak 310gsm -- hence an entry for each case.
+// read it anyway.
+//
+// A back offset belongs to one flip and does not carry to the other. The flip
+// decides which axis the back page is mirrored in, and it also sends the sheet
+// back through on a different edge, so the drift itself is a different number.
+// The same machine and stock measured +1.5 mm X on a short-edge flip and -1.8 mm
+// on a long-edge one. There is no entry for a heavy coated stock here because the
+// two readings taken on 310gsm were taken on different flips, so neither confirms
+// the other.
 const BUILTIN_CAL_PROFILES = [
   {id:'c-mf753-auto', builtin:true, printer:'mf753',
     name:'Canon MF753Cdw II \u00b7 any paper \u00b7 automatic duplex, short edge (measured 2026-11-12)',
     settings:{duplexFlip:'short', backOffsetUnit:'mm', backOffsetX:0, backOffsetY:1}},
-  {id:'c-mf753-310-auto', builtin:true, printer:'mf753',
-    name:'Canon MF753Cdw II \u00b7 ProxyJak 310gsm \u00b7 automatic duplex, short edge (measured 2026-11-12)',
-    settings:{duplexFlip:'short', backOffsetUnit:'mm', backOffsetX:1.5, backOffsetY:1}},
 ];
 const calProfiles = () => [...BUILTIN_CAL_PROFILES, ...S.calibrationProfiles];
 function renderCalibrationProfiles() {
