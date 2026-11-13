@@ -1587,21 +1587,24 @@ function squarenessMarks(L) {
   ];
   // Two scales per corner, each running out towards the edge it measures. Ticks
   // point inwards so they cannot stray into the non-printable margin.
-  const off = SQ_INSET + 8;
+  const off = SQ_INSET + 8, labels = [];
   for (const near of [true, false]) {
     const at = near ? off : L.W - off, side = near ? off : L.H - off;
+    const inx = near ? 1 : -1;
     for (const top of [true, false]) {
       for (let v = SQ_FROM; v <= SQ_TO + 1e-9; v += SQ_STEP) {
-        const len = SQ_LABELS.includes(+v.toFixed(2)) ? 3 : 1.6;
+        const named = SQ_LABELS.includes(+v.toFixed(2)), len = (named ? 3 : 1.6) * inx;
         const y = top ? v : L.H - v, x = top ? v : L.W - v;
-        const dy = top ? len : -len, dx = top ? len : -len;
-        lines.push([at, y, at + dy, y]);
-        lines.push([x, side, x, side + dx]);
+        lines.push([at, y, at + len, y]);
+        lines.push([x, side, x, side + len]);
+        if (!named) continue;
+        labels.push([at + len + inx * 0.9, y + (top ? 0.7 : -0.7), String(v), inx > 0 ? 'left' : 'right']);
+        labels.push([x, side + len + inx * 1.9, String(v), 'center']);
       }
     }
   }
   return {band: SQ_BAND, scale: {from: SQ_FROM, to: SQ_TO, step: SQ_STEP, labels: SQ_LABELS},
-    span, degPerMm: {x: deg(span.x), y: deg(span.y)}, lines};
+    span, degPerMm: {x: deg(span.x), y: deg(span.y)}, lines, labels};
 }
 // Registration marks follow the Silhouette Card Maker specification.
 // Three things in it are easy to get wrong and all three matter:
@@ -5730,8 +5733,15 @@ $('#btnCal').onclick = () => {
   // Corner crosses, 10 mm in from both edges. The centre of the cross is the point
   // to measure to, so it gets a ring to make the centre findable with a rule.
   for (const [x, y] of [[10, 10], [L.W - 10, 10], [10, L.H - 10], [L.W - 10, L.H - 10]]) pdfCross(doc, T, x, y);
+  const sq = squarenessMarks(L);
+  if (sq) {
+    doc.setLineWidth(0.2);
+    for (const [x1, y1, x2, y2] of sq.lines) doc.line(T.x(x1), T.y(y1), T.x(x2), T.y(y2));
+    doc.setFontSize(5.5);
+    for (const [x, y, txt, align] of sq.labels) doc.text(txt, T.x(x), T.y(y), {align});
+  }
   doc.setFontSize(6.5);
-  doc.text('10.0 mm from the left edge and 10.0 mm from the top edge', T.x(20), T.y(12.5));
+  doc.text('10.0 mm from the left edge and 10.0 mm from the top edge', T.x(SQ_INSET + 18), T.y(12.5));
 
   // The measuring group: dimension A across, dimension B down, card outline.
   const g = wide ? {x:16, y:40} : {x:cx - 59, y:44};

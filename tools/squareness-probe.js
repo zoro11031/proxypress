@@ -32,8 +32,17 @@
     eq('clears 5mm margin', m.lines.every(([x1, y1, x2, y2]) =>
       Math.min(x1, x2) >= 5 - 1e-9 && Math.min(y1, y2) >= 5 - 1e-9 &&
       Math.max(x1, x2) <= L.W - 5 + 1e-9 && Math.max(y1, y2) <= L.H - 5 + 1e-9), true);
-    eq('margin lines first', m.lines.slice(0, 4).every(([x1, y1, x2, y2]) => x1 === x2 || y1 === y2), true);
-    eq('ticks follow', m.lines.length > 4, true);
+    // Axis-alignment alone does not tell a margin line from a tick: both are
+    // horizontal or vertical. Length does, and the drawing relies on the order.
+    const len = ([x1, y1, x2, y2]) => Math.hypot(x2 - x1, y2 - y1);
+    eq('margin lines first', m.lines.slice(0, 4).every(l => len(l) > 50), true);
+    eq('ticks follow, and are short', m.lines.length > 4 && m.lines.slice(4).every(l => len(l) <= 3 + 1e-9), true);
+
+    // Labels come from the same place as the ticks, so the two cannot drift apart.
+    eq('three labels per scale, eight scales', m.labels.length, 24);
+    eq('labels clear the margin', m.labels.every(([x, y]) =>
+      x >= 5 && y >= 5 && x <= L.W - 5 && y <= L.H - 5), true);
+    eq('labels are the labelled values', [...new Set(m.labels.map(l => l[2]))].sort().join(), '10,15,5');
 
     // A6 must still fit without opposing scales meeting.
     S.settings = {...DEFAULTS, pageSize:'a6', orientation:'portrait'};
