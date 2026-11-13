@@ -1410,6 +1410,22 @@ function backPoint(L, p) {
 // its front. faceRot answers this for a card, and folds in the card's own L.rot on
 // top; a sheet of text has no L.rot, so it needs this part on its own.
 function backPageRot(L) { return L.mirrorX ? 0 : 180; }
+// Where the double-sided test's four corner marks are printed on page 2, and
+// where a pin pushed through the front's four marks comes out on that same side,
+// both in page 2's own millimetres. A hole is the front's mark seen through the
+// paper, so its place is the front's PRINTED position carried over by the same
+// turn the back page gets. Hole minus mark is the misregistration, and it is
+// what the scan reader measures and the sheet's key states.
+function duplexTestPoints(L, inset) {
+  const Tf = makeT(L, false), Tb = makeT(L, true);
+  const corners = [[inset, inset], [L.W - inset, inset], [inset, L.H - inset], [L.W - inset, L.H - inset]];
+  return {
+    corners,
+    marks: corners.map(([x, y]) => { const q = backPoint(L, {x, y}); return {x: Tb.x(q.x), y: Tb.y(q.y)}; }),
+    holes: corners.map(([x, y]) => backPoint(L, {x: Tf.x(x), y: Tf.y(y)})),
+  };
+}
+function duplexTestInset(L) { return Math.max(20, Math.min(30, Math.min(L.W, L.H) * 0.11)); }
 // Text on a turned page. jsPDF resolves `align` before it rotates, so a centred
 // string drawn at 180 degrees does not stay centred on its anchor. Place it by
 // width instead: at 180 degrees a string runs leftwards from its anchor, so the
@@ -5497,17 +5513,25 @@ $('#btnDuplexTest').onclick = () => {
   const wide = L.W > L.H, cx = L.W / 2, cy = L.H / 2;
   const BLACK = '#111827', RED = '#c0392b';
   const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-  const inset = Math.max(20, Math.min(30, Math.min(L.W, L.H) * 0.11));
-  const corners = [[inset, inset], [L.W - inset, inset], [inset, L.H - inset], [L.W - inset, L.H - inset]];
+  const inset = duplexTestInset(L);
+  const pts = duplexTestPoints(L, inset), corners = pts.corners;
   const signed = v => (v >= 0 ? '+' : '') + v.toFixed(2);
 
-  const square = (T, x, y, half, n, ang = 0) => {
+  const square = (T, x, y, half, n, ang = 0, gap = 0) => {
     const f = ang === 180 ? -1 : 1;
     doc.setLineWidth(0.3);
     doc.rect(T.x(x - half), T.y(y - half), T.w(half * 2), T.h(half * 2));
     doc.setLineWidth(0.15);
-    doc.line(T.x(x - half - 3), T.y(y), T.x(x + half + 3), T.y(y));
-    doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y + half + 3));
+    if (gap) {
+      // Arms stop short of the middle, leaving a clear disc for the pin hole.
+      doc.line(T.x(x - half - 3), T.y(y), T.x(x - gap), T.y(y));
+      doc.line(T.x(x + gap), T.y(y), T.x(x + half + 3), T.y(y));
+      doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y - gap));
+      doc.line(T.x(x), T.y(y + gap), T.x(x), T.y(y + half + 3));
+    } else {
+      doc.line(T.x(x - half - 3), T.y(y), T.x(x + half + 3), T.y(y));
+      doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y + half + 3));
+    }
     doc.setFontSize(7);
     atext(doc, String(n), T.x(x + f * (half + 4.5)), T.y(y - f * (half - 1)), null, ang);
   };
@@ -5515,7 +5539,13 @@ $('#btnDuplexTest').onclick = () => {
   /* ---------- page 1, the front ---------- */
   const Tf = makeT(L, false);
   doc.setTextColor(BLACK); doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
-  corners.forEach(([x, y], i) => square(Tf, x, y, 8, i + 1));
+  corners.forEach(([x, y], i) => {
+    square(Tf, x, y, 8, i + 1);
+    doc.setLineWidth(0.15);
+    doc.circle(Tf.x(x), Tf.y(y), Tf.w(2.6));
+    doc.setLineWidth(0.12);
+    doc.circle(Tf.x(x), Tf.y(y), Tf.w(0.4));
+  });
 
   // The pin ring. Its centre is the one point on the sheet that both pages agree
   // on, and it sits at the page centre, where the scale settings have no effect -
@@ -5544,6 +5574,7 @@ $('#btnDuplexTest').onclick = () => {
   body1.write(`2   Take the sheet out and turn it over ${t.axis}, looking at the printed side. ${t.keeps} Do not spin it any other way.`);
   body1.write(`3   Put it back in the tray with the printed side facing the other way. ${feed.text}`);
   body1.write('4   Print page 2 on the back of this same sheet, with the same settings.');
+  body1.write('5   To have the sheet measured rather than read by eye, pierce the centre dot of all four corner marks as well, from this side, with a fine needle held upright.');
 
   /* ---------- page 2, the back ---------- */
   doc.addPage([L.W, L.H], wide ? 'l' : 'p');
@@ -5556,8 +5587,16 @@ $('#btnDuplexTest').onclick = () => {
   doc.setDrawColor(RED); doc.setFillColor(RED); doc.setTextColor(RED);
   corners.forEach(([x, y], i) => {
     const p = backPoint(L, {x, y});
-    square(Tb, p.x, p.y, 5, i + 1, rot2);
+    square(Tb, p.x, p.y, 5, i + 1, rot2, 4.2);
+    doc.setLineWidth(0.12);
+    doc.circle(Tb.x(p.x), Tb.y(p.y), Tb.w(3.2));
   });
+  // Corner 1 alone carries a solid dot, 14 mm in along the diagonal. Four marks on
+  // a rectangle look the same upside down; this one does not.
+  const key1 = backPoint(L, {x: corners[0][0], y: corners[0][1]});
+  const keyIn = p => ({x: p.x + (p.x < cx ? 14 : -14), y: p.y + (p.y < cy ? 14 : -14)});
+  const kd = keyIn(key1);
+  doc.circle(Tb.x(kd.x), Tb.y(kd.y), Tb.w(1.2), 'F');
   doc.setLineWidth(0.25);
   doc.circle(Tb.x(cx), Tb.y(cy), Tb.w(12));
   drawReadGrid(doc, (dx, dy) => [Tb.x(cx + f2 * dx), Tb.y(cy + f2 * dy)], 1, {angle: rot2});
@@ -5606,6 +5645,27 @@ $('#btnDuplexTest').onclick = () => {
   body2.write('If the hole is off the grid altogether, or the red squares are nowhere near the black ones, the sheet was turned over the wrong way. Switch Double-sided flip to the other edge, or turn the sheet the other way, and start again.', {size:7.5, lead:4});
   body2.gap(1.5);
   body2.write('The small red squares should sit centred inside the big black ones. If the middle reads 0 but the corners are visibly out, and out by different amounts at opposite corners, the backs are printing at a slightly different size: adjust Back-page scale X / Y.', {size:7.5, lead:4});
+  body2.gap(2);
+  body2.write('OR HAVE IT MEASURED', {bold:true, size:9, lead:5.5});
+  body2.write('Pierce all four corner marks from the front. Put a sheet of black paper behind this one, scan THIS side at 600 dpi or more, and hand over the file. Four holes against four marks give the offset, the turn and the size in one reading, which four corners can do and the middle alone cannot.', {size:7.5, lead:4});
+
+  // Everything a reader of the scan needs that the scan cannot show, in page 2's
+  // own millimetres: where the four back marks were printed, and where the four
+  // holes would be if the two sides registered perfectly. A hole is the front's
+  // mark seen through the paper, so its ideal place is the front's printed
+  // position carried across by the same turn the back page gets.
+  const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
+  const markPts = pts.marks, holePts = pts.holes;
+  const keyTxt = `SCAN KEY v2 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(markPts)} | holes ${fmt(holePts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)}`;
+  doc.setTextColor(BLACK);
+  // The key is longer than a portrait page is wide, so it wraps. Lay the block
+  // out from the bottom edge inwards, in page 2's own frame, so the last line
+  // clears the printer's margin whichever way the page is turned.
+  doc.setFontSize(6);
+  const keyW = L.W - 20, keyLead = 2.8;
+  const keyLines = doc.splitTextToSize(keyTxt, keyW).length;
+  const keyTop = L.H - 7 - keyLead * (keyLines - 1);
+  pdfText(doc, ...flipPt(cx, keyTop), keyW, 6, keyLead, 'center', rot2).write(keyTxt, {size:6});
 
   doc.save('double-sided-test.pdf');
 };
