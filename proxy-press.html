@@ -569,7 +569,7 @@ details.adv:not([open]){padding-bottom:10px}
           <button id="calProfileSave">Save profile</button>
           <button id="calProfileDelete" class="danger">Delete</button>
         </div>
-        <p class="hint">A profile remembers the double-sided settings for one printer and stock: the flip, the extra back-page offset and the back-page scale. The printer offset and scale below are not part of it, because they belong to the printer rather than to the job.</p>
+        <p class="hint">A profile remembers the double-sided settings for one printer and stock: the flip, the extra back-page offset and the back-page scale. The printer offset and scale below are not part of it, because they belong to the printer rather than to the job. The list starts with offsets measured on one machine, as a starting point &mdash; print the double-sided test afterwards to check them against yours.</p>
         <div class="grid2" id="calForm"></div>
       </details>
       <div class="wiz-nav">
@@ -4655,12 +4655,27 @@ function renderSettings() {
   renderCalibrationProfiles();
 }
 const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
+// Offsets read off a double-sided test sheet on one machine. A starting point that
+// saves a first pass of the wizard, not a fact about the model: print the test and
+// read it anyway. Both numbers are second-pass drift; they differ only in what
+// brings them on. The Y drift showed up on every paper tried on that machine, the
+// X drift only on ProxyJak 310gsm -- hence an entry for each case.
+const BUILTIN_CAL_PROFILES = [
+  {id:'c-mf753-auto', builtin:true, printer:'mf753',
+    name:'Canon MF753Cdw II \u00b7 any paper \u00b7 automatic duplex, short edge (measured 2026-11-12)',
+    settings:{duplexFlip:'short', backOffsetUnit:'mm', backOffsetX:0, backOffsetY:1}},
+  {id:'c-mf753-310-auto', builtin:true, printer:'mf753',
+    name:'Canon MF753Cdw II \u00b7 ProxyJak 310gsm \u00b7 automatic duplex, short edge (measured 2026-11-12)',
+    settings:{duplexFlip:'short', backOffsetUnit:'mm', backOffsetX:1.5, backOffsetY:1}},
+];
+const calProfiles = () => [...BUILTIN_CAL_PROFILES, ...S.calibrationProfiles];
 function renderCalibrationProfiles() {
   const sel = $('#calProfileSel');
   if (!sel) return;
   const current = sel.value;
-  sel.innerHTML = `<option value="">No saved profile</option>${S.calibrationProfiles.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}`;
-  if (S.calibrationProfiles.some(p => p.id === current)) sel.value = current;
+  const opt = p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`;
+  sel.innerHTML = `<option value="">No saved profile</option><optgroup label="Measured starting points">${BUILTIN_CAL_PROFILES.map(opt).join('')}</optgroup>${S.calibrationProfiles.map(opt).join('')}`;
+  if (calProfiles().some(p => p.id === current)) sel.value = current;
 }
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
@@ -4703,7 +4718,7 @@ $('#settingsForm').addEventListener('change', async ev => {
   await removeImageIfUnused(old); save(); renderAll();
 });
 $('#calProfileSel').onchange = ev => {
-  const p = S.calibrationProfiles.find(x => x.id === ev.target.value);
+  const p = calProfiles().find(x => x.id === ev.target.value);
   if (!p) return;
   S.settings = cleanSettings({...S.settings, ...p.settings});
   if (PRINTERS.some(x => x.id === p.printer)) {
@@ -4724,6 +4739,7 @@ $('#calProfileSave').onclick = () => {
 $('#calProfileDelete').onclick = () => {
   const id = $('#calProfileSel').value;
   if (!id) return toast('Choose a saved profile first.');
+  if (BUILTIN_CAL_PROFILES.some(p => p.id === id)) return toast('Built-in starting points cannot be deleted.');
   const p = S.calibrationProfiles.find(x => x.id === id);
   if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
@@ -5288,16 +5304,22 @@ function backStepsHtml(sheets) {
     <li><b>Media settings.</b> Use the settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print, and check the printer will duplex the stock you have loaded.</li>
     <li><b>Check the first sheet.</b> The backs should sit right behind the fronts. If they are a millimetre or two out, open the ${wizard} — it prints a test sheet and takes two numbers off it.</li>
   </ol>${wrongWay}<p class="hint">330gsm stock is past most duplexer ratings and will jam or scuff. Re-feeding by hand is slower and safer.</p>`;
-  return `<p class="hint">Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), not the browser, and use the feed tray from step 2, Print. One sheet at a time: every odd page is a front and the page after it is that sheet's back${sheets > 1 ? ` (pages 1 + 2, 3 + 4, … up to ${sheets * 2})` : ' (page 1 front, page 2 back)'}.</p>
+  // One physical action, described once. Saying it as a direction, then as where the
+  // cards end up, then again as a paper edge in a trailing note reads as three
+  // different instructions; the edge wording belongs with the turn that produces it.
+  const pairing = sheets > 1
+    ? `Each sheet goes through twice, once per side: pages 1 + 2, then 3 + 4, and so on up to ${sheets * 2}. Do one sheet at a time.`
+    : 'The sheet goes through twice, once per side: page 1 is the front, page 2 is its back.';
+  const settle = printerOf(S.printer).kind === 'Inkjet' ? 'Let the ink dry before you touch it.' : 'Let it cool before you touch it.';
+  const sideways = L.W > L.H ? ` The cards sit sideways on the paper here, so turning them ${t.axis} means turning the paper over along its ${t.lr ? 'short' : 'long'} edge.` : '';
+  return `<p class="hint">${pairing} Open the PDF in a dedicated PDF application (Adobe Acrobat, Preview, etc.), not the browser, and feed from the tray in step 2, Print.</p>
   <ol class="steps">
-    <li><b>Print the front.</b> Choose <b>Pages: 1</b>, <b>Actual size / 100%</b>, and the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print.</li>
-    <li><b>Let it dry or cool</b> before you handle it.</li>
-    <li><b>Turn the sheet over ${t.axis}</b>, looking at the printed cards. ${t.keeps} <b>Don't spin it any other way.</b></li>
-    <li><b>Put it back in the tray</b> with the printed side facing the other way: if the printer printed on the side that was facing you, that side now faces away. ${esc(feed.text)}</li>
-    <li><b>Print the back.</b> Choose <b>Pages: 2</b>, same settings. Then repeat for each sheet${sheets > 1 ? ': pages 3 and 4, then 5 and 6, and so on' : ''}.</li>
-    <li><b>Check the first sheet.</b> The backs should sit right behind the fronts. If they are a millimetre or two out, open the ${wizard} — it prints a test sheet and takes two numbers off it.</li>
+    <li><b>Print the front.</b> <b>Pages: 1</b>, <b>Actual size / 100%</b>, and the media settings for <b>${esc(printerOf(S.printer).name)}</b> from step 2, Print. ${settle}</li>
+    <li><b>Turn the sheet over ${t.axis}</b>, the way you turn ${t.lr ? 'a page in a book' : 'a page on a wall calendar'}. ${t.keeps} Don't rotate it any other way.${sideways}</li>
+    <li><b>Feed the ${esc(feed.back)} in first</b>, printed side facing the other way: if page 1 printed on the side that was facing you, that side faces away now. ${feed.same ? `That is the same edge that led for page 1 — the turn leaves it where it was.` : `The ${esc(feed.front)} led for page 1, and the turn moved it to the far end.`}</li>
+    <li><b>Print the back.</b> <b>Pages: 2</b>, same settings.</li>
+    <li><b>Check this sheet before printing the rest.</b> The backs should sit right behind the fronts. A millimetre or two out: open the ${wizard}, which prints a test sheet and takes two numbers off it.${sheets > 1 ? ' Then carry on with pages 3 and 4, 5 and 6, and so on.' : ''}</li>
   </ol>
-  ${L.W > L.H ? `<p class="hint">This is a landscape layout, so the sheet comes out of the printer with the cards sideways on it. Turning it ${t.axis} as the cards are printed means turning the paper over along its ${t.lr ? 'short' : 'long'} edge.</p>` : ''}
   ${wrongWay}
   <p class="hint">Not sure which side your printer prints on? Pencil an X on one side of a blank sheet, print page 1 of the double-sided test on it, and see which side the X ended up on.</p>`;
 }
