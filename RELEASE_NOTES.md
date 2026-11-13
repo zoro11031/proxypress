@@ -1,3 +1,31 @@
+# Proxy Press v0.5.8
+
+Double-sided test fixed for long-edge flipping, and a squareness gauge on the alignment sheet.
+
+## What's new
+
+- **Double-sided test matches the cards on a long-edge flip:** on a flip that mirrors top to bottom — landscape with long edge, portrait with short edge — the printer lays the back down head to foot. Card faces were already turned to suit; the test sheet was not, so its page 2 printed the right way up while every card around it was inverted. Page 2 now turns with the flip, exactly as the card faces do.
+- **The reading sign turns with it:** because the test sheet's grid turns too, its axes run the other way, so the wizard and the sheet's own arithmetic now subtract the reading instead of adding it on those flips. Adding it would have doubled the error rather than cancelled it.
+- **Squareness gauge on the alignment sheet:** a line near each edge turns a rotated print into a tapering white margin you can see at a glance, and a graduated scale at each corner gives a rule something exact to sight against. The sheet prints the conversion from a corner-to-corner difference to an angle, plus the blank-sheet diagonal check that tells a crooked feed from paper cut off square.
+- **Measured calibration starting points:** the printer calibration profile list now opens with offsets measured on a Canon imageCLASS MF753Cdw II at a short-edge flip — one for any paper, one for ProxyJak 310gsm. They are starting points, not a substitute for printing the test.
+- **Clearer manual re-feed steps:** the sheet turn is described once rather than three times in three different vocabularies.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.7
 
 Reference-style duplex wizard diagrams.
