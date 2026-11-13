@@ -6054,12 +6054,12 @@ $('#btnCal').onclick = () => {
   doc.text('Between two rows? Split the difference.', tab.x, tab.y + 17.4 + rows.length * 4.3);
 
   const fmtp = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
-  const crossPts = crossAt.map(([x, y]) => ({x: T.x(x), y: T.y(y)}));
+  const crossPts = crossAt.map(([x, y]) => turnPt(L, {x: T.x(x), y: T.y(y)}, false));
   const cardKey = cardFits
     ? ` | card ${T.x(g.x + 30).toFixed(2)},${T.y(g.y + 34).toFixed(2)},${T.w(s.cardW).toFixed(2)},${T.h(s.cardH).toFixed(2)}`
     : '';
-  const akey = `ALIGN KEY v1 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation}`
-    + ` | crosses ${fmtp(crossPts)} | dot ${T.x(adot.x).toFixed(2)},${T.y(adot.y).toFixed(2)}`
+  const akey = `ALIGN KEY v2 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation}`
+    + ` | crosses ${fmtp(crossPts)} | dot ${(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`)(turnPt(L, {x: T.x(adot.x), y: T.y(adot.y)}, false))}`
     + `${cardKey} | rule ${T.x(ax0).toFixed(2)},${T.y(ay).toFixed(2)},${T.w(D).toFixed(2)}`
     + ` | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)}`
     + ` | rot ${s.printRotate.toFixed(3)}`
