@@ -5539,13 +5539,18 @@ $('#btnDuplexTest').onclick = () => {
   /* ---------- page 1, the front ---------- */
   const Tf = makeT(L, false);
   doc.setTextColor(BLACK); doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
+  // Clear in the middle, like the back's marks: once both sides are scanned the
+  // hole cancels out, so where exactly it goes stops mattering and the one thing
+  // that does matter is that nothing else dark shares the ring with it. A printed
+  // aiming dot would be indistinguishable from the hole.
   corners.forEach(([x, y], i) => {
-    square(Tf, x, y, 8, i + 1);
+    square(Tf, x, y, 8, i + 1, 0, 3.4);
     doc.setLineWidth(0.15);
     doc.circle(Tf.x(x), Tf.y(y), Tf.w(2.6));
-    doc.setLineWidth(0.12);
-    doc.circle(Tf.x(x), Tf.y(y), Tf.w(0.4));
   });
+  const inward = p => ({x: p.x + (p.x < cx ? 14 : -14), y: p.y + (p.y < cy ? 14 : -14)});
+  const fdot = inward({x: corners[0][0], y: corners[0][1]});
+  doc.circle(Tf.x(fdot.x), Tf.y(fdot.y), Tf.w(1.2), 'F');
 
   // The pin ring. Its centre is the one point on the sheet that both pages agree
   // on, and it sits at the page centre, where the scale settings have no effect -
@@ -5574,7 +5579,7 @@ $('#btnDuplexTest').onclick = () => {
   body1.write(`2   Take the sheet out and turn it over ${t.axis}, looking at the printed side. ${t.keeps} Do not spin it any other way.`);
   body1.write(`3   Put it back in the tray with the printed side facing the other way. ${feed.text}`);
   body1.write('4   Print page 2 on the back of this same sheet, with the same settings.');
-  body1.write('5   To have the sheet measured rather than read by eye, pierce the centre dot of all four corner marks as well, from this side, with a fine needle held upright.');
+  body1.write('5   To have the sheet measured rather than read by eye, pierce all four corner marks as well, from this side, anywhere inside the small ring. Then scan both sides whole. How squarely you pierce does not matter: the hole is measured against each side\u2019s own mark, so it cancels.');
 
   /* ---------- page 2, the back ---------- */
   doc.addPage([L.W, L.H], wide ? 'l' : 'p');
@@ -5593,9 +5598,7 @@ $('#btnDuplexTest').onclick = () => {
   });
   // Corner 1 alone carries a solid dot, 14 mm in along the diagonal. Four marks on
   // a rectangle look the same upside down; this one does not.
-  const key1 = backPoint(L, {x: corners[0][0], y: corners[0][1]});
-  const keyIn = p => ({x: p.x + (p.x < cx ? 14 : -14), y: p.y + (p.y < cy ? 14 : -14)});
-  const kd = keyIn(key1);
+  const kd = inward(backPoint(L, {x: corners[0][0], y: corners[0][1]}));
   doc.circle(Tb.x(kd.x), Tb.y(kd.y), Tb.w(1.2), 'F');
   doc.setLineWidth(0.25);
   doc.circle(Tb.x(cx), Tb.y(cy), Tb.w(12));
@@ -5647,7 +5650,7 @@ $('#btnDuplexTest').onclick = () => {
   body2.write('The small red squares should sit centred inside the big black ones. If the middle reads 0 but the corners are visibly out, and out by different amounts at opposite corners, the backs are printing at a slightly different size: adjust Back-page scale X / Y.', {size:7.5, lead:4});
   body2.gap(2);
   body2.write('OR HAVE IT MEASURED', {bold:true, size:9, lead:5.5});
-  body2.write('Pierce all four corner marks from the front. Put a sheet of black paper behind this one, scan THIS side at 600 dpi or more, and hand over the file. Four holes against four marks give the offset, the turn and the size in one reading, which four corners can do and the middle alone cannot.', {size:7.5, lead:4});
+  body2.write('Pierce all four corner marks from the front. Put a sheet of black paper behind the sheet and scan BOTH sides at 600 dpi or more, whole, with the paper the same way round each time. Hand over both files. Measured against its own side\u2019s mark in each scan, the hole cancels out, so it does not matter how squarely you pierced - only that it is the same hole.', {size:7.5, lead:4});
 
   // Everything a reader of the scan needs that the scan cannot show, in page 2's
   // own millimetres: where the four back marks were printed, and where the four
@@ -5656,7 +5659,8 @@ $('#btnDuplexTest').onclick = () => {
   // position carried across by the same turn the back page gets.
   const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
   const markPts = pts.marks, holePts = pts.holes;
-  const keyTxt = `SCAN KEY v2 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(markPts)} | holes ${fmt(holePts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)}`;
+  const frontPts = corners.map(([x, y]) => ({x: Tf.x(x), y: Tf.y(y)}));
+  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(markPts)} | holes ${fmt(holePts)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)}`;
   doc.setTextColor(BLACK);
   // The key is longer than a portrait page is wide, so it wraps. Lay the block
   // out from the bottom edge inwards, in page 2's own frame, so the last line
