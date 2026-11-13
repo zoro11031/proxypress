@@ -1,4 +1,4 @@
-# Proxy Press v0.5.8
+# Proxy Press v0.5.9
 
 Double-sided test fixed for long-edge flipping, and a squareness gauge on the alignment sheet.
 
@@ -12,15 +12,15 @@ Double-sided test fixed for long-edge flipping, and a squareness gauge on the al
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/Proxy-Press-0.5.9.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/Proxy-Press-0.5.9.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/Proxy-Press-0.5.8.pacman).
-- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.8/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/Proxy-Press-0.5.9.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/Proxy-Press-0.5.9.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/Proxy-Press-0.5.9.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/Proxy-Press-0.5.9.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.9/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
 
