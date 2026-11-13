@@ -71,6 +71,31 @@
       // and the holes, which are the front page, must not move at all
       near(`backRotate ${br} leaves the front alone`, p.holes[0].y - p.holes[1].y, 0, 1e-9);
     }
+    // Squaring the print to the paper must not disturb the backs. The flip
+    // mirrors the page, so turning both sides the same way in page coordinates
+    // would turn them OPPOSITE ways through the paper and move the backs by
+    // twice the angle. The back therefore turns the other way, and this holds
+    // the two halves of that: the front turns by exactly the setting, and the
+    // front-to-back relationship does not move at all.
+    for (const pr of [0.21, -0.40]) {
+      S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
+                    printRotate: pr, backRotate: 0, backOffsetRel:true};
+      const L = layout(), p = duplexTestPoints(L, duplexTestInset(L));
+      const fa = -Math.atan2(p.holes[1].y - p.holes[0].y, p.holes[1].x - p.holes[0].x) * 180 / Math.PI;
+      const ba = -Math.atan2(p.marks[1].y - p.marks[0].y, p.marks[1].x - p.marks[0].x) * 180 / Math.PI;
+      near(`printRotate ${pr} turns the front by it`, fa, pr, 1e-9);
+      near(`printRotate ${pr} leaves the backs where they were`, ba - fa, 0, 1e-9);
+    }
+    // And the two settings stack without interfering.
+    S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
+                  printRotate: 0.21, backRotate: 0.62, backOffsetRel:true};
+    {
+      const L = layout(), p = duplexTestPoints(L, duplexTestInset(L));
+      const fa = -Math.atan2(p.holes[1].y - p.holes[0].y, p.holes[1].x - p.holes[0].x) * 180 / Math.PI;
+      const ba = -Math.atan2(p.marks[1].y - p.marks[0].y, p.marks[1].x - p.marks[0].x) * 180 / Math.PI;
+      near('both set: the front squares to the paper', fa, 0.21, 1e-9);
+      near('both set: the back still cancels its own turn', ba - fa, -0.62, 1e-9);
+    }
     // A back-page scale error has to show as a size difference between the two
     // point sets, or the reader has nothing to report it from.
     S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
