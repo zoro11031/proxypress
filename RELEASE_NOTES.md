@@ -1,3 +1,30 @@
+# Proxy Press v0.5.13
+
+Back-page rotation, for the part of duplex misregistration that no offset or scale could ever reach.
+
+## What's new
+
+- **Back-page rotation.** A new setting in advanced calibration turns back pages about the page centre, for the slight angle the second pass puts in. Measured on real cut cards from one sheet: the back of a card in the bottom-left slot sat 1.0 mm further right than the back of one in the top-left, 92 mm away — 0.62 degrees of turn between the two sides. Until now nothing could touch it. Centring the sheet splits that error and leaves it at the outer cards, which is exactly where it shows: a card near the middle looks fine while a corner card is visibly off.
+- **Set it to minus what the test sheet reports.** A turn reads as opposite corners being wrong by different amounts in opposite directions, and the double-sided test's four corner marks measure it. The setting cancels that reading sign for sign.
+- **The alignment sheet carries a key and a cleaner cross.** The corner crosses keep their middles clear so a circle fits the ring without the arms pulling at it, one corner carries an orientation dot, and a key at the foot states the printed position of every cross, the card outline and the A rule, with the scale and offsets it was made at — so a scan of the sheet stands on its own.
+- **The edge-line figure on the alignment sheet is true now.** It counted the printer offset as a paper position. The offset exists to cancel a displacement the printer adds, so it moves the line in the file and not on the sheet; at 100.3% scale with a 1 mm offset the sheet claimed the lines sat 6.6 and 4.6 mm from the two sides when the truth is 5.6 and 5.6.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/Proxy-Press-0.5.13.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/Proxy-Press-0.5.13.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/Proxy-Press-0.5.13.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/Proxy-Press-0.5.13.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/Proxy-Press-0.5.13.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/Proxy-Press-0.5.13.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.13/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.12
 
 A double-sided test that can be measured from a scan, and a back-page scale that no longer fights the front.
