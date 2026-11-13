@@ -65,9 +65,10 @@
       // the turn between the two point sets, measured on the long edge
       const dx = p.marks[1].x - p.marks[0].x, dy = p.marks[1].y - p.marks[0].y;
       const got = -Math.atan2(dy, dx) * 180 / Math.PI;
-      // The reader reports the turn as marks-to-holes, which is the opposite
-      // sense, so this is the contract: set backRotate to minus what it says.
-      near(`backRotate ${br} cancels a reported turn of ${-br}`, got, -br, 1e-9);
+      // The reader reports the turn as marks-to-holes, the opposite sense, so
+      // a back turned by br reads as -br. The contract is therefore to ADD a
+      // reading to whatever is set; subtracting it would double the turn.
+      near(`a backRotate of ${br} reads back as ${-br}`, got, -br, 1e-9);
       // and the holes, which are the front page, must not move at all
       near(`backRotate ${br} leaves the front alone`, p.holes[0].y - p.holes[1].y, 0, 1e-9);
     }
