@@ -1,3 +1,32 @@
+# Proxy Press v0.5.12
+
+A double-sided test that can be measured from a scan, and a back-page scale that no longer fights the front.
+
+## What's new
+
+- **Back-page scale rides on the front scale instead of replacing it.** The field says 100% leaves the calibrated size unchanged; it did not. Back pages used the back scale *in place of* the front one, so the moment you calibrated the front size off 100%, every back page printed at a different size from its front — 0.3% is 0.8 mm across a Letter sheet, and nothing in the double-sided test would have told you where it came from. It is now a true delta, and settings saved before this keep the size they had.
+- **The double-sided test can be measured instead of eyeballed.** All four corner marks now have a clear middle and a ring to pierce inside, on both pages. Pierce all four, scan both sides, and four holes against four marks give the shift, the turn and the size in one reading — where a single hole in the middle can only ever give a shift, so a turned or slightly resized back page reads as a shift and gets corrected as one.
+- **The hole no longer has to be pierced accurately.** Measured against its own side's mark in each of the two scans, its position cancels exactly. A first real scan had the holes 0.3 to 0.5 mm off centre, which went straight into the answer; now it does not matter where inside the ring the pin goes.
+- **Both pages carry a scan key and the settings they were made with** — the printed position of every mark, the flip, the scales and the offsets — so a scan of either side stands on its own.
+- **Alignment sheet corrections.** Labels on the corner scales named the tick 1.4 mm away from them; the printed degrees-per-millimetre was reckoned between the corner crosses rather than the scales you sight against, making every angle 6.6% small; the 5 mm label straddled the 5 mm a printer cannot reach; and "a missing line means your margin is wider than 6 mm" was untrue at scales the sheet's own table offers.
+- **The 310 gsm calibration starting point is withdrawn.** A back-page offset belongs to one flip: the same machine and stock measured X +1.5 mm on a short-edge flip and −1.8 mm on a long-edge one.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/Proxy-Press-0.5.12.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/Proxy-Press-0.5.12.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/Proxy-Press-0.5.12.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/Proxy-Press-0.5.12.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/Proxy-Press-0.5.12.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/Proxy-Press-0.5.12.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.12/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.11
 
 A double-sided test that can be measured, and an alignment sheet that reads what it says it reads.
