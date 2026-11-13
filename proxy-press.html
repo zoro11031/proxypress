@@ -963,7 +963,7 @@ const CARD_SIZES = {mtg:[63,88], poker:[63.5,88.9], japanese:[59,86], tarot:[70,
 const DEFAULTS = {
   pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
-  bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0,
+  bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, backScaleRel:true,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
@@ -1444,7 +1444,14 @@ function faceRot(L, back) {
   return L.mirrorX ? (L.rot ? -90 : 0) : (L.rot ? 90 : 180);
 }
 function makeT(L, back) {
-  const s = S.settings, kx = (back ? s.backScaleX : s.scaleX)/100, ky = (back ? s.backScaleY : s.scaleY)/100;
+  // Back scale is a delta on top of the calibrated scale, not a replacement for
+  // it: at 100% a back page is exactly as big as a front one, whatever the front
+  // scale has been set to. Replacing it meant that calibrating the front size
+  // shrank every back by that much, which no reading of the test sheet would
+  // explain and which the field's own hint denies.
+  const s = S.settings;
+  const kx = s.scaleX * (back ? s.backScaleX / 100 : 1) / 100;
+  const ky = s.scaleY * (back ? s.backScaleY / 100 : 1) / 100;
   // The printer's own placement error is the same on both passes of a sheet, so the
   // printer offset applies to fronts and backs alike. The back offset is only the
   // extra drift the second pass adds, on top of it.
@@ -4586,7 +4593,7 @@ const FIELDS = [
   {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
   {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only, for the drift the second pass adds. Leave these at 0 until the fronts land right and the backs still do not — then let the duplex calibration wizard fill them in.'},
   {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
-  {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment. 100% leaves the calibrated size unchanged.'},
+  {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment, on top of the scale above. 100% makes a back page exactly as big as a front one.'},
   {k:'backScaleY', adv:true, label:'Back-page scale Y (%)', type:'num', step:0.01, min:90, max:110},
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
@@ -4629,6 +4636,14 @@ function cleanSettings(raw) {
     if (out.backOffsetY) out.backOffsetY = +(out.backOffsetY - out.offsetY).toFixed(3);
   }
   out.backOffsetRel = true;
+  // Back scale used to replace the front scale on back pages rather than ride on
+  // top of it. Settings saved before the change hold a value that already had the
+  // front scale folded in, so divide it back out to land on the same size.
+  if (raw?.backScaleRel === undefined) {
+    if (out.scaleX) out.backScaleX = +(out.backScaleX / out.scaleX * 100).toFixed(4);
+    if (out.scaleY) out.backScaleY = +(out.backScaleY / out.scaleY * 100).toFixed(4);
+  }
+  out.backScaleRel = true;
   if (!['mm', 'in'].includes(out.backOffsetUnit)) out.backOffsetUnit = 'mm';
   for (const f of FIELDS) if (f.type === 'num') {
     if (f.min !== undefined) out[f.k] = Math.max(f.min, out[f.k]);
@@ -5552,6 +5567,19 @@ $('#btnDuplexTest').onclick = () => {
   const fdot = inward({x: corners[0][0], y: corners[0][1]});
   doc.circle(Tf.x(fdot.x), Tf.y(fdot.y), Tf.w(1.2), 'F');
 
+  // Everything a reader of a scan needs that the scan cannot show, in page 2's
+  // millimetres: where the back marks and the front marks were printed, where
+  // the holes belong if the sides register, and every setting the sheet was made
+  // with. Both pages carry it, so either scan stands on its own.
+  const rot2 = backPageRot(L);
+  const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
+  const frontPts = corners.map(([x, y]) => ({x: Tf.x(x), y: Tf.y(y)}));
+  const kd = inward(backPoint(L, {x: corners[0][0], y: corners[0][1]}));
+  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(pts.marks)} | holes ${fmt(pts.holes)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)}`;
+  const keyW = L.W - 20, keyLead = 2.8;
+  doc.setFontSize(6);
+  const keyTop = L.H - 7 - keyLead * (doc.splitTextToSize(keyTxt, keyW).length - 1);
+
   // The pin ring. Its centre is the one point on the sheet that both pages agree
   // on, and it sits at the page centre, where the scale settings have no effect -
   // so this measures the offset on its own.
@@ -5572,6 +5600,7 @@ $('#btnDuplexTest').onclick = () => {
   const head1 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
   head1.write('DOUBLE-SIDED TEST  ·  PAGE 1, THE FRONT', {bold:true, size:12, lead:5.5});
   head1.write(`${paper} ${s.orientation}  ·  flip on the ${s.duplexFlip === 'short' ? 'short' : 'long'} edge  ·  back-page offset now X ${signed(s.backOffsetX)} mm, Y ${signed(s.backOffsetY)} mm`, {size:7.5});
+  head1.write(`scale ${s.scaleX.toFixed(2)} / ${s.scaleY.toFixed(2)}%  ·  back-page scale ${s.backScaleX.toFixed(2)} / ${s.backScaleY.toFixed(2)}%  ·  printer offset X ${signed(s.offsetX)}, Y ${signed(s.offsetY)} mm`, {size:7});
 
   const bodyW = Math.min(L.W - 32, 186), body1 = pdfText(doc, (L.W - bodyW) / 2, cy + 30, bodyW, 8, 4.5);
   body1.write('PRINT PAGE 2 ON THE BACK OF THIS SHEET', {bold:true, size:9, lead:5.5});
@@ -5581,6 +5610,9 @@ $('#btnDuplexTest').onclick = () => {
   body1.write('4   Print page 2 on the back of this same sheet, with the same settings.');
   body1.write('5   To have the sheet measured rather than read by eye, pierce all four corner marks as well, from this side, anywhere inside the small ring. Then scan both sides whole. How squarely you pierce does not matter: the hole is measured against each side\u2019s own mark, so it cancels.');
 
+  doc.setTextColor(BLACK);
+  pdfText(doc, cx, keyTop, keyW, 6, keyLead, 'center').write(keyTxt, {size:6});
+
   /* ---------- page 2, the back ---------- */
   doc.addPage([L.W, L.H], wide ? 'l' : 'p');
   const Tb = makeT(L, true);
@@ -5588,7 +5620,7 @@ $('#btnDuplexTest').onclick = () => {
   // foot against the front. The card export already cancels that with faceRot; this
   // sheet has to cancel it too, or it reads upside down and the grid below it is
   // read backwards. Marks keep their places; only their facing turns.
-  const rot2 = backPageRot(L), f2 = rot2 === 180 ? -1 : 1;
+  const f2 = rot2 === 180 ? -1 : 1;
   doc.setDrawColor(RED); doc.setFillColor(RED); doc.setTextColor(RED);
   corners.forEach(([x, y], i) => {
     const p = backPoint(L, {x, y});
@@ -5598,7 +5630,6 @@ $('#btnDuplexTest').onclick = () => {
   });
   // Corner 1 alone carries a solid dot, 14 mm in along the diagonal. Four marks on
   // a rectangle look the same upside down; this one does not.
-  const kd = inward(backPoint(L, {x: corners[0][0], y: corners[0][1]}));
   doc.circle(Tb.x(kd.x), Tb.y(kd.y), Tb.w(1.2), 'F');
   doc.setLineWidth(0.25);
   doc.circle(Tb.x(cx), Tb.y(cy), Tb.w(12));
@@ -5657,18 +5688,10 @@ $('#btnDuplexTest').onclick = () => {
   // holes would be if the two sides registered perfectly. A hole is the front's
   // mark seen through the paper, so its ideal place is the front's printed
   // position carried across by the same turn the back page gets.
-  const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
-  const markPts = pts.marks, holePts = pts.holes;
-  const frontPts = corners.map(([x, y]) => ({x: Tf.x(x), y: Tf.y(y)}));
-  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(markPts)} | holes ${fmt(holePts)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)}`;
   doc.setTextColor(BLACK);
-  // The key is longer than a portrait page is wide, so it wraps. Lay the block
-  // out from the bottom edge inwards, in page 2's own frame, so the last line
-  // clears the printer's margin whichever way the page is turned.
-  doc.setFontSize(6);
-  const keyW = L.W - 20, keyLead = 2.8;
-  const keyLines = doc.splitTextToSize(keyTxt, keyW).length;
-  const keyTop = L.H - 7 - keyLead * (keyLines - 1);
+  // The key wraps on a narrow page. Laid out from the bottom edge inwards in
+  // page 2's own frame, its last line clears the printer's margin whichever way
+  // the page is turned.
   pdfText(doc, ...flipPt(cx, keyTop), keyW, 6, keyLead, 'center', rot2).write(keyTxt, {size:6});
 
   doc.save('double-sided-test.pdf');
@@ -6044,7 +6067,7 @@ async function compactShareImage(blob, opaque, maxSide) {
   } finally { image.src = ''; URL.revokeObjectURL(url); canvas.width = canvas.height = 1; }
 }
 const PRINT_DECK_LIMIT = 2 * 1024 * 1048576;
-const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backOffsetRel'];
+const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backOffsetRel', 'backScaleRel'];
 function printDeckKeys(d, s) {
   return [...new Set([s.backImage, d.cardback?.custom, ...d.entries.flatMap(e => e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]))].filter(Boolean))];
 }

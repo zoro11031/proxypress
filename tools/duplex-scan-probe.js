@@ -40,6 +40,19 @@
           near(`${tag} settles X`, pts.holes[0].x - pts.marks[0].x, 0, 1e-5);
           near(`${tag} settles Y`, pts.holes[0].y - pts.marks[0].y, 0, 1e-5);
         }
+    // Calibrating the front size must not change the back's size. The back scale
+    // rides on top of the front one, so at 100% the two sides stay the same size
+    // however the front is calibrated - otherwise correcting a 0.3% short front
+    // silently shrinks every back by 0.3%, which is 0.8 mm across a Letter sheet.
+    S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
+                  scaleX:100.3, scaleY:100.2, backOffsetRel:true};
+    {
+      const L = layout(), p = duplexTestPoints(L, duplexTestInset(L));
+      near('front scale alone leaves the sides the same width',
+           Math.abs(p.marks[1].x - p.marks[0].x) / Math.abs(p.holes[1].x - p.holes[0].x), 1, 1e-9);
+      near('front scale alone leaves the sides the same height',
+           Math.abs(p.marks[2].y - p.marks[0].y) / Math.abs(p.holes[2].y - p.holes[0].y), 1, 1e-9);
+    }
     // A back-page scale error has to show as a size difference between the two
     // point sets, or the reader has nothing to report it from.
     S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
