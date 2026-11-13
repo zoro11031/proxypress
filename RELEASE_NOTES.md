@@ -1,3 +1,31 @@
+# Proxy Press v0.5.11
+
+A double-sided test that can be measured, and an alignment sheet that reads what it says it reads.
+
+## What's new
+
+- **The double-sided test now carries four readable corners, not one.** One pin hole against one grid in the middle of the page can only tell you a shift. A back page that is turned, or printing a fraction of a percent large, reads as a shift too, gets corrected as one, and never quite comes right. Page 1 puts an aiming ring and a centre dot inside each of the four corner marks; page 2 keeps the middle of its corner marks clear so a hole landing there is the only dark thing inside the ring. Four holes against four marks separate the shift, the turn and the size.
+- **One scan of the back carries both sides.** A hole is the front page seen through the paper, so the back alone holds everything. Page 2 prints a SCAN KEY stating, in its own millimetres, where the marks were printed and where the holes belong if the two sides register — everything a reader of the scan needs that the scan itself cannot show. One corner mark carries a solid dot: four marks on a rectangle look the same upside down, and that one does not.
+- **The squareness gauge reads what it says it reads.** Labels on the scales nearest the bottom and right edges named the tick 1.4 mm away from them. The printed degrees-per-millimetre was reckoned between the corner crosses while the scales you sight against sit 16 mm closer together, so every angle read off the sheet came out 6.6% small. The label for 5 mm straddled the 5 mm a printer cannot reach. And "a missing line means your margin is wider than 6 mm" was untrue above about 100.75% horizontal scale — a value the sheet's own table offers — because by then the line itself has moved. All four corrected; the sheet now prints where the four lines actually fall, and the blank-sheet diagonal figure follows the paper size instead of assuming Letter.
+- **The 310 gsm calibration starting point is withdrawn.** A back-page offset belongs to one flip. The flip decides which axis the back page is mirrored in and sends the sheet back through on a different edge, so the second pass is a different mechanical event: the same machine and stock measured X +1.5 mm on a short-edge flip and -1.8 mm on a long-edge one. Two readings on two flips do not confirm each other. The any-paper entry stays.
+- **Page margin says what it does.** The field takes tenths of a millimetre and always did, but the cards are centred, so the real margin is the space left over and is usually wider than the minimum you type. Nothing moves until the figure crosses the point where a column or row stops fitting.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/Proxy-Press-0.5.11.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/Proxy-Press-0.5.11.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/Proxy-Press-0.5.11.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/Proxy-Press-0.5.11.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/Proxy-Press-0.5.11.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/Proxy-Press-0.5.11.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.11/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.10
 
 Calibration profiles you can read and edit.
