@@ -5788,21 +5788,30 @@ $('#btnCal').onclick = () => {
   head.write(`Printed with horizontal scale ${s.scaleX.toFixed(2)}%, vertical scale ${s.scaleY.toFixed(2)}%, printer offset X ${s.offsetX.toFixed(2)} mm, printer offset Y ${s.offsetY.toFixed(2)} mm.`, {size:7});
 
   // Instructions.
-  const tb = wide ? {x:148, y:34, w:116} : {x:16, y:188, w:124};
+  const tb = wide ? {x:148, y:34, w:116} : {x:16, y:174, w:124};
   const t = pdfText(doc, tb.x, tb.y, tb.w);
   t.write('WHAT TO DO', {bold:true, size:9, lead:5});
-  t.write('1   Measure A and B tip to tip, from the point of one arrowhead to the point of the other. Both must read 100.0 mm.', {indent:0});
+  t.write('1   Measure A and B tip to tip, arrowhead point to arrowhead point. Both must read 100.0 mm.', {indent:0});
   t.gap(1.5);
   t.write('2   If either is wrong, find the measurement in the table and type the new value into Horizontal scale (%) for A, or Vertical scale (%) for B. Then print this sheet again.');
   t.gap(1.5);
-  t.write('3   Once A and B read 100.0 mm, measure from the paper edge to the centre of the top-left cross. It should be 10.0 mm from the left edge and 10.0 mm from the top edge. If it is not:');
+  t.write('3   Once A and B read 100.0 mm, measure the paper edge to the centre of the top-left cross. It should be 10.0 mm from each. If it is not:');
   t.gap(1);
   t.write(`Printer offset X (mm)  =  ${s.offsetX.toFixed(2)}  -  (measured from the left edge  -  10.0)`, {indent:6, size:7});
   t.write(`Printer offset Y (mm)  =  ${s.offsetY.toFixed(2)}  -  (measured from the top edge  -  10.0)`, {indent:6, size:7});
   t.gap(1.5);
-  t.write(`4   Print the sheet again to check. A, B, the crosses${cardFits ? ` and the ${s.cardW.toFixed(1)} x ${s.cardH.toFixed(1)} mm card outline` : ''} should all be right before you print cards.`);
-  t.gap(3);
-  t.write('These three settings live in Print, under Printer Alignment & Test Sheets. They move both sides of the sheet by the same amount. Getting the backs to line up with the fronts is a separate job: print the double-sided test and use the duplex calibration wizard.', {size:7});
+  if (sq) {
+    t.gap(1.5);
+    t.write('4   Look at the white band between the line near each edge and the edge. Even along its length means the print is square. Wider at one end means it is turned, and nothing here can straighten that.');
+    t.gap(1);
+    t.write(`For a number, measure the top edge to each top cross: ${sq.span.x.toFixed(1)} mm apart, so 1.0 mm of difference is ${sq.degPerMm.x.toFixed(2)}\u00b0. Down the side, ${sq.span.y.toFixed(1)} mm and ${sq.degPerMm.y.toFixed(2)}\u00b0 per mm.`, {indent:6, size:7});
+    t.write('A turned print is a crooked feed, or paper cut off square. Measure a blank sheet\u2019s diagonals: equal means true paper, so the feed is at fault. A third of a degree shows as about 2 mm.', {indent:6, size:7});
+    t.write(`A missing line means that edge is inside your printer's margin, wider than ${sq.band.toFixed(0)} mm.`, {indent:6, size:7});
+  }
+  t.gap(1.5);
+  t.write(`${sq ? 5 : 4}   Print the sheet again to check. A, B, the crosses${cardFits ? ` and the ${s.cardW.toFixed(1)} x ${s.cardH.toFixed(1)} mm card outline` : ''} should all be right before you print cards.`);
+  t.gap(2);
+  t.write('These settings live in Print, under Printer Alignment & Test Sheets, and move both sides of the sheet alike. Lining the backs up with the fronts is a separate job: the double-sided test and its wizard.', {size:7});
 
   // Ready reckoner, so nobody has to work out current x 100 / measured by hand.
   const tab = {x: wide ? 148 : 150, y: wide ? Math.max(120, t.at() + 9) : 196};
