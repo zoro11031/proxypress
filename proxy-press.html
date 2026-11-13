@@ -965,7 +965,7 @@ const DEFAULTS = {
   cardPreset:'mtg', cardW:63, cardH:88, cornerRadius:3.2, cardRotation:'auto',
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, backScaleRel:true,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
-  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100,
+  offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0,
   dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
@@ -1410,6 +1410,28 @@ function backPoint(L, p) {
 // its front. faceRot answers this for a card, and folds in the card's own L.rot on
 // top; a sheet of text has no L.rot, so it needs this part on its own.
 function backPageRot(L) { return L.mirrorX ? 0 : 180; }
+// Positive backRotate turns a back page CLOCKWISE as you look at it, about the
+// page centre. The duplexer lays the second pass down at a slight angle and no
+// shift or scale can take a turn out; this can.
+function turnPt(L, p) {
+  const a = S.settings.backRotate * Math.PI / 180;
+  if (!a) return p;
+  const cx = L.W / 2, cy = L.H / 2, dx = p.x - cx, dy = p.y - cy;
+  const c = Math.cos(a), sn = Math.sin(a);
+  return {x: cx + dx * c - dy * sn, y: cy + dx * sn + dy * c};
+}
+// Wrap a back page's drawing. PDF user space is y-up, so the sign flips.
+function backTurn(doc, L, on) {
+  const a = S.settings.backRotate;
+  if (!a) return false;
+  if (!on) { doc.restoreGraphicsState(); return true; }
+  doc.saveGraphicsState();
+  const th = -a * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th), K = 72 / 25.4;
+  const cx = L.W / 2 * K, cy = L.H / 2 * K;
+  doc.setCurrentTransformationMatrix(new doc.Matrix(
+    c, sn, -sn, c, cx - cx * c + cy * sn, cy - cx * sn - cy * c));
+  return true;
+}
 // Where the double-sided test's four corner marks are printed on page 2, and
 // where a pin pushed through the front's four marks comes out on that same side,
 // both in page 2's own millimetres. A hole is the front's mark seen through the
@@ -1421,7 +1443,7 @@ function duplexTestPoints(L, inset) {
   const corners = [[inset, inset], [L.W - inset, inset], [inset, L.H - inset], [L.W - inset, L.H - inset]];
   return {
     corners,
-    marks: corners.map(([x, y]) => { const q = backPoint(L, {x, y}); return {x: Tb.x(q.x), y: Tb.y(q.y)}; }),
+    marks: corners.map(([x, y]) => { const q = backPoint(L, {x, y}); return turnPt(L, {x: Tb.x(q.x), y: Tb.y(q.y)}); }),
     holes: corners.map(([x, y]) => backPoint(L, {x: Tf.x(x), y: Tf.y(y)})),
   };
 }
@@ -4595,12 +4617,13 @@ const FIELDS = [
   {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
   {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment, on top of the scale above. 100% makes a back page exactly as big as a front one.'},
   {k:'backScaleY', adv:true, label:'Back-page scale Y (%)', type:'num', step:0.01, min:90, max:110},
+  {k:'backRotate', adv:true, label:'Back-page rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'Turns back pages clockwise about the page centre. For the turn the second pass puts in, which no offset or scale can take out. Read it off the double-sided test: it is what makes opposite corners wrong by different amounts in opposite directions.'},
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
 ];
-const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
+const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
@@ -4748,7 +4771,7 @@ function renderSettings() {
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
   renderCalibrationProfiles();
 }
-const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY'];
+const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 // Offsets read off a double-sided test sheet on one machine. A starting point that
 // saves a first pass of the wizard, not a fact about the model: print the test and
 // read it anyway.
@@ -5224,6 +5247,7 @@ async function exportPDF(skipWizard = true) {
         if (!first) doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
         first = false;
         const T = makeT(L, back);
+        const turned = back && backTurn(doc, L, true);
         const glines = back ? [] : guideLines(L, page);
         const underLines = glines.filter(l => !l[6]), overLines = glines.filter(l => l[6]);
         if (!back && underLines.length) {
@@ -5251,6 +5275,7 @@ async function exportPDF(skipWizard = true) {
           for (const [x, y, w, h] of reg.rects) doc.rect(T.x(x), T.y(y), T.w(w), T.h(h), 'F');
           pdfLines(doc, T, reg.lines, '#000000', reg.width || 0.5);
         }
+        if (turned) backTurn(doc, L, false);
       }
     }
     busyProgress(1, 'Saving PDF…'); await sleep(30);
@@ -5628,6 +5653,7 @@ $('#btnDuplexTest').onclick = () => {
   // sheet has to cancel it too, or it reads upside down and the grid below it is
   // read backwards. Marks keep their places; only their facing turns.
   const f2 = rot2 === 180 ? -1 : 1;
+  const turned2 = backTurn(doc, L, true);
   doc.setDrawColor(RED); doc.setFillColor(RED); doc.setTextColor(RED);
   corners.forEach(([x, y], i) => {
     const p = backPoint(L, {x, y});
@@ -5674,7 +5700,7 @@ $('#btnDuplexTest').onclick = () => {
   body2.write('HOW TO READ IT', {bold:true, size:9, lead:5.5});
   body2.write('1   Find where the centre of the ring on the front lands on this side. On plain paper, hold the sheet up to a light. On card stock, push a pin through the exact centre of that ring, from the front, and look at the hole from this side.');
   body2.write('2   Read the hole against the ringed grid in the middle of this page. One square is 1 mm, and the short ticks on the centre lines are half a square.');
-  body2.write('3   Those two numbers go straight into the duplex calibration wizard, which adds them for you. By hand, add them to the current values:');
+  body2.write(`3   Those two numbers go straight into the duplex calibration wizard, which does the arithmetic for you. By hand, ${rot2 ? 'SUBTRACT them from' : 'add them to'} the current values \u2014 this page is printed turned, so its grid runs the other way:`);
   body2.gap(1);
   // ASCII hyphen: U+2212 is not in the WinAnsi encoding jsPDF uses for Helvetica.
   const op = rot2 ? '-' : '+';
@@ -5701,6 +5727,7 @@ $('#btnDuplexTest').onclick = () => {
   // the page is turned.
   pdfText(doc, ...flipPt(cx, keyTop), keyW, 6, keyLead, 'center', rot2).write(keyTxt, {size:6});
 
+  if (turned2) backTurn(doc, L, false);
   doc.save('double-sided-test.pdf');
 };
 // The duplex wizard. Three questions in order: is the sheet turned the right way,
@@ -6103,7 +6130,7 @@ async function compactShareImage(blob, opaque, maxSide) {
   } finally { image.src = ''; URL.revokeObjectURL(url); canvas.width = canvas.height = 1; }
 }
 const PRINT_DECK_LIMIT = 2 * 1024 * 1048576;
-const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backOffsetRel', 'backScaleRel'];
+const CALIBRATION_KEYS = ['scaleX', 'scaleY', 'offsetX', 'offsetY', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate', 'backOffsetRel', 'backScaleRel'];
 function printDeckKeys(d, s) {
   return [...new Set([s.backImage, d.cardback?.custom, ...d.entries.flatMap(e => e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]))].filter(Boolean))];
 }
