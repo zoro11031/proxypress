@@ -1410,9 +1410,12 @@ function backPoint(L, p) {
 // its front. faceRot answers this for a card, and folds in the card's own L.rot on
 // top; a sheet of text has no L.rot, so it needs this part on its own.
 function backPageRot(L) { return L.mirrorX ? 0 : 180; }
-// Two turns, about the page centre. printRotate squares the whole print to the
-// paper, for a feed that runs crooked; backRotate is the extra the second pass
-// adds. Positive means clockwise as you look at the sheet from the front.
+// Two turns, about the page centre, and they are measured in different frames.
+// printRotate is clockwise as you look at the FRONT of the sheet, and the back
+// takes its negative so that the print turns the same way on both faces.
+// backRotate is clockwise in page 2's own coordinates, which is the frame the
+// double-sided test and its reader work in: set it to minus what a reading of
+// that sheet reports, and it cancels.
 //
 // The back has to turn the OTHER way for the same visible result, because the
 // flip mirrors the page and a mirror turns a rotation into its opposite. Turn
@@ -1437,6 +1440,9 @@ function backTurn(doc, L, on, back = true) {
   if (!on) { doc.restoreGraphicsState(); return true; }
   doc.saveGraphicsState();
   const th = -a * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th), K = 72 / 25.4;
+  // The pivot is the page centre, whose y is the same counted from the top or
+  // from the bottom. Any other pivot would need K * (L.H - y), because PDF user
+  // space counts y upwards and everything above here counts it downwards.
   const cx = L.W / 2 * K, cy = L.H / 2 * K;
   doc.setCurrentTransformationMatrix(new doc.Matrix(
     c, sn, -sn, c, cx - cx * c + cy * sn, cy - cx * sn - cy * c));
@@ -4627,8 +4633,8 @@ const FIELDS = [
   {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
   {k:'backScaleX', adv:true, label:'Back-page scale X (%)', type:'num', step:0.01, min:90, max:110, hint:'Back-only fine adjustment, on top of the scale above. 100% makes a back page exactly as big as a front one.'},
   {k:'backScaleY', adv:true, label:'Back-page scale Y (%)', type:'num', step:0.01, min:90, max:110},
-  {k:'printRotate', adv:true, label:'Print rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'Turns the whole print clockwise on the paper, both sides alike, for a feed that runs slightly crooked. Measure it on the alignment sheet: rule from the paper edge to the scale at each end of one edge, and 1.0 mm of difference is about a quarter of a degree. Lining the backs up with the fronts is separate.'},
-  {k:'backRotate', adv:true, label:'Back-page rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'Turns back pages clockwise about the page centre. For the turn the second pass puts in, which no offset or scale can take out. Read it off the double-sided test: it is what makes opposite corners wrong by different amounts in opposite directions.'},
+  {k:'printRotate', adv:true, label:'Print rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'Turns the whole print clockwise on the paper as you look at the front, both sides alike, for a feed that runs slightly crooked. Measure it on the alignment sheet: rule from the paper edge to the scale at each end of one edge, and 1.0 mm of difference is about a quarter of a degree. Lining the backs up with the fronts is separate.'},
+  {k:'backRotate', adv:true, label:'Back-page rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'For the turn the second pass puts in, which no offset or scale can take out. Read it off the double-sided test \u2014 it is what makes opposite corners wrong by different amounts in opposite directions \u2014 and enter minus what you read. Measured in the back page\u2019s own frame, not the front\u2019s.'},
   {sec:'Export quality'},
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
@@ -5618,7 +5624,7 @@ $('#btnDuplexTest').onclick = () => {
   const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
   const frontPts = corners.map(([x, y]) => ({x: Tf.x(x), y: Tf.y(y)}));
   const kd = inward(backPoint(L, {x: corners[0][0], y: corners[0][1]}));
-  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(pts.marks)} | holes ${fmt(pts.holes)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)}`;
+  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(pts.marks)} | holes ${fmt(pts.holes)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)} | rot ${s.printRotate.toFixed(3)},${s.backRotate.toFixed(3)}`;
   const keyW = L.W - 20, keyLead = 2.8;
   doc.setFontSize(6);
   const keyTop = L.H - 7 - keyLead * (doc.splitTextToSize(keyTxt, keyW).length - 1);
@@ -5643,7 +5649,7 @@ $('#btnDuplexTest').onclick = () => {
   const head1 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
   head1.write('DOUBLE-SIDED TEST  ·  PAGE 1, THE FRONT', {bold:true, size:12, lead:5.5});
   head1.write(`${paper} ${s.orientation}  ·  flip on the ${s.duplexFlip === 'short' ? 'short' : 'long'} edge  ·  back-page offset now X ${signed(s.backOffsetX)} mm, Y ${signed(s.backOffsetY)} mm`, {size:7.5});
-  head1.write(`scale ${s.scaleX.toFixed(2)} / ${s.scaleY.toFixed(2)}%  ·  back-page scale ${s.backScaleX.toFixed(2)} / ${s.backScaleY.toFixed(2)}%  ·  printer offset X ${signed(s.offsetX)}, Y ${signed(s.offsetY)} mm`, {size:7});
+  head1.write(`scale ${s.scaleX.toFixed(2)} / ${s.scaleY.toFixed(2)}%  ·  back-page scale ${s.backScaleX.toFixed(2)} / ${s.backScaleY.toFixed(2)}%  ·  printer offset X ${signed(s.offsetX)}, Y ${signed(s.offsetY)} mm  ·  rotation ${signed(s.printRotate)}\u00b0 print, ${signed(s.backRotate)}\u00b0 back`, {size:7});
 
   const bodyW = Math.min(L.W - 32, 186), body1 = pdfText(doc, (L.W - bodyW) / 2, cy + 30, bodyW, 8, 4.5);
   body1.write('PRINT PAGE 2 ON THE BACK OF THIS SHEET', {bold:true, size:9, lead:5.5});
@@ -5994,7 +6000,7 @@ $('#btnCal').onclick = () => {
   const head = pdfText(doc, 20, 24, L.W - 40);
   head.write('ALIGNMENT SHEET', {bold:true, size:13, lead:5.5});
   head.write(`${paper} ${L.W.toFixed(1)} x ${L.H.toFixed(1)} mm, ${s.orientation}. Print at Actual size / 100% on the paper you will use.`, {size:8, lead:4});
-  head.write(`Printed with horizontal scale ${s.scaleX.toFixed(2)}%, vertical scale ${s.scaleY.toFixed(2)}%, printer offset X ${s.offsetX.toFixed(2)} mm, printer offset Y ${s.offsetY.toFixed(2)} mm.`, {size:7});
+  head.write(`Printed with horizontal scale ${s.scaleX.toFixed(2)}%, vertical scale ${s.scaleY.toFixed(2)}%, printer offset X ${s.offsetX.toFixed(2)} mm, printer offset Y ${s.offsetY.toFixed(2)} mm${s.printRotate ? `, print rotation ${s.printRotate.toFixed(2)}\u00b0 \u2014 this sheet is TURNED, so its squareness gauge reads the corrected result` : ''}.`, {size:7});
 
   // Instructions.
   const tb = wide ? {x:148, y:34, w:116} : {x:16, y:170, w:124};
@@ -6054,6 +6060,7 @@ $('#btnCal').onclick = () => {
     + ` | crosses ${fmtp(crossPts)} | dot ${T.x(adot.x).toFixed(2)},${T.y(adot.y).toFixed(2)}`
     + `${cardKey} | rule ${T.x(ax0).toFixed(2)},${T.y(ay).toFixed(2)},${T.w(D).toFixed(2)}`
     + ` | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)}`
+    + ` | rot ${s.printRotate.toFixed(3)}`
     + (sq ? ` | band ${edgeAt.l.toFixed(2)},${edgeAt.r.toFixed(2)},${edgeAt.t.toFixed(2)},${edgeAt.b.toFixed(2)}` : '');
   // Kept clear of the corner scales, which reach 24 mm in from each side.
   doc.setTextColor('#111827');
@@ -6072,14 +6079,14 @@ function cutSvg(sheet = 0) {
   if (!Number.isInteger(sheet) || sheet < 0 || sheet >= pages) throw new Error('Choose an existing sheet.');
   const n = count ? Math.min(L.per, count - sheet * L.per) : L.per;
   let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${L.W}mm" height="${L.H}mm" viewBox="0 0 ${L.W} ${L.H}">\n`;
-  // Cut where the cards were printed, which is turned if the print is.
-  const cutTurn = turnAngle(false);
-  if (cutTurn) svg += `<g transform="rotate(${cutTurn.toFixed(4)} ${(L.W / 2).toFixed(3)} ${(L.H / 2).toFixed(3)})">\n`;
+  // No rotation here even when the print is turned. The cutter finds the
+  // printed registration marks and lays its own frame on them, and those marks
+  // turn with everything else, so the cut paths stay nominal. Turning them too
+  // would apply the correction a second time.
   for (let i = 0; i < n; i++) {
     const p = slotPos(L, i, false);
     svg += `<rect x="${T.x(p.x + s.bleed).toFixed(3)}" y="${T.y(p.y + s.bleed).toFixed(3)}" width="${T.w(L.cw).toFixed(3)}" height="${T.h(L.ch).toFixed(3)}" rx="${T.w(s.cornerRadius ?? 3.2).toFixed(3)}" ry="${T.h(s.cornerRadius ?? 3.2).toFixed(3)}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
   }
-  if (cutTurn) svg += '</g>\n';
   svg += '</svg>\n';
   return svg;
 }
