@@ -1,3 +1,29 @@
+# Proxy Press v0.5.10
+
+Calibration profiles you can read and edit.
+
+## What's new
+
+- **The profile name box is legible:** it was rendering light grey text on white, so whatever you typed was invisible until you selected it. One missing attribute; it was the only field in the app that had it.
+- **Profiles can be edited:** picking a saved profile now puts its name in the box, and saving over it renames that profile in place instead of leaving the old name behind as a second copy. Deleting clears the box, and a built-in starting point's name can no longer be taken, which used to be the way to end up with two entries called the same thing.
+- **Page margin says what it does:** the field takes tenths of a millimetre and always did, but the cards are centred on the sheet, so the real margin is the space left over and is usually wider than the minimum you type. Nothing moves until the figure crosses the point where a column or row stops fitting. The field now says so.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/Proxy-Press-0.5.10.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/Proxy-Press-0.5.10.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/Proxy-Press-0.5.10.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/Proxy-Press-0.5.10.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/Proxy-Press-0.5.10.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/Proxy-Press-0.5.10.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.5.10/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.9
 
 Double-sided test fixed for long-edge flipping, and a squareness gauge on the alignment sheet.

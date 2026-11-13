@@ -4541,7 +4541,7 @@ const FIELDS = [
   {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {sec:'Sheet layout & margins'},
   {k:'gap', adv:true, label:'Gap between cards (mm)', type:'num', step:0.1, min:0},
-  {k:'margin', adv:true, label:'Min. page margin (mm)', type:'num', step:0.1, min:0},
+  {k:'margin', adv:true, label:'Min. page margin (mm)', type:'num', step:0.1, min:0, hint:'The least space to leave at the sheet edge when working out how many cards fit. Cards are centred on the sheet, so the real margin is whatever is left over \u2014 see the figure in the summary above. Raising this changes the sheet only when it drops a column or a row.'},
   {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
   {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
   {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border color']]},
