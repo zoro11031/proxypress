@@ -5707,8 +5707,8 @@ function openDuplexWizard(state = {}) {
     <p class="hint">Page 2 tells you where to look. Find where the centre of the ring on the front lands on the back — hold it to a light, or push a pin through it if the stock is opaque — and read it off the grid.</p>
     <div class="duplex-read">${duplexReadSvg()}</div>
     <div class="grid2" style="margin-top:10px">
-      <div class="field"><label for="duplexWizardX">X reading from the sheet (mm)</label><input id="duplexWizardX" type="number" step="0.05" value="${esc(keep(state.x))}"></div>
-      <div class="field"><label for="duplexWizardY">Y reading from the sheet (mm)</label><input id="duplexWizardY" type="number" step="0.05" value="${esc(keep(state.y))}"></div>
+      <div class="field"><label for="duplexWizardX">X reading from the sheet (mm)</label><input id="duplexWizardX" type="text" inputmode="decimal" value="${esc(keep(state.x))}"></div>
+      <div class="field"><label for="duplexWizardY">Y reading from the sheet (mm)</label><input id="duplexWizardY" type="text" inputmode="decimal" value="${esc(keep(state.y))}"></div>
     </div>
     <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
     <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Add the reading</button><button id="duplexWizardZero">Back to no correction</button></div>
@@ -5717,7 +5717,7 @@ function openDuplexWizard(state = {}) {
   </div>`);
   $('#modal').classList.add('duplex');
 
-  const reading = () => [$('#duplexWizardX').valueAsNumber, $('#duplexWizardY').valueAsNumber];
+  const reading = () => [$('#duplexWizardX').value.trim(), $('#duplexWizardY').value.trim()].map(v => v === '' ? NaN : Number(v));
   const refresh = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 goes in ${esc(feed.back)} first.</b> ${esc(feed.text)}<br><span class="hint">Put the sheet back with the printed side facing the other way.</span>`;
@@ -6419,16 +6419,46 @@ function bestCutBleed() {
   s.margin = curM;
   return best;
 }
-if ($('#regToggle')) $('#regToggle').onchange = ev => {
-  S.settings.silhouette = ev.target.checked;
-  if (S.settings.silhouette) {
-    S.settings.guides = 'none';
-    S.settings.showCuts = false;
-    S.showCuts = false;
-    if (S.settings.bleed > 1) S.settings.bleed = 0.625;
+// the cutting tab's inputs, id -> settings key. Drives both the fill and the
+// change wiring below, so the two directions cannot drift apart.
+const CUT_INPUTS = {cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryCornerColor:'cornerGuideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'};
+
+// set those inputs from state, never clobbering the control the user is in.
+// cleanSettings starts from a full DEFAULTS spread, so every key has a value.
+function fillInputs(map) {
+  for (const [id, key] of Object.entries(map)) {
+    const el = $('#' + id);
+    if (!el || document.activeElement === el) continue;
+    const v = S.settings[key];
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
   }
+}
+
+// showCuts lives in two places: S.showCuts is the live flag, S.settings.showCuts
+// is what gets serialized into saved and exported decks. Keep them together.
+const setShowCuts = v => { S.settings.showCuts = v; S.showCuts = v; };
+
+// the two cutter layouts, applied from either the mode button or the status fixit
+function applyCameoLayout() {
+  Object.assign(S.settings, {
+    ...cameoPaperLayout(S.settings.orientation),
+    guides: 'none', silhouette: true, regPattern: 3, regThickness: 1
+  });
+  setShowCuts(false);
   S.activePreset = null; save(); renderAll();
-};
+  toast(`Cameo ready: ${layout().per} cards per ${S.settings.orientation} sheet with registration marks.`);
+}
+
+function applyRotaryLayout(message) {
+  S.settings.silhouette = false;
+  setShowCuts(false);
+  const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
+  if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
+  Object.assign(S.settings, {cols:0, rows:0, cardRotation:'upright', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.25)});
+  S.settings.bleed = bestCutBleed();
+  S.activePreset = null; save(); renderAll(); toast(message);
+}
+
 function renderCutStatus() {
   const s = S.settings, L = layout();
 
@@ -6458,77 +6488,24 @@ function renderCutStatus() {
     btnCameo.onkeydown = e => handleKey(e, () => btnCameo.click());
     btnRotary.onkeydown = e => handleKey(e, () => btnRotary.click());
 
-    btnCameo.onclick = () => {
-      if (S.settings.silhouette) return;
-      Object.assign(S.settings, {
-        ...cameoPaperLayout(S.settings.orientation),
-        guides: 'none',
-        silhouette: true,
-        regPattern: 3,
-        regThickness: 1,
-        showCuts: false
-      });
-      S.showCuts = false;
-      S.activePreset = null; save(); renderAll(); toast(`Cameo ready: ${layout().per} cards per ${S.settings.orientation} sheet with registration marks.`);
-    };
+    btnCameo.onclick = () => { if (!S.settings.silhouette) applyCameoLayout(); };
     btnRotary.onclick = () => {
-      if (!S.settings.silhouette) return;
-      S.settings.silhouette = false;
-      S.settings.showCuts = false;
-      S.showCuts = false;
-      const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-      if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
-      Object.assign(S.settings, {cols:0, rows:0, cardRotation:'upright', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.3)});
-      S.settings.bleed = bestCutBleed();
-      S.activePreset = null; save(); renderAll(); toast('Rotary trimmer ready: automatic grid, margin lines and corner marks.');
+      if (S.settings.silhouette) applyRotaryLayout('Rotary trimmer ready: automatic grid, margin lines and corner marks.');
     };
   }
 
-  // Populate Silhouette Advanced Inputs
-  const regPat = $('#cameoRegPattern');
-  if (regPat && document.activeElement !== regPat) regPat.value = String(s.regPattern || 3);
-  const regIns = $('#cameoRegInset');
-  if (regIns && document.activeElement !== regIns) regIns.value = s.regInset ?? 10;
-  const regThick = $('#cameoRegThickness');
-  if (regThick && document.activeElement !== regThick) regThick.value = s.regThickness ?? 1;
-  const regLen = $('#cameoRegLen');
-  if (regLen && document.activeElement !== regLen) regLen.value = s.regLen ?? 0;
-  const cRadius = $('#cameoCornerRadius');
-  if (cRadius && document.activeElement !== cRadius) cRadius.value = s.cornerRadius ?? 3.2;
-
-  // Populate Rotary Advanced Inputs
-  const rotGuides = $('#rotaryGuides');
-  if (rotGuides && document.activeElement !== rotGuides) rotGuides.value = s.guides || 'both';
-  for (const [id, key] of Object.entries({rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'})) {
-    const input = $('#' + id); if (input.type === 'checkbox') input.checked = s[key]; else input.value = s[key];
-  }
+  fillInputs(CUT_INPUTS);
   const cur = activeGuides(s);
   const allOn = cur.lines && cur.corners && cur.outline;
   const noneOn = !cur.lines && !cur.corners && !cur.outline;
+  const presetOn = {all: allOn, none: noneOn, lines: cur.lines, both: cur.lines, corners: cur.corners, outline: cur.outline};
   $$('.guide-presets button').forEach(b => {
-    const k = b.dataset.guide;
-    let on = false;
-    if (k === 'all') on = allOn;
-    else if (k === 'none') on = noneOn;
-    else if (k === 'lines' || k === 'both') on = cur.lines;
-    else if (k === 'corners') on = cur.corners;
-    else if (k === 'outline') on = cur.outline;
+    const on = !!presetOn[b.dataset.guide];
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on);
   });
   $$('.guide-colors button').forEach(b => b.setAttribute('aria-pressed', b.dataset.guideColor === s.guideColor));
   $$('.corner-guide-colors button').forEach(b => b.setAttribute('aria-pressed', b.dataset.cornerColor === s.cornerGuideColor));
-  const rotLen = $('#rotaryGuideLen');
-  if (rotLen && document.activeElement !== rotLen) rotLen.value = s.guideLen ?? 3;
-  const rotWidth = $('#rotaryGuideWidth');
-  if (rotWidth && document.activeElement !== rotWidth) rotWidth.value = s.guideWidth ?? 0.25;
-  const rotColor = $('#rotaryGuideColor');
-  if (rotColor && document.activeElement !== rotColor) rotColor.value = s.guideColor || '#000000';
-  const rotCorner = $('#rotaryCornerColor');
-  if (rotCorner && document.activeElement !== rotCorner) rotCorner.value = s.cornerGuideColor || '#00bfff';
-  const rotBleed = $('#rotaryBleed');
-  if (rotBleed && document.activeElement !== rotBleed) rotBleed.value = s.bleed ?? 2;
-
   const cEl = $('#cameoStatus');
   if (cEl) {
     const noConflict = !regConflict(L);
@@ -6544,18 +6521,7 @@ function renderCutStatus() {
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
       cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
       const cb = $('#cameoApply');
-      if (cb) cb.onclick = () => {
-        Object.assign(S.settings, {
-          ...cameoPaperLayout(S.settings.orientation),
-          guides: 'none',
-          silhouette: true,
-          regPattern: 3,
-          regThickness: 1,
-          showCuts: false
-        });
-        S.showCuts = false;
-        S.activePreset = null; save(); renderAll(); toast(`Cameo ready: ${layout().per} cards per ${S.settings.orientation} sheet with registration marks.`);
-      };
+      if (cb) cb.onclick = applyCameoLayout;
     }
   }
   const el = $('#cutStatus'); if (!el) return;
@@ -6569,36 +6535,24 @@ function renderCutStatus() {
     el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
   } else {
     const guideDesc = (() => {
-      if (s.guides === 'none') return 'No guides will be printed';
-      if (s.guides === 'both') return 'Sheet cut lines and corner marks enabled';
       if (s.guides === 'corners') return 'Corner marks enabled';
       if (s.guides === 'margin') return 'Margin lines enabled';
       if (s.guides === 'outline') return 'Full card outlines enabled';
       if (s.guides === 'all') return 'All cut guides (sheet lines, corner marks, outline) enabled';
-      const g = activeGuides(s);
       const list = [];
-      if (g.lines) list.push('Sheet cut lines');
-      if (g.corners) list.push('corner marks');
-      if (g.outline) list.push('full outlines');
+      if (cur.lines) list.push('Sheet cut lines');
+      if (cur.corners) list.push('corner marks');
+      if (cur.outline) list.push('full outlines');
       return list.length ? list.join(' and ') + ' enabled' : 'No guides will be printed';
     })();
     el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Layout ready for the trimmer</b> — ${guideDesc} (${s.bleed} mm bleed).</div>`
       : `<div class="warn"><b>Rotary adjustments needed:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div><p class="hint">Resets the grid, margins, bleed and guides to rotary defaults.</p>`;
   }
   const b = $('#cutApply');
-  if (b) b.onclick = () => {
-    S.settings.silhouette = false;
-    S.settings.showCuts = false;
-    S.showCuts = false;
-    const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
-    if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
-    Object.assign(S.settings, {cols:0, rows:0, cardRotation:'upright', guides:'both', guideLen:Math.max(S.settings.guideLen, 3), guideWidth:Math.max(S.settings.guideWidth, 0.25)});
-    S.settings.bleed = bestCutBleed();
-    S.activePreset = null; save(); renderAll(); toast('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
-  };
+  if (b) b.onclick = () => applyRotaryLayout('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
 }
 
-for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryCornerColor:'cornerGuideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'})) {
+for (const [id, key] of Object.entries(CUT_INPUTS)) {
   const input = $('#' + id); if (!input) continue;
   input.onchange = () => {
     if (!input.checkValidity() || (input.type === 'number' && !Number.isFinite(input.valueAsNumber))) {
@@ -6606,7 +6560,6 @@ for (const [id, key] of Object.entries({cameoRegPattern:'regPattern', cameoRegIn
     }
     S.settings[key] = input.type === 'checkbox' ? input.checked : input.type === 'number' || key === 'regPattern' ? Number(input.value) : input.value;
     if (key === 'guidePlacement') S.settings.guidePlacementSet = true;
-    if (key === 'showCuts') S.showCuts = input.checked;
     S.activePreset = null; save(); renderAll();
   };
 }
