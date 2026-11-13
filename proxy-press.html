@@ -5496,10 +5496,17 @@ function pdfArrow(doc, T, x, y, dir, len = 3.2, half = 1.1) {
   const bx = x + dx * len, by = y + dy * len;
   doc.triangle(T.x(x), T.y(y), T.x(bx - dy * half), T.y(by - dx * half), T.x(bx + dy * half), T.y(by + dx * half), 'F');
 }
-function pdfCross(doc, T, x, y, arm = 7) {
+function pdfCross(doc, T, x, y, arm = 7, gap = 0) {
   doc.setLineWidth(0.25);
-  doc.line(T.x(x - arm), T.y(y), T.x(x + arm), T.y(y));
-  doc.line(T.x(x), T.y(y - arm), T.x(x), T.y(y + arm));
+  if (gap) {
+    doc.line(T.x(x - arm), T.y(y), T.x(x - gap), T.y(y));
+    doc.line(T.x(x + gap), T.y(y), T.x(x + arm), T.y(y));
+    doc.line(T.x(x), T.y(y - arm), T.x(x), T.y(y - gap));
+    doc.line(T.x(x), T.y(y + gap), T.x(x), T.y(y + arm));
+  } else {
+    doc.line(T.x(x - arm), T.y(y), T.x(x + arm), T.y(y));
+    doc.line(T.x(x), T.y(y - arm), T.x(x), T.y(y + arm));
+  }
   doc.circle(T.x(x), T.y(y), T.w(2));
 }
 // A cursor that writes wrapped lines down the page and reports where it got to.
@@ -5876,13 +5883,25 @@ $('#btnCal').onclick = () => {
   doc.setTextColor('#111827'); doc.setDrawColor('#111827'); doc.setFillColor('#111827');
 
   // Corner crosses, 10 mm in from both edges. The centre of the cross is the point
-  // to measure to, so it gets a ring to make the centre findable with a rule.
-  for (const [x, y] of [[10, 10], [L.W - 10, 10], [10, L.H - 10], [L.W - 10, L.H - 10]]) pdfCross(doc, T, x, y);
+  // to measure to, so it gets a ring to make the centre findable with a rule, and
+  // the arms stop short of it: a clean ring is what a circle fits to.
+  const crossAt = [[10, 10], [L.W - 10, 10], [10, L.H - 10], [L.W - 10, L.H - 10]];
+  for (const [x, y] of crossAt) pdfCross(doc, T, x, y, 7, 2.6);
+  // One corner carries a solid dot. Four crosses on a rectangle are the same four
+  // crosses upside down; this says which one is the top left.
+  // Straight below the top-left cross, in the empty left margin: on the diagonal
+  // it would sit in the title block.
+  const adot = {x: 10, y: 25};
+  doc.circle(T.x(adot.x), T.y(adot.y), T.w(1.2), 'F');
   const sq = squarenessMarks(L);
-  // Where the band lines actually land once scale and offset are applied. At 100%
-  // and no offset that is SQ_BAND on all four edges; above about 100.75% horizontal
-  // scale on this paper it is inside the 5 mm the printer cannot reach.
-  const edgeAt = sq ? {l: T.x(SQ_BAND), r: L.W - T.x(L.W - SQ_BAND), t: T.y(SQ_BAND), b: L.H - T.y(L.H - SQ_BAND)} : null;
+  // Where the band lines should land ON THE PAPER. The printer offset exists to
+  // cancel a displacement the printer adds, so it moves the line in the file and
+  // not on the sheet: counting it as a paper position would say the lines sit
+  // lopsided when the whole point of the setting is that they do not. Scale does
+  // move them, and far enough to matter - above about 100.75% here they are
+  // inside the 5 mm no printer can reach, and simply do not come out.
+  const edgeAt = sq ? {l: T.x(SQ_BAND) - s.offsetX, r: L.W - T.x(L.W - SQ_BAND) + s.offsetX,
+                       t: T.y(SQ_BAND) - s.offsetY, b: L.H - T.y(L.H - SQ_BAND) + s.offsetY} : null;
   if (sq) {
     doc.setLineWidth(0.2);
     for (const [x1, y1, x2, y2] of sq.lines) doc.line(T.x(x1), T.y(y1), T.x(x2), T.y(y2));
@@ -5956,7 +5975,7 @@ $('#btnCal').onclick = () => {
     t.gap(1);
     t.write(`For a number, lay a rule from the paper edge to the graduated scale at each end of that edge. The two scales are ${sq.span.x.toFixed(1)} mm apart across the sheet, so 1.0 mm between their readings is ${sq.degPerMm.x.toFixed(2)}\u00b0; down the side, ${sq.span.y.toFixed(1)} mm and ${sq.degPerMm.y.toFixed(2)}\u00b0 per mm.`, {indent:6, size:7});
     t.write(`Turned means a crooked feed, or paper cut off square. Measure a blank sheet\u2019s diagonals: equal means true paper, so the feed is at fault. A third of a degree shows as about ${sq.thirdDeg.toFixed(1)} mm on this size.`, {indent:6, size:7});
-    t.write(`A line missing altogether means your printer cannot print that close to the edge: at this scale and offset they fall ${edgeAt.l.toFixed(1)} / ${edgeAt.r.toFixed(1)} mm from the sides and ${edgeAt.t.toFixed(1)} / ${edgeAt.b.toFixed(1)} mm from the top and bottom.`, {indent:6, size:7});
+    t.write(`A line missing altogether means your printer cannot print that close to the edge. At this scale they should land ${edgeAt.l.toFixed(1)} mm from the sides and ${edgeAt.t.toFixed(1)} mm from the top and bottom.`, {indent:6, size:7});
   }
   t.gap(1.5);
   t.write(`${sq ? 5 : 4}   Print the sheet again to check. A, B, the crosses${cardFits ? ` and the ${s.cardW.toFixed(1)} x ${s.cardH.toFixed(1)} mm card outline` : ''} should all be right before you print cards.`);
@@ -5985,6 +6004,23 @@ $('#btnCal').onclick = () => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.text('Between two rows? Split the difference.', tab.x, tab.y + 17.4 + rows.length * 4.3);
+
+  const fmtp = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
+  const crossPts = crossAt.map(([x, y]) => ({x: T.x(x), y: T.y(y)}));
+  const cardKey = cardFits
+    ? ` | card ${T.x(g.x + 30).toFixed(2)},${T.y(g.y + 34).toFixed(2)},${T.w(s.cardW).toFixed(2)},${T.h(s.cardH).toFixed(2)}`
+    : '';
+  const akey = `ALIGN KEY v1 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation}`
+    + ` | crosses ${fmtp(crossPts)} | dot ${T.x(adot.x).toFixed(2)},${T.y(adot.y).toFixed(2)}`
+    + `${cardKey} | rule ${T.x(ax0).toFixed(2)},${T.y(ay).toFixed(2)},${T.w(D).toFixed(2)}`
+    + ` | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)}`
+    + (sq ? ` | band ${edgeAt.l.toFixed(2)},${edgeAt.r.toFixed(2)},${edgeAt.t.toFixed(2)},${edgeAt.b.toFixed(2)}` : '');
+  // Kept clear of the corner scales, which reach 24 mm in from each side.
+  doc.setTextColor('#111827');
+  doc.setFontSize(6);
+  const akW = L.W - 56, akLead = 2.8;
+  const akTop = L.H - 7 - akLead * (doc.splitTextToSize(akey, akW).length - 1);
+  pdfText(doc, L.W / 2, akTop, akW, 6, akLead, 'center').write(akey, {size:6});
 
   doc.save('alignment-sheet.pdf');
 };
