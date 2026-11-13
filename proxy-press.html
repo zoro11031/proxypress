@@ -565,7 +565,7 @@ details.adv:not([open]){padding-bottom:10px}
         <p class="hint">Print both at Actual size / 100%, never "Fit to page" — a sheet that has been scaled to fit measures the printer's guesswork rather than yours.</p>
         <div class="row" style="margin-top:10px;align-items:end">
           <div class="field" style="flex:1"><label for="calProfileSel">Printer calibration profile</label><select id="calProfileSel"><option value="">No saved profile</option></select></div>
-          <div class="field" style="flex:1"><label for="calProfileName">Profile name</label><input id="calProfileName" placeholder="Canon cardstock"></div>
+          <div class="field" style="flex:1"><label for="calProfileName">Profile name</label><input id="calProfileName" type="text" placeholder="Canon cardstock"></div>
           <button id="calProfileSave">Save profile</button>
           <button id="calProfileDelete" class="danger">Delete</button>
         </div>
@@ -4774,6 +4774,11 @@ $('#settingsForm').addEventListener('change', async ev => {
 });
 $('#calProfileSel').onchange = ev => {
   const p = calProfiles().find(x => x.id === ev.target.value);
+  // The name box is how a profile gets edited, so it follows the selection. A
+  // built-in cannot be edited, so it leaves the box empty rather than offering a
+  // name that Save would then refuse.
+  const nameBox = $('#calProfileName');
+  if (nameBox) nameBox.value = p && !p.builtin ? p.name : '';
   if (!p) return;
   S.settings = cleanSettings({...S.settings, ...p.settings});
   if (PRINTERS.some(x => x.id === p.printer)) {
@@ -4783,13 +4788,20 @@ $('#calProfileSel').onchange = ev => {
   S.activePreset = null; save(); renderAll();
 };
 $('#calProfileSave').onclick = () => {
-  const name = $('#calProfileName').value.trim();
+  const name = $('#calProfileName').value.trim().slice(0, 100);
   if (!name) return toast('Enter a profile name first.');
+  if (BUILTIN_CAL_PROFILES.some(p => p.name.toLowerCase() === name.toLowerCase()))
+    return toast('That name belongs to a built-in starting point. Pick another.');
   const settings = Object.fromEntries(CAL_PROFILE_KEYS.map(k => [k, S.settings[k]]));
-  const existing = S.calibrationProfiles.find(p => p.name.toLowerCase() === name.toLowerCase());
-  if (existing) Object.assign(existing, {name, printer:S.printer, settings});
-  else S.calibrationProfiles.push({id:uid(), name:name.slice(0, 100), printer:S.printer, settings});
-  save(); renderCalibrationProfiles(); toast(`Saved calibration profile "${name}".`);
+  const chosen = S.calibrationProfiles.find(p => p.id === $('#calProfileSel').value);
+  const named = S.calibrationProfiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (chosen && named && named !== chosen) return toast(`Another profile is already called "${name}".`);
+  const target = chosen || named;
+  if (target) Object.assign(target, {name, printer:S.printer, settings});
+  else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
+  save(); renderCalibrationProfiles();
+  $('#calProfileSel').value = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
+  toast(`Saved calibration profile "${name}".`);
 };
 $('#calProfileDelete').onclick = () => {
   const id = $('#calProfileSel').value;
@@ -4798,6 +4810,7 @@ $('#calProfileDelete').onclick = () => {
   const p = S.calibrationProfiles.find(x => x.id === id);
   if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
+  $('#calProfileName').value = '';
   save(); renderCalibrationProfiles();
 };
 
