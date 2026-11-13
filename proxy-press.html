@@ -1406,6 +1406,22 @@ function duplexFeedInstruction(L, frontEdge) {
 function backPoint(L, p) {
   return L.mirrorX ? {x:L.W - p.x, y:p.y} : {x:p.x, y:L.H - p.y};
 }
+// How far a whole printed PAGE has to turn for its back to read the same way up as
+// its front. faceRot answers this for a card, and folds in the card's own L.rot on
+// top; a sheet of text has no L.rot, so it needs this part on its own.
+function backPageRot(L) { return L.mirrorX ? 0 : 180; }
+// Text on a turned page. jsPDF resolves `align` before it rotates, so a centred
+// string drawn at 180 degrees does not stay centred on its anchor. Place it by
+// width instead: at 180 degrees a string runs leftwards from its anchor, so the
+// anchor goes at the right-hand end of where the string should sit.
+function atext(doc, txt, x, y, align, angle) {
+  if (angle !== 180) { doc.text(txt, x, y, align ? {align} : undefined); return; }
+  // Turned, a string already runs leftwards from its anchor, so a left-aligned
+  // line needs no shift at all: every line sharing one anchor is flush on the
+  // left once the sheet is turned. Only centre and right have to be moved.
+  const w = doc.getTextWidth(txt);
+  doc.text(txt, align === 'center' ? x + w / 2 : align === 'right' ? x + w : x, y, {angle: 180});
+}
 // Rotation of a card image so its back reads the right way up after the sheet is turned over.
 function faceRot(L, back) {
   if (!back) return L.rot ? 90 : 0;
@@ -5406,12 +5422,13 @@ function drawReadGrid(doc, pt, k, opt = {}) {
   doc.rect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]));
   if (opt.labels === false) return;
   doc.setFontSize(opt.font || 5.2);
+  const ang = opt.angle || 0, f = ang === 180 ? -1 : 1;
   for (let n = -R; n <= R; n++) {
     const txt = n > 0 ? `+${n}` : String(n), far = Math.abs(n) % 2 === 1;
     const px = pt(n, far ? R : -R);
-    doc.text(txt, px[0], px[1] + (far ? 2.5 * k : -1.4 * k), {align:'center'});
+    atext(doc, txt, px[0], px[1] + f * (far ? 2.5 * k : -1.4 * k), 'center', ang);
     const py = pt(far ? R : -R, n);
-    doc.text(txt, py[0] + (far ? 1.2 * k : -1.2 * k), py[1] + 0.7 * k, {align: far ? 'left' : 'right'});
+    atext(doc, txt, py[0] + f * (far ? 1.2 * k : -1.2 * k), py[1] + f * 0.7 * k, far ? 'left' : 'right', ang);
   }
 }
 
@@ -5431,18 +5448,19 @@ function pdfCross(doc, T, x, y, arm = 7) {
   doc.circle(T.x(x), T.y(y), T.w(2));
 }
 // A cursor that writes wrapped lines down the page and reports where it got to.
-function pdfText(doc, x, y, width, size = 7.5, lead = 4.1, align = null) {
+function pdfText(doc, x, y, width, size = 7.5, lead = 4.1, align = null, angle = 0) {
   let cy = y;
+  const step = angle === 180 ? -1 : 1;
   return {
     at: () => cy,
-    gap: (n = 2) => { cy += n; },
+    gap: (n = 2) => { cy += step * n; },
     write(txt, opt = {}) {
       doc.setFontSize(opt.size || size);
       doc.setFont('helvetica', opt.bold ? 'bold' : 'normal');
       const indent = opt.indent || 0;
       for (const ln of doc.splitTextToSize(txt, width - indent)) {
-        doc.text(ln, x + indent, cy, align ? {align} : undefined);
-        cy += opt.lead || lead;
+        atext(doc, ln, x + step * indent, cy, align, angle);
+        cy += step * (opt.lead || lead);
       }
       doc.setFont('helvetica', 'normal');
     }
@@ -5459,14 +5477,15 @@ $('#btnDuplexTest').onclick = () => {
   const corners = [[inset, inset], [L.W - inset, inset], [inset, L.H - inset], [L.W - inset, L.H - inset]];
   const signed = v => (v >= 0 ? '+' : '') + v.toFixed(2);
 
-  const square = (T, x, y, half, n) => {
+  const square = (T, x, y, half, n, ang = 0) => {
+    const f = ang === 180 ? -1 : 1;
     doc.setLineWidth(0.3);
     doc.rect(T.x(x - half), T.y(y - half), T.w(half * 2), T.h(half * 2));
     doc.setLineWidth(0.15);
     doc.line(T.x(x - half - 3), T.y(y), T.x(x + half + 3), T.y(y));
     doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y + half + 3));
     doc.setFontSize(7);
-    doc.text(String(n), T.x(x + half + 4.5), T.y(y - half + 1));
+    atext(doc, String(n), T.x(x + f * (half + 4.5)), T.y(y - f * (half - 1)), null, ang);
   };
 
   /* ---------- page 1, the front ---------- */
@@ -5505,47 +5524,58 @@ $('#btnDuplexTest').onclick = () => {
   /* ---------- page 2, the back ---------- */
   doc.addPage([L.W, L.H], wide ? 'l' : 'p');
   const Tb = makeT(L, true);
+  // On a flip that mirrors top to bottom, the printer lays this side down head to
+  // foot against the front. The card export already cancels that with faceRot; this
+  // sheet has to cancel it too, or it reads upside down and the grid below it is
+  // read backwards. Marks keep their places; only their facing turns.
+  const rot2 = backPageRot(L), f2 = rot2 === 180 ? -1 : 1;
   doc.setDrawColor(RED); doc.setFillColor(RED); doc.setTextColor(RED);
   corners.forEach(([x, y], i) => {
     const p = backPoint(L, {x, y});
-    square(Tb, p.x, p.y, 5, i + 1);
+    square(Tb, p.x, p.y, 5, i + 1, rot2);
   });
   doc.setLineWidth(0.25);
   doc.circle(Tb.x(cx), Tb.y(cy), Tb.w(12));
-  drawReadGrid(doc, (dx, dy) => [Tb.x(cx + dx), Tb.y(cy + dy)], 1);
+  drawReadGrid(doc, (dx, dy) => [Tb.x(cx + f2 * dx), Tb.y(cy + f2 * dy)], 1, {angle: rot2});
   doc.setFontSize(7.5);
-  doc.text('THE PIN HOLE LANDS IN HERE', Tb.x(cx), Tb.y(cy - 15.5), {align:'center'});
+  atext(doc, 'THE PIN HOLE LANDS IN HERE', Tb.x(cx), Tb.y(cy - f2 * 15.5), 'center', rot2);
   doc.setFontSize(6.5);
-  doc.text('one square = 1 mm', Tb.x(cx), Tb.y(cy + 18), {align:'center'});
+  atext(doc, 'one square = 1 mm', Tb.x(cx), Tb.y(cy + f2 * 18), 'center', rot2);
 
   doc.setTextColor(BLACK); doc.setDrawColor(BLACK);
-  const head2 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
+  // Every block on this side is placed at its mirror position and turned, so the
+  // page occupies the same region of paper but faces the same way as the front.
+  const flipPt = (x, y) => rot2 ? [L.W - x, L.H - y] : [x, y];
+  const head2 = pdfText(doc, ...flipPt(cx, 20), headW, 8, 4.2, 'center', rot2);
   head2.write('DOUBLE-SIDED TEST  ·  PAGE 2, THE BACK', {bold:true, size:12, lead:5.5});
-  head2.write('Read this side with this text the right way up. The red marks are printed on this side; the black ones are on the other side.', {size:7.5});
+  head2.write('Read this side the same way up as the front. The red marks are printed on this side; the black ones are on the other side.', {size:7.5});
 
   // A worked example, three times life size, because the real grid is 6 mm across.
   doc.setDrawColor(RED);
-  const ex = {x: inset + 36, y: wide ? cy - 6 : 82};
+  const ex0 = {x: inset + 36, y: wide ? cy - 6 : 82};
+  const [exx, exy] = flipPt(ex0.x, ex0.y), ex = {x: exx, y: exy};
   doc.setLineWidth(0.2);
-  drawReadGrid(doc, (dx, dy) => [ex.x + dx * 3, ex.y + dy * 3], 3, {font:7});
+  drawReadGrid(doc, (dx, dy) => [ex.x + f2 * dx * 3, ex.y + f2 * dy * 3], 3, {font:7, angle: rot2});
   doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
-  doc.circle(ex.x + 1.5, ex.y - 3, 0.9, 'F');
+  doc.circle(ex.x + f2 * 1.5, ex.y - f2 * 3, 0.9, 'F');
   doc.setLineWidth(0.25);
-  doc.circle(ex.x + 1.5, ex.y - 3, 2.2);
-  const cap = pdfText(doc, ex.x - 15, ex.y + 23, 64, 7, 3.6);
+  doc.circle(ex.x + f2 * 1.5, ex.y - f2 * 3, 2.2);
+  const cap = pdfText(doc, ...flipPt(ex0.x - 15, ex0.y + 23), 64, 7, 3.6, null, rot2);
   cap.write('EXAMPLE, THREE TIMES LIFE SIZE', {bold:true, size:7, lead:4});
   cap.write('This hole sits half a square to the right of 0 and one whole square above it.');
   cap.write('Reading:  X = +0.5    Y = -1.0', {bold:true});
 
   const col = wide ? {x:cx + 30, y:44, w:L.W - 16 - (cx + 30)} : {x:16, y:cy + 32, w:L.W - 32};
-  const body2 = pdfText(doc, col.x, col.y, col.w, 8, 4.5);
+  const body2 = pdfText(doc, ...flipPt(col.x, col.y), col.w, 8, 4.5, null, rot2);
   body2.write('HOW TO READ IT', {bold:true, size:9, lead:5.5});
   body2.write('1   Find where the centre of the ring on the front lands on this side. On plain paper, hold the sheet up to a light. On card stock, push a pin through the exact centre of that ring, from the front, and look at the hole from this side.');
   body2.write('2   Read the hole against the ringed grid in the middle of this page. One square is 1 mm, and the short ticks on the centre lines are half a square.');
   body2.write('3   Those two numbers go straight into the duplex calibration wizard, which adds them for you. By hand, add them to the current values:');
   body2.gap(1);
-  body2.write(`Extra back-page offset X  =  ${signed(s.backOffsetX)}  +  (the X you read)`, {indent:6, size:7.5});
-  body2.write(`Extra back-page offset Y  =  ${signed(s.backOffsetY)}  +  (the Y you read)`, {indent:6, size:7.5});
+  // ASCII hyphen: U+2212 is not in the WinAnsi encoding jsPDF uses for Helvetica.
+  const op = rot2 ? '-' : '+';
+  body2.write(`Extra back-page offset X  =  ${signed(s.backOffsetX)}  ${op}  (the X you read)`, {indent:6, size:7.5});
+  body2.write(`Extra back-page offset Y  =  ${signed(s.backOffsetY)}  ${op}  (the Y you read)`, {indent:6, size:7.5});
   body2.gap(1);
   body2.write('4   Print the test again. Both readings should now be 0.');
   body2.gap(2);
@@ -5643,6 +5673,9 @@ function duplexReadSvg() {
 }
 function openDuplexWizard(state = {}) {
   const s = S.settings, L = layout();
+  // On a turn that mirrors top to bottom, page 2 of the test prints turned, so its
+  // grid's axes point the other way and a reading must be subtracted, not added.
+  const rsgn = backPageRot(L) === 180 ? -1 : 1;
   const frontEdge = ['left', 'right', 'top', 'bottom'].includes(state.frontEdge) ? state.frontEdge : leadEdge(L);
   const inUnit = v => s.backOffsetUnit === 'in' ? `${(v / 25.4).toFixed(3)} in` : `${v.toFixed(2)} mm`;
   // Re-opening the wizard carries the readings over, but an empty box reads back as
@@ -5689,8 +5722,9 @@ function openDuplexWizard(state = {}) {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 goes in ${esc(feed.back)} first.</b> ${esc(feed.text)}<br><span class="hint">Put the sheet back with the printed side facing the other way.</span>`;
     const [x, y] = reading();
+    const ax = rsgn * x, ay = rsgn * y;
     $('#duplexWizardSum').innerHTML = Number.isFinite(x) && Number.isFinite(y)
-      ? `Extra back-page offset: X ${esc(inUnit(s.backOffsetX))} ${x < 0 ? '−' : '+'} ${esc(Math.abs(x).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetX + x))}</b> · Y ${esc(inUnit(s.backOffsetY))} ${y < 0 ? '−' : '+'} ${esc(Math.abs(y).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetY + y))}</b>`
+      ? `Extra back-page offset: X ${esc(inUnit(s.backOffsetX))} ${ax < 0 ? '−' : '+'} ${esc(Math.abs(ax).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetX + ax))}</b> · Y ${esc(inUnit(s.backOffsetY))} ${ay < 0 ? '−' : '+'} ${esc(Math.abs(ay).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetY + ay))}</b>`
       : 'Enter a number for both X and Y.';
   };
   $('#duplexWizardChoices').onclick = ev => {
@@ -5709,7 +5743,7 @@ function openDuplexWizard(state = {}) {
   $('#duplexWizardApply').onclick = () => {
     const [x, y] = reading();
     if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
-    s.backOffsetX = +(s.backOffsetX + x).toFixed(3); s.backOffsetY = +(s.backOffsetY + y).toFixed(3); s.backOffsetRel = true;
+    s.backOffsetX = +(s.backOffsetX + rsgn * x).toFixed(3); s.backOffsetY = +(s.backOffsetY + rsgn * y).toFixed(3); s.backOffsetRel = true;
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
     $('#duplexWizardStatus').textContent = `Saved. Extra back-page offset is now X ${inUnit(s.backOffsetX)}, Y ${inUnit(s.backOffsetY)}. Print the test again to check.`;
