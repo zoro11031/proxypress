@@ -1590,11 +1590,19 @@ function guideLines(L, pageOrCount) {
 // so the sheet also needs the conversion from that difference to an angle.
 // Nothing may sit within 5 mm of the edge: that is the printer's non-printable
 // margin, and a mark placed there simply does not come out.
-const SQ_INSET = 10, SQ_BAND = 6, SQ_FROM = 5, SQ_TO = 15, SQ_STEP = 0.5, SQ_LABELS = [5, 10, 15];
+const SQ_INSET = 10, SQ_BAND = 6, SQ_FROM = 5, SQ_TO = 15, SQ_STEP = 0.5, SQ_LABELS = [10, 15], SQ_OFF = SQ_INSET + 8;
 function squarenessMarks(L) {
-  if (Math.min(L.W, L.H) <= 2 * SQ_TO + 8) return null;
-  const span = {x: L.W - 2 * SQ_INSET, y: L.H - 2 * SQ_INSET};
+  // The gate is the width the scales need, not the range they cover: two scales
+  // SQ_OFF in from opposite edges, plus room for their labels between them.
+  if (Math.min(L.W, L.H) <= 2 * SQ_OFF + 12) return null;
+  // Reckoned between the scales, because the scales are what the reader sights
+  // against. Between the corner crosses it would be 16 mm longer and the angle
+  // it gives 6.6% small.
+  const span = {x: L.W - 2 * SQ_OFF, y: L.H - 2 * SQ_OFF};
   const deg = d => Math.atan(1 / d) * 180 / Math.PI;
+  // How far out of square a sheet's two diagonals read when the paper itself is
+  // cut a third of a degree off. It is a figure per paper size, not a constant.
+  const thirdDeg = 2 * L.W * L.H * Math.sin(Math.PI / 540) / Math.hypot(L.W, L.H);
   const lines = [
     [SQ_INSET, SQ_BAND, L.W - SQ_INSET, SQ_BAND],
     [SQ_INSET, L.H - SQ_BAND, L.W - SQ_INSET, L.H - SQ_BAND],
@@ -1603,7 +1611,7 @@ function squarenessMarks(L) {
   ];
   // Two scales per corner, each running out towards the edge it measures. Ticks
   // point inwards so they cannot stray into the non-printable margin.
-  const off = SQ_INSET + 8, labels = [];
+  const off = SQ_OFF, labels = [];
   for (const near of [true, false]) {
     const at = near ? off : L.W - off, side = near ? off : L.H - off;
     const inx = near ? 1 : -1;
@@ -1614,13 +1622,13 @@ function squarenessMarks(L) {
         lines.push([at, y, at + len, y]);
         lines.push([x, side, x, side + len]);
         if (!named) continue;
-        labels.push([at + len + inx * 0.9, y + (top ? 0.7 : -0.7), String(v), inx > 0 ? 'left' : 'right']);
-        labels.push([x, side + len + inx * 1.9, String(v), 'center']);
+        labels.push([at + len + inx * 0.9, y + 0.7, String(v), inx > 0 ? 'left' : 'right']);
+        labels.push([x, side + len + (inx > 0 ? 1.9 : -0.6), String(v), 'center']);
       }
     }
   }
   return {band: SQ_BAND, scale: {from: SQ_FROM, to: SQ_TO, step: SQ_STEP, labels: SQ_LABELS},
-    span, degPerMm: {x: deg(span.x), y: deg(span.y)}, lines, labels};
+    span, degPerMm: {x: deg(span.x), y: deg(span.y)}, thirdDeg, lines, labels};
 }
 // Registration marks follow the Silhouette Card Maker specification.
 // Three things in it are easy to get wrong and all three matter:
@@ -5781,6 +5789,10 @@ $('#btnCal').onclick = () => {
   // to measure to, so it gets a ring to make the centre findable with a rule.
   for (const [x, y] of [[10, 10], [L.W - 10, 10], [10, L.H - 10], [L.W - 10, L.H - 10]]) pdfCross(doc, T, x, y);
   const sq = squarenessMarks(L);
+  // Where the band lines actually land once scale and offset are applied. At 100%
+  // and no offset that is SQ_BAND on all four edges; above about 100.75% horizontal
+  // scale on this paper it is inside the 5 mm the printer cannot reach.
+  const edgeAt = sq ? {l: T.x(SQ_BAND), r: L.W - T.x(L.W - SQ_BAND), t: T.y(SQ_BAND), b: L.H - T.y(L.H - SQ_BAND)} : null;
   if (sq) {
     doc.setLineWidth(0.2);
     for (const [x1, y1, x2, y2] of sq.lines) doc.line(T.x(x1), T.y(y1), T.x(x2), T.y(y2));
@@ -5788,10 +5800,11 @@ $('#btnCal').onclick = () => {
     for (const [x, y, txt, align] of sq.labels) doc.text(txt, T.x(x), T.y(y), {align});
   }
   doc.setFontSize(6.5);
-  doc.text('10.0 mm from the left edge and 10.0 mm from the top edge', T.x(SQ_INSET + 18), T.y(12.5));
+  // Clear of the corner scale, which reaches SQ_OFF + 3 mm in and carries labels past that.
+  doc.text('10.0 mm from the left edge and 10.0 mm from the top edge', T.x((sq ? SQ_OFF + 10 : SQ_INSET + 8)), T.y(12.5));
 
   // The measuring group: dimension A across, dimension B down, card outline.
-  const g = wide ? {x:16, y:40} : {x:cx - 59, y:44};
+  const g = wide ? {x:16, y:40} : {x:cx - 59, y:40};
   const ay = g.y + 11, ax0 = g.x + 4;
   doc.setFontSize(8); doc.setFont('helvetica', 'bold');
   doc.text(`A  must measure ${D.toFixed(1)} mm`, T.x(ax0 + D / 2), T.y(g.y + 5), {align:'center'});
@@ -5835,30 +5848,30 @@ $('#btnCal').onclick = () => {
   head.write(`Printed with horizontal scale ${s.scaleX.toFixed(2)}%, vertical scale ${s.scaleY.toFixed(2)}%, printer offset X ${s.offsetX.toFixed(2)} mm, printer offset Y ${s.offsetY.toFixed(2)} mm.`, {size:7});
 
   // Instructions.
-  const tb = wide ? {x:148, y:34, w:116} : {x:16, y:174, w:124};
+  const tb = wide ? {x:148, y:34, w:116} : {x:16, y:170, w:124};
   const t = pdfText(doc, tb.x, tb.y, tb.w);
   t.write('WHAT TO DO', {bold:true, size:9, lead:5});
   t.write('1   Measure A and B tip to tip, arrowhead point to arrowhead point. Both must read 100.0 mm.', {indent:0});
-  t.gap(1.5);
+  t.gap(1);
   t.write('2   If either is wrong, find the measurement in the table and type the new value into Horizontal scale (%) for A, or Vertical scale (%) for B. Then print this sheet again.');
-  t.gap(1.5);
-  t.write('3   Once A and B read 100.0 mm, measure the paper edge to the centre of the top-left cross. It should be 10.0 mm from each. If it is not:');
+  t.gap(1);
+  t.write('3   Once A and B read 100.0 mm, measure from each paper edge to the centre of the top-left cross: both should be 10.0 mm. If not:');
   t.gap(1);
   t.write(`Printer offset X (mm)  =  ${s.offsetX.toFixed(2)}  -  (measured from the left edge  -  10.0)`, {indent:6, size:7});
   t.write(`Printer offset Y (mm)  =  ${s.offsetY.toFixed(2)}  -  (measured from the top edge  -  10.0)`, {indent:6, size:7});
   t.gap(1.5);
   if (sq) {
     t.gap(1.5);
-    t.write('4   Look at the white band between the line near each edge and the edge. Even along its length means the print is square. Wider at one end means it is turned, and nothing here can straighten that.');
+    t.write('4   Look at the white band between each edge line and the edge. Even along its length means the print is square; wider at one end means it is turned, and nothing here can straighten that.');
     t.gap(1);
-    t.write(`For a number, measure the top edge to each top cross: ${sq.span.x.toFixed(1)} mm apart, so 1.0 mm of difference is ${sq.degPerMm.x.toFixed(2)}\u00b0. Down the side, ${sq.span.y.toFixed(1)} mm and ${sq.degPerMm.y.toFixed(2)}\u00b0 per mm.`, {indent:6, size:7});
-    t.write('A turned print is a crooked feed, or paper cut off square. Measure a blank sheet\u2019s diagonals: equal means true paper, so the feed is at fault. A third of a degree shows as about 2 mm.', {indent:6, size:7});
-    t.write(`A missing line means that edge is inside your printer's margin, wider than ${sq.band.toFixed(0)} mm.`, {indent:6, size:7});
+    t.write(`For a number, lay a rule from the paper edge to the graduated scale at each end of that edge. The two scales are ${sq.span.x.toFixed(1)} mm apart across the sheet, so 1.0 mm between their readings is ${sq.degPerMm.x.toFixed(2)}\u00b0; down the side, ${sq.span.y.toFixed(1)} mm and ${sq.degPerMm.y.toFixed(2)}\u00b0 per mm.`, {indent:6, size:7});
+    t.write(`Turned means a crooked feed, or paper cut off square. Measure a blank sheet\u2019s diagonals: equal means true paper, so the feed is at fault. A third of a degree shows as about ${sq.thirdDeg.toFixed(1)} mm on this size.`, {indent:6, size:7});
+    t.write(`A line missing altogether means your printer cannot print that close to the edge: at this scale and offset they fall ${edgeAt.l.toFixed(1)} / ${edgeAt.r.toFixed(1)} mm from the sides and ${edgeAt.t.toFixed(1)} / ${edgeAt.b.toFixed(1)} mm from the top and bottom.`, {indent:6, size:7});
   }
   t.gap(1.5);
   t.write(`${sq ? 5 : 4}   Print the sheet again to check. A, B, the crosses${cardFits ? ` and the ${s.cardW.toFixed(1)} x ${s.cardH.toFixed(1)} mm card outline` : ''} should all be right before you print cards.`);
-  t.gap(2);
-  t.write('These settings live in Print, under Printer Alignment & Test Sheets, and move both sides of the sheet alike. Lining the backs up with the fronts is a separate job: the double-sided test and its wizard.', {size:7});
+  t.gap(1.5);
+  t.write('These settings move both sides alike. Lining the backs up with the fronts is the double-sided test\u2019s job.', {size:7});
 
   // Ready reckoner, so nobody has to work out current x 100 / measured by hand.
   const tab = {x: wide ? 148 : 150, y: wide ? Math.max(120, t.at() + 9) : 196};
