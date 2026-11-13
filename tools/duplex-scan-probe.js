@@ -53,6 +53,24 @@
       near('front scale alone leaves the sides the same height',
            Math.abs(p.marks[2].y - p.marks[0].y) / Math.abs(p.holes[2].y - p.holes[0].y), 1, 1e-9);
     }
+    // The back-page turn. A rotation cannot live in makeT, so it rides on the
+    // whole page as a transformation matrix while duplexTestPoints applies the
+    // same turn to the key; if those two ever disagree, the sheet would state
+    // positions its own marks are not printed at. The contract for the user is
+    // that backRotate cancels what the reader reports, sign for sign.
+    for (const br of [0, 0.62, -0.35]) {
+      S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
+                    backRotate: br, backOffsetRel:true};
+      const L = layout(), p = duplexTestPoints(L, duplexTestInset(L));
+      // the turn between the two point sets, measured on the long edge
+      const dx = p.marks[1].x - p.marks[0].x, dy = p.marks[1].y - p.marks[0].y;
+      const got = -Math.atan2(dy, dx) * 180 / Math.PI;
+      // The reader reports the turn as marks-to-holes, which is the opposite
+      // sense, so this is the contract: set backRotate to minus what it says.
+      near(`backRotate ${br} cancels a reported turn of ${-br}`, got, -br, 1e-9);
+      // and the holes, which are the front page, must not move at all
+      near(`backRotate ${br} leaves the front alone`, p.holes[0].y - p.holes[1].y, 0, 1e-9);
+    }
     // A back-page scale error has to show as a size difference between the two
     // point sets, or the reader has nothing to report it from.
     S.settings = {...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexFlip:'long',
