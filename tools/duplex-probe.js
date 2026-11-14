@@ -177,19 +177,22 @@
         eq(`${orientation} ${k} moves the backs`, pair(offsetDelta(o, k, true)), want);
       }
       // Front against back, seen through the sheet: zero on the axis the turn
-      // leaves alone, double on the axis it mirrors.
+      // leaves alone, double on the axis it mirrors. Stated per orientation
+      // rather than derived from L.mirrorX, which would make the assertion
+      // follow the very thing it is here to pin down.
+      const WANT = {
+        landscape: {offsetX:'0,0', offsetY:'0,-2', backOffsetX:'1,0', backOffsetY:'0,-1'},
+        portrait: {offsetX:'-2,0', offsetY:'0,0', backOffsetX:'-1,0', backOffsetY:'0,1'},
+      }[orientation];
       for (const k of ['offsetX', 'offsetY']) {
         const f = offsetDelta(o, k, false), b = offsetDelta(o, k, true), m = thruSheet(b.L, b);
-        const rel = {x: +(m.x - f.x).toFixed(4), y: +(m.y - f.y).toFixed(4)};
-        const mirrored = b.L.mirrorX === (k === 'offsetX');
-        eq(`${orientation} ${k} back-minus-front through the sheet`, pair(rel),
-          mirrored ? (k === 'offsetX' ? '-2,0' : '0,-2') : '0,0');
+        eq(`${orientation} ${k} back-minus-front through the sheet`,
+          pair({x: +(m.x - f.x).toFixed(4), y: +(m.y - f.y).toFixed(4)}), WANT[k]);
       }
-      for (const [k, want] of [['backOffsetX', '1,0'], ['backOffsetY', '0,1']]) {
+      for (const k of ['backOffsetX', 'backOffsetY']) {
         const b = offsetDelta(o, k, true), m = thruSheet(b.L, b);
-        const sgn = b.L.mirrorX === (k === 'backOffsetX') ? -1 : 1;
-        eq(`${orientation} ${k} through the sheet`, pair({x: +(m.x).toFixed(4), y: +(m.y).toFixed(4)}),
-          want.split(',').map(v => +v * sgn).join(','));
+        eq(`${orientation} ${k} through the sheet`,
+          pair({x: +m.x.toFixed(4), y: +m.y.toFixed(4)}), WANT[k]);
       }
       // Transform order: the offset is applied before the page turns, so a
       // millimetre of X picks up sin(turn) of Y. 1.00 * sin(0.21) = 0.0037 on a
