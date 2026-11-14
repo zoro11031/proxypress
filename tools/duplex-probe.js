@@ -140,6 +140,91 @@
         `${(b.x + L4.sw / 2).toFixed(3)},${(b.y + L4.sh / 2).toFixed(3)}`);
     }
 
+    // Signed movement of each offset field, in both orientations, on both faces.
+    // tools/orientation-offset-probe.js measures this in the exported PDFs; this
+    // is the cheap copy of that result, so the frame cannot drift unnoticed.
+    //
+    // The offsets are applied in the page's own axes, and the page turns on the
+    // paper when the orientation changes, so the same field means a different
+    // physical direction in the two orientations. The consequence that costs
+    // paper is the printer offset: on the axis the duplex turn mirrors it moves
+    // the fronts one way and the backs the other, so it lands twice over in the
+    // back registration - and which axis that is swaps with the orientation.
+    const offsetDelta = (over, k, back) => {
+      const base = {...DEFAULTS, pageSize:'letter', cardRotation:'upright', bleed:2, margin:5,
+        duplexFlip:'long', dfcMode:'duplex', ...over};
+      const at = extra => {
+        S.settings = {...base, ...extra};
+        const L = layout(), T = makeT(L, back);
+        return {L, p: turnPt(L, {x: T.x(50), y: T.y(60)}, back)};
+      };
+      const a = at({}), b = at({[k]: (base[k] || 0) + 1});
+      return {L: b.L, x: +(b.p.x - a.p.x).toFixed(4), y: +(b.p.y - a.p.y).toFixed(4)};
+    };
+    // Looking through the front of the sheet mirrors the back page on one axis.
+    const thruSheet = (L, d) => L.mirrorX ? {x: -d.x, y: d.y} : {x: d.x, y: -d.y};
+    const pair = d => `${d.x},${d.y}`;
+    for (const orientation of ['landscape', 'portrait']) {
+      const o = {orientation};
+      // The printer offset reaches both faces, one for one, in page axes.
+      for (const [k, want] of [['offsetX', '1,0'], ['offsetY', '0,1']]) {
+        eq(`${orientation} ${k} moves the fronts`, pair(offsetDelta(o, k, false)), want);
+        eq(`${orientation} ${k} moves the backs`, pair(offsetDelta(o, k, true)), want);
+      }
+      // The back offset moves the backs only.
+      for (const [k, want] of [['backOffsetX', '1,0'], ['backOffsetY', '0,1']]) {
+        eq(`${orientation} ${k} leaves the fronts`, pair(offsetDelta(o, k, false)), '0,0');
+        eq(`${orientation} ${k} moves the backs`, pair(offsetDelta(o, k, true)), want);
+      }
+      // Front against back, seen through the sheet: zero on the axis the turn
+      // leaves alone, double on the axis it mirrors.
+      for (const k of ['offsetX', 'offsetY']) {
+        const f = offsetDelta(o, k, false), b = offsetDelta(o, k, true), m = thruSheet(b.L, b);
+        const rel = {x: +(m.x - f.x).toFixed(4), y: +(m.y - f.y).toFixed(4)};
+        const mirrored = b.L.mirrorX === (k === 'offsetX');
+        eq(`${orientation} ${k} back-minus-front through the sheet`, pair(rel),
+          mirrored ? (k === 'offsetX' ? '-2,0' : '0,-2') : '0,0');
+      }
+      for (const [k, want] of [['backOffsetX', '1,0'], ['backOffsetY', '0,1']]) {
+        const b = offsetDelta(o, k, true), m = thruSheet(b.L, b);
+        const sgn = b.L.mirrorX === (k === 'backOffsetX') ? -1 : 1;
+        eq(`${orientation} ${k} through the sheet`, pair({x: +(m.x).toFixed(4), y: +(m.y).toFixed(4)}),
+          want.split(',').map(v => +v * sgn).join(','));
+      }
+      // Transform order: the offset is applied before the page turns, so a
+      // millimetre of X picks up sin(turn) of Y. 1.00 * sin(0.21) = 0.0037 on a
+      // front, and the back's turn is backRotate - printRotate = -0.41 degrees.
+      const rot = {...o, printRotate:-0.21, backRotate:-0.62};
+      eq('offset turns with the page, front', offsetDelta(rot, 'offsetX', false).y, -0.0037);
+      eq('offset turns with the page, back', offsetDelta(rot, 'offsetX', true).y, -0.0072);
+    }
+    // Turning a calibration pair into the other orientation's axes. A landscape
+    // page is turned 90 degrees clockwise onto short-edge-fed paper, so page x
+    // runs along the feed there and page y does in portrait.
+    eq('printer offset turned to portrait', JSON.stringify(turnOffsets('portrait', 1, 0)), '{"x":0,"y":1}');
+    eq('back offset turned to portrait', JSON.stringify(turnOffsets('portrait', -2.8, -2.2)), '{"x":2.2,"y":-2.8}');
+    eq('turned back again', JSON.stringify(turnOffsets('landscape', 2.2, -2.8)), '{"x":-2.8,"y":-2.2}');
+    eq('turning twice is not the identity', JSON.stringify(turnOffsets('portrait', ...Object.values(turnOffsets('portrait', 1, 0)))), '{"x":-1,"y":0}');
+
+    // The orientation switch offers the turn and only does it when accepted.
+    // The helper being right is not the same as being wired up.
+    const realConfirm = window.confirm;
+    try {
+      S.settings = cleanSettings({...DEFAULTS, pageSize:'letter', orientation:'landscape',
+        offsetX:1, offsetY:0, backOffsetX:-2.8, backOffsetY:-2.2});
+      renderSettings();
+      const sel = document.querySelector('#setting-orientation');
+      const turn = (to, answer) => {
+        window.confirm = () => answer;
+        sel.value = to;
+        sel.dispatchEvent(new Event('change', {bubbles:true}));
+        const s2 = S.settings;
+        return [s2.offsetX, s2.offsetY, s2.backOffsetX, s2.backOffsetY].join(',');
+      };
+      eq('accepted turn moves the offsets', turn('portrait', true), '0,1,2.2,-2.8');
+      eq('declined turn leaves them alone', turn('landscape', false), '0,1,2.2,-2.8');
+    } finally { window.confirm = realConfirm; }
+
     // The wizard adds the reading to what is already there. Replacing it would make
     // the second run of the test undo the first correction instead of confirming it.
     S.settings = {...DEFAULTS, backOffsetX:0.5, backOffsetY:-0.25};
