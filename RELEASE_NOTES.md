@@ -1,3 +1,36 @@
+# Proxy Press v0.6.0
+
+A rebuilt interface, and calibration that knows which sheet and which way round it was measured on.
+
+## What's new
+
+- **The interface is one piece now.** Every section used to be a box on a lighter box, each with its own corner radius and its own control height. There is now a single set of tokens — one hairline, one near-flat fill, one sunken track, three radii, one control height — and every button, input and select takes them. Nothing about the layout, PDF, cut-guide or calibration arithmetic changed.
+- **The header says where you are.** Brand and the print/order switch on the left, the deck and its count in the middle, help, settings and the one primary action on the right. On a phone it folds to two rows, with the mode switch and the deck list sharing the second. The four steps are one segmented track.
+- **Adding cards leads with the decklist.** The paste box and **Add to deck** come first; a deck link, your own images, the card maker and local files are one quiet row underneath. The deck's count, health, filter and selection bar group above the list, and a card is a single line: thumbnail, name, tags, checkbox, quantity, menu.
+- **Print setup reads in the order you work.** Paper and sheet size, then cards and backs, then the printer and its driver, then calibration. The advanced layout and quality drawer moved out of the settings form to sit beside the alignment drawer at the foot of the pane, so the fields you change often are not buried under the ones you measure once.
+- **The preview keeps more of the screen.** The toolbar is a thin glass bar — sheet controls on the left, view controls on the right — and gives about 40 px of the sheet back.
+- **Print rotation squares the whole print to the paper.** A feed that runs slightly crooked costs about a millimetre across a full-width cut. Measured with a rule on a printed sheet — 30.0 and 31.0 mm from the top edge, 26.0 and 25.0 from the bottom — that is 0.213 degrees over the card block, and a 300 ppi scan of the same sheet agreed at 0.205. The setting turns both faces alike.
+- **A calibration profile holds one set per sheet size and orientation.** Every alignment number is in the printed page's own axes, so the layout that produced it is part of the measurement. Calibrate the sheet the other way round, save under the same name, and one profile holds both; switching sheet or orientation loads the matching set. The list says which layouts each profile has.
+- **Switching orientation offers to turn the numbers with the sheet.** The page turns on the paper, so the same offset pair points somewhere else afterwards, and the printer offset would otherwise land twice over in the back registration. The offer prints the numbers it would use, and says when it is arithmetic on someone else's measurement rather than a reading of yours.
+- **Back-page rotation: add what the test sheet reports, do not subtract it.** The hint had it backwards, and backwards is the worst case here — a back turned by t reads as -t, so adding lands on zero while subtracting doubles the turn.
+- **The cut file no longer turns with the print.** The cutter finds the printed registration marks and lays its own frame on them, so turning the cut paths as well applied the correction twice: 0.23 mm across a card, in the wrong direction. Both test sheets' keys now record the rotations they were printed with, so a scan of either one can still be read back.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.5.13
 
 Back-page rotation, for the part of duplex misregistration that no offset or scale could ever reach.
