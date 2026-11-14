@@ -1373,6 +1373,20 @@ function edgeSwaps(lr, edge) { return lr === (edge === 'left' || edge === 'right
 // named in the page's own terms: the top of a portrait page, a side of a landscape
 // one, because a landscape page is turned 90 degrees on the same paper.
 function leadEdge(L) { return L.W > L.H ? 'left' : 'top'; }
+// A calibration offset pair, said in the other orientation's page axes.
+// The offsets are applied in the page's own axes (makeT), and the page turns on
+// the paper when the orientation does: on short-edge-fed paper a portrait page
+// goes in top first, a landscape one left first, so a landscape page's x axis
+// runs along the feed where a portrait page's y axis does. Measured, not
+// assumed: the same PDF through cupsfilter with Canon's PPD and
+// orientation-requested=4 lands a landscape page turned 90 degrees clockwise.
+// Both the printer offset and the back offset turn the same way, because the
+// driver turns both pages alike and the duplexer mirrors the paper rather than
+// the page. The two rotation settings are angles about the page centre and do
+// not change.
+function turnOffsets(to, x, y) {
+  return to === 'portrait' ? {x: -y, y: x} : {x: y, y: -x};
+}
 function duplexTurn(L) {
   const lr = L.mirrorX;
   return {
@@ -4629,7 +4643,7 @@ const FIELDS = [
   {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01, hint:'From the alignment sheet: the A and B lines on it should both measure exactly 100 mm. The sheet carries a table of the new values.'},
   {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
   {k:'backOffsetUnit', adv:true, label:'Back offset units', type:'select', opts:[['mm','Millimetres (mm)'],['in','Inches (in)']]},
-  {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet.'},
+  {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet. X and Y are the printed page\u2019s own axes, not the paper\u2019s: change the orientation and the page turns on the paper, so the pair has to turn with it. The app offers to do that when you switch.'},
   {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
   {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only, for the drift the second pass adds. Leave these at 0 until the fronts land right and the backs still do not — then let the duplex calibration wizard fill them in.'},
   {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
@@ -4791,6 +4805,11 @@ function renderSettings() {
   renderCalibrationProfiles();
 }
 const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
+// A back offset belongs to one orientation as well as to one flip, because the
+// axes it is written in turn with the page. Stored beside the settings rather
+// than inside them, so applying a profile still never changes the layout; a
+// profile saved before this existed says nothing and is applied in silence.
+const calProfileOrientation = p => ['portrait', 'landscape'].includes(p?.orientation) ? p.orientation : null;
 // Offsets read off a double-sided test sheet on one machine. A starting point that
 // saves a first pass of the wizard, not a fact about the model: print the test and
 // read it anyway.
@@ -4829,7 +4848,23 @@ $('#tab-setup').addEventListener('change', async ev => {
     const n = parseFloat(t.value) || 0;
     s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
   } else s[k] = t.value;
-  if (k === 'orientation') s.cardRotation = 'upright';
+  if (k === 'orientation') {
+    s.cardRotation = 'upright';
+    // The offsets are page-relative, so turning the sheet leaves them pointing
+    // the wrong way. Offered rather than done: a saved preset keeps whatever it
+    // holds, and nothing moves without being asked.
+    if ([s.offsetX, s.offsetY, s.backOffsetX, s.backOffsetY].some(v => v)) {
+      const po = turnOffsets(t.value, s.offsetX, s.offsetY);
+      const bo = turnOffsets(t.value, s.backOffsetX, s.backOffsetY);
+      const n = v => (v < 0 ? '\u2212' : '') + Math.abs(v).toFixed(2);
+      if (confirm(`The page turns on the paper, so the calibration offsets no longer point the same way. Turn them with it?\n\n`
+        + `Printer offset        ${n(s.offsetX)} / ${n(s.offsetY)}  \u2192  ${n(po.x)} / ${n(po.y)}\n`
+        + `Extra back-page       ${n(s.backOffsetX)} / ${n(s.backOffsetY)}  \u2192  ${n(bo.x)} / ${n(bo.y)}\n\n`
+        + `Scales and the two rotations stay as they are. Print the alignment sheet to check.`)) {
+        s.offsetX = po.x; s.offsetY = po.y; s.backOffsetX = bo.x; s.backOffsetY = bo.y;
+      }
+    }
+  }
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
@@ -4864,7 +4899,10 @@ $('#calProfileSel').onchange = ev => {
   const nameBox = $('#calProfileName');
   if (nameBox) nameBox.value = p && !p.builtin ? p.name : '';
   if (!p) return;
+  const was = calProfileOrientation(p);
   S.settings = cleanSettings({...S.settings, ...p.settings});
+  if (was && was !== S.settings.orientation)
+    toast(`"${p.name}" was measured in ${was}. Its back offsets are in that page\u2019s axes; turn them to match this one or read the test sheet again.`, 9000);
   if (PRINTERS.some(x => x.id === p.printer)) {
     S.printer = p.printer;
     S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
@@ -4881,8 +4919,9 @@ $('#calProfileSave').onclick = () => {
   const named = S.calibrationProfiles.find(p => p.name.toLowerCase() === name.toLowerCase());
   if (chosen && named && named !== chosen) return toast(`Another profile is already called "${name}".`);
   const target = chosen || named;
-  if (target) Object.assign(target, {name, printer:S.printer, settings});
-  else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
+  const orientation = S.settings.orientation;
+  if (target) Object.assign(target, {name, printer:S.printer, orientation, settings});
+  else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, orientation, settings});
   save(); renderCalibrationProfiles();
   $('#calProfileSel').value = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
   toast(`Saved calibration profile "${name}".`);
