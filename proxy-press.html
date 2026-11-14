@@ -569,7 +569,7 @@ details.adv:not([open]){padding-bottom:10px}
           <button id="calProfileSave">Save profile</button>
           <button id="calProfileDelete" class="danger">Delete</button>
         </div>
-        <p class="hint">A profile remembers the double-sided settings for one printer and stock: the flip, the extra back-page offset and the back-page scale. The printer offset and scale below are not part of it, because they belong to the printer rather than to the job. The list starts with offsets measured on one machine, as a starting point &mdash; print the double-sided test afterwards to check them against yours.</p>
+        <p class="hint">A profile remembers the alignment for one printer and stock, and keeps a separate set for each sheet size and orientation: the flip, the printer offset and scale, and the back page's offset, scale and rotation. Every one of those is in the printed page's own axes, so a set that is right in landscape is wrong in portrait &mdash; calibrate the sheet the other way round, save it under the same name, and the profile holds both. Switching sheet or orientation then loads the matching set. The list starts with offsets measured on one machine, as a starting point &mdash; print the double-sided test afterwards to check them against yours.</p>
         <div class="grid2" id="calForm"></div>
       </details>
       <div class="wiz-nav">
@@ -4643,7 +4643,7 @@ const FIELDS = [
   {k:'scaleX', adv:true, label:'Horizontal scale (%)', type:'num', step:0.01, hint:'From the alignment sheet: the A and B lines on it should both measure exactly 100 mm. The sheet carries a table of the new values.'},
   {k:'scaleY', adv:true, label:'Vertical scale (%)', type:'num', step:0.01},
   {k:'backOffsetUnit', adv:true, label:'Back offset units', type:'select', opts:[['mm','Millimetres (mm)'],['in','Inches (in)']]},
-  {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet. X and Y are the printed page\u2019s own axes, not the paper\u2019s: change the orientation and the page turns on the paper, so the pair has to turn with it. The app offers to do that when you switch.'},
+  {k:'offsetX', adv:true, label:'Printer offset X (mm)', type:'num', step:0.1, hint:'How far the printer puts the image from where it should be. This applies to both sides of the sheet. X and Y are the printed page\u2019s own axes, not the paper\u2019s: change the orientation and the page turns on the paper, so the pair has to turn with it. A calibration profile keeps a separate set for each sheet and orientation; without one, the app offers to turn the numbers when you switch.'},
   {k:'offsetY', adv:true, label:'Printer offset Y (mm)', type:'num', step:0.1},
   {k:'backOffsetX', adv:true, label:'Extra back-page offset X', type:'num', step:0.01, hint:'Added on top of the printer offset, on back pages only, for the drift the second pass adds. Leave these at 0 until the fronts land right and the backs still do not — then let the duplex calibration wizard fill them in.'},
   {k:'backOffsetY', adv:true, label:'Extra back-page offset Y', type:'num', step:0.01},
@@ -4804,12 +4804,70 @@ function renderSettings() {
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
   renderCalibrationProfiles();
 }
-const CAL_PROFILE_KEYS = ['duplexFlip', 'backOffsetUnit', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
-// A back offset belongs to one orientation as well as to one flip, because the
-// axes it is written in turn with the page. Stored beside the settings rather
-// than inside them, so applying a profile still never changes the layout; a
-// profile saved before this existed says nothing and is applied in silence.
-const calProfileOrientation = p => ['portrait', 'landscape'].includes(p?.orientation) ? p.orientation : null;
+// What a profile keeps, and for which layout. Every alignment number is in the
+// printed page's own axes, so the sheet and the orientation that produced it are
+// part of the measurement: turn the page on the paper and the same pair points
+// somewhere else, and a printer's own registration is per sheet size. So a
+// profile holds one set per sheet size and orientation, keyed by both, and
+// applies the one that matches. The layout itself is never part of a set, so
+// choosing a profile still cannot move the cards about.
+const CAL_SLOT_KEYS = ['duplexFlip', ...CAL_KEYS];
+const calSlotKey = s => `${s.pageSize}/${s.orientation}`;
+function calSlotName(key) {
+  const [size, orientation] = key.split('/');
+  const opt = FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === size);
+  return `${(opt ? opt[1] : size).replace(/ \(.*\)$/, '')} ${orientation}`;
+}
+// Profiles written before this held a single flat set with no record of where it
+// came from. It stays unscoped and is applied the way it always was, rather than
+// being turned on a guess about a layout nobody wrote down.
+function calSlots(p) {
+  const set = p?.settings;
+  if (!set || typeof set !== 'object') return {};
+  const scoped = Object.entries(set).filter(([k, v]) => (k.includes('/') || k === 'any') && v && typeof v === 'object');
+  return scoped.length ? Object.fromEntries(scoped) : {any: set};
+}
+// The same set, said in the other orientation's axes. The offsets turn by the
+// measured rule; a scale belongs to an axis just as much, and the feed axis is
+// the page's x in landscape and its y in portrait, so that pair swaps - it has
+// no sign to turn. The two rotations are angles about the page centre and are
+// the same number either way round.
+function turnCalSet(to, set) {
+  const po = turnOffsets(to, set.offsetX || 0, set.offsetY || 0);
+  const bo = turnOffsets(to, set.backOffsetX || 0, set.backOffsetY || 0);
+  const swap = (a, b) => ({[a]: set[b] ?? 100, [b]: set[a] ?? 100});
+  return {...set, offsetX:po.x, offsetY:po.y, backOffsetX:bo.x, backOffsetY:bo.y,
+    ...swap('scaleX', 'scaleY'), ...swap('backScaleX', 'backScaleY')};
+}
+// Which of a profile's sets to use for a layout, and how good a match it is:
+// the layout's own, then one measured on another sheet the same way round, then
+// an unscoped old set, and only then the other orientation turned to fit.
+function calSlotFor(p, s) {
+  const slots = calSlots(p), want = calSlotKey(s);
+  const keys = Object.keys(slots).filter(k => k !== 'any');
+  const sameWay = keys.filter(k => k.endsWith('/' + s.orientation));
+  const otherWay = keys.filter(k => !k.endsWith('/' + s.orientation));
+  if (slots[want]) return {set:slots[want], from:'exact', key:want};
+  if (sameWay.length) return {set:slots[sameWay[0]], from:'size', key:sameWay[0]};
+  if (slots.any) return {set:slots.any, from:'any', key:'any'};
+  const turn = otherWay.find(k => k.startsWith(s.pageSize + '/')) || otherWay[0];
+  if (turn) return {set:turnCalSet(s.orientation, slots[turn]), from:'turned', key:turn};
+  return {};
+}
+function applyCalProfile(p) {
+  const got = calSlotFor(p, S.settings), here = calSlotName(calSlotKey(S.settings));
+  if (!got.set) return toast(`"${p.name}" has nothing saved yet.`);
+  S.settings = cleanSettings({...S.settings, ...got.set});
+  if (PRINTERS.some(x => x.id === p.printer)) {
+    S.printer = p.printer;
+    S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
+  }
+  S.activePreset = null; save(); renderAll();
+  if (got.from === 'exact') return toast(`Loaded the ${calSlotName(got.key)} alignment from "${p.name}".`);
+  if (got.from === 'size') return toast(`"${p.name}" has no ${here} set. Used its ${calSlotName(got.key)} numbers: the axes match, the sheet size does not.`, 9000);
+  if (got.from === 'turned') return toast(`"${p.name}" has no ${here} set. Turned its ${calSlotName(got.key)} numbers to match \u2014 arithmetic, not a measurement, so print the double-sided test.`, 10000);
+  return toast(`Loaded "${p.name}". It does not say which sheet or orientation it was measured on.`, 9000);
+}
 // Offsets read off a double-sided test sheet on one machine. A starting point that
 // saves a first pass of the wizard, not a fact about the model: print the test and
 // read it anyway.
@@ -4831,7 +4889,11 @@ function renderCalibrationProfiles() {
   const sel = $('#calProfileSel');
   if (!sel) return;
   const current = sel.value;
-  const opt = p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`;
+  const held = p => {
+    const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
+    return keys.length ? ` \u00b7 ${keys.map(calSlotName).join(' + ')}` : '';
+  };
+  const opt = p => `<option value="${esc(p.id)}">${esc(p.name + held(p))}</option>`;
   sel.innerHTML = `<option value="">No saved profile</option><optgroup label="Measured starting points">${BUILTIN_CAL_PROFILES.map(opt).join('')}</optgroup>${S.calibrationProfiles.map(opt).join('')}`;
   if (calProfiles().some(p => p.id === current)) sel.value = current;
 }
@@ -4848,21 +4910,30 @@ $('#tab-setup').addEventListener('change', async ev => {
     const n = parseFloat(t.value) || 0;
     s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
   } else s[k] = t.value;
-  if (k === 'orientation') {
-    s.cardRotation = 'upright';
-    // The offsets are page-relative, so turning the sheet leaves them pointing
-    // the wrong way. Offered rather than done: a saved preset keeps whatever it
-    // holds, and nothing moves without being asked.
-    if ([s.offsetX, s.offsetY, s.backOffsetX, s.backOffsetY].some(v => v)) {
-      const po = turnOffsets(t.value, s.offsetX, s.offsetY);
-      const bo = turnOffsets(t.value, s.backOffsetX, s.backOffsetY);
+  if (k === 'orientation') s.cardRotation = 'upright';
+  if (['orientation', 'pageSize'].includes(k)) {
+    // The alignment numbers belong to the layout that produced them. If the
+    // selected profile has a set measured on this one, that is the answer and it
+    // is simply loaded. Otherwise the numbers in the fields are still in the old
+    // page's axes, and turning them is arithmetic on someone else's measurement,
+    // so it is offered rather than done - a saved preset keeps whatever it holds.
+    const prof = calProfiles().find(x => x.id === $('#calProfileSel')?.value);
+    const got = prof && calSlotFor(prof, s);
+    if (got && got.from === 'exact') {
+      Object.assign(s, got.set);
+      toast(`Loaded the ${calSlotName(got.key)} alignment from "${prof.name}".`);
+    } else if (k === 'orientation') {
+      const now = Object.fromEntries(CAL_KEYS.map(ck => [ck, s[ck]])), next = turnCalSet(t.value, now);
       const n = v => (v < 0 ? '\u2212' : '') + Math.abs(v).toFixed(2);
-      if (confirm(`The page turns on the paper, so the calibration offsets no longer point the same way. Turn them with it?\n\n`
-        + `Printer offset        ${n(s.offsetX)} / ${n(s.offsetY)}  \u2192  ${n(po.x)} / ${n(po.y)}\n`
-        + `Extra back-page       ${n(s.backOffsetX)} / ${n(s.backOffsetY)}  \u2192  ${n(bo.x)} / ${n(bo.y)}\n\n`
-        + `Scales and the two rotations stay as they are. Print the alignment sheet to check.`)) {
-        s.offsetX = po.x; s.offsetY = po.y; s.backOffsetX = bo.x; s.backOffsetY = bo.y;
-      }
+      const rows = [['Printer offset', 'offsetX', 'offsetY'],
+                    ['Extra back-page offset', 'backOffsetX', 'backOffsetY'],
+                    ['Scale', 'scaleX', 'scaleY'],
+                    ['Back-page scale', 'backScaleX', 'backScaleY']]
+        .filter(([, a, b]) => now[a] !== next[a] || now[b] !== next[b])
+        .map(([label, a, b]) => `${label}: ${n(now[a])} / ${n(now[b])}  \u2192  ${n(next[a])} / ${n(next[b])}`);
+      if (rows.length && confirm(`The page turns on the paper, so the alignment numbers no longer point the same way. Turn them with it?\n\n${rows.join('\n')}\n\n`
+        + `The two rotations are angles about the page centre and do not change. Print the alignment sheet to check, and save the result as a profile so this sheet keeps its own set.`))
+        Object.assign(s, next);
     }
   }
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
@@ -4899,32 +4970,30 @@ $('#calProfileSel').onchange = ev => {
   const nameBox = $('#calProfileName');
   if (nameBox) nameBox.value = p && !p.builtin ? p.name : '';
   if (!p) return;
-  const was = calProfileOrientation(p);
-  S.settings = cleanSettings({...S.settings, ...p.settings});
-  if (was && was !== S.settings.orientation)
-    toast(`"${p.name}" was measured in ${was}. Its back offsets are in that page\u2019s axes; turn them to match this one or read the test sheet again.`, 9000);
-  if (PRINTERS.some(x => x.id === p.printer)) {
-    S.printer = p.printer;
-    S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
-  }
-  S.activePreset = null; save(); renderAll();
+  applyCalProfile(p);
 };
 $('#calProfileSave').onclick = () => {
   const name = $('#calProfileName').value.trim().slice(0, 100);
   if (!name) return toast('Enter a profile name first.');
   if (BUILTIN_CAL_PROFILES.some(p => p.name.toLowerCase() === name.toLowerCase()))
     return toast('That name belongs to a built-in starting point. Pick another.');
-  const settings = Object.fromEntries(CAL_PROFILE_KEYS.map(k => [k, S.settings[k]]));
   const chosen = S.calibrationProfiles.find(p => p.id === $('#calProfileSel').value);
   const named = S.calibrationProfiles.find(p => p.name.toLowerCase() === name.toLowerCase());
   if (chosen && named && named !== chosen) return toast(`Another profile is already called "${name}".`);
   const target = chosen || named;
-  const orientation = S.settings.orientation;
-  if (target) Object.assign(target, {name, printer:S.printer, orientation, settings});
-  else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, orientation, settings});
+  // Into this layout's own slot, leaving every other set alone: calibrate the
+  // sheet the other way round, save under the same name, and the profile holds
+  // both. An old unscoped set is kept as a last-resort fallback rather than
+  // being relabelled as a layout it may never have been measured on.
+  const key = calSlotKey(S.settings);
+  const settings = {...calSlots(target), [key]: Object.fromEntries(CAL_SLOT_KEYS.map(k => [k, S.settings[k]]))};
+  if (target) Object.assign(target, {name, printer:S.printer, settings});
+  else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
   save(); renderCalibrationProfiles();
   $('#calProfileSel').value = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
-  toast(`Saved calibration profile "${name}".`);
+  const kept = Object.keys(settings).filter(k => k !== key && k !== 'any');
+  toast(`Saved the ${calSlotName(key)} alignment in "${name}".`
+    + (kept.length ? ` It still holds ${kept.map(calSlotName).join(' and ')}.` : ''));
 };
 $('#calProfileDelete').onclick = () => {
   const id = $('#calProfileSel').value;
