@@ -106,16 +106,21 @@
         'Foil \u00b7 Letter landscape + Letter portrait');
 
       // And with an answer in hand it stops asking: the measured set is loaded.
-      window.confirm = () => { throw new Error('asked when it had the answer'); };
+      // Counted rather than thrown: the change handler is async, so an exception
+      // inside it never reaches this try and would only look like a value that
+      // failed to change.
+      let asked = 0;
+      window.confirm = () => { asked++; return true; };
       ori().value = 'landscape'; pick(ori());
       eq('the measured landscape set came back', four(), '1,0,-2.8,-2.2');
+      eq('it did not ask when it had the answer', asked, 0);
       eq('loading a set does not move the cards',
         [S.settings.pageSize, S.settings.orientation, S.settings.cardRotation].join(','),
         'letter,landscape,upright');
       // A different sheet, same way round: the axes still match, so nothing is
       // turned and nothing is asked.
       size().value = 'a4'; pick(size());
-      eq('a sheet change asks nothing', four(), '1,0,-2.8,-2.2');
+      eq('a sheet change asks nothing', `${four()} asked ${asked}`, '1,0,-2.8,-2.2 asked 0');
 
       // The fallbacks, in order.
       const at = (pageSize, orientation) => ({...DEFAULTS, pageSize, orientation});
