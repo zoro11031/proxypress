@@ -27,9 +27,11 @@
         check(xml.querySelectorAll('rect').length === Math.min(per, count - sheet * per), `${paper}/${orientation}/${count}/${sheet} occupancy`);
         svgs.push(svg);
       }
-      downloadCutSvg();
-      if (pages > 1) { $('#cutSheet').value = String(pages - 1); $('#cutSheetExport').click(); }
-      check(downloads.at(-1).name === (pages === 1 ? 'cut-lines.svg' : `cut-lines-sheet-${pages}.svg`), 'sheet filename');
+      for (const fmt of ['svg', 'dxf']) {
+        downloadCutFile(fmt);
+        if (pages > 1) { $('#cutSheet').value = String(pages - 1); $('#cutSheetExport').click(); }
+        check(downloads.at(-1).name === (pages === 1 ? `cut-lines.${fmt}` : `cut-lines-sheet-${pages}.${fmt}`), `sheet filename (${fmt})`);
+      }
       let pdf;
       newDoc = (...args) => { const doc = oldNewDoc(...args); doc.save = () => { pdf = doc.output('datauristring').split(',')[1]; check(doc.getNumberOfPages() === pages * 2, 'front/back page count'); }; return doc; };
       await exportPDF(); closeModal(true);

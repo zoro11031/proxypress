@@ -865,7 +865,9 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
         </div>
         <div class="hero-card-summary" id="guideJobSummary"></div>
         <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">Download PDF</button>
-        <button id="btnExportSvgTab" style="width:100%;display:none">Download cut file (.svg)</button>
+        <button id="btnExportDxfTab" style="width:100%;display:none">Download cut file (.dxf)</button>
+        <button id="btnExportSvgTab" style="width:100%;display:none;margin-top:6px">Download cut file (.svg)</button>
+        <p class="hint" id="cutFileHint" style="display:none;margin:6px 0 0">Open the DXF in Silhouette Studio. SVG only opens in Designer Edition and above.</p>
       </div>
       <div class="hero-card share-export">
         <div class="hero-card-title"><b>Share deck</b></div>
@@ -5575,8 +5577,9 @@ function renderGuideTab() {
   $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
   applyServerShare();
   if ($('#btnPdf') && $('#tab-guide').classList.contains('on')) $('#btnPdf').disabled = !slots.length;
-  const svgBtn = $('#btnExportSvgTab');
-  if (svgBtn) svgBtn.style.display = isCameo ? 'block' : 'none';
+  ['#btnExportDxfTab', '#btnExportSvgTab', '#cutFileHint'].forEach(sel => {
+    const el = $(sel); if (el) el.style.display = isCameo ? 'block' : 'none';
+  });
 
   const printPane = $('#tabGuidePanePrint');
   if (printPane) {
@@ -6275,11 +6278,15 @@ $('#btnCal').onclick = () => {
   doc.save('alignment-sheet.pdf');
 };
 
-function cutSvg(sheet = 0) {
-  const s = S.settings, L = layout(), T = makeT(L, false), count = buildSlots().length;
-  const pages = Math.max(1, Math.ceil(count / L.per));
+function cutSheets() { return Math.max(1, Math.ceil(buildSlots().length / layout().per)); }
+function cutSheetCards(L, sheet) {
+  const count = buildSlots().length, pages = Math.max(1, Math.ceil(count / L.per));
   if (!Number.isInteger(sheet) || sheet < 0 || sheet >= pages) throw new Error('Choose an existing sheet.');
-  const n = count ? Math.min(L.per, count - sheet * L.per) : L.per;
+  return count ? Math.min(L.per, count - sheet * L.per) : L.per;
+}
+
+function cutSvg(sheet = 0) {
+  const s = S.settings, L = layout(), T = makeT(L, false), n = cutSheetCards(L, sheet);
   let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${L.W}mm" height="${L.H}mm" viewBox="0 0 ${L.W} ${L.H}">\n`;
   // No rotation here even when the print is turned. The cutter finds the
   // printed registration marks and lays its own frame on them, and those marks
@@ -6293,15 +6300,67 @@ function cutSvg(sheet = 0) {
   return svg;
 }
 
-function downloadCutSvg(sheet) {
-  const pages = Math.max(1, Math.ceil(buildSlots().length / layout().per));
+// Silhouette Studio's free Basic edition refuses SVG outright -- "The file type
+// you are attempting to access is not supported" -- because SVG import is a
+// Designer Edition feature. DXF opens in every edition, so it is the cut file
+// offered first. Two details are load-bearing, both from Silhouette Card
+// Maker's own testing: the corners must be bulge vertices on one closed
+// POLYLINE, since a LINE meeting an ARC renders as a visibly sharp corner, and
+// the header must state its units or the importer guesses at them.
+const DXF_BULGE_90 = Math.tan(Math.PI / 8);   // tan(22.5 deg) = a 90 deg arc
+const dxfPair = (code, value) => `${String(code).padStart(3)}\n${value}\n`;
+const dxfNum = v => { const t = v.toFixed(4).replace(/0+$/, '').replace(/\.$/, ''); return !t || t === '-0' ? '0' : t; };
+
+function dxfCard(x, yTop, w, h, radius) {
+  const r = Math.max(0, Math.min(radius, Math.min(w, h) / 2)), y = yTop - h, b = DXF_BULGE_90;
+  // Counter-clockwise in DXF space, each arc-start vertex carrying the bulge.
+  // Reverse the order and the corners bulge outward into little ears instead.
+  const verts = r === 0
+    ? [[x, y, 0], [x + w, y, 0], [x + w, y + h, 0], [x, y + h, 0]]
+    : [[x + w - r, y, b], [x + w, y + r, 0], [x + w, y + h - r, b], [x + w - r, y + h, 0],
+       [x + r, y + h, b], [x, y + h - r, 0], [x, y + r, b], [x + r, y, 0]];
+  let s = dxfPair(0, 'POLYLINE') + dxfPair(8, 'CUT') + dxfPair(66, 1) + dxfPair(70, 1)
+    + dxfPair(10, '0.0') + dxfPair(20, '0.0') + dxfPair(30, '0.0');
+  for (const [vx, vy, bulge] of verts) {
+    s += dxfPair(0, 'VERTEX') + dxfPair(8, 'CUT') + dxfPair(10, dxfNum(vx)) + dxfPair(20, dxfNum(vy)) + dxfPair(30, '0.0');
+    if (bulge) s += dxfPair(42, bulge.toFixed(6));
+  }
+  return s + dxfPair(0, 'SEQEND') + dxfPair(8, 'CUT');
+}
+
+function cutDxf(sheet = 0) {
+  const s = S.settings, L = layout(), T = makeT(L, false), n = cutSheetCards(L, sheet);
+  // DXF counts up from a bottom-left origin and everything else here counts
+  // down from the top-left, so Y flips. No print rotation, for cutSvg's reason.
+  let body = '';
+  for (let i = 0; i < n; i++) {
+    const p = slotPos(L, i, false);
+    body += dxfCard(T.x(p.x + s.bleed), L.H - T.y(p.y + s.bleed), T.w(L.cw), T.h(L.ch), T.w(s.cornerRadius ?? 3.2));
+  }
+  return dxfPair(0, 'SECTION') + dxfPair(2, 'HEADER')
+    + dxfPair(9, '$ACADVER') + dxfPair(1, 'AC1009')
+    + dxfPair(9, '$INSUNITS') + dxfPair(70, 4)       // 4 = millimetres
+    + dxfPair(9, '$MEASUREMENT') + dxfPair(70, 1)    // 1 = metric
+    + dxfPair(9, '$EXTMIN') + dxfPair(10, '0.0') + dxfPair(20, '0.0') + dxfPair(30, '0.0')
+    + dxfPair(9, '$EXTMAX') + dxfPair(10, dxfNum(L.W)) + dxfPair(20, dxfNum(L.H)) + dxfPair(30, '0.0')
+    + dxfPair(0, 'ENDSEC')
+    + dxfPair(0, 'SECTION') + dxfPair(2, 'ENTITIES') + body + dxfPair(0, 'ENDSEC')
+    + dxfPair(0, 'EOF');
+}
+
+const CUT_FORMATS = {
+  dxf: {ext:'dxf', mime:'image/vnd.dxf', build:cutDxf},
+  svg: {ext:'svg', mime:'image/svg+xml', build:cutSvg}
+};
+function downloadCutFile(fmt, sheet) {
+  const f = CUT_FORMATS[fmt] || CUT_FORMATS.dxf, pages = cutSheets();
   if (sheet === undefined && pages > 1) {
-    openModal(`<div class="hd"><b>Export cut paths</b></div><div class="bd"><label for="cutSheet">Sheet</label><select id="cutSheet">${Array.from({length:pages}, (_, i) => `<option value="${i}">Sheet ${i + 1}</option>`).join('')}</select><p class="hint">Choose the sheet you will cut. The last sheet may contain fewer cards.</p><button id="cutSheetExport" class="primary">Download SVG</button></div>`);
-    $('#cutSheetExport').onclick = () => { const selected = +$('#cutSheet').value; closeModal(true); downloadCutSvg(selected); };
+    openModal(`<div class="hd"><b>Export cut paths</b></div><div class="bd"><label for="cutSheet">Sheet</label><select id="cutSheet">${Array.from({length:pages}, (_, i) => `<option value="${i}">Sheet ${i + 1}</option>`).join('')}</select><p class="hint">Choose the sheet you will cut. The last sheet may contain fewer cards.</p><button id="cutSheetExport" class="primary">Download ${f.ext.toUpperCase()}</button></div>`);
+    $('#cutSheetExport').onclick = () => { const selected = +$('#cutSheet').value; closeModal(true); downloadCutFile(fmt, selected); };
     return;
   }
-  const svg = cutSvg(sheet ?? 0);
-  download(new Blob([svg], {type:'image/svg+xml'}), pages === 1 ? 'cut-lines.svg' : `cut-lines-sheet-${(sheet ?? 0) + 1}.svg`);
+  const text = f.build(sheet ?? 0);
+  download(new Blob([text], {type:f.mime}), pages === 1 ? `cut-lines.${f.ext}` : `cut-lines-sheet-${(sheet ?? 0) + 1}.${f.ext}`);
   if (!S.settings.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
 }
 
@@ -6784,7 +6843,8 @@ $('#exportReview').addEventListener('click', e => { const b = e.target.closest('
 $('#tab-guide').addEventListener('click', e => { if (e.target.closest('[data-duplex-wizard]')) openDuplexWizard(); });
 
 if ($('#btnExportPdfTab')) $('#btnExportPdfTab').onclick = async () => { await exportPDF(true); };
-if ($('#btnExportSvgTab')) $('#btnExportSvgTab').onclick = () => downloadCutSvg();
+if ($('#btnExportDxfTab')) $('#btnExportDxfTab').onclick = () => downloadCutFile('dxf');
+if ($('#btnExportSvgTab')) $('#btnExportSvgTab').onclick = () => downloadCutFile('svg');
 let toastT;
 function toast(msg, ms = 3000) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', ms); }
 function busy(on, text) { $('#busy').classList.toggle('on', on); if (text) $('#busyText').textContent = text; $('#busyBar').style.width = '0'; }
