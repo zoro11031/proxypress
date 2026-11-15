@@ -1023,7 +1023,7 @@ const DEFAULTS = {
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, backScaleRel:true,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
-  dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
+  dpi:1200, jpeg:92, brightness:100, saturation:100, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
 };
@@ -1041,6 +1041,12 @@ const BUILTIN_PRESETS = [
   {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait', builtin:true, settings:{
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
+    pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200, jpeg:92, brightness:100, saturation:120}},
+  {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
+    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
+    margin:5, dpi:1200, jpeg:92, brightness:100, saturation:120}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -1055,7 +1061,7 @@ const BUILTIN_PRESETS = [
     margin:4, dpi:1200}}
 ];
 
-for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : p.id.startsWith('b-laser') ? 'Laser' : null;
+for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : (p.id.startsWith('b-laser') || p.id.startsWith('b-foil')) ? 'Laser' : null;
 const INKJET_STOCK_TIPS = [
   'Use ProxyJak <b>INKJET</b> semi-gloss. Their black-core stock is laser only.',
   'Feed from the <b>rear slot</b>, one sheet at a time. It jams in the cassette.',
@@ -1067,6 +1073,13 @@ const LASER_TIPS = [
   'Use the heaviest coated paper type so the toner fuses properly.',
   'Stock: <b>310gsm / 300µm</b> feels most like a real card. Use <b>300gsm / 280µm</b> if your printer is rated under 300gsm or the toner rubs off.',
   'Don\'t set the paper guides too tight.',
+];
+const FOIL_TIPS = [
+  '<b>On foil stock:</b> set the paper type to <b>Coated 2</b> rather than the heaviest coated option. It is a lower heat class than the cardstock profiles use.',
+  '<b>On foil stock:</b> the sheets come in A3. ProxyJak will cut them to 40 × A4 on request. Check whether your printer can feed A3 if you keep them whole. The foil presets are A4.',
+  '<b>On foil stock:</b> flex the sheet both ways to find the grain, then pick the orientation that puts the card\'s long edge across it.',
+  '<b>On foil stock:</b> print <b>simplex only</b>, and feed <b>one sheet at a time</b>.',
+  '<b>On foil stock:</b> apply the foil driver profile <b>last</b>, because the device density bands persist in the printer.',
 ];
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
@@ -1144,7 +1157,7 @@ const PRINTERS = [
     tips:['Cardstock 176–200g is supported from Tray 1 with manual duplexing only.', 'Match the paper type and weight to the sheet; choose a lighter paper type for lighter stock.', '300gsm cardstock exceeds the listed media range. Use lighter paper with a backing card in a sleeve.'],
     sources:[['Paper types and trays', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
   {id:'mf753', name:'Canon Color imageCLASS MF753Cdw / MF753Cdw II (laser)', kind:'Laser',
-    paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
+    paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port', 'b-foil-land', 'b-foil-port'],
     settings:[
       ['Paper source', 'Multi-Purpose Tray'],
       ['Paper type (driver)', '2-sided Coated 3 [151-200g/m2]'],
@@ -1163,7 +1176,7 @@ const PRINTERS = [
       ['Special Fine Line Processing', 'Mode 2'], ['Always Rasterize at Host', 'Off'],
       ['EMF Spooling', 'Off'],
     ],
-    tips:LASER_TIPS,
+    tips:[...LASER_TIPS, ...FOIL_TIPS, '<b>On foil stock:</b> this printer cannot feed A3, so cut the sheets down to A4.'],
     sources:[['MF753Cdw guide', 'https://oip.manual.canon/USRMA-7178-zz-SSM-750-enUS/'], ['MF753Cdw II guide', 'https://oip.manual.canon/USRMA-9605-zz-SSM-750II-enUS/']]},
   {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
     paper:'Inkjet-coated cardstock, e.g. ProxyJak INKJET semi-gloss', presets:['b-inkjet-land', 'b-inkjet-port'],
@@ -1175,14 +1188,14 @@ const PRINTERS = [
     tips:INKJET_STOCK_TIPS,
     sources:[['Epson paper settings example', 'https://files.support.epson.com/docid/cpd6/cpd60206/source/printers/source/paper_loading/reference/et2850_l4260/paper_type_settings_us_canada_et2850.html']]},
   {id:'laser', name:'Other laser printers', kind:'Laser',
-    paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port'],
+    paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port', 'b-foil-land', 'b-foil-port'],
     settings:[
       ['Paper source', 'Bypass / multipurpose tray'],
       ['Paper type', 'Heaviest coated option (Heavy Glossy, Cardstock, Coated 3 / Heavy 4)'],
       ['Resolution', 'Highest available'],
       ['Toner save', 'Off'],
     ],
-    tips:LASER_TIPS,
+    tips:[...LASER_TIPS, ...FOIL_TIPS],
     sources:[['HP paper settings example', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
 ];
 
@@ -1324,6 +1337,12 @@ function sampleBorder(img) {
   } catch { return '#000'; }
 }
 
+function filterFor(s) {
+  const f = [];
+  if (s.brightness !== 100) f.push(`brightness(${s.brightness}%)`);
+  if (s.saturation !== 100) f.push(`saturate(${s.saturation}%)`);
+  return f.join(' ');
+}
 async function renderFace(face, dpi, hi, rot = 0) {
   const s = S.settings;
   const url = await faceSrc(face, hi);
@@ -1336,8 +1355,9 @@ async function renderFace(face, dpi, hi, rot = 0) {
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   if (!borderCache.has(img)) borderCache.set(img, sampleBorder(img));
   if (cornerLumCache.has(img)) face._cornerLum = cornerLumCache.get(img);
+  const filter = filterFor(s);
+  if (filter) x.filter = filter;
   x.fillStyle = borderCache.get(img); x.fillRect(0, 0, W, H);
-  if (s.brightness !== 100) x.filter = `brightness(${s.brightness}%)`;
   const iw = img.naturalWidth, ih = img.naturalHeight;
   const isMpcRatio = Math.abs((iw / ih) - (2.75 / 3.75)) < 0.012;
   const sb = face.srcBleed ?? (face.drive || isMpcRatio ? MPC_BLEED : (face.custom ? s.customSrcBleed : 0));
@@ -1367,7 +1387,7 @@ async function renderFace(face, dpi, hi, rot = 0) {
 const previewCache = new Map();
 function settingsSig() {
   const s = S.settings;
-  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.customSrcBleed, s.duplexFlip].join(',');
+  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.customSrcBleed, s.duplexFlip].join(',');
 }
 async function previewUrl(face, rot = 0) {
   const key = (face.custom || face.drive || face.normal) + '|' + settingsSig() + '|' + rot;
@@ -4713,6 +4733,7 @@ const FIELDS = [
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
+  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 120%. Unlike Brightness this changes colour only, so black borders and text stay black. Past about 130% already-saturated colours clip and hues shift.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
@@ -5070,6 +5091,7 @@ $('#calProfileDelete').onclick = () => {
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+const PRESET_IMAGE_KEYS = ['brightness', 'saturation'];
 function cameoPaperLayout(orientation) {
   const portrait = orientation === 'portrait';
   return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 5.5 : 10, regLen:0};
@@ -5077,6 +5099,7 @@ function cameoPaperLayout(orientation) {
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
   const next = {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright'};
+  for (const k of PRESET_IMAGE_KEYS) if (p.settings[k] !== undefined) next[k] = p.settings[k];
   if (S.settings.silhouette) Object.assign(next, cameoPaperLayout(next.orientation));
   else if (!p.kind) {
     const laser = printerOf(S.printer).kind === 'Laser', portrait = next.orientation === 'portrait';
@@ -5095,6 +5118,10 @@ function presetPer(p) {
   try { S.settings = presetSettings(p); return layout(); }
   finally { S.settings = saved; }
 }
+function presetButton(p) {
+  const L = presetPer(p);
+  return `<button data-preset="${esc(p.id)}"><b>${esc(p.name.split(' · ').slice(1).join(' · '))}</b><span>${L.cols}×${L.rows} layout</span></button>`;
+}
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
   $('#printerSel').innerHTML = ['Inkjet', 'Laser'].map(kind => `<option value="${kind}" ${kind === pr.kind ? 'selected' : ''}>${kind}</option>`).join('');
@@ -5107,6 +5134,7 @@ function renderPrinter() {
       <summary>Driver settings &amp; tips</summary>
       <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <p class="hint" style="margin-top:6px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
+      ${pr.presets?.length ? `<div class="pick presets" style="margin-top:8px">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>` : ''}
       <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
       ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
       ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
@@ -5151,15 +5179,15 @@ function renderPresets() {
       title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
       sub = `${L.cols}×${L.rows} layout`;
     }
-    const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation;
+    const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation && PRESET_IMAGE_KEYS.every(k => p.settings[k] === undefined || p.settings[k] === S.settings[k]);
     const button = `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
     return mine ? `<div class="preset-item">${button}<button class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
-  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind);
+  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind || p.id.startsWith('b-foil'));
   $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
     ${S.presets.length ? `<details class="adv"><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
-$('#presetGrid').onclick = ev => {
+function onPresetClick(ev) {
   const del = ev.target.closest('[data-del]');
   if (del) {
     const p = S.presets.find(x => x.id === del.dataset.del);
@@ -5171,7 +5199,9 @@ $('#presetGrid').onclick = ev => {
   applyPreset(p);
   if (p.kind && printerOf(S.printer).kind !== p.kind) S.printer = S.printerByKind?.[p.kind] || (p.kind === 'Laser' ? 'mf753' : 'et2800');
   save(); renderAll();
-};
+}
+$('#presetGrid').onclick = onPresetClick;
+$('#printerGuide').addEventListener('click', onPresetClick);
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
 $('#presetSave').onclick = () => {
   const name = prompt('Name this preset', 'My printer settings'); if (!name) return;
