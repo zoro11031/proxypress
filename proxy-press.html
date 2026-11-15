@@ -1041,10 +1041,10 @@ const BUILTIN_PRESETS = [
   {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait', builtin:true, settings:{
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
-  {id:'b-foil-land', name:'Laser · ProxyJak UV/Laser foil · Landscape 4×2', builtin:true, settings:{
+  {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
     pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100, saturation:120}},
-  {id:'b-foil-port', name:'Laser · ProxyJak UV/Laser foil · Portrait', builtin:true, settings:{
+  {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
     pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100, saturation:120}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
@@ -1076,7 +1076,7 @@ const LASER_TIPS = [
 ];
 const FOIL_TIPS = [
   '<b>On foil stock:</b> set the paper type to <b>Coated 2</b> rather than the heaviest coated option. It is a lower heat class than the cardstock profiles use.',
-  '<b>On foil stock:</b> the sheets come in A3. Check whether your printer can feed A3, and if not, cut them down to A4 first. The foil presets are A4.',
+  '<b>On foil stock:</b> the sheets come in A3. ProxyJak will cut them to 40 × A4 on request. Check whether your printer can feed A3 if you keep them whole. The foil presets are A4.',
   '<b>On foil stock:</b> flex the sheet both ways to find the grain, then pick the orientation that puts the card\'s long edge across it.',
   '<b>On foil stock:</b> print <b>simplex only</b>, and feed <b>one sheet at a time</b>.',
   '<b>On foil stock:</b> apply the foil driver profile <b>last</b>, because the device density bands persist in the printer.',
@@ -5091,6 +5091,7 @@ $('#calProfileDelete').onclick = () => {
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+const PRESET_IMAGE_KEYS = ['brightness', 'saturation'];
 function cameoPaperLayout(orientation) {
   const portrait = orientation === 'portrait';
   return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 5.5 : 10, regLen:0};
@@ -5098,7 +5099,7 @@ function cameoPaperLayout(orientation) {
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
   const next = {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright'};
-  for (const k of ['brightness', 'saturation']) if (p.settings[k] !== undefined) next[k] = p.settings[k];
+  for (const k of PRESET_IMAGE_KEYS) if (p.settings[k] !== undefined) next[k] = p.settings[k];
   if (S.settings.silhouette) Object.assign(next, cameoPaperLayout(next.orientation));
   else if (!p.kind) {
     const laser = printerOf(S.printer).kind === 'Laser', portrait = next.orientation === 'portrait';
@@ -5178,11 +5179,11 @@ function renderPresets() {
       title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
       sub = `${L.cols}×${L.rows} layout`;
     }
-    const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation;
+    const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation && PRESET_IMAGE_KEYS.every(k => p.settings[k] === undefined || p.settings[k] === S.settings[k]);
     const button = `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
     return mine ? `<div class="preset-item">${button}<button class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
-  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind);
+  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind || p.id.startsWith('b-foil'));
   $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
     ${S.presets.length ? `<details class="adv"><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }

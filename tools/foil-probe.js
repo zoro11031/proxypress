@@ -49,7 +49,21 @@
     btn?.click();
     eq('clicking it in the printer guide applies saturation', S.settings.saturation, 120);
     eq('clicking it in the printer guide applies A4', S.settings.pageSize, 'a4');
-    eq('foil presets stay out of the paper grid', !!document.querySelector('#presetGrid [data-preset="b-foil-port"]'), false);
+
+    // Discoverability: the foil presets are in the main grid too, titled by sheet, not by vendor.
+    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', saturation:100}; renderPresets();
+    const gridBtn = id => document.querySelector(`#presetGrid [data-preset="${id}"]`);
+    eq('foil presets are in the paper grid', ['b-foil-land', 'b-foil-port'].map(id => !!gridBtn(id)), [true, true]);
+    eq('landscape foil preset renders a landscape title', gridBtn('b-foil-land')?.querySelector('b').textContent.includes('(Landscape)'), true);
+    eq('portrait foil preset renders a portrait title', gridBtn('b-foil-port')?.querySelector('b').textContent.includes('(Portrait)'), true);
+    eq('foil preset title leads with the sheet', gridBtn('b-foil-land')?.querySelector('b').textContent.startsWith('A4 foil'), true);
+    eq('foil portrait is not active at saturation 100', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'false');
+    eq('plain A4 portrait is active at saturation 100', gridBtn('b-a4')?.getAttribute('aria-pressed'), 'true');
+    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', saturation:120}; renderPresets();
+    eq('foil portrait is active at saturation 120', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'true');
+    eq('foil landscape is not active on a portrait sheet', gridBtn('b-foil-land')?.getAttribute('aria-pressed'), 'false');
+    eq('the A3 tip says the vendor cuts to A4', FOIL_TIPS.some(t => /ProxyJak/.test(t) && /40\s*[×x]\s*A4/.test(t) && /A3/.test(t)), true);
+    eq('the A3 tip keeps the printer-feed clause', FOIL_TIPS.some(t => /can feed A3/.test(t)), true);
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally { Object.assign(S, original); }
   return fails.length ? {failed:fails} : true;
