@@ -20,7 +20,13 @@
     eq('foil preset saturation', foil?.settings.saturation, 120);
     eq('foil preset brightness', foil?.settings.brightness, 100);
     eq('foil preset counts as Laser', foil?.kind, 'Laser');
-    eq('both orientations ship', BUILTIN_PRESETS.filter(p => p.id.startsWith('b-foil')).length, 2);
+    eq('both orientations ship', FOIL_IDS.length, 2);
+    eq('every foil id is a preset', FOIL_IDS.every(id => BUILTIN_PRESETS.some(p => p.id === id)), true);
+
+    // No dormant keys: presetSettings cannot reach margin, dpi, jpeg or the card size.
+    eq('foil presets declare only keys that apply',
+       FOIL_IDS.map(id => Object.keys(BUILTIN_PRESETS.find(p => p.id === id).settings).sort().join(',')),
+       ['brightness,orientation,pageSize,saturation', 'brightness,orientation,pageSize,saturation']);
 
     // The repair: declared image keys must actually apply.
     S.settings = {...DEFAULTS, saturation:100};
@@ -46,6 +52,15 @@
     S.printer = 'mf753'; S.settings = {...DEFAULTS}; renderPrinter();
     const btn = document.querySelector('#printerGuide [data-preset="b-foil-port"]');
     eq('foil preset button renders in the printer guide', !!btn, true);
+    const guideLabel = id => document.querySelector(`#printerGuide [data-preset="${id}"] b`)?.textContent;
+    eq('the foil guide button keeps its sheet, not just the orientation',
+       guideLabel('b-foil-port'), 'A4 foil · Portrait');
+    eq('the landscape foil guide button keeps its sheet too',
+       guideLabel('b-foil-land'), 'A4 foil · Landscape');
+    eq('a cardstock guide button still drops its kind',
+       guideLabel('b-laser-port'), 'Black-core cardstock · Portrait');
+    eq('no guide button is labelled by orientation alone',
+       PRINTERS.find(p => p.id === 'mf753').presets.map(guideLabel).filter(l => /^(Landscape|Portrait)/.test(l)), []);
     btn?.click();
     eq('clicking it in the printer guide applies saturation', S.settings.saturation, 120);
     eq('clicking it in the printer guide applies A4', S.settings.pageSize, 'a4');
@@ -53,7 +68,7 @@
     // Discoverability: the foil presets are in the main grid too, titled by sheet, not by vendor.
     S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', saturation:100}; renderPresets();
     const gridBtn = id => document.querySelector(`#presetGrid [data-preset="${id}"]`);
-    eq('foil presets are in the paper grid', ['b-foil-land', 'b-foil-port'].map(id => !!gridBtn(id)), [true, true]);
+    eq('foil presets are in the paper grid', FOIL_IDS.map(id => !!gridBtn(id)), [true, true]);
     eq('landscape foil preset renders a landscape title', gridBtn('b-foil-land')?.querySelector('b').textContent.includes('(Landscape)'), true);
     eq('portrait foil preset renders a portrait title', gridBtn('b-foil-port')?.querySelector('b').textContent.includes('(Portrait)'), true);
     eq('foil preset title leads with the sheet', gridBtn('b-foil-land')?.querySelector('b').textContent.startsWith('A4 foil'), true);
@@ -64,6 +79,20 @@
     eq('foil landscape is not active on a portrait sheet', gridBtn('b-foil-land')?.getAttribute('aria-pressed'), 'false');
     eq('the A3 tip says the vendor cuts to A4', FOIL_TIPS.some(t => /ProxyJak/.test(t) && /40\s*[×x]\s*A4/.test(t) && /A3/.test(t)), true);
     eq('the A3 tip keeps the printer-feed clause', FOIL_TIPS.some(t => /can feed A3/.test(t)), true);
+    // Curl correction is panel-only: no profile can apply it, so the tip must say so.
+    eq('a tip sends the user to the panel for Paper Curl Correction',
+       FOIL_TIPS.some(t => /Paper Curl Correction/.test(t) && /panel/.test(t)
+                           && /Special Paper Processing/.test(t)), true);
+    eq('the paper-type tip no longer names a Canon-only type generically',
+       FOIL_TIPS.some(t => /Coated 2/.test(t)), false);
+    eq('the Canon paper type is named on the mf753 entry',
+       PRINTERS.find(p => p.id === 'mf753').tips.some(t => /Coated 2/.test(t)), true);
+
+    // Clicking a foil preset in the paper grid switches printer; the toast must say so.
+    S.printer = 'et2800'; S.printerByKind = {}; S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait'};
+    renderPresets(); gridBtn('b-foil-port')?.click();
+    eq('clicking a foil preset moves to a laser printer', printerOf(S.printer).kind, 'Laser');
+    eq('the toast says the printer switched', /Printer switched to /.test($('#toast').textContent), true);
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally { Object.assign(S, original); }
   return fails.length ? {failed:fails} : true;
