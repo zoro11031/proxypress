@@ -37,6 +37,16 @@
 // while the surrounding output still reads as a normal completion, so an end-only
 // cleanup leaks indefinitely. Everything long-lived also gets a deadline at launch,
 // which is the one protection that survives the cleanup never running.
+//
+// The reap only ever takes processes THIS run started, and the CDP port is
+// picked per run. It used to kill anything whose profile matched the shared
+// `pp-console-check-` prefix and to bind 9400 outright, which made two runs on
+// one machine tear each other down. That produced a fourth false pass on top
+// of the three below, and the worst-behaved of the lot: the loser exits 0
+// having printed nothing but its reap lines, so the probe never ran at all and
+// the exit code still says clean. A run that is disrupted must come back
+// INCONCLUSIVE, never 0, so judge a run by `probe:`/`PASS` in its log and not
+// by its exit code alone.
 
 const {spawn, execFileSync} = require('node:child_process');
 const fs = require('node:fs');
@@ -49,15 +59,20 @@ const SETTLE = 3000;                       // > the ~2.5s violation latency
 const PROF = path.join(os.tmpdir(), `pp-console-check-${process.pid}`);
 const sh = (cmd, args) => { try { return execFileSync(cmd, args, {encoding: 'utf8'}); } catch { return ''; } };
 
+// Reap only what a run of OURS left behind: a profile directory carrying a pid
+// that is no longer alive. Another session's live run keeps its own pid alive,
+// so it is never matched, and neither is this run's own profile.
 function reap() {
-  // Only ever our own: profiles matching this tool's prefix, servers on our port range.
+  const alive = p => { try { process.kill(p, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
   for (const line of sh('ps', ['-eo', 'pid=,args=']).split('\n')) {
     const m = line.trim().match(/^(\d+)\s+(.*)$/); if (!m) continue;
     const [, pid, args] = m;
     if (args.includes('shell-snapshots') || args.includes('console-check.js')) continue;
-    const stale = /chromium.*user-data-dir=.*pp-console-check-/.test(args) ||
-      (/proxy-press-server\.py\s+(\d+)/.test(args) && +RegExp.$1 >= 8650 && +RegExp.$1 <= 8699);
-    if (stale) { console.log(`  reap: stale pid ${pid}`); try { process.kill(+pid); } catch {} }
+    const prof = args.match(/user-data-dir=\S*pp-console-check-(\d+)/);
+    const owner = prof ? +prof[1] : null;
+    // Ours, and its launching run is gone. A live owner is someone else's run.
+    const stale = owner !== null && owner !== process.pid && !alive(owner);
+    if (stale) { console.log(`  reap: stale pid ${pid} (from dead run ${owner})`); try { process.kill(+pid); } catch {} }
   }
 }
 const portFree = p => !sh('ss', ['-ltnH', `sport = :${p}`]).trim();
@@ -92,7 +107,7 @@ function owns(port) {
       setTimeout(() => { try { server.kill(); } catch {} }, 180000).unref();   // deadline at launch
       for (let i = 0; i < 60 && portFree(sp); i++) await sleep(250);
     }
-    const cdp = freePort(9400);
+    const cdp = freePort(9400 + (process.pid % 400));
     // A desktop viewport, pinned. Headless chromium defaults to 780x493 here, under the
     // 821px breakpoint, so the page loads its narrow layout: the sidebar toggle is
     // display:none and preview focus mode does not exist. A probe asserting anything
