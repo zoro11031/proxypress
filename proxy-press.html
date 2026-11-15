@@ -1075,11 +1075,11 @@ const LASER_TIPS = [
   'Don\'t set the paper guides too tight.',
 ];
 const FOIL_TIPS = [
-  '<b>On foil stock:</b> choose <b>Coated 2</b> as the paper type, not the heaviest coated option. Foil board is thinner than the black-core stock and fuses cooler.',
-  '<b>On foil stock:</b> print on <b>A4 only</b> and cut it down from A3, because this printer has no A3.',
+  '<b>On foil stock:</b> set the paper type to <b>Coated 2</b> rather than the heaviest coated option. It is a lower heat class than the cardstock profiles use.',
+  '<b>On foil stock:</b> the sheets come in A3. Check whether your printer can feed A3, and if not, cut them down to A4 first. The foil presets are A4.',
   '<b>On foil stock:</b> flex the sheet both ways to find the grain, then pick the orientation that puts the card\'s long edge across it.',
   '<b>On foil stock:</b> print <b>simplex only</b>, and feed <b>one sheet at a time</b>.',
-  '<b>On foil stock:</b> apply the foil driver profile <b>last</b>. The device density bands persist in the printer, so anything applied after it can undo it.',
+  '<b>On foil stock:</b> apply the foil driver profile <b>last</b>, because the device density bands persist in the printer.',
 ];
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
@@ -1176,7 +1176,7 @@ const PRINTERS = [
       ['Special Fine Line Processing', 'Mode 2'], ['Always Rasterize at Host', 'Off'],
       ['EMF Spooling', 'Off'],
     ],
-    tips:[...LASER_TIPS, ...FOIL_TIPS],
+    tips:[...LASER_TIPS, ...FOIL_TIPS, '<b>On foil stock:</b> this printer cannot feed A3, so cut the sheets down to A4.'],
     sources:[['MF753Cdw guide', 'https://oip.manual.canon/USRMA-7178-zz-SSM-750-enUS/'], ['MF753Cdw II guide', 'https://oip.manual.canon/USRMA-9605-zz-SSM-750II-enUS/']]},
   {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
     paper:'Inkjet-coated cardstock, e.g. ProxyJak INKJET semi-gloss', presets:['b-inkjet-land', 'b-inkjet-port'],
