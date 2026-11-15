@@ -166,6 +166,18 @@ function owns(port) {
         events.push(['exception', m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text]);
       else if (m.method === 'Log.entryAdded' && m.params.entry.level !== 'info')
         events.push([m.params.entry.source === 'security' ? 'csp' : 'log/' + m.params.entry.source, m.params.entry.text]);
+      // A native alert/confirm/prompt blocks the page's main thread until it is
+      // answered, and nothing answers one in headless chromium. The probe never
+      // returns, the run sits at 0% CPU, and before the watchdog existed it
+      // exited 0 with an empty log. tools/studio-probe.js hit this for real:
+      // switching orientation with calibration numbers set asks "turn them with
+      // the sheet?" through confirm(). So dismiss them, and report each one --
+      // a page that stops to ask a question is a finding, not a detail.
+      else if (m.method === 'Page.javascriptDialogOpening') {
+        events.push(['dialog', `${m.params.type}(${JSON.stringify(m.params.message)}) was dismissed; `
+          + 'a native dialog blocks the page and nothing answers one here']);
+        ws.send(JSON.stringify({id: ++id, method: 'Page.handleJavaScriptDialog', params: {accept: false}}));
+      }
     };
     const send = (method, params) => ws.send(JSON.stringify({id: ++id, method, params}));
     const ev = expr => new Promise(res => {
@@ -175,7 +187,7 @@ function owns(port) {
       ws.send(JSON.stringify({id: myId, method: 'Runtime.evaluate', params: {expression: expr, returnByValue: true, awaitPromise: true}}));
     });
 
-    send('Runtime.enable'); send('Log.enable');
+    send('Runtime.enable'); send('Log.enable'); send('Page.enable');
     if (arg('--width')) send('Emulation.setDeviceMetricsOverride', {width:+arg('--width'), height:+arg('--height', '1000'), deviceScaleFactor:1, mobile:false});
     send('Page.navigate', {url: url + '/'});
     await sleep(2500);
