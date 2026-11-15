@@ -1023,7 +1023,7 @@ const DEFAULTS = {
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, backScaleRel:true,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
-  dpi:1200, jpeg:92, brightness:100, customSrcBleed:3.048,
+  dpi:1200, jpeg:92, brightness:100, saturation:100, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
 };
@@ -1324,6 +1324,12 @@ function sampleBorder(img) {
   } catch { return '#000'; }
 }
 
+function filterFor(s) {
+  const f = [];
+  if (s.brightness !== 100) f.push(`brightness(${s.brightness}%)`);
+  if (s.saturation !== 100) f.push(`saturate(${s.saturation}%)`);
+  return f.join(' ');
+}
 async function renderFace(face, dpi, hi, rot = 0) {
   const s = S.settings;
   const url = await faceSrc(face, hi);
@@ -1336,8 +1342,9 @@ async function renderFace(face, dpi, hi, rot = 0) {
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   if (!borderCache.has(img)) borderCache.set(img, sampleBorder(img));
   if (cornerLumCache.has(img)) face._cornerLum = cornerLumCache.get(img);
+  const filter = filterFor(s);
+  if (filter) x.filter = filter;
   x.fillStyle = borderCache.get(img); x.fillRect(0, 0, W, H);
-  if (s.brightness !== 100) x.filter = `brightness(${s.brightness}%)`;
   const iw = img.naturalWidth, ih = img.naturalHeight;
   const isMpcRatio = Math.abs((iw / ih) - (2.75 / 3.75)) < 0.012;
   const sb = face.srcBleed ?? (face.drive || isMpcRatio ? MPC_BLEED : (face.custom ? s.customSrcBleed : 0));
@@ -1367,7 +1374,7 @@ async function renderFace(face, dpi, hi, rot = 0) {
 const previewCache = new Map();
 function settingsSig() {
   const s = S.settings;
-  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.customSrcBleed, s.duplexFlip].join(',');
+  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.customSrcBleed, s.duplexFlip].join(',');
 }
 async function previewUrl(face, rot = 0) {
   const key = (face.custom || face.drive || face.normal) + '|' + settingsSig() + '|' + rot;
@@ -4713,6 +4720,7 @@ const FIELDS = [
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
+  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 120%. Unlike Brightness this changes colour only, so black borders and text stay black. Past about 130% already-saturated colours clip and hues shift.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
