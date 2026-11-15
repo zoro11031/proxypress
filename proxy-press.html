@@ -168,7 +168,12 @@ body.has-cards .import-panel textarea{min-height:0}
 .suggestion-tile{background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:8px}
 .suggestion-tile img{width:100%;aspect-ratio:63/88;object-fit:cover;border-radius:5px}
 .suggestion-tile small{color:var(--muted);font-size:11px;flex:1}
-.stage-controls{position:sticky;top:0;z-index:5;margin:-24px -24px var(--s5);padding:10px 24px;background:rgba(12,16,22,.78);backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid var(--hair)}
+/* The bottom margin is doubled on purpose. The -24px top margin pulls this bar
+   up into #stage's padding, which puts its static position 24px above its own
+   top:0 sticky threshold, so sticky shifts it back down by 24px even at
+   scrollTop 0. That shift eats a plain 24px bottom margin exactly, leaving the
+   page label - which hangs at top:-24px - entirely behind the glass bar. */
+.stage-controls{position:sticky;top:0;z-index:5;margin:-24px -24px calc(var(--s5) * 2);padding:10px 24px;background:rgba(12,16,22,.78);backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid var(--hair)}
 .stage-heading{display:flex;align-items:baseline;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s2)}
 .stage-heading b{font-size:15px;font-weight:600;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stage-heading span{color:var(--muted);font-size:12px;white-space:nowrap}

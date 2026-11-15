@@ -1,4 +1,18 @@
 // Preview shortcuts must preserve paper presets, calibration and keyboard actions.
+//
+// This probe sets calibration offsets and then switches orientation, which is
+// precisely when the page asks "the page turns on the paper, so the alignment
+// numbers no longer point the same way -- turn them with it?" through a native
+// confirm(). That dialog IS the behaviour under test here: dismissed, the
+// numbers must survive unchanged, which is what the 'calibration preserved'
+// assertions below check. So the dialogs are declared expected; the harness
+// still dismisses, lists and counts them.
+//
+// Before tools/console-check.js grew a dialog handler, this probe hung on the
+// first orientation click -- the page blocked on a confirm nobody could answer
+// -- and the run exited 0 with an empty log. None of the assertions below had
+// ever run.
+window.__expectDialogs = true;
 (async () => {
   const original=JSON.parse(JSON.stringify(S)), oldPicker=openMpcPicker, oldRecommendations=cardRecommendations;
   const fails=[], keys=[], eq=(name,got,want)=>{if(got!==want)fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`);};
