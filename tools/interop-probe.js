@@ -28,8 +28,9 @@
         svgs.push(svg);
       }
       for (const fmt of ['svg', 'dxf']) {
-        downloadCutFile(fmt);
-        if (pages > 1) { $('#cutSheet').value = String(pages - 1); $('#cutSheetExport').click(); }
+        // downloadCutFile is async: .studio3 fetches its base template.
+        await downloadCutFile(fmt);
+        if (pages > 1) { $('#cutSheet').value = String(pages - 1); $('#cutSheetExport').click(); await new Promise(r => setTimeout(r, 0)); }
         check(downloads.at(-1).name === (pages === 1 ? `cut-lines.${fmt}` : `cut-lines-sheet-${pages}.${fmt}`), `sheet filename (${fmt})`);
       }
       let pdf;
