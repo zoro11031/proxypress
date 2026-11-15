@@ -865,9 +865,10 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
         </div>
         <div class="hero-card-summary" id="guideJobSummary"></div>
         <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">Download PDF</button>
-        <button id="btnExportDxfTab" style="width:100%;display:none">Download cut file (.dxf)</button>
+        <button id="btnExportStudio3Tab" style="width:100%;display:none">Download cut file (.studio3)</button>
+        <button id="btnExportDxfTab" style="width:100%;display:none;margin-top:6px">Download cut file (.dxf)</button>
         <button id="btnExportSvgTab" style="width:100%;display:none;margin-top:6px">Download cut file (.svg)</button>
-        <p class="hint" id="cutFileHint" style="display:none;margin:6px 0 0">Open the DXF in Silhouette Studio. SVG only opens in Designer Edition and above.</p>
+        <p class="hint" id="cutFileHint" style="display:none;margin:6px 0 0">The Studio file opens with the page and registration marks already set. The DXF carries the cut lines only, so set the page and marks yourself. SVG needs Designer Edition.</p>
       </div>
       <div class="hero-card share-export">
         <div class="hero-card-title"><b>Share deck</b></div>
@@ -1800,13 +1801,32 @@ const REG_MIN_LEN = 5, REG_MAX_LEN = 20, REG_SAFETY = 1.25;
 function regArm(L) {
   const s = S.settings;
   if (s.regLen > 0) return Math.max(REG_MIN_LEN, Math.min(s.regLen, REG_MAX_LEN));
-  // Auto: find the longest arm that leaves corner clearance on at least one axis,
-  // less one card gap of safety (Silhouette Card Maker's formula).
-  const i = s.regInset;
-  const clrX = Math.min(L.x0 - i, L.W - i - (L.x0 + L.gw)) - REG_SAFETY;
-  const clrY = Math.min(L.y0 - i, L.H - i - (L.y0 + L.gh)) - REG_SAFETY;
-  const slack = Math.max(clrX, clrY);
-  return Math.max(REG_MIN_LEN, Math.min(Math.floor(slack * 4) / 4, REG_MAX_LEN));
+  // Auto. Silhouette's own default is the full 20 mm and every Card Maker
+  // cutting template uses it, so start there and shorten only where an arm
+  // would actually run into the cards.
+  //
+  // An arm lies ALONG one page edge, so only the clearance perpendicular to it
+  // can bring it into the grid. The old formula took the smaller of the two
+  // axes and so produced a 7.25 mm stub on a centred letter landscape grid
+  // that nothing was in the way of -- which is why our marks came out short
+  // and stubby next to the same marks drawn from a Card Maker template.
+  const cap = regArmCap(L);
+  return Math.max(REG_MIN_LEN, Math.min(Math.floor(cap * 4) / 4, REG_MAX_LEN));
+}
+// How long an arm may be before it runs into the cards, or Infinity when
+// nothing is in its way. An arm lies ALONG one page edge, so only the
+// clearance perpendicular to it can bring it into the grid.
+function regArmCap(L) {
+  const s = S.settings, i = s.regInset, t = Math.max(0.5, Math.min(s.regThickness, 1)) / 2;
+  const gx0 = L.x0, gx1 = L.x0 + L.gw, gy0 = L.y0, gy1 = L.y0 + L.gh;
+  const caps = [];
+  // Horizontal arms sit at y = i and y = H - i, and run inward from a corner.
+  if ((gy0 - t < i && i < gy1 + t) || (gy0 - t < L.H - i && L.H - i < gy1 + t))
+    caps.push(gx0 - i - REG_SAFETY, L.W - i - gx1 - REG_SAFETY);
+  // Vertical arms sit at x = i and x = W - i.
+  if ((gx0 - t < i && i < gx1 + t) || (gx0 - t < L.W - i && L.W - i < gx1 + t))
+    caps.push(gy0 - i - REG_SAFETY, L.H - i - gy1 - REG_SAFETY);
+  return caps.length ? Math.min(...caps) : Infinity;
 }
 function regMarks(L) {
   const s = S.settings; if (!s.silhouette) return {rects:[], lines:[]};
@@ -1823,19 +1843,13 @@ function regMarks(L) {
 // within the mark's reach on BOTH axes at once for any mark. Clearing one axis is enough.
 function regConflict(L) {
   const s = S.settings; if (!s.silhouette) return false;
-  const i = s.regInset;
-  const clrX = Math.min(L.x0 - i, L.W - i - (L.x0 + L.gw)) - REG_SAFETY;
-  const clrY = Math.min(L.y0 - i, L.H - i - (L.y0 + L.gh)) - REG_SAFETY;
-  if (Math.max(clrX, clrY) < REG_MIN_LEN && (s.regLen <= 0 || s.regLen < REG_MIN_LEN)) return true;
-  const arm = regArm(L), zone = Math.max(arm, +s.regPattern === 4 ? 0 : 5);
-  const xLeftOver = (L.x0 - i) < zone;
-  const xRightOver = (L.W - i - (L.x0 + L.gw)) < zone;
-  const yTopOver = (L.y0 - i) < zone;
-  const yBottomOver = (L.H - i - (L.y0 + L.gh)) < zone;
-  if (xLeftOver && yTopOver) return true;
-  if (xRightOver && yTopOver) return true;
-  if (xLeftOver && yBottomOver) return true;
-  if (+s.regPattern === 4 && xRightOver && yBottomOver) return true;
+  const i = s.regInset, t = Math.max(0.5, Math.min(s.regThickness, 1)) / 2;
+  // In trouble when even the shortest legal arm would cross the cards.
+  if (regArmCap(L) < REG_MIN_LEN) return true;
+  // Or when the cards reach the 5 mm square, which only three marks have.
+  if (+s.regPattern !== 4
+      && i < L.x0 + L.gw + t && i + 5 > L.x0 - t
+      && i < L.y0 + L.gh + t && i + 5 > L.y0 - t) return true;
   return false;
 }
 
@@ -5577,9 +5591,11 @@ function renderGuideTab() {
   $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
   applyServerShare();
   if ($('#btnPdf') && $('#tab-guide').classList.contains('on')) $('#btnPdf').disabled = !slots.length;
-  ['#btnExportDxfTab', '#btnExportSvgTab', '#cutFileHint'].forEach(sel => {
+  ['#btnExportStudio3Tab', '#btnExportDxfTab', '#btnExportSvgTab', '#cutFileHint'].forEach(sel => {
     const el = $(sel); if (el) el.style.display = isCameo ? 'block' : 'none';
   });
+  const s3 = $('#btnExportStudio3Tab');
+  if (s3 && isCameo && !studio3Key()) s3.style.display = 'none';
 
   const printPane = $('#tabGuidePanePrint');
   if (printPane) {
@@ -6328,6 +6344,80 @@ function dxfCard(x, yTop, w, h, radius) {
   return s + dxfPair(0, 'SEQEND') + dxfPair(8, 'CUT');
 }
 
+// Silhouette Studio's own document format. Unlike the SVG and the DXF this
+// carries the page size and the registration-mark setup with it, so there is
+// nothing to type into Studio before cutting.
+//
+// Proxy Press does not write one from nothing. The container holds byte
+// offsets and counters that have not been decoded -- the value at 0x10 is a
+// pointer 1041 bytes ahead of the thumbnail, and three more fields vary with
+// content in ways nobody here has explained. So the export rewrites the card
+// coordinates of a real Card Maker template IN PLACE: the file's length never
+// changes, nothing moves, and every undecoded field stays correct because it
+// still describes the same bytes. The cost is that the card count cannot
+// change, which is why each base is chosen to already hold exactly as many
+// cards as the sheet does, and why assets/studio3/manifest.json records where
+// each outline's twelve points live rather than the page hunting for them.
+const STUDIO3_BASES = {letter: {landscape: 'letter-landscape', portrait: 'letter-portrait'},
+                       a4: {landscape: 'a4-landscape', portrait: 'a4-portrait'}};
+let studio3Manifest = null;
+
+function studio3Key() {
+  const s = S.settings;
+  return (STUDIO3_BASES[s.pageSize] || {})[s.orientation] || null;
+}
+
+// The twelve points of one rounded-rectangle outline, in the order the format
+// stores them: four corners of three, starting at the top right.
+const S3_K = 1 - Math.SQRT1_2;   // where a 3-point arc's middle point sits
+function s3Points(x, y, w, h, r) {
+  const x1 = x + w, y1 = y + h, k = r * S3_K;
+  return [[x1 - r, y1], [x1 - k, y1 - k], [x1, y1 - r],
+          [x1, y + r], [x1 - k, y + k], [x1 - r, y],
+          [x + r, y], [x + k, y + k], [x, y + r],
+          [x, y1 - r], [x + k, y1 - k], [x + r, y1]];
+}
+
+async function cutStudio3(sheet = 0) {
+  const s = S.settings, L = layout(), T = makeT(L, false);
+  cutSheetCards(L, sheet);                       // same sheet-range check as the others
+  const key = studio3Key();
+  if (!key) throw new Error('Silhouette Studio export covers Letter and A4 only.');
+  if (!studio3Manifest) {
+    const r = await fetch('assets/studio3/manifest.json');
+    if (!r.ok) throw new Error('Studio templates are not installed on this server.');
+    studio3Manifest = await r.json();
+  }
+  const spec = studio3Manifest[key];
+  if (!spec) throw new Error('Studio templates are not installed on this server.');
+  if (spec.cards !== L.per) throw new Error(
+    `This layout puts ${L.per} cards on a sheet and the Studio template holds ${spec.cards}. ` +
+    'Use the DXF instead, or restore the Cameo paper defaults.');
+  const res = await fetch(`assets/studio3/${spec.file}`);
+  if (!res.ok) throw new Error('Studio template could not be read.');
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.length !== spec.bytes) throw new Error('Studio template does not match its manifest.');
+  const dv = new DataView(buf.buffer);
+  dv.setFloat32(spec.pageOffsets[0], L.W, true);
+  dv.setFloat32(spec.pageOffsets[1], L.H, true);
+  // Every slot is written, including any the last sheet leaves empty: the
+  // count is fixed, so an unused slot cuts a blank card rather than vanishing.
+  for (let i = 0; i < L.per; i++) {
+    const p = slotPos(L, i, false);
+    const x = T.x(p.x + s.bleed), y = T.y(p.y + s.bleed);
+    const w = T.w(L.cw), h = T.h(L.ch), r = T.w(s.cornerRadius ?? 3.2);
+    for (const o of spec.outlines[i]) {
+      // Each stored copy keeps its own winding, sign and sub-millimetre offset.
+      const oy = y + o.dy, span = 2 * oy + h;
+      let pts = s3Points(x + o.dx, oy, w, h, r);
+      if (o.r) pts = pts.map(([px, py]) => [px, span - py]);
+      if (o.f) pts = pts.map(([px, py]) => [px, -py]);
+      o.o.forEach((off, k) => { dv.setFloat32(off, pts[k][0], true); dv.setFloat32(off + 4, pts[k][1], true); });
+    }
+  }
+  return buf;
+}
+
 function cutDxf(sheet = 0) {
   const s = S.settings, L = layout(), T = makeT(L, false), n = cutSheetCards(L, sheet);
   // DXF counts up from a bottom-left origin and everything else here counts
@@ -6349,18 +6439,21 @@ function cutDxf(sheet = 0) {
 }
 
 const CUT_FORMATS = {
+  studio3: {ext:'studio3', mime:'application/octet-stream', build:cutStudio3, label:'Studio file'},
   dxf: {ext:'dxf', mime:'image/vnd.dxf', build:cutDxf},
   svg: {ext:'svg', mime:'image/svg+xml', build:cutSvg}
 };
-function downloadCutFile(fmt, sheet) {
+async function downloadCutFile(fmt, sheet) {
   const f = CUT_FORMATS[fmt] || CUT_FORMATS.dxf, pages = cutSheets();
   if (sheet === undefined && pages > 1) {
     openModal(`<div class="hd"><b>Export cut paths</b></div><div class="bd"><label for="cutSheet">Sheet</label><select id="cutSheet">${Array.from({length:pages}, (_, i) => `<option value="${i}">Sheet ${i + 1}</option>`).join('')}</select><p class="hint">Choose the sheet you will cut. The last sheet may contain fewer cards.</p><button id="cutSheetExport" class="primary">Download ${f.ext.toUpperCase()}</button></div>`);
     $('#cutSheetExport').onclick = () => { const selected = +$('#cutSheet').value; closeModal(true); downloadCutFile(fmt, selected); };
     return;
   }
-  const text = f.build(sheet ?? 0);
-  download(new Blob([text], {type:f.mime}), pages === 1 ? `cut-lines.${f.ext}` : `cut-lines-sheet-${(sheet ?? 0) + 1}.${f.ext}`);
+  let body;
+  try { body = await f.build(sheet ?? 0); }
+  catch (e) { toast(e && e.message ? e.message : 'Could not build the cut file.', 7000); return; }
+  download(new Blob([body], {type:f.mime}), pages === 1 ? `cut-lines.${f.ext}` : `cut-lines-sheet-${(sheet ?? 0) + 1}.${f.ext}`);
   if (!S.settings.silhouette) toast('Tip: turn on registration marks under Cutting → Silhouette Cameo so the cutter can align.', 6000);
 }
 
@@ -6843,6 +6936,7 @@ $('#exportReview').addEventListener('click', e => { const b = e.target.closest('
 $('#tab-guide').addEventListener('click', e => { if (e.target.closest('[data-duplex-wizard]')) openDuplexWizard(); });
 
 if ($('#btnExportPdfTab')) $('#btnExportPdfTab').onclick = async () => { await exportPDF(true); };
+if ($('#btnExportStudio3Tab')) $('#btnExportStudio3Tab').onclick = () => downloadCutFile('studio3');
 if ($('#btnExportDxfTab')) $('#btnExportDxfTab').onclick = () => downloadCutFile('dxf');
 if ($('#btnExportSvgTab')) $('#btnExportSvgTab').onclick = () => downloadCutFile('svg');
 let toastT;

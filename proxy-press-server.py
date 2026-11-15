@@ -59,7 +59,11 @@ LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 COOKIE = "pp_session"
 ASSETS = os.path.realpath(os.environ.get("ASSETS") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets"))
 ASSET_TYPES = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2",
-               ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", "": "text/plain; charset=utf-8"}
+               ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
+               # Silhouette Studio base documents and their offset manifest, for
+               # the .studio3 cut export. Both are read-only data under ASSETS.
+               ".studio3": "application/octet-stream", ".json": "application/json",
+               "": "text/plain; charset=utf-8"}
 
 
 def asset_manifest():
