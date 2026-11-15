@@ -13,6 +13,57 @@
     eq('both filters compose', filterFor({...DEFAULTS, brightness:95, saturation:120}), 'brightness(95%) saturate(120%)');
     eq('neither when both default', filterFor(DEFAULTS), '');
     eq('saturation alone', filterFor({...DEFAULTS, saturation:120}), 'saturate(120%)');
+
+    const foil = BUILTIN_PRESETS.find(p => p.id === 'b-foil-port');
+    eq('foil preset exists', !!foil, true);
+    eq('foil preset is A4', foil?.settings.pageSize, 'a4');
+    eq('foil preset saturation', foil?.settings.saturation, 120);
+    eq('foil preset brightness', foil?.settings.brightness, 100);
+    eq('foil preset counts as Laser', foil?.kind, 'Laser');
+    eq('both orientations ship', BUILTIN_PRESETS.filter(p => p.id.startsWith('b-foil')).length, 2);
+
+    // The repair: declared image keys must actually apply.
+    S.settings = {...DEFAULTS, saturation:100};
+    eq('applying the foil preset sets saturation', foil && presetSettings(foil).saturation, 120);
+    eq('applying the foil preset sets A4', foil && presetSettings(foil).pageSize, 'a4');
+
+    // The accepted behaviour change, pinned: a laser preset resets a customised brightness.
+    S.settings = {...DEFAULTS, brightness:110};
+    eq('a laser preset now resets a customised brightness',
+       presetSettings(BUILTIN_PRESETS.find(p => p.id === 'b-laser-port')).brightness, 100);
+
+    // The allowlist must stay an allowlist, not become a spread.
+    S.settings = {...DEFAULTS, margin:9};
+    eq('a builtin preset still does not force its dormant margin',
+       presetSettings(BUILTIN_PRESETS.find(p => p.id === 'b-laser-port')).margin, 9);
+
+    for (const id of ['mf753', 'laser'])
+      eq(`foil presets are offered for ${id}`, PRINTERS.find(p => p.id === id).presets.includes('b-foil-port'), true);
+    eq('foil tips exist and are not the laser tips', typeof FOIL_TIPS !== 'undefined' && FOIL_TIPS.length > 0 && FOIL_TIPS !== LASER_TIPS, true);
+    eq('foil tips reach the mf753 guide', typeof FOIL_TIPS !== 'undefined' && FOIL_TIPS.every(t => PRINTERS.find(p => p.id === 'mf753').tips.includes(t)), true);
+
+    // Wiring: presets in the printer guide render and actually apply on click.
+    S.printer = 'mf753'; S.settings = {...DEFAULTS}; renderPrinter();
+    const btn = document.querySelector('#printerGuide [data-preset="b-foil-port"]');
+    eq('foil preset button renders in the printer guide', !!btn, true);
+    btn?.click();
+    eq('clicking it in the printer guide applies saturation', S.settings.saturation, 120);
+    eq('clicking it in the printer guide applies A4', S.settings.pageSize, 'a4');
+
+    // Discoverability: the foil presets are in the main grid too, titled by sheet, not by vendor.
+    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', saturation:100}; renderPresets();
+    const gridBtn = id => document.querySelector(`#presetGrid [data-preset="${id}"]`);
+    eq('foil presets are in the paper grid', ['b-foil-land', 'b-foil-port'].map(id => !!gridBtn(id)), [true, true]);
+    eq('landscape foil preset renders a landscape title', gridBtn('b-foil-land')?.querySelector('b').textContent.includes('(Landscape)'), true);
+    eq('portrait foil preset renders a portrait title', gridBtn('b-foil-port')?.querySelector('b').textContent.includes('(Portrait)'), true);
+    eq('foil preset title leads with the sheet', gridBtn('b-foil-land')?.querySelector('b').textContent.startsWith('A4 foil'), true);
+    eq('foil portrait is not active at saturation 100', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'false');
+    eq('plain A4 portrait is active at saturation 100', gridBtn('b-a4')?.getAttribute('aria-pressed'), 'true');
+    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', saturation:120}; renderPresets();
+    eq('foil portrait is active at saturation 120', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'true');
+    eq('foil landscape is not active on a portrait sheet', gridBtn('b-foil-land')?.getAttribute('aria-pressed'), 'false');
+    eq('the A3 tip says the vendor cuts to A4', FOIL_TIPS.some(t => /ProxyJak/.test(t) && /40\s*[×x]\s*A4/.test(t) && /A3/.test(t)), true);
+    eq('the A3 tip keeps the printer-feed clause', FOIL_TIPS.some(t => /can feed A3/.test(t)), true);
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally { Object.assign(S, original); }
   return fails.length ? {failed:fails} : true;
