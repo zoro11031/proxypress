@@ -38,6 +38,15 @@
 // cleanup leaks indefinitely. Everything long-lived also gets a deadline at launch,
 // which is the one protection that survives the cleanup never running.
 //
+// A note on verdicts: this tool must never exit 0 without printing one. Both
+// deadline timers below are unref'd, so if a probe awaits something that never
+// settles and nothing ref'd is left, the event loop simply drains and node
+// exits **0 having printed nothing at all** -- control never reaches the
+// PASS/FAIL/INCONCLUSIVE code below. A run that never happened then reads as a
+// clean one, which is the worst failure this tool can have. The ref'd watchdog
+// is what closes that path: it holds the loop open, so the silent drain cannot
+// happen, and it reports INCONCLUSIVE with the elapsed time instead.
+//
 // The reap only ever takes processes THIS run started, and the CDP port is
 // picked per run. It used to kill anything whose profile matched the shared
 // `pp-console-check-` prefix and to bind 9400 outright, which made two runs on
@@ -56,6 +65,11 @@ const path = require('node:path');
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SETTLE = 3000;                       // > the ~2.5s violation latency
+// How long the whole run may take. Generous by default: the slowest probes do
+// a real PDF export and a dozen full re-renders. The processes also get a
+// deadline a little after this one, so the watchdog always speaks first.
+const DEADLINE_S = Math.max(30, Math.min(+arg('--deadline', 300) || 300, 3600));
+const KILL_MS = DEADLINE_S * 1000 + 15000;
 const PROF = path.join(os.tmpdir(), `pp-console-check-${process.pid}`);
 const sh = (cmd, args) => { try { return execFileSync(cmd, args, {encoding: 'utf8'}); } catch { return ''; } };
 
@@ -90,12 +104,30 @@ function owns(port) {
 }
 
 (async () => {
-  let server, browser, rc = 2;
+  let server, browser, rc = 2, verdict = false;
   const stop = () => {
     for (const p of [browser, server]) { try { p && p.kill(); } catch {} }
     try { fs.rmSync(PROF, {recursive: true, force: true}); } catch {}
   };
   process.on('exit', stop);
+  // Ref'd on purpose: see the note at the top of this file. This is the only
+  // thing standing between a probe that never settles and an exit 0 with an
+  // empty log.
+  const started = Date.now();
+  const watchdog = setTimeout(() => {
+    console.log(`\nINCONCLUSIVE - no verdict after ${DEADLINE_S}s: the probe never returned. `
+      + 'Give it longer with --deadline <seconds>, or find what it is waiting on.');
+    stop();
+    process.exit(2);
+  }, DEADLINE_S * 1000);
+  // Belt and braces. If some other path ever exits without a verdict, say so
+  // rather than letting the exit code imply one.
+  process.on('exit', code => {
+    if (!verdict && code === 0) {
+      console.log('\nINCONCLUSIVE - the run ended without printing a verdict.');
+      process.exitCode = 2;
+    }
+  });
   try {
     reap();
     let url = arg('--url'), password = arg('--password', 'consolecheck');
@@ -104,7 +136,7 @@ function owns(port) {
       url = `http://127.0.0.1:${sp}`;
       server = spawn('python3', ['proxy-press-server.py', String(sp)],
         {env: {...process.env, PASSWORD: password, NO_BROWSER: '1'}, stdio: 'ignore'});
-      setTimeout(() => { try { server.kill(); } catch {} }, 180000).unref();   // deadline at launch
+      setTimeout(() => { try { server.kill(); } catch {} }, KILL_MS).unref();   // deadline at launch
       for (let i = 0; i < 60 && portFree(sp); i++) await sleep(250);
     }
     const cdp = freePort(9400 + (process.pid % 400));
@@ -116,7 +148,7 @@ function owns(port) {
     browser = spawn('chromium', ['--headless=new', `--remote-debugging-port=${cdp}`, '--no-first-run',
       '--no-default-browser-check', '--disable-gpu', '--window-size=1280,900',
       `--user-data-dir=${PROF}`, 'about:blank'], {stdio: 'ignore'});
-    setTimeout(() => { try { browser.kill(); } catch {} }, 180000).unref();
+    setTimeout(() => { try { browser.kill(); } catch {} }, KILL_MS).unref();
     for (let i = 0; i < 60; i++) { try { await fetch(`http://127.0.0.1:${cdp}/json/version`); break; } catch { await sleep(250); } }
     let bad = owns(cdp);
     if (bad) { console.log(`INCONCLUSIVE - ${bad}`); process.exit(2); }
@@ -212,10 +244,12 @@ function owns(port) {
     else if (probeFile && probeOut !== true) {
       console.log('\nFAIL - probe did not return true: ' + JSON.stringify(probeOut)); rc = 1; }
     else { console.log('\nPASS - page clean, all channels proven live in this run.'); rc = 0; }
+    verdict = true;
     try { ws.send(JSON.stringify({id: ++id, method: 'Browser.close'})); await sleep(700); } catch {}
   } catch (e) {
-    console.log('INCONCLUSIVE - harness error: ' + e.message); rc = 2;
+    console.log('INCONCLUSIVE - harness error: ' + e.message); rc = 2; verdict = true;
   }
+  clearTimeout(watchdog);
   stop();
   process.exit(rc);
 })();
