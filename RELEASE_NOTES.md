@@ -1,30 +1,34 @@
-# Proxy Press v0.6.0
+# Proxy Press v0.7.0
 
-A rebuilt interface, and calibration that knows which sheet and which way round it was measured on.
+Cut files Silhouette Studio will actually open, and registration marks the right length.
 
 ## What's new
 
-- **The interface is one piece now.** Every section used to be a box on a lighter box, each with its own corner radius and its own control height. There is now a single set of tokens — one hairline, one near-flat fill, one sunken track, three radii, one control height — and every button, input and select takes them. Nothing about the layout, PDF, cut-guide or calibration arithmetic changed.
-- **The header says where you are.** Brand and the print/order switch on the left, the deck and its count in the middle, help, settings and the one primary action on the right. On a phone it folds to two rows, with the mode switch and the deck list sharing the second. The four steps are one segmented track.
-- **Adding cards leads with the decklist.** The paste box and **Add to deck** come first; a deck link, your own images, the card maker and local files are one quiet row underneath. The deck's count, health, filter and selection bar group above the list, and a card is a single line: thumbnail, name, tags, checkbox, quantity, menu.
-- **Print setup reads in the order you work.** Paper and sheet size, then cards and backs, then the printer and its driver, then calibration. The advanced layout and quality drawer moved out of the settings form to sit beside the alignment drawer at the foot of the pane, so the fields you change often are not buried under the ones you measure once.
-- **The preview keeps more of the screen.** The toolbar is a thin glass bar — sheet controls on the left, view controls on the right — and gives about 40 px of the sheet back.
-- **Print rotation squares the whole print to the paper.** A feed that runs slightly crooked costs about a millimetre across a full-width cut. Measured with a rule on a printed sheet — 30.0 and 31.0 mm from the top edge, 26.0 and 25.0 from the bottom — that is 0.213 degrees over the card block, and a 300 ppi scan of the same sheet agreed at 0.205. The setting turns both faces alike.
-- **A calibration profile holds one set per sheet size and orientation.** Every alignment number is in the printed page's own axes, so the layout that produced it is part of the measurement. Calibrate the sheet the other way round, save under the same name, and one profile holds both; switching sheet or orientation loads the matching set. The list says which layouts each profile has.
-- **Switching orientation offers to turn the numbers with the sheet.** The page turns on the paper, so the same offset pair points somewhere else afterwards, and the printer offset would otherwise land twice over in the back registration. The offer prints the numbers it would use, and says when it is arithmetic on someone else's measurement rather than a reading of yours.
-- **Back-page rotation: add what the test sheet reports, do not subtract it.** The hint had it backwards, and backwards is the worst case here — a back turned by t reads as -t, so adding lands on zero while subtracting doubles the turn.
-- **The cut file no longer turns with the print.** The cutter finds the printed registration marks and lays its own frame on them, so turning the cut paths as well applied the correction twice: 0.23 mm across a card, in the wrong direction. Both test sheets' keys now record the rotations they were printed with, so a scan of either one can still be read back.
+- **Silhouette Studio could not open the cut file at all.** The export was an SVG, and Studio's free Basic edition refuses SVG outright — "The file type you are attempting to access is not supported" — because SVG import is a paid Designer Edition feature. There are now three cut files. **.studio3** is Studio's own format and arrives with the page size and registration marks already set, so there is nothing to type in before cutting. **DXF** opens in every edition and carries the cut lines only. **SVG** is still there for Designer Edition.
+- **Registration marks were a third of their proper length.** The arm came out at 7.25 mm on a letter landscape sheet where Silhouette's own default, and every Silhouette Card Maker cutting template, uses 20 mm — which is why the marks looked stubby next to the same marks drawn from a template. The formula took the smaller of the two clearances between the mark and the cards, but an arm lies *along* a page edge, so only the clearance perpendicular to it can bring it into the cards. The warning that fires when cards reach the marks had the same wrong model and is fixed with it.
+- **A saturation setting**, and **two foil presets** for A4 in both orientations, in the main preset grid alongside the paper presets.
+- **Foil tips name the setting rather than promising an outcome**, and the printer guide names the sheet it is talking about. Paper curl correction can be sent to the printer panel.
+
+## How the .studio3 export works, and what it cannot do
+
+Proxy Press does not write a `.studio3` from nothing. The format is undocumented, and while it is plain and uncompressed it carries byte offsets and counters that have not been worked out. So the export takes a real Silhouette Card Maker cutting template and rewrites its card coordinates **in place** — the file's length never changes and nothing moves, so everything undecoded stays correct because it still describes the same bytes.
+
+The consequence is that the number of cards cannot change. The bundled templates are chosen to hold exactly as many cards as a sheet does, so a sheet that is not full still cuts every slot; the empty ones give you blank card stock. It covers Letter and A4 in both orientations. For anything else, use the DXF.
+
+The four base templates come from [silhouette-card-maker](https://github.com/Alan-Cha/silhouette-card-maker), which is MIT licensed, and are redistributed unchanged.
+
+None of this has been checked by opening a file in Silhouette Studio — there is no Studio on the machine it was built on. The geometry is verified against the SVG and DXF the same sheet exports, and the rewrite is verified to touch no byte outside the card coordinates.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/Proxy-Press-0.6.0.pacman).
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.pacman).
 - [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
@@ -369,6 +373,9 @@ Desktop downloads include fonts and frames and require no login. For a home serv
 
 ### v0.1.2
 - **Workflow fixes:** Tour navigation, deck import boards, and export button fixes.
+
+### v0.6.0
+- **A rebuilt interface,** and calibration that knows which sheet and which way round it was measured on.
 
 ### v0.1.1
 - **Polish:** Brand icon redesign, dark warning styles, and window bounds fixes.
