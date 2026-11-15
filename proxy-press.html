@@ -1045,11 +1045,9 @@ const BUILTIN_PRESETS = [
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
   {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
-    pageSize:'a4', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    margin:5, dpi:1200, jpeg:92, brightness:100, saturation:120}},
+    pageSize:'a4', orientation:'landscape', brightness:100, saturation:120}},
   {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
-    margin:5, dpi:1200, jpeg:92, brightness:100, saturation:120}},
+    pageSize:'a4', orientation:'portrait', brightness:100, saturation:120}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -1064,7 +1062,10 @@ const BUILTIN_PRESETS = [
     margin:4, dpi:1200}}
 ];
 
-for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : (p.id.startsWith('b-laser') || p.id.startsWith('b-foil')) ? 'Laser' : null;
+// The foil presets carry a kind, like the laser ones, but still belong in the paper
+// grid: they pick a sheet. One list, read by the kind pass and by renderPresets.
+const FOIL_IDS = ['b-foil-land', 'b-foil-port'];
+for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : (p.id.startsWith('b-laser') || FOIL_IDS.includes(p.id)) ? 'Laser' : null;
 const INKJET_STOCK_TIPS = [
   'Use ProxyJak <b>INKJET</b> semi-gloss. Their black-core stock is laser only.',
   'Feed from the <b>rear slot</b>, one sheet at a time. It jams in the cassette.',
@@ -1078,11 +1079,12 @@ const LASER_TIPS = [
   'Don\'t set the paper guides too tight.',
 ];
 const FOIL_TIPS = [
-  '<b>On foil stock:</b> set the paper type to <b>Coated 2</b> rather than the heaviest coated option. It is a lower heat class than the cardstock profiles use.',
+  '<b>On foil stock:</b> set the paper type <b>one class lighter</b> than the heaviest coated option your driver offers. The lighter class is listed for a lower paper weight, so it should run the fuser cooler — that is read off the weight ranges, not measured here.',
   '<b>On foil stock:</b> the sheets come in A3. ProxyJak will cut them to 40 × A4 on request. Check whether your printer can feed A3 if you keep them whole. The foil presets are A4.',
   '<b>On foil stock:</b> flex the sheet both ways to find the grain, then pick the orientation that puts the card\'s long edge across it.',
   '<b>On foil stock:</b> print <b>simplex only</b>, and feed <b>one sheet at a time</b>.',
   '<b>On foil stock:</b> apply the foil driver profile <b>last</b>, because the device density bands persist in the printer.',
+  '<b>On foil stock:</b> switch <b>Paper Curl Correction</b> on at the printer panel before the run, and off again after. No driver profile can set it — on the MF753 it is under <b>Menu &gt; Adjustment/Maintenance &gt; Adjust Image Quality &gt; Special Paper Processing &gt; Paper Curl Correction</b>.',
 ];
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
@@ -1179,7 +1181,9 @@ const PRINTERS = [
       ['Special Fine Line Processing', 'Mode 2'], ['Always Rasterize at Host', 'Off'],
       ['EMF Spooling', 'Off'],
     ],
-    tips:[...LASER_TIPS, ...FOIL_TIPS, '<b>On foil stock:</b> this printer cannot feed A3, so cut the sheets down to A4.'],
+    tips:[...LASER_TIPS, ...FOIL_TIPS,
+      '<b>On foil stock:</b> this printer cannot feed A3, so cut the sheets down to A4.',
+      '<b>On foil stock:</b> the lighter class here is <b>Coated 2</b>, which Canon lists at 33-39 lb Bond against the cardstock profiles\' Coated 3 at 56-73 lb Cover. That is a weight range, not a measured fuser temperature.'],
     sources:[['MF753Cdw guide', 'https://oip.manual.canon/USRMA-7178-zz-SSM-750-enUS/'], ['MF753Cdw II guide', 'https://oip.manual.canon/USRMA-9605-zz-SSM-750II-enUS/']]},
   {id:'inkjet', name:'Other inkjet printers', kind:'Inkjet',
     paper:'Inkjet-coated cardstock, e.g. ProxyJak INKJET semi-gloss', presets:['b-inkjet-land', 'b-inkjet-port'],
@@ -4749,7 +4753,7 @@ const FIELDS = [
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
-  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 120%. Unlike Brightness this changes colour only, so black borders and text stay black. Past about 130% already-saturated colours clip and hues shift.'},
+  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 120%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
@@ -5107,6 +5111,11 @@ $('#calProfileDelete').onclick = () => {
 
 /* ---------- presets ---------- */
 const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+// An allowlist, not a spread: a builtin preset's other declared keys are dormant.
+// presetSettings only copies pageSize, orientation, cardRotation and these two, so
+// a preset cannot reach margin, bleed, dpi or the card size. For a preset with a
+// kind the margin/bleed branch below does not run at all, which means applying one
+// leaves margin and bleed at whatever the user last had.
 const PRESET_IMAGE_KEYS = ['brightness', 'saturation'];
 function cameoPaperLayout(orientation) {
   const portrait = orientation === 'portrait';
@@ -5124,10 +5133,10 @@ function presetSettings(p) {
   }
   return next;
 }
-function applyPreset(p) {
+function applyPreset(p, note = '') {
   S.settings = presetSettings(p);
   S.activePreset = p.builtin ? null : p.id;
-  toast(`Applied "${p.name}".`);
+  toast(`Applied "${p.name}".${note}`);
 }
 function presetPer(p) {
   const saved = S.settings;
@@ -5136,7 +5145,12 @@ function presetPer(p) {
 }
 function presetButton(p) {
   const L = presetPer(p);
-  return `<button data-preset="${esc(p.id)}"><b>${esc(p.name.split(' · ').slice(1).join(' · '))}</b><span>${L.cols}×${L.rows} layout</span></button>`;
+  // The printer is already named above the row, so drop a leading kind segment -
+  // but only when it is the kind. A two-segment name like 'A4 foil · Portrait'
+  // leads with the sheet, and slicing it off would leave a bare orientation.
+  const parts = p.name.split(' · ');
+  const label = parts[0] === p.kind ? parts.slice(1).join(' · ') : p.name;
+  return `<button data-preset="${esc(p.id)}"><b>${esc(label)}</b><span>${L.cols}×${L.rows} layout</span></button>`;
 }
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
@@ -5199,7 +5213,7 @@ function renderPresets() {
     const button = `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
     return mine ? `<div class="preset-item">${button}<button class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
-  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind || p.id.startsWith('b-foil'));
+  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind || FOIL_IDS.includes(p.id));
   $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
     ${S.presets.length ? `<details class="adv"><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
 }
@@ -5212,8 +5226,12 @@ function onPresetClick(ev) {
   }
   const b = ev.target.closest('[data-preset]'); if (!b) return;
   const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === b.dataset.preset);
-  applyPreset(p);
-  if (p.kind && printerOf(S.printer).kind !== p.kind) S.printer = S.printerByKind?.[p.kind] || (p.kind === 'Laser' ? 'mf753' : 'et2800');
+  let note = '';
+  if (p.kind && printerOf(S.printer).kind !== p.kind) {
+    S.printer = S.printerByKind?.[p.kind] || (p.kind === 'Laser' ? 'mf753' : 'et2800');
+    note = ` Printer switched to ${printerOf(S.printer).name}.`;
+  }
+  applyPreset(p, note);
   save(); renderAll();
 }
 $('#presetGrid').onclick = onPresetClick;
