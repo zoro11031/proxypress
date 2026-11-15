@@ -105,6 +105,7 @@ function owns(port) {
 
 (async () => {
   let server, browser, rc = 2, verdict = false;
+  const dialogs = [];
   const stop = () => {
     for (const p of [browser, server]) { try { p && p.kill(); } catch {} }
     try { fs.rmSync(PROF, {recursive: true, force: true}); } catch {}
@@ -185,6 +186,7 @@ function owns(port) {
       // each one -- a page that stops to ask a question is a finding, not a
       // detail, and a probe that means to exercise that path wants to see it.
       else if (m.method === 'Page.javascriptDialogOpening') {
+        dialogs.push(`${m.params.type}(${JSON.stringify(m.params.message).slice(0, 180)}…)`);
         events.push(['dialog', `${m.params.type}(${JSON.stringify(m.params.message)}) was dismissed; `
           + 'a native dialog blocks the page and nothing answers one here']);
         ws.send(JSON.stringify({id: ++id, method: 'Page.handleJavaScriptDialog', params: {accept: false}}));
@@ -209,6 +211,13 @@ function owns(port) {
     const loaded = await ev("typeof layout==='function' && typeof cleanSettings==='function'");
     let probeOut = null, probeFile = arg('--probe');
     if (loaded && probeFile) probeOut = await ev(fs.readFileSync(probeFile, 'utf8'));
+    // A probe that deliberately exercises a path where the page asks something
+    // sets window.__expectDialogs. The dialogs are still dismissed, still
+    // listed, and still counted -- they just stop being failures, because for
+    // that probe the question being asked IS the behaviour under test.
+    // tools/studio-probe.js is the case: it checks calibration survives an
+    // orientation change, and the page asks about exactly that.
+    const dialogsExpected = loaded && probeFile ? !!(await ev('!!window.__expectDialogs')) : false;
     if (probeOut === true && arg('--artifacts')) fs.writeFileSync(arg('--artifacts'), JSON.stringify(await ev('window.__probeArtifacts')));
     await sleep(SETTLE);
     if (arg('--screenshot')) {
@@ -222,7 +231,10 @@ function owns(port) {
     }
     // Chromium's "recommendation" source is advisory DOM guidance, not an error.
     // Reported so nothing is hidden, but it does not fail the run.
-    const isNote = ([c]) => c === 'log/recommendation';
+    // A dialog a probe declared expected is listed and counted, but does not
+    // fail the run: for that probe the page's question is the behaviour under
+    // test. An undeclared one still fails, because it blocks the page.
+    const isNote = ([c]) => c === 'log/recommendation' || (c === 'dialog' && dialogsExpected);
     const real = events.filter(e => !isNote(e));
     const notes = events.filter(isNote);
 
@@ -244,6 +256,9 @@ function owns(port) {
 
     console.log(`\napp loaded: ${loaded ? 'yes' : 'NO'}`);
     if (probeOut !== null) console.log('probe: ' + JSON.stringify(probeOut));
+    if (dialogs.length)
+      console.log(`\n${dialogsExpected ? 'DIALOGS' : 'DIALOGS (not declared expected)'} (${dialogs.length}), all dismissed:\n  `
+        + [...new Set(dialogs)].join('\n  '));
     console.log(`\nFINDINGS (${real.length}):`);
     for (const [k, v] of real) console.log('  [' + k + '] ' + String(v).slice(0, 300));
     if (notes.length) {
