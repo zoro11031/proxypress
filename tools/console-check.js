@@ -169,10 +169,21 @@ function owns(port) {
       // A native alert/confirm/prompt blocks the page's main thread until it is
       // answered, and nothing answers one in headless chromium. The probe never
       // returns, the run sits at 0% CPU, and before the watchdog existed it
-      // exited 0 with an empty log. tools/studio-probe.js hit this for real:
-      // switching orientation with calibration numbers set asks "turn them with
-      // the sheet?" through confirm(). So dismiss them, and report each one --
-      // a page that stops to ask a question is a finding, not a detail.
+      // exited 0 with an empty log.
+      //
+      // tools/studio-probe.js hits this for real. The reachable path is narrow:
+      // the confirm() lives in the #tab-setup `change` handler, so it needs a
+      // probe that drives the orientation or pageSize *select* directly, with
+      // calibration values set. Preset clicks assign to S.settings and never
+      // dispatch a form change, so preset-driven probes cannot reach it; and at
+      // default calibration the offered rows are all identical, so `rows.length`
+      // is 0 and the confirm is short-circuited before it is evaluated.
+      //
+      // Dismiss with accept:false, which is also the only safe answer: accepting
+      // would rewrite the calibration numbers mid-run, and every later assertion
+      // would then be measured against settings the probe never chose. Report
+      // each one -- a page that stops to ask a question is a finding, not a
+      // detail, and a probe that means to exercise that path wants to see it.
       else if (m.method === 'Page.javascriptDialogOpening') {
         events.push(['dialog', `${m.params.type}(${JSON.stringify(m.params.message)}) was dismissed; `
           + 'a native dialog blocks the page and nothing answers one here']);
