@@ -27,7 +27,7 @@ RELEASES_MAP = {
         "tag_name": "v0.5.1",
         "name": "Proxy Press v0.5.1",
         "target_commitish": "c31b33e",
-        "make_latest": "true"
+        "make_latest": "false"
     },
     "v0.5.0": {
         "tag_name": "v0.5.0",
