@@ -66,8 +66,13 @@
           if (r) {
             near(`${tag} card ${i} copy ${c} width`, w, +r.getAttribute('width'));
             near(`${tag} card ${i} copy ${c} height`, h, +r.getAttribute('height'));
-            near(`${tag} card ${i} copy ${c} x`, x - o.dx, +r.getAttribute('x'));
-            near(`${tag} card ${i} copy ${c} y`, y - o.dy, +r.getAttribute('y'), 0.05);
+            // Tolerance below the per-copy offsets themselves (dx is about
+            // 0.004 mm, dy about 0.027). At a looser tolerance these pass
+            // whether or not the offsets are preserved, which is how a first
+            // version of this probe reported a clean run while the writer
+            // was dropping them.
+            near(`${tag} card ${i} copy ${c} x`, x, +r.getAttribute('x') + o.dx, 0.002);
+            near(`${tag} card ${i} copy ${c} y`, y, +r.getAttribute('y') + o.dy, 0.002);
           }
           wrote++;
         });
