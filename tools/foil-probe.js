@@ -83,6 +83,18 @@
     eq('a tip sends the user to the panel for Paper Curl Correction',
        FOIL_TIPS.some(t => /Paper Curl Correction/.test(t) && /panel/.test(t)
                            && /Special Paper Processing/.test(t)), true);
+    // ...and it must say to leave it OFF. The tip used to say to switch it on
+    // before a foil run, which the owner rejected: it costs print quality on
+    // this printer and Canon's own manual warns it may fade the print. The
+    // advice was reasoned from the manual and shipped because nothing could
+    // contradict it, so the corrected version is pinned here rather than left
+    // to be re-reasoned back the other way.
+    const curlTip = FOIL_TIPS.find(t => /Paper Curl Correction/.test(t)) || '';
+    eq('the curl tip says to leave it off', /leave\b[^.]*\boff\b/i.test(curlTip), true);
+    eq('the curl tip does not tell anyone to switch it on',
+       /switch\s+(<[^>]+>\s*)*Paper Curl Correction(\s*<[^>]+>)*\s+on\b/i.test(curlTip), false);
+    eq('the curl tip gives a reason not to use it',
+       /fade|print quality/i.test(curlTip), true);
     eq('the paper-type tip no longer names a Canon-only type generically',
        FOIL_TIPS.some(t => /Coated 2/.test(t)), false);
     eq('the Canon paper type is named on the mf753 entry',

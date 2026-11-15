@@ -1,34 +1,28 @@
-# Proxy Press v0.7.0
+# Proxy Press v0.7.1
 
-Cut files Silhouette Studio will actually open, and registration marks the right length.
+Page labels you can actually see, and foil advice that matches what the printer does.
 
 ## What's new
 
-- **Silhouette Studio could not open the cut file at all.** The export was an SVG, and Studio's free Basic edition refuses SVG outright — "The file type you are attempting to access is not supported" — because SVG import is a paid Designer Edition feature. There are now three cut files. **.studio3** is Studio's own format and arrives with the page size and registration marks already set, so there is nothing to type in before cutting. **DXF** opens in every edition and carries the cut lines only. **SVG** is still there for Designer Edition.
-- **Registration marks were a third of their proper length.** The arm came out at 7.25 mm on a letter landscape sheet where Silhouette's own default, and every Silhouette Card Maker cutting template, uses 20 mm — which is why the marks looked stubby next to the same marks drawn from a template. The formula took the smaller of the two clearances between the mark and the cards, but an arm lies *along* a page edge, so only the clearance perpendicular to it can bring it into the cards. The warning that fires when cards reach the marks had the same wrong model and is fixed with it.
-- **A saturation setting**, and **two foil presets** for A4 in both orientations, in the main preset grid alongside the paper presets.
-- **Foil tips name the setting rather than promising an outcome**, and the printer guide names the sheet it is talking about. Paper curl correction can be sent to the printer panel.
+- **The page labels were hidden behind the toolbar.** "Page 1" and "Page 1 · back (…)" have been sitting entirely underneath the glass bar since the interface rework in v0.6.0. The bar is pulled up into the preview's padding by a negative margin, which puts it above its own sticky threshold, so it gets pushed back down by exactly the gap that was meant to hold the label. The gap the stylesheet describes never existed.
+- **Foil tips: leave Paper Curl Correction off.** The previous tip said to switch it on before a foil run. It costs print quality on this printer, and Canon's own manual warns it may fade the print. Curl is handled by the lighter paper class the tips already recommend, and by laying each sheet flat to cool under a weight rather than stacking them warm. The panel path is still given, as the place to check it is off.
 
-## How the .studio3 export works, and what it cannot do
+## Why nobody noticed the labels
 
-Proxy Press does not write a `.studio3` from nothing. The format is undocumented, and while it is plain and uncompressed it carries byte offsets and counters that have not been worked out. So the export takes a real Silhouette Card Maker cutting template and rewrites its card coordinates **in place** — the file's length never changes and nothing moves, so everything undecoded stays correct because it still describes the same bytes.
+The probe that guards that exact clearance has been hanging since before v0.6.0, on a native `confirm()` the page shows when you switch orientation with calibration numbers set. Nothing in headless Chromium answers a native dialog, so the probe blocked forever — and the checking tool then exited **0 with an empty log**, because a probe that never settles leaves nothing holding the event loop open. A run that never happened read as a clean one.
 
-The consequence is that the number of cards cannot change. The bundled templates are chosen to hold exactly as many cards as a sheet does, so a sheet that is not full still cuts every slot; the empty ones give you blank card stock. It covers Letter and A4 in both orientations. For anything else, use the DXF.
-
-The four base templates come from [silhouette-card-maker](https://github.com/Alan-Cha/silhouette-card-maker), which is MIT licensed, and are redistributed unchanged.
-
-None of this has been checked by opening a file in Silhouette Studio — there is no Studio on the machine it was built on. The geometry is verified against the SVG and DXF the same sheet exports, and the rewrite is verified to touch no byte outside the card coordinates.
+That is fixed too: dialogs are dismissed and reported, the tool can no longer exit without printing a verdict, and the probe passes for the first time in a long while. It was right all along; nothing could hear it.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.7.1/Proxy-Press-0.7.1.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.7.1/Proxy-Press-0.7.1.msi).
 
 **Linux x86_64:**
 
-- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.AppImage) — make executable and launch.
-- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.deb).
-- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.rpm).
-- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.7.0/Proxy-Press-0.7.0.pacman).
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.7.1/Proxy-Press-0.7.1.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.7.1/Proxy-Press-0.7.1.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.7.1/Proxy-Press-0.7.1.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.7.1/Proxy-Press-0.7.1.pacman).
 - [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.6.0/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
 
 Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
@@ -376,6 +370,9 @@ Desktop downloads include fonts and frames and require no login. For a home serv
 
 ### v0.6.0
 - **A rebuilt interface,** and calibration that knows which sheet and which way round it was measured on.
+
+### v0.7.0
+- **Cut files Silhouette Studio will actually open** (.studio3 and DXF), and 20 mm registration arms.
 
 ### v0.1.1
 - **Polish:** Brand icon redesign, dark warning styles, and window bounds fixes.
