@@ -1,7 +1,7 @@
 {
   "name": "proxypress",
   "productName": "ProxyPress",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "A browser-based MTG proxy maker",
   "main": "main.js",
   "author": {
@@ -46,7 +46,9 @@
         "to": "assets",
         "filter": [
           "fonts/**/*",
-          "frames/**/*"
+          "frames/**/*",
+          "studio3/**/*",
+          "vendor/**/*"
         ]
       }
     ],

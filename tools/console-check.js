@@ -201,7 +201,10 @@ function owns(port) {
     });
 
     send('Runtime.enable'); send('Log.enable'); send('Page.enable');
-    if (arg('--width')) send('Emulation.setDeviceMetricsOverride', {width:+arg('--width'), height:+arg('--height', '1000'), deviceScaleFactor:1, mobile:false});
+    if (arg('--width')) send('Emulation.setDeviceMetricsOverride', {width:+arg('--width'), height:+arg('--height', '1000'), deviceScaleFactor:+arg('--scale','1'), mobile:false});
+    if (arg('--touch-selector')) send('Emulation.setTouchEmulationEnabled', {enabled:true,maxTouchPoints:1});
+    // Deterministic local fixtures do not need the app's idle upstream cache warmer.
+    if (process.argv.includes('--offline-fixtures')) send('Page.addScriptToEvaluateOnNewDocument', {source:'window.requestIdleCallback = () => 0;'});
     send('Page.navigate', {url: url + '/'});
     await sleep(2500);
     await ev(`(()=>{const p=document.querySelector('input[type=password]');` +
@@ -211,6 +214,16 @@ function owns(port) {
     const loaded = await ev("typeof layout==='function' && typeof cleanSettings==='function'");
     let probeOut = null, probeFile = arg('--probe');
     if (loaded && probeFile) probeOut = await ev(fs.readFileSync(probeFile, 'utf8'));
+    if (loaded && probeOut === true && arg('--touch-selector')) {
+      const rect = await ev(`(()=>{const el=document.querySelector(${JSON.stringify(arg('--touch-selector'))}); if(!el)return null; const r=el.getBoundingClientRect(); document.addEventListener('touchstart',()=>window.__probeTouch=true,{once:true}); return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+      if (!rect) probeOut = {failed:['Touch target missing']};
+      else {
+        send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...rect,radiusX:2,radiusY:2,force:1,id:1}]});
+        await sleep(100); send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}); await sleep(300);
+        const touched = await ev("window.__probeTouch === true");
+        console.log('touch dispatched: ' + touched); if (!touched) probeOut = {failed:['Touch input did not reach the app']};
+      }
+    }
     // A probe that deliberately exercises a path where the page asks something
     // sets window.__expectDialogs. The dialogs are still dismissed, still
     // listed, and still counted -- they just stop being failures, because for
@@ -218,7 +231,7 @@ function owns(port) {
     // tools/studio-probe.js is the case: it checks calibration survives an
     // orientation change, and the page asks about exactly that.
     const dialogsExpected = loaded && probeFile ? !!(await ev('!!window.__expectDialogs')) : false;
-    if (probeOut === true && arg('--artifacts')) fs.writeFileSync(arg('--artifacts'), JSON.stringify(await ev('window.__probeArtifacts')));
+    if (probeOut === true && arg('--artifacts')) fs.writeFileSync(arg('--artifacts'), JSON.stringify(await ev('window.__probeArtifacts') ?? {}));
     await sleep(SETTLE);
     if (arg('--screenshot')) {
       const shot = await new Promise(resolve => {

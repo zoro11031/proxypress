@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-let app, BrowserWindow, shell, Menu;
+let app, BrowserWindow, shell, Menu, protocol, net;
 try {
-  ({ app, BrowserWindow, shell, Menu } = require('electron'));
+  ({ app, BrowserWindow, shell, Menu, protocol, net } = require('electron'));
 } catch {}
 const http = require('node:http');
 const https = require('node:https');
@@ -64,6 +64,8 @@ const ASSET_TYPES = {
   '.svg': 'image/svg+xml',
   '.json': 'application/json',
   '.txt': 'text/plain',
+  '.studio3': 'application/octet-stream',
+  '.js': 'application/javascript; charset=utf-8',
   'style': 'text/plain'
 };
 
@@ -289,14 +291,15 @@ async function handleDeck(req, res, parsedUrl) {
       return res.end(JSON.stringify({ message: `Could not load deck from ${site}` }));
     }
     const j = JSON.parse(await readUpstream(upstream));
-    const lines = [];
+    const lines = [], rows = [];
     const fmt = (q, n, st, cn) => `${q} ${n}` + (st && cn ? ` (${st.toUpperCase()}) ${cn}` : '');
 
+    const add = (q,n,st,cn,section) => { if (typeof n !== 'string' || !n.trim()) return; const sourceLine = fmt(q,n,st,cn); lines.push(sourceLine); rows.push({sourceLine,section}); };
     if (site === 'moxfield') {
       for (const board of ['commanders', 'companions', 'signatureSpells', 'mainboard', 'sideboard', 'attractions', 'stickers', 'contraptions']) {
         for (const v of Object.values(j[board] || {})) {
           const c = v.card || {};
-          lines.push(fmt(v.quantity || 1, c.name || '', c.set || '', c.cn || ''));
+          add(v.quantity || 1, c.name || '', c.set || '', c.cn || '', board);
         }
       }
     } else {
@@ -304,11 +307,11 @@ async function handleDeck(req, res, parsedUrl) {
       for (const c of j.cards || []) {
         if ((c.categories || []).some(name => skip.has(name))) continue;
         const cd = c.card || {}, ed = cd.edition || {};
-        lines.push(fmt(c.quantity || 1, cd.oracleCard?.name || cd.name || '', ed.editioncode || '', cd.collectorNumber || ''));
+        add(c.quantity || 1, cd.oracleCard?.name || cd.name || '', ed.editioncode || '', cd.collectorNumber || '', (c.categories || []).filter(name=>typeof name === 'string').join(', '));
       }
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ name:j.name || '', text:lines.filter(line => line.split(' ').slice(1).join(' ')).join('\n') }));
+    res.end(JSON.stringify({ name:j.name || '', text:lines.join('\n'), version:2, rows }));
   } catch (err) {
     res.writeHead(502, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ message: `Failed to fetch from ${site}` }));
@@ -432,6 +435,15 @@ if (app) {
       srv = await startServer(0);
     }
 
+    const rendererOrigin = 'http://127.0.0.1:8642';
+    protocol.handle('http', request => {
+      const target = new URL(request.url);
+      if (target.origin !== rendererOrigin) return net.fetch(request, {bypassCustomProtocolHandlers:true});
+      const internal = new URL(target.pathname + target.search, `http://127.0.0.1:${srv.port}`);
+      const body = ['GET','HEAD'].includes(request.method) ? undefined : request.body;
+      return net.fetch(internal.href, {method:request.method,headers:request.headers,body,duplex:'half',bypassCustomProtocolHandlers:true});
+    });
+
     const iconPath = process.platform === 'win32'
       ? path.join(__dirname, 'icon.ico')
       : path.join(__dirname, 'icon.png');
@@ -458,7 +470,7 @@ if (app) {
       mainWindow.show();
     });
 
-    configureNavigation(mainWindow, `http://127.0.0.1:${srv.port}`);
+    configureNavigation(mainWindow, rendererOrigin);
 
     const isMac = process.platform === 'darwin';
     const menuTemplate = [
@@ -531,7 +543,7 @@ if (app) {
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
-    mainWindow.loadURL(`http://127.0.0.1:${srv.port}/?desktop=1`);
+    mainWindow.loadURL(rendererOrigin + '/?desktop=1');
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -553,8 +565,8 @@ if (app) {
           }
         });
         mainWindow.once('ready-to-show', () => mainWindow.show());
-        configureNavigation(mainWindow, `http://127.0.0.1:${srv.port}`);
-        mainWindow.loadURL(`http://127.0.0.1:${srv.port}/?desktop=1`);
+        configureNavigation(mainWindow, rendererOrigin);
+        mainWindow.loadURL(rendererOrigin + '/?desktop=1');
       }
     });
   });

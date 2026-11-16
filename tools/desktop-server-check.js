@@ -45,9 +45,24 @@ const {EventEmitter} = require('node:events');
     const result = JSON.parse(context.res.body);
     assert.equal(result.text, '2 Sideboard card\n1 Main card');
     assert.equal(result.name, 'Deck');
+    assert.equal(result.version, 2);
+    assert.deepEqual(result.rows.map(row=>row.section), ['Sideboard','Mainboard']);
+    assert.equal(result.rows[0].sourceLine, '2 Sideboard card');
   });
   await check('Malformed asset URL is rejected without throwing', () => {
     assert.equal(vm.runInContext("safeAssetPath('/assets/%ZZ')", context), null);
+  });
+  await check('Desktop server serves studio3 templates, manifest, and local jsPDF', async () => {
+    const resMan = response(); await dispatch({method:'GET', url:'/assets/studio3/manifest.json'}, resMan);
+    assert.equal(resMan.status, 200);
+    const man = JSON.parse(resMan.body);
+    assert.ok(man['letter-landscape']?.file);
+    const templateFile = man['letter-landscape'].file;
+    const resTpl = response(); await dispatch({method:'GET', url:'/assets/studio3/' + templateFile}, resTpl);
+    assert.equal(resTpl.status, 200);
+    assert.ok(resTpl.body.length > 1000);
+    const resPdf = response(); await dispatch({method:'GET', url:'/assets/vendor/jspdf.umd.min.js'}, resPdf);
+    assert.equal(resPdf.status, 200);
   });
   await check('Relay rejects unknown paths, methods and oversized requests', async () => {
     const count = requests.length;

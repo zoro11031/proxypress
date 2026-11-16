@@ -1,3 +1,50 @@
+# Proxy Press v0.8.0
+
+Workspace redesign, live single-sheet proof, artwork picker comparison view, sequential issue resolution, and ProxyJak foil tone simulation.
+
+## What's new
+
+- **Three-column workspace layout & live sheet proof:**
+  - Redesigned workspace with a structured 3-column layout: left Card Queue, center Live Sheet Proof, right Print Setup Inspector, and persistent unified Export Review bar.
+  - Proof operates directly on individual sheets (`pages[S.activeSheet]`) with interactive sheet jump dropdown, Previous/Next navigation, and independent `Front`, `Back`, and `Guides` view toggles.
+  - Responsive design with collapsible inspector drawer for tablet screens (1024px) and dedicated bottom tab navigation (`Cards`, `Proof · N sheets`, `Setup`) for mobile phones (390px and 320px).
+- **Artwork comparison view:**
+  - Redesigned art picker into a side-by-side comparison view between Current artwork and Candidate artwork (with responsive switch for mobile).
+  - Physical trim crop box overlay with calculated effective DPI (`naturalWidth / (cardW / 25.4)`) or clear "Resolution unknown" indication.
+  - Clear source tabs for Scryfall printings, community art, and local image folders, with independent loading and error retry recovery.
+  - Double-faced card face indicators (e.g. `editing Back (Insectile Aberration)`) and scoped action buttons (`Apply to this copy`, `Apply to 4 copies`).
+  - Manual art locking (`manual: true`) protecting user selections from being overwritten during subsequent autofill runs.
+  - Copy splitting remapping: editing a single copy cleanly splits the entry and automatically remaps selection, preserving sheet, side, and zoom position.
+- **Sequential issue fixing workflow:**
+  - Active print-job scoped issue detection (`Missing art`, `Missing back`, `Low resolution`, `Unreadable image`), excluding single-faced cards whose backs are not being printed.
+  - Dedicated "Needs attention" queue toggle and inline issue badges on card rows.
+  - Clicking an issue badge routes directly to the affected sheet, card copy, and face with an issue banner and sequential navigation.
+- **ProxyJak Rainbow foil tone simulation & calibration test sheet:**
+  - Tone model (`applyFoilToneModel`) simulating midtone darkening (gamma 1.25), shadow crush, and metallic saturation loss.
+  - Dedicated foil simulation modal with "Adjusted artwork" vs "Estimated foil print" comparison and interactive rainbow sheen tilt angle toggle.
+  - One-page calibration test sheet export featuring 3 card calibrations (neutral, current deck settings, alternate) paired with a 10-step gray calibration ramp (0% to 100% K).
+- **Reliability & offline exports:**
+  - Staged deck replacement with revision matching and full undo snapshot support.
+  - Authoritative preflight checks unifying review modal and all PDF export paths.
+  - Bundled local jsPDF and offline `.studio3` template serving in Electron package.
+  - Single-sheet PDF and cut file exports retaining original sheet indexing.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/Proxy-Press-0.8.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/Proxy-Press-0.8.0.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/Proxy-Press-0.8.0.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/Proxy-Press-0.8.0.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/Proxy-Press-0.8.0.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/Proxy-Press-0.8.0.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.8.0/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.7.3
 
 Print tab overhaul, direct custom preset saving, and optimum foil preset tuning (110% brightness, 160% saturation, 115% contrast).
