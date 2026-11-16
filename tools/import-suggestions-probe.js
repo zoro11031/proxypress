@@ -2,6 +2,11 @@
 (async () => {
   const fails = [];
   const eq = (name, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
+  const oldSf=sf, oldCollection=fetchCollection, oldAuto=mpcAutofill;
+  const canvas=document.createElement('canvas');canvas.width=63;canvas.height=88;const art=canvas.toDataURL();
+  const card=name=>({id:name==='Lightning Bolt'?'11111111-1111-1111-1111-111111111111':'22222222-2222-2222-2222-222222222222',name,set:'pcy',collector_number:'1',layout:'normal',image_uris:{png:art,normal:art}});
+  sf=async url=>card(decodeURIComponent(url).includes('Ligntning')?'Lightning Bolt':'Rhystic Study');
+  fetchCollection=async reqs=>({found:[],missing:reqs});mpcAutofill=async()=>({});
   try {
     // 1. Test replaceInListIn and removeFromListIn
     $('#listIn').value = '1 Rhystic Stud (PCY)\n4 Ligntning Bolt';
@@ -76,6 +81,6 @@
     eq('e2e importNote has Use button', !!$('[data-suggest-replace]', e2eWarn), true);
   } catch (err) {
     fails.push('exception: ' + err.message);
-  }
+  } finally { sf=oldSf; fetchCollection=oldCollection; mpcAutofill=oldAuto; }
   return fails.length ? {fails} : true;
 })();

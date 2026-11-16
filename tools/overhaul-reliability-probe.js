@@ -1,0 +1,41 @@
+(async () => {
+  const saved = {settings:S.settings, decks:S.decks, deckId:S.deckId};
+  const failures = [];
+  const check = (label, value) => { if (!value) failures.push(label); };
+  try {
+    closeModal(true); S.welcomed = true;
+    S.settings = cleanSettings({...DEFAULTS, backs:false, dfcMode:'duplex', pageSize:'letter', orientation:'landscape', cols:4, rows:2});
+    const canvas = document.createElement('canvas'); canvas.width=630; canvas.height=880;
+    const context = canvas.getContext('2d'); context.fillStyle='#a86b34'; context.fillRect(0,0,630,880);
+    const key='overhaul-fixture'; await store.set('images',key,await new Promise(resolve=>canvas.toBlob(resolve)));
+    const d={id:'overhaul-test',name:'Reliability',entries:[{uid:'dfc',name:'Double face',qty:1,faces:[{name:'Front',custom:key},{name:'Back'}]}]};
+    S.decks=[d]; S.deckId=d.id;
+    let pre=await runPreflight();
+    check('DFC backs validated with common backs disabled',pre.errors.some(e=>e.type==='missing_art'&&e.face==='back'));
+    check('DFC page count includes back',pre.stats.pages===2&&pre.stats.hasBacks);
+    d.entries[0].faces[1].custom=key;
+    pre=await runPreflight(); check('complete DFC passes',pre.valid);
+    d.entries[0].faces.pop();
+    S.settings.backOffsetX=500;
+    pre=await runPreflight();check('unused back geometry ignored',!pre.errors.some(e=>e.type==='trim_clip'));
+    S.settings.cols=5; S.settings.cardRotation='upright'; S.settings.offsetX=50;
+    pre=await runPreflight();check('unused front edge slots ignored',!pre.errors.some(e=>e.type==='trim_clip'));
+    d.entries[0].qty=5;
+    pre=await runPreflight();check('occupied clipped edge rejected',pre.errors.some(e=>e.type==='trim_clip'));
+    const target=captureDeckRevision(d);d.entries[0].qty++;
+    check('revision catches immediate edits before debounce',!matchesRevision(d,target));
+    const profile={settings:{'letter/landscape':{offsetX:1,offsetY:2,byDuplex:{'manual/short':{backOffsetX:2,backOffsetY:3}}}}};
+    const turned=calSlotFor(profile,{...S.settings,orientation:'portrait',duplexMethod:'manual',duplexFlip:'short'});
+    check('duplex values rotate after resolution',turned.set.backOffsetX===-3&&turned.set.backOffsetY===2);
+    const mismatch=calSlotFor(profile,{...S.settings,orientation:'landscape',duplexMethod:'auto',duplexFlip:'long'});
+    check('unmeasured flip does not inherit back correction',!mismatch.backMeasured&&mismatch.set.backOffsetX===0);
+    const parsed=parseList('Commander\n1 Sol Ring\n2 Forest\nCommander Eesha');
+    check('bare card names survive counted lists',parsed.length===3&&parsed[2].name==='Commander Eesha');
+    check('source and section survive parsing',parsed[0].section==='Commander'&&parsed[0].sourceLine==='1 Sol Ring');
+    await loadStudio3Manifest();check('portrait Studio capacity is nine',studio3Manifest['letter-portrait'].cards===9);
+    const staged={resolved:[{qty:1}],unresolved:[],fallbacks:[]};
+    const cancelled=reviewReplacement(captureDeckRevision(d),staged);closeModal();
+    check('shared close settles pending review',await cancelled===false);
+    return failures.length?{failed:failures}:true;
+  } finally { Object.assign(S,saved); renderAll(); }
+})();

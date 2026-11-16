@@ -138,7 +138,7 @@
     eq('imported art restores original bytes', await blobToData(await store.get('images', recipient.entries[0].faces[0].custom)) === await blobToData(await store.get('images', f.custom)), true);
     eq('shared A4 layout restored', S.settings.pageSize, 'a4');
     eq('recipient offset preserved', S.settings.offsetX, -2); eq('recipient scale preserved', S.settings.scaleX, 101); eq('recipient printer preserved', S.printer, 'mf753');
-    eq('import opens print setup', $('#tab-setup').classList.contains('on'), true); eq('import selects print mode', S.mode, 'print');
+    eq('import opens print setup', !!$('#tab-setup').closest('#workspaceInspector'), true); eq('import selects print mode', S.mode, 'print');
     await renderFace(recipient.entries[0].faces[0], 150, true);
     const bad = JSON.parse(JSON.stringify(parsed)); delete bad.images[f.custom];
     const count = S.decks.length;
@@ -178,9 +178,12 @@
     const pickedFace = {name:'Slow search'}, localFile = new File([blob], 'Slow search.png', {type:'image/png'});
     localIndex.push({file:localFile, key:normName('Slow search'), words:new Set(['slow','search'])});
     await openMpcPicker({e:{name:'Slow search', faces:[pickedFace]}});
-    const figure = $('#mpcGrid figure[data-local]');
+    $('[data-src-tab=local]').click();
+    await waitFor(()=>!!$('#localArt figure[data-local]'));
+    const figure = $('#localArt figure[data-local]');
     eq('art choice is keyboard accessible', figure?.getAttribute('role'), 'button');
     figure.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+    $('#btnApplyCandidate').click();
     await waitFor(() => !!pickedFace.custom); created.push(pickedFace.custom);
     eq('keyboard selects uploaded art', !!pickedFace.custom, true);
     closeModal(true); openModal('<div class="hd"><b>Another dialog</b></div><div class="bd">Keep this content</div>');

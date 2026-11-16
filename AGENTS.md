@@ -77,7 +77,7 @@ Two things about adding a probe assertion, both learned by getting them wrong:
 
 ## Rules
 
-- **Keep it single-file and dependency-free.** No bundler, no new CDN scripts, no Python packages. The only external script is jsPDF from cdnjs with an SRI hash. This is about the app: `tools/` holds development-only scripts that never ship, are not referenced by the page, and use nothing outside the standard library.
+- **Keep it single-file and dependency-free.** No bundler, no new CDN scripts, no Python packages. jsPDF is bundled locally in assets/vendor/ and must remain available offline. This is about the app: `tools/` holds development-only scripts that never ship, are not referenced by the page, and use nothing outside the standard library.
 - **CSP:** the server hashes each inline `<script>` block at startup (`page_csp`). Never use inline event handlers (`onclick="…"`), `eval`, or `new Function`; attach handlers in the script. Any new external host for images or fetches must be added to `page_csp`.
 - **Escape everything** put into HTML with `esc()`: card names, deck text, Scryfall and MPC data and filenames are untrusted.
 - **Server routes:** every route except `/healthz`, `/og.png`, login and published `/share/<token>/…` links requires sign-in (`signed_in()`). Share tokens grant read access to that deck's artwork, the app/assets and fixed upstream relays; creation, listing, uploads and revocation under `/shares`, and all instance art routes under `/art`, require sign-in. Upstream relays only reach allow-listed paths on fixed hosts. Keep request and response sizes bounded. Never let user input pick a host or a filesystem path outside `ASSETS`/`CACHE`.

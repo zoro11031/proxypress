@@ -3,5 +3,6 @@ __pycache__/
 cache/
 node_modules/
 dist/
+out/
 electron/node_modules/
 electron/dist/

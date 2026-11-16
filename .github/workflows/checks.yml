@@ -1,0 +1,39 @@
+name: workspace checks
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Use the runner's Chrome for browser checks
+        shell: bash
+        run: |
+          browser_binary="$(command -v google-chrome || command -v google-chrome-stable)"
+          mkdir -p "$RUNNER_TEMP/proxypress-bin"
+          ln -s "$browser_binary" "$RUNNER_TEMP/proxypress-bin/chromium"
+          echo "$RUNNER_TEMP/proxypress-bin" >> "$GITHUB_PATH"
+      - name: Server and release checks
+        run: |
+          python3 -m py_compile proxy-press-server.py
+          node tools/desktop-server-check.js
+          node tools/release-check.js
+          python3 tools/deck-relay-check.py
+          python3 tools/suggestions-check.py
+          python3 tools/art-check.py
+          python3 tools/shares-check.py
+      - name: Workspace regression checks
+        run: node tools/overhaul-check.js
+      - name: Keep check logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-checks
+          path: out/overhaul-review/checks

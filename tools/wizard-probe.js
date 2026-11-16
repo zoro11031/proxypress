@@ -1,5 +1,5 @@
 // Probe for tools/console-check.js --probe. Runs inside the page.
-// Tests the 4-step wizard workflow, tab transitions, cutter switching, and operator guide rendering.
+// Tests workspace destinations, cutter switching, and operator guide rendering.
 (() => {
   const fails = [];
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
@@ -8,19 +8,19 @@
     // 1. Assert all 4 tabs exist and switchTab works
     switchTab('cards');
     eq('cards tab on', $('#tab-cards').classList.contains('on'), true);
-    eq('cards button on', $('.tabs button[data-tab="cards"]').classList.contains('on'), true);
+    eq('cards queue visible', !!$('#tab-cards').getClientRects().length, true);
 
     switchTab('setup');
-    eq('setup tab on', $('#tab-setup').classList.contains('on'), true);
-    eq('setup button on', $('.tabs button[data-tab="setup"]').classList.contains('on'), true);
+    eq('setup belongs to inspector', !!$('#tab-setup').closest('#workspaceInspector'), true);
+    eq('setup disclosure open', $('#workspaceSetupDetails').open, true);
 
     switchTab('cutting');
-    eq('cutting tab on', $('#tab-cutting').classList.contains('on'), true);
-    eq('cutting button on', $('.tabs button[data-tab="cutting"]').classList.contains('on'), true);
+    eq('cutting belongs to inspector', !!$('#tab-cutting').closest('#workspaceInspector'), true);
+    eq('cutting disclosure open', $('#workspaceCutDetails').open, true);
 
     switchTab('guide');
     eq('guide tab on', $('#tab-guide').classList.contains('on'), true);
-    eq('guide button on', $('.tabs button[data-tab="guide"]').classList.contains('on'), true);
+    eq('review dialog open', !!$('#tab-guide').closest('#modal'), true);
 
     // 2. Assert Print setup contains NO Cameo options or presets
     switchTab('setup');
@@ -140,24 +140,15 @@
     eq('rotary dropdown portrait fits nine', `${layout().cols}x${layout().rows}`, '3x3');
     eq('rotary dropdown portrait ready', $('#cutStatus')?.textContent.includes('Layout ready for the trimmer'), true);
 
-    // 3. Assert next/prev wizard buttons
-    $('#btnStep4Prev').click();
-    eq('prev from guide goes to cutting', $('#tab-cutting').classList.contains('on'), true);
-
-    $('#btnStep3Prev').click();
-    eq('prev from cutting goes to setup', $('#tab-setup').classList.contains('on'), true);
-
-    $('#btnStep2Prev').click();
-    eq('prev from setup goes to cards', $('#tab-cards').classList.contains('on'), true);
-
-    $('#btnStep1Next').click();
-    eq('next from cards goes to setup', $('#tab-setup').classList.contains('on'), true);
-
-    $('#btnStep2Next').click();
-    eq('next from setup goes to cutting', $('#tab-cutting').classList.contains('on'), true);
-
-    $('#btnStep3Next').click();
-    eq('next from cutting goes to guide', $('#tab-guide').classList.contains('on'), true);
+    // 3. Reach the same destinations through the workspace controls.
+    closeModal(); $('#btnWorkspaceSetup').click();
+    eq('setup keeps queue visible', !!$('#tab-cards').getClientRects().length, true);
+    switchTab('cutting');
+    eq('cut controls remain in inspector', !!$('#cameoSection').closest('#workspaceInspector'), true);
+    $('#btnReviewExport').click();
+    eq('review uses canonical panel', !!$('#tab-guide').closest('#modal'), true);
+    closeModal();
+    eq('closing review parks its controls intact', !!$('#tab-guide').closest('#workspaceParking'), true);
 
     // 4. Test Cameo vs Rotary cutter toggle and tool-scoped advanced settings
     switchTab('cutting');

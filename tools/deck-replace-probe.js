@@ -7,10 +7,11 @@
   const savedDecks = JSON.parse(JSON.stringify(S.decks));
   const savedDeckId = S.deckId;
 
+  const c = document.createElement('canvas'); c.width=63; c.height=88; const png=c.toDataURL();
   try {
     // Setup a clean test deck with 2 cards and custom artwork
     const testCustomKey = 'probe-test-undo-art';
-    await store.set('images', testCustomKey, new Blob(['test-art-bytes'], {type:'image/png'}));
+    await store.set('images', testCustomKey, await new Promise(r=>c.toBlob(r)));
 
     const initialEntries = [
       {
@@ -28,7 +29,7 @@
         qty: 1,
         scryId: 'command-tower-id',
         scryFace: 0,
-        faces: [{name:'Command Tower', png:'https://cards.scryfall.io/test.png'}],
+        faces: [{name:'Command Tower', png:png}],
         tokens: []
       }
     ];
@@ -63,7 +64,7 @@
               set: req.set || 'lea',
               collector_number: req.cn || '1',
               layout: 'normal',
-              image_uris: {png: 'https://cards.scryfall.io/mock.png', normal: 'https://cards.scryfall.io/mock.png'}
+              image_uris: {png: png, normal: png}
             }
           });
         }
@@ -110,7 +111,7 @@
             set: req.set || 'lea',
             collector_number: req.cn || '1',
             layout: 'normal',
-            image_uris: {png: 'https://cards.scryfall.io/mock.png', normal: 'https://cards.scryfall.io/mock.png'}
+            image_uris: {png: png, normal: png}
           }
         })),
         missing: []
@@ -130,11 +131,11 @@
       S.deckId = d2.id;
       const currentDeckNow = findDeck(targetBeforeSwitch.id);
       // Simulate editing or switching
-      d1.updated = 9999; // modified!
+      d1.entries[0].qty++; // modified before the save debounce
       eq('revision match fails if deck was modified', matchesRevision(currentDeckNow, targetBeforeSwitch), false);
 
       // Reset for actual replacement and Undo test
-      d1.updated = targetBeforeSwitch.updated;
+      d1.entries[0].qty--; d1.updated = targetBeforeSwitch.updated;
       S.deckId = d1.id;
       eq('revision matches when restored', matchesRevision(d1, targetBeforeSwitch), true);
 

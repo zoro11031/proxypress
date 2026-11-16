@@ -45,6 +45,9 @@ const {EventEmitter} = require('node:events');
     const result = JSON.parse(context.res.body);
     assert.equal(result.text, '2 Sideboard card\n1 Main card');
     assert.equal(result.name, 'Deck');
+    assert.equal(result.version, 2);
+    assert.deepEqual(result.rows.map(row=>row.section), ['Sideboard','Mainboard']);
+    assert.equal(result.rows[0].sourceLine, '2 Sideboard card');
   });
   await check('Malformed asset URL is rejected without throwing', () => {
     assert.equal(vm.runInContext("safeAssetPath('/assets/%ZZ')", context), null);

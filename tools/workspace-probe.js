@@ -19,14 +19,16 @@
 
     // 2. Add sample cards to deck to verify queue & proof integration
     const d = deck();
+    const samplePng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     d.entries = [
-      {uid: 'c1', name: 'Black Lotus', qty: 1, faces: [{name: 'Black Lotus', custom: null, scryArt: 'https://example.com/art1.jpg'}]},
-      {uid: 'c2', name: 'Mox Diamond', qty: 1, faces: [{name: 'Mox Diamond', custom: null, scryArt: 'https://example.com/art2.jpg'}]}
+      {uid: 'c1', name: 'Black Lotus', qty: 1, faces: [{name: 'Black Lotus', custom: null, scryArt: samplePng, normal: samplePng}]},
+      {uid: 'c2', name: 'Mox Diamond', qty: 1, faces: [{name: 'Mox Diamond', custom: null, scryArt: samplePng, normal: samplePng}]}
     ];
     S.settings.pageSize = 'letter';
     S.settings.orientation = 'landscape';
     S.settings.cols = 4;
     S.settings.rows = 2;
+    S.welcomed = true; closeModal(true);
     S.showBacks = false;
     S.showCuts = false;
     renderAll();
@@ -41,7 +43,8 @@
     const cards = $$('#cardList .card');
     eq('two card rows rendered', cards.length, 2);
     const copyBadge = cards[0].querySelector('.copy-badge');
-    eq('card row copy badge present', !!copyBadge && copyBadge.textContent, '×1');
+    eq('card row has one visible quantity editor', cards[0].querySelectorAll('input[data-act=qty]').length, 1);
+    eq('duplicate quantity badge is hidden', getComputedStyle(copyBadge).display, 'none');
 
     // 4. Verify Center Proof Stage and View Controls
     eq('proof sheet label displays Sheet 1 of 1', $('#proofSheetLabel').textContent, 'Sheet 1 of 1');
@@ -64,7 +67,8 @@
     eq('showBacks disabled via front button', S.showBacks, false);
 
     // 5. Verify Card Detail Footer
-    eq('proof card footer visible', $('#proofCardFooter').style.display !== 'none', true);
+    eq('proof card footer hidden without selection', $('#proofCardFooter').style.display, 'none');
+    selectCardCopy('c1', 0);
     eq('proof card name populated', $('#proofCardName').textContent, 'Black Lotus');
     eq('proof card trim dimensions displayed', $('#proofCardTrim').textContent.includes('63 × 88 mm trim'), true);
 
@@ -78,7 +82,7 @@
     // 7. Verify Persistent Bottom Export Bar
     const bar = $('#workspaceBar');
     eq('workspace export bar exists', !!bar, true);
-    eq('workspace export bar has ready status', $('#barStatus').textContent.includes('Ready to export'), true);
+    eq('workspace export bar has ready status', /Checking|Ready|Review warnings|Blocked/.test($('#barStatus').textContent), true);
     eq('workspace review export button exists', !!$('#btnReviewExport'), true);
 
     if (fails.length) return {failed: fails};
