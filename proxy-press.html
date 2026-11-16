@@ -360,7 +360,12 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .slider-hdr{display:flex;justify-content:space-between;align-items:center;font-size:12px}
 .slider-hdr label{font-weight:600;color:var(--text);cursor:pointer}
 .slider-badge-wrap{display:flex;align-items:center;gap:6px}
-.slider-val{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent2);font-size:11.5px;background:rgba(224,163,58,.12);border:1px solid rgba(224,163,58,.25);padding:1px 6px;border-radius:4px;min-width:44px;text-align:center}
+.slider-val{display:inline-flex;align-items:center;justify-content:center;background:rgba(224,163,58,.12);border:1px solid rgba(224,163,58,.25);border-radius:4px;padding:1px 5px 1px 7px;min-width:46px;cursor:text;transition:border-color .15s,box-shadow .15s,background .15s}
+.slider-val:hover{border-color:rgba(224,163,58,.45);background:rgba(224,163,58,.16)}
+.slider-val:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px rgba(224,163,58,.25);background:rgba(224,163,58,.2)}
+.slider-val-input{border:0;background:none;color:var(--accent2);font-weight:700;font-size:11.5px;font-family:inherit;font-variant-numeric:tabular-nums;text-align:right;width:28px;padding:0;margin:0;outline:none;-moz-appearance:textfield}
+.slider-val-input::-webkit-outer-spin-button,.slider-val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.slider-val-unit{color:var(--accent2);font-weight:700;font-size:11.5px;margin-left:1px;user-select:none;pointer-events:none}
 .slider-reset{font-size:10.5px;color:var(--muted);background:none;border:none;padding:1px 4px;cursor:pointer;opacity:0.75}
 .slider-reset:hover{color:var(--text);opacity:1;text-decoration:underline}
 .slider-bar{width:100%;height:6px;border-radius:3px;background:var(--panel2);accent-color:var(--accent);cursor:pointer;margin:4px 0}
@@ -4938,7 +4943,10 @@ function renderColorSliders() {
             <div class="slider-hdr">
               <label for="setting-${sl.k}">${sl.label}</label>
               <div class="slider-badge-wrap">
-                <span class="slider-val" id="val-${sl.k}">${val}${sl.unit}</span>
+                <label class="slider-val" id="val-${sl.k}" for="num-${sl.k}">
+                  <input type="number" class="slider-val-input" id="num-${sl.k}" data-k="${sl.k}" min="${sl.min}" max="${sl.max}" step="1" value="${val}" aria-label="${sl.label} percentage">
+                  <span class="slider-val-unit">${sl.unit}</span>
+                </label>
                 ${modified ? `<button type="button" class="slider-reset" data-reset-k="${sl.k}" data-def="${sl.def}" title="Reset ${sl.label} to default (${sl.def}${sl.unit})">Reset (${sl.def}${sl.unit})</button>` : ''}
               </div>
             </div>
@@ -5122,6 +5130,15 @@ function renderCalibrationProfiles() {
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
+  if (PRESET_IMAGE_KEYS.includes(k)) {
+    const limits = {brightness:[50, 150], saturation:[50, 200], contrast:[50, 200], foilTint:[0, 30]};
+    if (limits[k]) {
+      const [min, max] = limits[k];
+      s[k] = Math.max(min, Math.min(max, Math.round(parseFloat(t.value) || DEFAULTS[k])));
+    }
+    S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
+    return;
+  }
   if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) {
     t.reportValidity();
     t.value = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? s[k] / 25.4 : s[k];
@@ -5202,9 +5219,20 @@ $('#tab-setup').addEventListener('input', ev => {
   if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
   const n = parseFloat(t.value) || 0;
   S.settings[k] = n;
-  const badge = $(`#val-${k}`);
-  if (badge) badge.textContent = `${n}%`;
+  if (t.classList.contains('slider-bar')) {
+    const num = $(`#num-${k}`);
+    if (num && num !== t) num.value = n;
+  } else if (t.classList.contains('slider-val-input')) {
+    const bar = $(`#setting-${k}`);
+    if (bar && bar !== t) bar.value = n;
+  }
   renderPreview();
+});
+$('#tab-setup').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && ev.target.classList.contains('slider-val-input')) {
+    ev.preventDefault();
+    ev.target.blur();
+  }
 });
 $('#settingsForm').addEventListener('change', async ev => {
   if (ev.target.id !== 'fileBack' || !ev.target.files[0]) return;

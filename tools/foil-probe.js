@@ -116,6 +116,27 @@
     renderPresets(); gridBtn('b-foil-port')?.click();
     eq('clicking a foil preset moves to a laser printer', printerOf(S.printer).kind, 'Laser');
     eq('the toast says the printer switched', /Printer switched to /.test($('#toast').textContent), true);
+
+    // Color slider typeable numeric inputs:
+    renderSettings();
+    const numBri = $('#num-brightness'), barBri = $('#setting-brightness');
+    eq('number indicator is an editable input', !!numBri && numBri.tagName === 'INPUT' && numBri.type === 'number', true);
+    eq('number indicator has value matching brightness', Number(numBri.value), S.settings.brightness);
+    numBri.value = '125';
+    numBri.dispatchEvent(new Event('input', {bubbles:true}));
+    eq('typing in number indicator updates settings', S.settings.brightness, 125);
+    eq('typing in number indicator updates slider bar', Number(barBri.value), 125);
+
+    barBri.value = '140';
+    barBri.dispatchEvent(new Event('input', {bubbles:true}));
+    eq('dragging slider updates number indicator', Number(numBri.value), 140);
+    eq('dragging slider updates settings', S.settings.brightness, 140);
+
+    // Clamping on change:
+    numBri.value = '999';
+    numBri.dispatchEvent(new Event('change', {bubbles:true}));
+    eq('out of bounds number input clamped to max 150', S.settings.brightness, 150);
+    eq('slider bar clamped to max 150', Number($('#setting-brightness').value), 150);
   } catch (err) { fails.push(`${err.message}\n${err.stack}`); }
   finally { Object.assign(S, original); }
   return fails.length ? {failed:fails} : true;
