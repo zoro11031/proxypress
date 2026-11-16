@@ -1073,9 +1073,9 @@ const BUILTIN_PRESETS = [
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
   {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
-    pageSize:'a4', orientation:'landscape', brightness:105, saturation:150, contrast:110, foilTint:5}},
+    pageSize:'a4', orientation:'landscape', brightness:110, saturation:160, contrast:115, foilTint:5}},
   {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', brightness:105, saturation:150, contrast:110, foilTint:5}},
+    pageSize:'a4', orientation:'portrait', brightness:110, saturation:160, contrast:115, foilTint:5}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -4790,8 +4790,8 @@ const FIELDS = [
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
-  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 150%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
-  {k:'contrast', adv:true, label:'Contrast (%)', type:'num', step:1, min:50, max:200, hint:'Boosts card contrast. Foil presets set this to 110% (+10%) to help card art and text pop against metallic stock.'},
+  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 160%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
+  {k:'contrast', adv:true, label:'Contrast (%)', type:'num', step:1, min:50, max:200, hint:'Boosts card contrast. Foil presets set this to 115% (+15%) to help card art and text pop against metallic stock.'},
   {k:'foilTint', adv:true, label:'Foil off-white tint (%)', type:'num', step:1, min:0, max:15, hint:'Subtle 3–5% warm off-white underlay across the card so the laser engine deposits toner over pure white highlights, clouds, and text boxes rather than leaving raw, blindingly chrome bare foil.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];

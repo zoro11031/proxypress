@@ -17,8 +17,8 @@
     const foil = BUILTIN_PRESETS.find(p => p.id === 'b-foil-port');
     eq('foil preset exists', !!foil, true);
     eq('foil preset is A4', foil?.settings.pageSize, 'a4');
-    eq('foil preset saturation', foil?.settings.saturation, 150);
-    eq('foil preset brightness', foil?.settings.brightness, 105);
+    eq('foil preset saturation', foil?.settings.saturation, 160);
+    eq('foil preset brightness', foil?.settings.brightness, 110);
     eq('foil preset counts as Laser', foil?.kind, 'Laser');
     eq('both orientations ship', FOIL_IDS.length, 2);
     eq('every foil id is a preset', FOIL_IDS.every(id => BUILTIN_PRESETS.some(p => p.id === id)), true);
@@ -30,9 +30,9 @@
 
     // The repair: declared image keys must actually apply.
     S.settings = {...DEFAULTS, saturation:100, contrast:100, foilTint:0};
-    eq('applying the foil preset sets brightness', foil && presetSettings(foil).brightness, 105);
-    eq('applying the foil preset sets saturation', foil && presetSettings(foil).saturation, 150);
-    eq('applying the foil preset sets contrast', foil && presetSettings(foil).contrast, 110);
+    eq('applying the foil preset sets brightness', foil && presetSettings(foil).brightness, 110);
+    eq('applying the foil preset sets saturation', foil && presetSettings(foil).saturation, 160);
+    eq('applying the foil preset sets contrast', foil && presetSettings(foil).contrast, 115);
     eq('applying the foil preset sets foilTint', foil && presetSettings(foil).foilTint, 5);
     eq('applying the foil preset sets A4', foil && presetSettings(foil).pageSize, 'a4');
 
@@ -65,9 +65,9 @@
     eq('no guide button is labelled by orientation alone',
        PRINTERS.find(p => p.id === 'mf753').presets.map(guideLabel).filter(l => /^(Landscape|Portrait)/.test(l)), []);
     btn?.click();
-    eq('clicking it in the printer guide applies brightness', S.settings.brightness, 105);
-    eq('clicking it in the printer guide applies saturation', S.settings.saturation, 150);
-    eq('clicking it in the printer guide applies contrast', S.settings.contrast, 110);
+    eq('clicking it in the printer guide applies brightness', S.settings.brightness, 110);
+    eq('clicking it in the printer guide applies saturation', S.settings.saturation, 160);
+    eq('clicking it in the printer guide applies contrast', S.settings.contrast, 115);
     eq('clicking it in the printer guide applies foilTint', S.settings.foilTint, 5);
     eq('clicking it in the printer guide applies A4', S.settings.pageSize, 'a4');
 
@@ -80,8 +80,8 @@
     eq('foil preset title leads with the sheet', gridBtn('b-foil-land')?.querySelector('b').textContent.startsWith('A4 foil'), true);
     eq('foil portrait is not active at saturation 100', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'false');
     eq('plain A4 portrait is active at saturation 100', gridBtn('b-a4')?.getAttribute('aria-pressed'), 'true');
-    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', brightness:105, saturation:150, contrast:110, foilTint:5}; renderPresets();
-    eq('foil portrait is active at saturation 150', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'true');
+    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', brightness:110, saturation:160, contrast:115, foilTint:5}; renderPresets();
+    eq('foil portrait is active at saturation 160', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'true');
     eq('foil landscape is not active on a portrait sheet', gridBtn('b-foil-land')?.getAttribute('aria-pressed'), 'false');
     eq('the A3 tip says the vendor cuts to A4', FOIL_TIPS.some(t => /ProxyJak/.test(t) && /40\s*[×x]\s*A4/.test(t) && /A3/.test(t)), true);
     eq('the A3 tip keeps the printer-feed clause', FOIL_TIPS.some(t => /can feed A3/.test(t)), true);
