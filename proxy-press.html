@@ -190,8 +190,16 @@ body.has-cards .import-panel textarea{min-height:0}
 #toggleSidebar{font-size:11px;color:var(--muted);background:none;border-color:transparent;padding:0 9px}
 #toggleSidebar:hover{color:var(--text);border-color:var(--line)}
 body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
-@media (min-width:821px){body.preview-focus main{grid-template-columns:minmax(0,1fr)}body.preview-focus main>aside{display:none}body.preview-focus #workspaceInspector{display:none}}
-@media (min-width:821px) and (max-width:1100px){body:not(.order-mode) main{grid-template-columns:230px minmax(0,1fr) 240px}body.inspector-collapsed main{grid-template-columns:230px minmax(0,1fr) 0}body.inspector-collapsed #workspaceInspector{display:none}}
+@media (min-width:821px){
+  body.preview-focus main{grid-template-columns:minmax(0,1fr)}
+  body.preview-focus main>aside{display:none}
+  body.preview-focus #workspaceInspector{display:none}
+  body.inspector-collapsed main{grid-template-columns:280px minmax(0,1fr) 0 !important}
+  body.inspector-collapsed #workspaceInspector{display:none !important}
+  body.inspector-collapsed #toggleInspector{display:inline-flex !important}
+  body:not(.inspector-collapsed) #toggleInspector{display:none !important}
+}
+@media (min-width:821px) and (max-width:1100px){body:not(.order-mode) main{grid-template-columns:230px minmax(0,1fr) 240px}}
 @media (max-width:820px){.stage-controls{margin:-12px -8px var(--s5);padding:8px 12px}.stage-heading{margin-bottom:var(--s2)}.stage-heading b{font-size:15px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-views{margin-left:0}.toolbar-views .toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}#toggleInspector{display:none}.tabs .step-index{display:none}#workspaceInspector{display:none}#workspaceBar{display:flex;height:48px;padding:0 12px}#workspaceBar .bar-status{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#workspaceBar button.primary{padding:6px 12px;font-size:12px}}
 #workspaceInspector{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;padding:var(--s3);overflow-y:auto;min-height:0;gap:var(--s2)}
 .inspector-hdr h3{margin:0;padding:0;border:0;font-size:15px;font-weight:700;color:var(--text)}
@@ -632,7 +640,7 @@ body:not(.has-cards) .queue-hd{display:none}
 body.has-cards #importDrawer:not([open]){display:none}
 .queue-title-row{flex-wrap:wrap}
 .queue-title-row button{font-size:12px;padding:4px 7px}
-.queue-tools{display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:1px solid var(--hair)}
+.queue-tools{display:none!important}
 .inspector-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #workspaceInspector .pane{display:block;overflow:visible;padding:8px 0 12px}
 #workspaceInspector .pane>.step-hdr{display:none}
@@ -640,9 +648,7 @@ body.has-cards #importDrawer:not([open]){display:none}
 #reviewPanelSlot>.pane{display:block;padding:0;overflow:visible}
 #workspaceInspector summary{font-size:13px}
 #workspaceParking{display:none!important}
-@media(min-width:1101px){#btnCloseSetup{display:none}}
 @media(max-width:820px){
- .queue-tools{display:none}
  body[data-workspace-view=setup] main>aside:first-child,body[data-workspace-view=setup] #stage{display:none}
  body[data-workspace-view=setup] #workspaceInspector{display:flex!important;border-left:0}
  #workspaceInspector{padding-bottom:16px}
@@ -1203,7 +1209,7 @@ body.has-cards #importDrawer:not([open]){display:none}
         <input type="checkbox" id="showCuts" style="display:none">
         <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
         <button id="toggleSidebar" aria-pressed="false">Hide queue</button>
-        <button id="toggleInspector" class="print-only" aria-pressed="false">Toggle setup</button>
+        <button id="toggleInspector" class="print-only" style="display:none" aria-pressed="false">Show setup</button>
       </div>
     </div>
     </div>
@@ -9046,17 +9052,35 @@ function switchTab(name) {
   if (name === 'setup' || name === 'cutting') {
     if (S.mode === 'order') return switchTab('order');
     document.body.classList.remove('preview-focus');
+    document.body.classList.remove('inspector-collapsed');
     document.body.classList.add('inspector-open');
     const details = name === 'cutting' ? $('#workspaceCutDetails') : $('#workspaceSetupDetails'); details.open = true;
     if (innerWidth <= 820) setWorkspaceView('setup');
-    $('summary', details).focus();
+    $('summary', details)?.focus();
     return;
   }
   setWorkspaceView('cards');
   syncCardSelection();
 }
+function toggleInspector(open) {
+  const shouldOpen = open !== undefined ? open : document.body.classList.contains('inspector-collapsed');
+  if (innerWidth <= 820) {
+    if (shouldOpen) setWorkspaceView('setup');
+    else { document.body.classList.remove('inspector-open'); setWorkspaceView('cards'); }
+  } else {
+    document.body.classList.toggle('inspector-collapsed', !shouldOpen);
+    document.body.classList.remove('preview-focus');
+    if (shouldOpen) {
+      document.body.classList.add('inspector-open');
+      const details = $('#workspaceSetupDetails'); if (details) details.open = true;
+    } else {
+      setWorkspaceView('cards');
+    }
+  }
+  if (S.zoomMode === 'fit') $('#zoomFit')?.click();
+}
 $('#btnWorkspaceSetup').onclick = () => switchTab('setup');
-$('#btnCloseSetup').onclick = () => { document.body.classList.remove('inspector-open'); setWorkspaceView('cards'); $('#btnWorkspaceSetup').focus(); };
+$('#btnCloseSetup').onclick = () => toggleInspector(false);
 
 const tabGuideBtnPrint = $('#tabGuideBtnPrint');
 const tabGuideBtnCut = $('#tabGuideBtnCut');
@@ -9102,7 +9126,7 @@ if ($('#btnProofGuides')) $('#btnProofGuides').onclick = () => { S.showCuts = !S
 if ($('#btnSheetPrev')) $('#btnSheetPrev').onclick = () => { if (S.activeSheet > 0) { S.activeSheet--; schedulePrintReview(); drawPreview(); } };
 if ($('#btnSheetNext')) $('#btnSheetNext').onclick = () => { const pages = paginate(buildSlots(), layout().per); if (S.activeSheet < pages.length - 1) { S.activeSheet++; schedulePrintReview(); drawPreview(); } };
 if ($('#sheetJumpSel')) $('#sheetJumpSel').onchange = e => { S.activeSheet = +e.target.value; schedulePrintReview(); drawPreview(); };
-$('#toggleInspector').onclick = () => switchTab('setup');
+$('#toggleInspector').onclick = () => toggleInspector(true);
 if ($('#btnInspCal')) $('#btnInspCal').onclick = () => downloadCalibrationSheet('alignment');
 if ($('#btnInspDuplexTest')) $('#btnInspDuplexTest').onclick = () => downloadCalibrationSheet('duplex');
 if ($('#btnInspDuplexWizard')) $('#btnInspDuplexWizard').onclick = () => openDuplexWizard();
