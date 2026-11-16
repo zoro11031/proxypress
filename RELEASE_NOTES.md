@@ -1,3 +1,32 @@
+# Proxy Press v0.7.2
+
+Live print rotation in sheet preview, calibration status, contrast slider, and improved foil tuning.
+
+## What's new
+
+- **Print rotation in the preview:** Adjusting `printRotate` or `backRotate` now immediately renders on screen using CSS rotations on the sheet container, matching the output on the PDF export and test sheets.
+- **Calibration profile status:** A live label below the calibration profile picker now explicitly informs you whether the profile matches the active sheet/orientation, falls back to matching axes, or turns numbers for orientation changes.
+- **Contrast slider & foil preset enhancements:**
+  - Added a dedicated Contrast (%) control under Export Quality.
+  - Built-in foil presets are tuned with +50% saturation (150%), +10% contrast (110%), and an automatic 4% subtle warm off-white underlay tint (`foilTint`) so laser toner deposits over pure white text boxes, clouds, and highlights without leaving raw chrome foil.
+  - Added guidance on prepping foil card artwork.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/Proxy-Press-0.7.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/Proxy-Press-0.7.2.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/Proxy-Press-0.7.2.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/Proxy-Press-0.7.2.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/Proxy-Press-0.7.2.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/Proxy-Press-0.7.2.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.7.2/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.7.1
 
 Page labels you can actually see, and foil advice that matches what the printer does.

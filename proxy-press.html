@@ -626,6 +626,7 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
           <button id="calProfileSave">Save profile</button>
           <button id="calProfileDelete" class="danger">Delete</button>
         </div>
+        <p class="hint" id="calProfileStatus" style="margin:4px 0 8px;font-style:italic"></p>
         <p class="hint">A profile remembers the alignment for one printer and stock, and keeps a separate set for each sheet size and orientation: the flip, the printer offset and scale, and the back page's offset, scale and rotation. Every one of those is in the printed page's own axes, so a set that is right in landscape is wrong in portrait &mdash; calibrate the sheet the other way round, save it under the same name, and the profile holds both. Switching sheet or orientation then loads the matching set. The list starts with offsets measured on one machine, as a starting point &mdash; print the double-sided test afterwards to check them against yours.</p>
         <div class="grid2" id="calForm"></div>
       </details>
@@ -1031,7 +1032,7 @@ const DEFAULTS = {
   bleed:2, bleedMode:'extend', gap:0, margin:4, cols:0, rows:0, backScaleRel:true,
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
-  dpi:1200, jpeg:92, brightness:100, saturation:100, customSrcBleed:3.048,
+  dpi:1200, jpeg:92, brightness:100, saturation:100, contrast:100, foilTint:0, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
   silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
 };
@@ -1050,9 +1051,9 @@ const BUILTIN_PRESETS = [
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
   {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
-    pageSize:'a4', orientation:'landscape', brightness:100, saturation:120}},
+    pageSize:'a4', orientation:'landscape', brightness:100, saturation:150, contrast:110, foilTint:4}},
   {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', brightness:100, saturation:120}},
+    pageSize:'a4', orientation:'portrait', brightness:100, saturation:150, contrast:110, foilTint:4}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -1090,6 +1091,7 @@ const FOIL_TIPS = [
   '<b>On foil stock:</b> print <b>simplex only</b>, and feed <b>one sheet at a time</b>.',
   '<b>On foil stock:</b> apply the foil driver profile <b>last</b>, because the device density bands persist in the printer.',
   '<b>On foil stock:</b> leave <b>Paper Curl Correction</b> <b>off</b>. It costs print quality on this printer — Canon\'s own manual warns it may fade the print — and the fading is not worth it. Handle curl with the lighter paper class above, and by laying each sheet flat to cool under a weight instead of stacking them warm. No driver profile can set it — it is on the printer panel, and to check it is off, on the MF753 it is under <b>Menu &gt; Adjustment/Maintenance &gt; Adjust Image Quality &gt; Special Paper Processing &gt; Paper Curl Correction</b>.',
+  '<b>On foil stock:</b> pure white areas without toner show bare chrome foil. If card art elements (text boxes, clouds, white mana symbols) look blindingly reflective, prep them with a subtle 3–5% off-white / light cream tint so the laser engine deposits toner over them.',
 ];
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
@@ -1353,6 +1355,7 @@ function filterFor(s) {
   const f = [];
   if (s.brightness !== 100) f.push(`brightness(${s.brightness}%)`);
   if (s.saturation !== 100) f.push(`saturate(${s.saturation}%)`);
+  if (s.contrast && s.contrast !== 100) f.push(`contrast(${s.contrast}%)`);
   return f.join(' ');
 }
 async function renderFace(face, dpi, hi, rot = 0) {
@@ -1386,6 +1389,13 @@ async function renderFace(face, dpi, hi, rot = 0) {
     x.drawImage(img, s0, t0 + inset, sw, strip, d0, 0, dw, ext);
     x.drawImage(img, s0, t0 + sh - inset - strip, sw, strip, d0, u0 + dh, dw, ext);
   }
+  if (s.foilTint > 0) {
+    x.save();
+    x.globalCompositeOperation = 'multiply';
+    x.fillStyle = `hsl(40, 25%, ${Math.max(80, 100 - s.foilTint * 2)}%)`;
+    x.fillRect(0, 0, W, H);
+    x.restore();
+  }
   x.filter = 'none';
   if (!rot) return c;
   const half = rot === 180, r = document.createElement('canvas');
@@ -1399,7 +1409,7 @@ async function renderFace(face, dpi, hi, rot = 0) {
 const previewCache = new Map();
 function settingsSig() {
   const s = S.settings;
-  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.customSrcBleed, s.duplexFlip].join(',');
+  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.contrast, s.foilTint, s.customSrcBleed, s.duplexFlip].join(',');
 }
 async function previewUrl(face, rot = 0) {
   const key = (face.custom || face.drive || face.normal) + '|' + settingsSig() + '|' + rot;
@@ -4758,7 +4768,9 @@ const FIELDS = [
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
-  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 120%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
+  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 150%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
+  {k:'contrast', adv:true, label:'Contrast (%)', type:'num', step:1, min:50, max:200, hint:'Boosts card contrast. Foil presets set this to 110% (+10%) to help card art and text pop against metallic stock.'},
+  {k:'foilTint', adv:true, label:'Foil off-white tint (%)', type:'num', step:1, min:0, max:15, hint:'Subtle 3–5% warm off-white underlay across the card so the laser engine deposits toner over pure white highlights, clouds, and text boxes rather than leaving raw, blindingly chrome bare foil.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
@@ -5004,6 +5016,18 @@ function renderCalibrationProfiles() {
   const opt = p => `<option value="${esc(p.id)}">${esc(p.name + held(p))}</option>`;
   sel.innerHTML = `<option value="">No saved profile</option><optgroup label="Measured starting points">${BUILTIN_CAL_PROFILES.map(opt).join('')}</optgroup>${S.calibrationProfiles.map(opt).join('')}`;
   if (calProfiles().some(p => p.id === current)) sel.value = current;
+  const statusEl = $('#calProfileStatus');
+  if (statusEl) {
+    const active = calProfiles().find(p => p.id === sel.value);
+    if (!active) statusEl.textContent = '';
+    else {
+      const got = calSlotFor(active, S.settings), here = calSlotName(calSlotKey(S.settings));
+      if (got.from === 'exact') statusEl.textContent = `Active for ${calSlotName(got.key)}.`;
+      else if (got.from === 'size') statusEl.textContent = `No set for ${here}; using ${calSlotName(got.key)} numbers.`;
+      else if (got.from === 'turned') statusEl.textContent = `Calculated turn from ${calSlotName(got.key)} numbers for ${here}.`;
+      else statusEl.textContent = `Loaded numbers from ${active.name}.`;
+    }
+  }
 }
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
@@ -5077,7 +5101,11 @@ $('#calProfileSel').onchange = ev => {
   // name that Save would then refuse.
   const nameBox = $('#calProfileName');
   if (nameBox) nameBox.value = p && !p.builtin ? p.name : '';
-  if (!p) return;
+  if (!p) {
+    const statusEl = $('#calProfileStatus');
+    if (statusEl) statusEl.textContent = '';
+    return;
+  }
   applyCalProfile(p);
 };
 $('#calProfileSave').onclick = () => {
@@ -5121,7 +5149,7 @@ const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 // a preset cannot reach margin, bleed, dpi or the card size. For a preset with a
 // kind the margin/bleed branch below does not run at all, which means applying one
 // leaves margin and bleed at whatever the user last had.
-const PRESET_IMAGE_KEYS = ['brightness', 'saturation'];
+const PRESET_IMAGE_KEYS = ['brightness', 'saturation', 'contrast', 'foilTint'];
 function cameoPaperLayout(orientation) {
   const portrait = orientation === 'portrait';
   return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 5.5 : 10, regLen:0};
@@ -5319,6 +5347,8 @@ async function drawPreview() {
     for (const back of sides) {
       const T = makeT(L, back), el = document.createElement('div');
       el.className = 'pg'; el.style.width = L.W*z + 'px'; el.style.height = L.H*z + 'px';
+      const pRot = turnAngle(back);
+      if (pRot) el.style.transform = `rotate(${pRot}deg)`;
       const backRot = faceRot(L, true), edge = s.duplexFlip === 'short' ? 'short-edge' : 'long-edge';
       const backTransform = backRot === 180 ? 'inverted 180°' : backRot ? `rotated ${Math.abs(backRot)}°` : 'not rotated';
       const backNote = back ? ` · back (${backTransform} for ${edge} feed)` : '';
