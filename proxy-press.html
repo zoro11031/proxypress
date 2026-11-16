@@ -1073,9 +1073,9 @@ const BUILTIN_PRESETS = [
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
   {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
-    pageSize:'a4', orientation:'landscape', brightness:105, saturation:150, contrast:110, foilTint:5}},
+    pageSize:'a4', orientation:'landscape', brightness:110, saturation:160, contrast:115, foilTint:6}},
   {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', brightness:105, saturation:150, contrast:110, foilTint:5}},
+    pageSize:'a4', orientation:'portrait', brightness:110, saturation:160, contrast:115, foilTint:6}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -1113,7 +1113,7 @@ const FOIL_TIPS = [
   '<b>On foil stock:</b> print <b>simplex only</b>, and feed <b>one sheet at a time</b>.',
   '<b>On foil stock:</b> apply the foil driver profile <b>last</b>, because the device density bands persist in the printer.',
   '<b>On foil stock:</b> leave <b>Paper Curl Correction</b> <b>off</b>. It costs print quality on this printer — Canon\'s own manual warns it may fade the print — and the fading is not worth it. Handle curl with the lighter paper class above, and by laying each sheet flat to cool under a weight instead of stacking them warm. No driver profile can set it — it is on the printer panel, and to check it is off, on the MF753 it is under <b>Menu &gt; Adjustment/Maintenance &gt; Adjust Image Quality &gt; Special Paper Processing &gt; Paper Curl Correction</b>.',
-  '<b>On foil stock:</b> pure white areas without toner show bare chrome foil. If card art elements (text boxes, clouds, white mana symbols) look blindingly reflective, prep them with a subtle 3–5% off-white / light cream tint so the laser engine deposits toner over them.',
+  '<b>On foil cardstock:</b> laser printers lack opaque white toner, so pure white areas (#FFFFFF) receive no toner and show bare silver foil. Saturated colors and high contrast look best because toner acts like a vibrant stained-glass filter over the metallic reflection.',
 ];
 const COMMON_TIPS = [
   'Print at <b>Actual size / 100%</b>, not "Fit to page".',
@@ -1414,7 +1414,8 @@ async function renderFace(face, dpi, hi, rot = 0) {
   if (s.foilTint > 0) {
     x.save();
     x.globalCompositeOperation = 'multiply';
-    x.fillStyle = `hsl(40, 25%, ${Math.max(80, 100 - s.foilTint * 2)}%)`;
+    const l = Math.max(65, 100 - s.foilTint * 1.3);
+    x.fillStyle = `hsl(215, 6%, ${l.toFixed(1)}%)`;
     x.fillRect(0, 0, W, H);
     x.restore();
   }
@@ -4790,9 +4791,9 @@ const FIELDS = [
   {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
-  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 150%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
-  {k:'contrast', adv:true, label:'Contrast (%)', type:'num', step:1, min:50, max:200, hint:'Boosts card contrast. Foil presets set this to 110% (+10%) to help card art and text pop against metallic stock.'},
-  {k:'foilTint', adv:true, label:'Foil off-white tint (%)', type:'num', step:1, min:0, max:15, hint:'Subtle 3–5% warm off-white underlay across the card so the laser engine deposits toner over pure white highlights, clouds, and text boxes rather than leaving raw, blindingly chrome bare foil.'},
+  {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 160%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
+  {k:'contrast', adv:true, label:'Contrast (%)', type:'num', step:1, min:50, max:200, hint:'Boosts card contrast. Foil presets set this to 115% (+15%) to help card art and text pop against metallic stock.'},
+  {k:'foilTint', adv:true, label:'Foil pearl underlay (%)', type:'num', step:1, min:0, max:30, hint:'Neutral metallic pearl underlay for foil cardstock. Uses a cool-spectrum pearl tone (hsl 215, 6% sat) that breaks harsh bare-mirror glare into smooth silver pearl without muddying vibrant artwork or turning whites into brown.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
 const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
@@ -4927,7 +4928,7 @@ function renderSettings() {
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-  const foilBadge = (s.foilTint > 0 || s.saturation === 150) ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}% · Tint ${s.foilTint}%)</span>` : '';
+  const foilBadge = (s.foilTint > 0 || s.saturation === 160) ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%${s.foilTint ? ` · Tint ${s.foilTint}%` : ''})</span>` : '';
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
   const sumEl = $('#setupSummary');
@@ -5184,8 +5185,8 @@ function presetSettings(p) {
     next[k] = p.settings[k] !== undefined ? p.settings[k] : DEFAULTS[k];
   }
   if (S.settings.silhouette) Object.assign(next, cameoPaperLayout(next.orientation));
-  else if (!p.kind) {
-    const laser = printerOf(S.printer).kind === 'Laser', portrait = next.orientation === 'portrait';
+  else if (!p.kind || FOIL_IDS.includes(p.id)) {
+    const laser = (p.kind || printerOf(S.printer).kind) === 'Laser', portrait = next.orientation === 'portrait';
     const bleed = portrait ? (next.pageSize === 'letter' ? (laser ? 0.75 : 1) : (laser ? 1.5 : 2)) : 2;
     Object.assign(next, {cols:0, rows:0, gap:0, margin:laser ? 5 : 4, bleed});
   }

@@ -1,6 +1,6 @@
 # Proxy Press v0.7.3
 
-Print tab overhaul, direct custom preset saving, and 105% foil brightness tuning.
+Print tab overhaul, direct custom preset saving, and optimum foil preset tuning (110% brightness, 160% saturation, 115% contrast).
 
 ## What's new
 
@@ -10,8 +10,10 @@ Print tab overhaul, direct custom preset saving, and 105% foil brightness tuning
   - Eliminated the double-selection bug where standard A4 and A4 Foil lit up simultaneously; presets now enforce clean mutual exclusion.
   - Reorganized presets into clear, distinct sections: Standard Sheet Presets, Specialty & Foil Stock, and Saved Custom Presets.
   - Streamlined driver settings with a compact, dedicated quick-stock profile bar, removing redundant duplicate preset cards.
-- **Foil brightness tuning:**
-  - Increased brightness for built-in foil presets from 100% to 105% to enhance highlights against reflective metallic paper alongside 150% saturation, 110% contrast, and 5% off-white underlay tint.
+- **Foil tuning:**
+  - Tuned built-in foil presets to **110% brightness**, **160% saturation**, and **115% contrast** to counteract the darkening and color dulling of metallic surfaces while preserving rich blacks and pin-sharp text.
+  - Upgraded the foil underlay to a cool-spectrum **neutral metallic pearl** (`hsl(215, 6%, 92.2%)` at `foilTint: 6`) that softens harsh bare-mirror glare into smooth platinum pearl without tinting whites to brown or muddying artwork.
+  - Added clear guidance for foil cardstock explaining that laser toner is translucent without opaque white pigment, so saturated colors and high contrast look best directly on metallic stock.
 
 ## Downloads
 
