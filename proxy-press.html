@@ -360,7 +360,12 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .slider-hdr{display:flex;justify-content:space-between;align-items:center;font-size:12px}
 .slider-hdr label{font-weight:600;color:var(--text);cursor:pointer}
 .slider-badge-wrap{display:flex;align-items:center;gap:6px}
-.slider-val{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent2);font-size:11.5px;background:rgba(224,163,58,.12);border:1px solid rgba(224,163,58,.25);padding:1px 6px;border-radius:4px;min-width:44px;text-align:center}
+.slider-val{display:inline-flex;align-items:center;justify-content:center;background:rgba(224,163,58,.12);border:1px solid rgba(224,163,58,.25);border-radius:4px;padding:1px 5px 1px 7px;min-width:46px;cursor:text;transition:border-color .15s,box-shadow .15s,background .15s}
+.slider-val:hover{border-color:rgba(224,163,58,.45);background:rgba(224,163,58,.16)}
+.slider-val:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px rgba(224,163,58,.25);background:rgba(224,163,58,.2)}
+.slider-val-input{border:0;background:none;color:var(--accent2);font-weight:700;font-size:11.5px;font-family:inherit;font-variant-numeric:tabular-nums;text-align:right;width:28px;padding:0;margin:0;outline:none;-moz-appearance:textfield}
+.slider-val-input::-webkit-outer-spin-button,.slider-val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.slider-val-unit{color:var(--accent2);font-weight:700;font-size:11.5px;margin-left:1px;user-select:none;pointer-events:none}
 .slider-reset{font-size:10.5px;color:var(--muted);background:none;border:none;padding:1px 4px;cursor:pointer;opacity:0.75}
 .slider-reset:hover{color:var(--text);opacity:1;text-decoration:underline}
 .slider-bar{width:100%;height:6px;border-radius:3px;background:var(--panel2);accent-color:var(--accent);cursor:pointer;margin:4px 0}
@@ -634,7 +639,8 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
       <div id="settingsForm"></div>
       <h3>Printer &amp; driver</h3>
       <div class="field full">
-        <select id="printerSel" aria-label="Printer type"></select>
+        <label for="printerSel">Printer technology</label>
+        <select id="printerSel" aria-label="Printer technology"></select>
       </div>
       <div id="printerGuide"></div>
       <h3>Calibration &amp; advanced</h3>
@@ -3121,7 +3127,8 @@ function syncCardSelection() {
   const valid = new Set(deck().entries.flatMap(e => Array.from({length:e.qty}, (_, q) => copyKey(e, q))));
   selectedCopies = new Set([...selectedCopies].filter(k => valid.has(k)));
   const bar = $('#cardSelection'), mobilePreview = innerWidth <= 820 && document.body.classList.contains('m-preview');
-  if (mobilePreview) { if (bar.parentElement !== $('#stage')) $('#pages').before(bar); }
+  const stageBar = mobilePreview || S.mode === 'order' || !$('#tab-cards').classList.contains('on');
+  if (stageBar) { if (bar.parentElement !== $('#stage')) $('#pages').before(bar); }
   else if (bar.parentElement !== $('#cardList').parentElement) $('#cardList').before(bar);
   bar.hidden = !selectedCopies.size;
   $('#cardSelectionCount').textContent = `${selectedCopies.size} cop${selectedCopies.size === 1 ? 'y' : 'ies'} selected`;
@@ -4936,7 +4943,10 @@ function renderColorSliders() {
             <div class="slider-hdr">
               <label for="setting-${sl.k}">${sl.label}</label>
               <div class="slider-badge-wrap">
-                <span class="slider-val" id="val-${sl.k}">${val}${sl.unit}</span>
+                <label class="slider-val" id="val-${sl.k}" for="num-${sl.k}">
+                  <input type="number" class="slider-val-input" id="num-${sl.k}" data-k="${sl.k}" min="${sl.min}" max="${sl.max}" step="1" value="${val}" aria-label="${sl.label} percentage">
+                  <span class="slider-val-unit">${sl.unit}</span>
+                </label>
                 ${modified ? `<button type="button" class="slider-reset" data-reset-k="${sl.k}" data-def="${sl.def}" title="Reset ${sl.label} to default (${sl.def}${sl.unit})">Reset (${sl.def}${sl.unit})</button>` : ''}
               </div>
             </div>
@@ -4987,7 +4997,11 @@ function renderSettings() {
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-  const foilBadge = (s.foilTint > 0 || s.saturation === 160) ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%${s.foilTint ? ` · Tint ${s.foilTint}%` : ''})</span>` : '';
+  const foilBadge = (s.foilTint > 0 || s.saturation === 160)
+    ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%${s.foilTint ? ` · Tint ${s.foilTint}%` : ''})</span>`
+    : (s.brightness !== 100 || s.saturation !== 100 || s.contrast !== 100)
+      ? ` · <span style="color:var(--accent);font-weight:600">Color tuned (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%)</span>`
+      : '';
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
   const sumEl = $('#setupSummary');
@@ -5116,6 +5130,15 @@ function renderCalibrationProfiles() {
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
+  if (PRESET_IMAGE_KEYS.includes(k)) {
+    const limits = {brightness:[50, 150], saturation:[50, 200], contrast:[50, 200], foilTint:[0, 30]};
+    if (limits[k]) {
+      const [min, max] = limits[k];
+      s[k] = Math.max(min, Math.min(max, Math.round(parseFloat(t.value) || DEFAULTS[k])));
+    }
+    S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
+    return;
+  }
   if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) {
     t.reportValidity();
     t.value = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? s[k] / 25.4 : s[k];
@@ -5196,9 +5219,20 @@ $('#tab-setup').addEventListener('input', ev => {
   if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
   const n = parseFloat(t.value) || 0;
   S.settings[k] = n;
-  const badge = $(`#val-${k}`);
-  if (badge) badge.textContent = `${n}%`;
+  if (t.classList.contains('slider-bar')) {
+    const num = $(`#num-${k}`);
+    if (num && num !== t) num.value = n;
+  } else if (t.classList.contains('slider-val-input')) {
+    const bar = $(`#setting-${k}`);
+    if (bar && bar !== t) bar.value = n;
+  }
   renderPreview();
+});
+$('#tab-setup').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && ev.target.classList.contains('slider-val-input')) {
+    ev.preventDefault();
+    ev.target.blur();
+  }
 });
 $('#settingsForm').addEventListener('change', async ev => {
   if (ev.target.id !== 'fileBack' || !ev.target.files[0]) return;
@@ -5313,16 +5347,19 @@ function renderPrinter() {
   const driverOpen = !!$('#driverDetails')?.open;
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
+    <div class="field full" style="margin-top:6px">
+      <label for="driverPrinterSel" style="font-weight:600">Printer model</label>
+      <select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+    </div>
+    <p class="hint" style="margin:4px 0 10px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
+    ${pr.presets?.length ? `
+      <div style="margin:0 0 10px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tested stock presets for this printer:</div>
+        <div class="pick presets compact">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>
+      </div>` : ''}
     <details class="adv" id="driverDetails" style="margin:6px 0 14px" ${driverOpen ? 'open' : ''}>
       <summary>Driver settings &amp; tips</summary>
-      <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-      <p class="hint" style="margin-top:6px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
-      ${pr.presets?.length ? `
-        <div style="margin:10px 0 8px">
-          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tested stock presets for this printer:</div>
-          <div class="pick presets compact">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>
-        </div>` : ''}
-      <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
+      <table class="drv" style="margin-top:8px">${pr.settings.slice(0, 5).map(row).join('')}</table>
       ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
       ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
       <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>
@@ -7109,6 +7146,7 @@ function switchTab(name) {
   const activePane = $('#tab-' + name);
   if (activePane) activePane.scrollTop = 0;
   if (name === 'guide') renderGuideTab();
+  syncCardSelection();
   const btnPdf = $('#btnPdf');
   if (btnPdf) {
     if (name === 'guide') {
