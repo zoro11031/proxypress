@@ -187,12 +187,13 @@ body.has-cards .import-panel textarea{min-height:0}
 .paper-direction button.on{background:#39311f;color:var(--accent2)}
 #toggleSidebar{font-size:11px;color:var(--muted);background:none;border-color:transparent;padding:0 9px}
 #toggleSidebar:hover{color:var(--text);border-color:var(--line)}
+body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 @media (min-width:821px){body.preview-focus main{grid-template-columns:minmax(0,1fr)}body.preview-focus main>aside{display:none}}
 @media (max-width:820px){.stage-controls{margin:-12px -8px var(--s5);padding:8px 12px}.stage-heading{margin-bottom:var(--s2)}.stage-heading b{font-size:15px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-views{margin-left:0}.toolbar-views .toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}.tabs .step-index{display:none}}
 #stage .toolbar input[type=range]{width:90px;vertical-align:middle;accent-color:var(--accent)}
 #zoomValue{font-variant-numeric:tabular-nums;min-width:36px;display:inline-block;text-align:right}
-.guide-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--s1);margin:var(--s3) 0}
-.guide-presets button{padding:8px 3px;font-size:10.5px;line-height:1.25;white-space:normal;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;border-color:var(--hair);background:var(--fill)}
+.guide-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:var(--s3) 0}
+.guide-presets button{padding:7px 2px;font-size:10px;line-height:1.2;white-space:normal;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;border-color:var(--hair);background:var(--fill);border-radius:var(--r-md);min-width:0;overflow:hidden}
 .guide-presets button:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
 .guide-presets button.on{border-color:var(--accent);background:rgba(224,163,58,.08);color:var(--accent2)}
 .guide-presets svg{width:26px;height:32px;fill:none;stroke:currentColor;stroke-width:1.3}
@@ -349,6 +350,22 @@ body.has-cards .import-panel textarea{min-height:0}
 .pick.presets.compact button{padding:6px 9px;min-height:auto}
 .pick.presets.compact button b{font-size:11.5px;padding-right:0}
 .pick.presets.compact button span{font-size:10.5px}
+/* ---------- color & stock tuning sliders ---------- */
+.color-sliders{background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md);padding:12px 14px;margin-bottom:var(--s3);display:flex;flex-direction:column;gap:12px}
+.color-sliders-hdr{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--hair)}
+.btn-chip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .15s}
+.btn-chip:hover{color:var(--text);border-color:var(--accent)}
+.btn-chip.active{background:rgba(224,163,58,.15);border-color:var(--accent);color:var(--accent2)}
+.slider-row{display:flex;flex-direction:column;gap:4px}
+.slider-hdr{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.slider-hdr label{font-weight:600;color:var(--text);cursor:pointer}
+.slider-badge-wrap{display:flex;align-items:center;gap:6px}
+.slider-val{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent2);font-size:11.5px;background:rgba(224,163,58,.12);border:1px solid rgba(224,163,58,.25);padding:1px 6px;border-radius:4px;min-width:44px;text-align:center}
+.slider-reset{font-size:10.5px;color:var(--muted);background:none;border:none;padding:1px 4px;cursor:pointer;opacity:0.75}
+.slider-reset:hover{color:var(--text);opacity:1;text-decoration:underline}
+.slider-bar{width:100%;height:6px;border-radius:3px;background:var(--panel2);accent-color:var(--accent);cursor:pointer;margin:4px 0}
+.slider-bar:focus{outline:none;box-shadow:0 0 0 2px rgba(224,163,58,.3)}
+.slider-desc{font-size:11px;color:var(--muted);line-height:1.35;margin:0}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
 .wiz-bar{display:flex;border-bottom:1px solid var(--line);margin:-14px -18px 14px;background:var(--panel2);border-top-left-radius:8px;border-top-right-radius:8px}
@@ -610,8 +627,9 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
         <summary>Custom paper dimensions &amp; manual orientation</summary>
         <p class="hint" style="margin-top:6px">For non-standard paper (Tabloid, Legal, A3, A5) or custom millimetre sheet dimensions.</p>
         <div class="grid2" id="paperForm" style="margin-top:8px"></div>
-        <div class="row" style="margin-top:10px"><button type="button" id="presetSaveCustom" class="icon">Save current settings as a preset…</button></div>
       </details>
+      <h3>Color &amp; stock tuning</h3>
+      <div id="colorSliders"></div>
       <h3>Card &amp; print options</h3>
       <div id="settingsForm"></div>
       <h3>Printer &amp; driver</h3>
@@ -1004,7 +1022,7 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
     <div class="stage-controls">
     <div class="stage-heading"><div class="stage-title"><b id="workspaceTitle">Untitled deck</b><span id="previewSummary"></span></div></div>
     <div class="toolbar">
-      <div class="toolbar-cluster print-only">
+      <div class="toolbar-cluster print-only quick-paper-cluster">
         <select id="quickPaper" aria-label="Preview paper size"></select>
         <div class="seg paper-direction" role="group" aria-label="Paper orientation"><button data-orientation="portrait">Portrait</button><button data-orientation="landscape">Landscape</button></div>
       </div>
@@ -4796,7 +4814,8 @@ const FIELDS = [
   {k:'foilTint', adv:true, label:'Foil pearl underlay (%)', type:'num', step:1, min:0, max:30, hint:'Neutral metallic pearl underlay for foil cardstock. Uses a cool-spectrum pearl tone (hsl 215, 6% sat) that breaks harsh bare-mirror glare into smooth silver pearl without muddying vibrant artwork or turning whites into brown.'},
 ];
 const CAL_KEYS = ['backOffsetUnit', 'scaleX', 'scaleY', 'offsetX', 'offsetY', 'printRotate', 'backOffsetX', 'backOffsetY', 'backScaleX', 'backScaleY', 'backRotate'];
-const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k)).map(f => f.k);
+const PRESET_IMAGE_KEYS = ['brightness', 'saturation', 'contrast', 'foilTint'];
+const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k) && !PRESET_IMAGE_KEYS.includes(f.k)).map(f => f.k);
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
   regPattern: ['3', '4'],
@@ -4889,6 +4908,46 @@ function cleanDeck(raw) {
     }))
   };
 }
+function renderColorSliders() {
+  const s = S.settings;
+  const sliders = [
+    {k:'brightness', label:'Brightness', min:50, max:150, def:100, unit:'%', desc:'Lifts shadow and midtone details out of dark coated or metallic stock.'},
+    {k:'saturation', label:'Saturation', min:50, max:200, def:100, unit:'%', desc:'Boosts color vibrancy. Foil presets use 160% so translucent toner shines like stained glass.'},
+    {k:'contrast', label:'Contrast', min:50, max:200, def:100, unit:'%', desc:'Deepens black borders and keeps text pin-sharp against brightened art.'},
+    {k:'foilTint', label:'Foil pearl underlay', min:0, max:30, def:0, unit:'%', desc:'Neutral cool pearl (hsl 215, 6%) to soften bare-chrome mirror glare into smooth silver pearl.'}
+  ];
+  const isFoil = s.saturation === 160 && s.brightness === 110 && s.contrast === 115 && s.foilTint === 6;
+  const isStandard = s.saturation === 100 && s.brightness === 100 && s.contrast === 100 && s.foilTint === 0;
+
+  const html = `
+    <div class="color-sliders">
+      <div class="color-sliders-hdr">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Stock quick profiles:</span>
+        <div class="row" style="gap:5px">
+          <button type="button" class="btn-chip ${isStandard ? 'active' : ''}" data-color-profile="standard" title="Reset all color tuning to 100% (un-tinted standard cardstock)">Standard paper</button>
+          <button type="button" class="btn-chip ${isFoil ? 'active' : ''}" data-color-profile="foil" title="Apply recommended foil parameters: 110% brightness, 160% saturation, 115% contrast, 6% pearl underlay">Foil stock</button>
+        </div>
+      </div>
+      ${sliders.map(sl => {
+        const val = s[sl.k] !== undefined ? s[sl.k] : sl.def;
+        const modified = val !== sl.def;
+        return `
+          <div class="slider-row">
+            <div class="slider-hdr">
+              <label for="setting-${sl.k}">${sl.label}</label>
+              <div class="slider-badge-wrap">
+                <span class="slider-val" id="val-${sl.k}">${val}${sl.unit}</span>
+                ${modified ? `<button type="button" class="slider-reset" data-reset-k="${sl.k}" data-def="${sl.def}" title="Reset ${sl.label} to default (${sl.def}${sl.unit})">Reset (${sl.def}${sl.unit})</button>` : ''}
+              </div>
+            </div>
+            <input type="range" class="slider-bar" id="setting-${sl.k}" data-k="${sl.k}" data-num min="${sl.min}" max="${sl.max}" step="1" value="${val}" aria-label="${sl.label}">
+            <p class="slider-desc">${sl.desc}</p>
+          </div>`;
+      }).join('')}
+    </div>`;
+  const el = $('#colorSliders');
+  if (el) el.innerHTML = html;
+}
 function renderSettings() {
   const s = S.settings, L = layout();
   let html = '';
@@ -4923,7 +4982,7 @@ function renderSettings() {
   for (const f of FIELDS) { if (f.sec) groups.push({sec:f.sec, fields:[]}); else groups.at(-1).fields.push(f); }
   $('#calForm').innerHTML = FIELDS.filter(f => CAL_KEYS.includes(f.k)).map(fieldHtml).join('');
   const block = adv => groups.map(g => {
-    const h = g.fields.filter(f => !paperKeys.includes(f.k) && !CAL_KEYS.includes(f.k) && !!f.adv === adv && (!f.show || f.show(s))).map(fieldHtml).join('');
+    const h = g.fields.filter(f => !paperKeys.includes(f.k) && !CAL_KEYS.includes(f.k) && !PRESET_IMAGE_KEYS.includes(f.k) && !!f.adv === adv && (!f.show || f.show(s))).map(fieldHtml).join('');
     return h ? `<h3>${g.sec}</h3><div class="grid2">${h}</div>` : '';
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
@@ -4947,6 +5006,7 @@ function renderSettings() {
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
   renderCalibrationProfiles();
+  renderColorSliders();
 }
 // What a profile keeps, and for which layout. Every alignment number is in the
 // printed page's own axes, so the sheet and the orientation that produced it are
@@ -5104,6 +5164,24 @@ $('#tab-setup').addEventListener('toggle', ev => {
   if (ev.target.id === 'advDrawer') { S.advOpen = ev.target.open; save(); }
 }, true);
 $('#tab-setup').addEventListener('click', ev => {
+  const chip = ev.target.closest('[data-color-profile]');
+  if (chip) {
+    const prof = chip.dataset.colorProfile;
+    if (prof === 'standard') {
+      Object.assign(S.settings, {brightness: 100, saturation: 100, contrast: 100, foilTint: 0});
+      toast('Applied standard cardstock colors (100%).');
+    } else if (prof === 'foil') {
+      Object.assign(S.settings, {brightness: 110, saturation: 160, contrast: 115, foilTint: 6});
+      toast('Applied foil stock profile (110% bri, 160% sat, 115% con, 6% pearl).');
+    }
+    S.activePreset = null; save(); renderSettings(); renderPresets(); renderPreview(); renderStats(); return;
+  }
+  const resetBtn = ev.target.closest('[data-reset-k]');
+  if (resetBtn) {
+    const k = resetBtn.dataset.resetK, def = Number(resetBtn.dataset.def);
+    S.settings[k] = def;
+    S.activePreset = null; save(); renderSettings(); renderPresets(); renderPreview(); renderStats(); return;
+  }
   if (ev.target.hasAttribute('data-advreset')) {
     if (!confirm('Reset advanced layout and quality settings to defaults?')) return;
     for (const k of ADV_KEYS) S.settings[k] = DEFAULTS[k];
@@ -5112,6 +5190,15 @@ $('#tab-setup').addEventListener('click', ev => {
   if (ev.target.hasAttribute('data-backup')) $('#fileBack').click();
   if (ev.target.hasAttribute('data-mpcback')) openMpcPicker({cardback:true});
   if (ev.target.hasAttribute('data-backclear')) { const old = S.settings.backImage; S.settings.backImage = null; if (!old) deck().cardback = null; removeImageIfUnused(old); save(); renderAll(); }
+});
+$('#tab-setup').addEventListener('input', ev => {
+  const t = ev.target, k = t.dataset.k;
+  if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
+  const n = parseFloat(t.value) || 0;
+  S.settings[k] = n;
+  const badge = $(`#val-${k}`);
+  if (badge) badge.textContent = `${n}%`;
+  renderPreview();
 });
 $('#settingsForm').addEventListener('change', async ev => {
   if (ev.target.id !== 'fileBack' || !ev.target.files[0]) return;
@@ -5173,7 +5260,6 @@ const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 // a preset cannot reach margin, bleed, dpi or the card size. For a preset with a
 // kind the margin/bleed branch below does not run at all, which means applying one
 // leaves margin and bleed at whatever the user last had.
-const PRESET_IMAGE_KEYS = ['brightness', 'saturation', 'contrast', 'foilTint'];
 function cameoPaperLayout(orientation) {
   const portrait = orientation === 'portrait';
   return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 5.5 : 10, regLen:0};
@@ -5209,7 +5295,15 @@ function presetButton(p) {
   // leads with the sheet, and slicing it off would leave a bare orientation.
   const parts = p.name.split(' · ');
   const label = parts[0] === p.kind ? parts.slice(1).join(' · ') : p.name;
-  return `<button data-preset="${esc(p.id)}"><b>${esc(label)}</b><span>${L.cols}×${L.rows} layout</span></button>`;
+  const isAct = p.id === S.activePreset || (
+    p.settings.pageSize === S.settings.pageSize &&
+    p.settings.orientation === S.settings.orientation &&
+    PRESET_IMAGE_KEYS.every(k => {
+      const want = p.settings[k] !== undefined ? p.settings[k] : DEFAULTS[k];
+      return String(S.settings[k]) === String(want);
+    })
+  );
+  return `<button type="button" data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(label)}</b><span>${L.cols}×${L.rows} layout</span></button>`;
 }
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];

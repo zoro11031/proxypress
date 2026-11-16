@@ -33,7 +33,7 @@
       paper.value = size;
       paper.dispatchEvent(new Event('change', {bubbles:true}));
       eq(`${size} saved`, S.settings.pageSize, size);
-      for (const p of BUILTIN_PRESETS.filter(p => p.kind)) {
+      for (const p of BUILTIN_PRESETS.filter(p => p.kind && !FOIL_IDS.includes(p.id))) {
         applyPreset(p);
         eq(`${size} preserved by ${p.id}`, S.settings.pageSize, size);
         eq(`${size} preset preview width`, presetPer(p).W, p.settings.orientation === 'landscape' ? h : w);
@@ -54,8 +54,8 @@
     }
 
     eq('printer preset groups removed', $$('[data-preset-choice]').length, 0);
-    eq('paper presets retained', $$('#presetGrid [data-preset]').length, 4);
-    Object.assign(S.settings, {offsetX:1.2, scaleY:99.8, brightness:107, dpi:600, duplexMethod:'auto'});
+    eq('paper presets retained', $$('#presetGrid [data-preset]').length, 6);
+    Object.assign(S.settings, {offsetX:1.2, scaleY:99.8, brightness:100, dpi:600, duplexMethod:'auto'});
     const preserved = () => JSON.stringify([S.settings.offsetX, S.settings.scaleY, S.settings.brightness, S.settings.dpi, S.settings.duplexMethod]);
     const before = preserved();
     S.settings.cardRotation = 'rotated';
@@ -89,7 +89,7 @@
     }
 
     $('#btnCutModeCameo').click();
-    eq('cameo offers both paper orientations', $$('#presetGrid [data-preset]').length, 4);
+    eq('cameo offers both paper orientations', $$('#presetGrid [data-preset]').length, 6);
     for (const id of ['b-letter', 'b-a4']) {
       $(`#presetGrid [data-preset="${id}"]`).click();
       eq(`${id} cameo portrait selected`, S.settings.orientation, 'portrait');

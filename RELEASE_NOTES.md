@@ -4,6 +4,12 @@ Print tab overhaul, direct custom preset saving, and optimum foil preset tuning 
 
 ## What's new
 
+- **Print tab redesign & intuitive color tuning:**
+  - Replaced obscure numeric text inputs with **interactive draggable range bars** for **Brightness** (50–150%), **Saturation** (50–200%), **Contrast** (50–200%), and **Foil Pearl Underlay** (0–30%) featuring live `%` readout badges and individual quick-reset controls.
+  - Changes to brightness, saturation, contrast, and pearl underlay now update the card preview canvas live in real-time as you drag the sliders.
+  - Added quick **Stock Profile Chips** (`Standard paper` / `Foil stock`) to immediately apply tuned optical profiles with a single click.
+  - Eliminated confusing redundant controls: removed duplicate paper size and orientation dropdowns on the stage toolbar when the sidebar is visible, and removed duplicate preset-save buttons.
+  - Tucked obscure technical layout dials (raw column/row counts, gap mm, PDF DPI, compression) into a collapsed advanced drawer so standard print workflows stay clean and unobstructed.
 - **Print tab overhaul & custom presets:**
   - Added a prominent, dedicated **"+ Save current preset"** button right inside the custom presets section, replacing the obscure button previously hidden inside custom paper dimensions.
   - Custom presets now display sheet size, orientation, and card count directly on each preset card.
