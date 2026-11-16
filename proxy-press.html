@@ -340,6 +340,15 @@ body.has-cards .import-panel textarea{min-height:0}
 .preset-item>[data-preset]{width:100%;padding-right:34px}
 .pick .del{position:absolute;top:6px;right:8px;font-style:normal;color:var(--muted);font-size:14px;padding:0 3px;min-width:30px;min-height:30px;align-items:center;justify-content:center;background:none;border:0}
 .pick .del:hover{color:var(--danger)}
+.preset-group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 6px;display:flex;align-items:center;gap:6px}
+.preset-group-title::after{content:'';flex:1;height:1px;background:var(--hair)}
+.custom-presets-wrap{margin-top:12px;padding:11px 12px;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--panel2)}
+.custom-presets-wrap .custom-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.custom-presets-empty{padding:10px;text-align:center;border:1px dashed var(--line);border-radius:var(--r-sm);color:var(--muted);font-size:11.5px;line-height:1.4}
+.pick.presets.compact{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.pick.presets.compact button{padding:6px 9px;min-height:auto}
+.pick.presets.compact button b{font-size:11.5px;padding-right:0}
+.pick.presets.compact button span{font-size:10.5px}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
 .wiz-bar{display:flex;border-bottom:1px solid var(--line);margin:-14px -18px 14px;background:var(--panel2);border-top-left-radius:8px;border-top-right-radius:8px}
@@ -601,7 +610,7 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
         <summary>Custom paper dimensions &amp; manual orientation</summary>
         <p class="hint" style="margin-top:6px">For non-standard paper (Tabloid, Legal, A3, A5) or custom millimetre sheet dimensions.</p>
         <div class="grid2" id="paperForm" style="margin-top:8px"></div>
-        <div class="row" style="margin-top:10px"><button id="presetSave" class="icon">Save current settings as a preset…</button></div>
+        <div class="row" style="margin-top:10px"><button type="button" id="presetSaveCustom" class="icon">Save current settings as a preset…</button></div>
       </details>
       <h3>Card &amp; print options</h3>
       <div id="settingsForm"></div>
@@ -1051,9 +1060,9 @@ const BUILTIN_PRESETS = [
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
   {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{
-    pageSize:'a4', orientation:'landscape', brightness:100, saturation:150, contrast:110, foilTint:4}},
+    pageSize:'a4', orientation:'landscape', brightness:105, saturation:150, contrast:110, foilTint:4}},
   {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{
-    pageSize:'a4', orientation:'portrait', brightness:100, saturation:150, contrast:110, foilTint:4}},
+    pageSize:'a4', orientation:'portrait', brightness:105, saturation:150, contrast:110, foilTint:4}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
     pageSize:'letter', orientation:'landscape', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:4, dpi:1200}},
@@ -4905,8 +4914,9 @@ function renderSettings() {
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const foilBadge = (s.foilTint > 0 || s.saturation === 150) ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}% · Tint ${s.foilTint}%)</span>` : '';
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
-    <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm</span>`;
+    <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
   const sumEl = $('#setupSummary');
   if (sumEl) sumEl.innerHTML = sumHtml + (!s.silhouette && s.orientation === 'portrait' && s.bleed < 1.5 ? '<p class="hint">Compact portrait layout uses less bleed. Cut carefully to avoid white edges; landscape leaves more room for cutting drift.</p>' : '');
 
@@ -5157,7 +5167,9 @@ function cameoPaperLayout(orientation) {
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
   const next = {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright'};
-  for (const k of PRESET_IMAGE_KEYS) if (p.settings[k] !== undefined) next[k] = p.settings[k];
+  for (const k of PRESET_IMAGE_KEYS) {
+    next[k] = p.settings[k] !== undefined ? p.settings[k] : DEFAULTS[k];
+  }
   if (S.settings.silhouette) Object.assign(next, cameoPaperLayout(next.orientation));
   else if (!p.kind) {
     const laser = printerOf(S.printer).kind === 'Laser', portrait = next.orientation === 'portrait';
@@ -5197,7 +5209,11 @@ function renderPrinter() {
       <summary>Driver settings &amp; tips</summary>
       <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <p class="hint" style="margin-top:6px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
-      ${pr.presets?.length ? `<div class="pick presets" style="margin-top:8px">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>` : ''}
+      ${pr.presets?.length ? `
+        <div style="margin:10px 0 8px">
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tested stock presets for this printer:</div>
+          <div class="pick presets compact">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>
+        </div>` : ''}
       <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
       ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
       ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
@@ -5233,7 +5249,10 @@ function renderPresets() {
     let title, sub;
     if (mine) {
       title = p.name;
-      sub = `Custom preset · ${L.per} per sheet`;
+      const paperOpt = FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === p.settings.pageSize);
+      const paperName = paperOpt ? paperOpt[1].replace(/ \(.*\)$/, '') : (p.settings.pageSize || 'Custom');
+      const orName = p.settings.orientation === 'landscape' ? 'Landscape' : 'Portrait';
+      sub = `${paperName} · ${orName} · ${L.per} cards`;
     } else {
       const parts = p.name.split(' · ');
       const sheet = parts[0];
@@ -5242,23 +5261,78 @@ function renderPresets() {
       title = `${sheet} · ${L.per} Cards (${isLand ? 'Landscape' : 'Portrait'})`;
       sub = `${L.cols}×${L.rows} layout`;
     }
-    const isAct = mine ? p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])) : p.settings.pageSize === S.settings.pageSize && p.settings.orientation === S.settings.orientation && PRESET_IMAGE_KEYS.every(k => p.settings[k] === undefined || p.settings[k] === S.settings[k]);
-    const button = `<button data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
-    return mine ? `<div class="preset-item">${button}<button class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
+    const isAct = mine
+      ? (p.id === S.activePreset && PRESET_KEYS.every(k => String(S.settings[k]) === String(presetSettings(p)[k])))
+      : (!S.activePreset &&
+         p.settings.pageSize === S.settings.pageSize &&
+         p.settings.orientation === S.settings.orientation &&
+         PRESET_IMAGE_KEYS.every(k => {
+           const want = p.settings[k] !== undefined ? p.settings[k] : DEFAULTS[k];
+           return String(S.settings[k]) === String(want);
+         }));
+    const button = `<button type="button" data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
+    return mine ? `<div class="preset-item">${button}<button type="button" class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
-  const paperPresets = BUILTIN_PRESETS.filter(p => !p.kind || FOIL_IDS.includes(p.id));
-  $('#presetGrid').innerHTML = `<div class="pick presets">${paperPresets.map(p => card(p, false)).join('')}</div>
-    ${S.presets.length ? `<details class="adv"><summary>Saved custom presets (${S.presets.length})</summary><div class="pick presets">${S.presets.map(p => card(p, true)).join('')}</div></details>` : ''}`;
+  const stdPresets = ['b-letter', 'b-letter-land', 'b-a4', 'b-a4-land'].map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean);
+  const foilPresets = FOIL_IDS.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean);
+  $('#presetGrid').innerHTML = `
+    <div class="preset-group">
+      <div class="preset-group-title">Standard sheet presets</div>
+      <div class="pick presets">${stdPresets.map(p => card(p, false)).join('')}</div>
+    </div>
+    <div class="preset-group" style="margin-top:10px">
+      <div class="preset-group-title">Specialty / Foil stock</div>
+      <div class="pick presets">${foilPresets.map(p => card(p, false)).join('')}</div>
+    </div>
+    <div class="custom-presets-wrap">
+      <div class="custom-hdr">
+        <div>
+          <b style="font-size:12.5px;color:var(--text)">Saved custom presets${S.presets.length ? ` (${S.presets.length})` : ''}</b>
+        </div>
+        <button type="button" id="presetSave" class="primary icon" style="font-size:11.5px;padding:4px 10px;cursor:pointer">+ Save current preset</button>
+      </div>
+      ${S.presets.length ? `
+        <div class="pick presets custom-presets" style="margin-top:8px">${S.presets.map(p => card(p, true)).join('')}</div>
+      ` : `
+        <div class="custom-presets-empty">No custom presets saved yet. Set up your layout and click <b>+ Save current preset</b> to reuse it anytime.</div>
+      `}
+    </div>`;
+}
+function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
+function saveCurrentPreset() {
+  const L = layout();
+  const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === S.settings.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const defName = `${paper} ${S.settings.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.per} cards`;
+  const name = prompt('Name this preset:', defName);
+  if (!name || !name.trim()) return;
+  const p = {id:uid(), name:name.trim(), settings:pickSettings()};
+  S.presets.push(p);
+  S.activePreset = p.id;
+  save();
+  renderPresets();
+  toast(`Saved preset "${p.name}".`);
 }
 function onPresetClick(ev) {
+  const saveBtn = ev.target.closest('#presetSave, #presetSaveCustom');
+  if (saveBtn) {
+    ev.stopPropagation();
+    saveCurrentPreset();
+    return;
+  }
   const del = ev.target.closest('[data-del]');
   if (del) {
     const p = S.presets.find(x => x.id === del.dataset.del);
-    if (p && confirm(`Delete preset "${p.name}"?`)) { S.presets = S.presets.filter(x => x !== p); if (S.activePreset === p.id) S.activePreset = null; save(); renderAll(); }
+    if (p && confirm(`Delete preset "${p.name}"?`)) {
+      S.presets = S.presets.filter(x => x !== p);
+      if (S.activePreset === p.id) S.activePreset = null;
+      save(); renderAll();
+      toast(`Deleted preset "${p.name}".`);
+    }
     return;
   }
   const b = ev.target.closest('[data-preset]'); if (!b) return;
   const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === b.dataset.preset);
+  if (!p) return;
   let note = '';
   if (p.kind && printerOf(S.printer).kind !== p.kind) {
     S.printer = S.printerByKind?.[p.kind] || (p.kind === 'Laser' ? 'mf753' : 'et2800');
@@ -5269,11 +5343,7 @@ function onPresetClick(ev) {
 }
 $('#presetGrid').onclick = onPresetClick;
 $('#printerGuide').addEventListener('click', onPresetClick);
-function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
-$('#presetSave').onclick = () => {
-  const name = prompt('Name this preset', 'My printer settings'); if (!name) return;
-  const p = {id:uid(), name, settings:pickSettings()}; S.presets.push(p); S.activePreset = p.id; save(); renderPresets(); toast(`Saved preset "${name}".`);
-};
+$('#customPaperDrawer')?.addEventListener('click', onPresetClick);
 
 /* ---------- preview ---------- */
 const guideCache = new Map();

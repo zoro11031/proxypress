@@ -1,3 +1,34 @@
+# Proxy Press v0.7.3
+
+Print tab overhaul, direct custom preset saving, and 105% foil brightness tuning.
+
+## What's new
+
+- **Print tab overhaul & custom presets:**
+  - Added a prominent, dedicated **"+ Save current preset"** button right inside the custom presets section, replacing the obscure button previously hidden inside custom paper dimensions.
+  - Custom presets now display sheet size, orientation, and card count directly on each preset card.
+  - Eliminated the double-selection bug where standard A4 and A4 Foil lit up simultaneously; presets now enforce clean mutual exclusion.
+  - Reorganized presets into clear, distinct sections: Standard Sheet Presets, Specialty & Foil Stock, and Saved Custom Presets.
+  - Streamlined driver settings with a compact, dedicated quick-stock profile bar, removing redundant duplicate preset cards.
+- **Foil brightness tuning:**
+  - Increased brightness for built-in foil presets from 100% to 105% to enhance highlights against reflective metallic paper alongside 150% saturation, 110% contrast, and 4% off-white underlay tint.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/Proxy-Press-0.7.3.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/Proxy-Press-0.7.3.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/Proxy-Press-0.7.3.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/Proxy-Press-0.7.3.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/Proxy-Press-0.7.3.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/Proxy-Press-0.7.3.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.7.3/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.7.2
 
 Live print rotation in sheet preview, calibration status, contrast slider, and improved foil tuning.
