@@ -11,7 +11,7 @@ Print tab overhaul, direct custom preset saving, and 105% foil brightness tuning
   - Reorganized presets into clear, distinct sections: Standard Sheet Presets, Specialty & Foil Stock, and Saved Custom Presets.
   - Streamlined driver settings with a compact, dedicated quick-stock profile bar, removing redundant duplicate preset cards.
 - **Foil brightness tuning:**
-  - Increased brightness for built-in foil presets from 100% to 105% to enhance highlights against reflective metallic paper alongside 150% saturation, 110% contrast, and 4% off-white underlay tint.
+  - Increased brightness for built-in foil presets from 100% to 105% to enhance highlights against reflective metallic paper alongside 150% saturation, 110% contrast, and 5% off-white underlay tint.
 
 ## Downloads
 
