@@ -360,12 +360,13 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .slider-hdr{display:flex;justify-content:space-between;align-items:center;font-size:12px}
 .slider-hdr label{font-weight:600;color:var(--text);cursor:pointer}
 .slider-badge-wrap{display:flex;align-items:center;gap:6px}
-.slider-val{display:inline-flex;align-items:center;justify-content:center;background:rgba(224,163,58,.12);border:1px solid rgba(224,163,58,.25);border-radius:4px;padding:1px 5px 1px 7px;min-width:46px;cursor:text;transition:border-color .15s,box-shadow .15s,background .15s}
-.slider-val:hover{border-color:rgba(224,163,58,.45);background:rgba(224,163,58,.16)}
-.slider-val:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px rgba(224,163,58,.25);background:rgba(224,163,58,.2)}
-.slider-val-input{border:0;background:none;color:var(--accent2);font-weight:700;font-size:11.5px;font-family:inherit;font-variant-numeric:tabular-nums;text-align:right;width:28px;padding:0;margin:0;outline:none;-moz-appearance:textfield}
-.slider-val-input::-webkit-outer-spin-button,.slider-val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.slider-val-unit{color:var(--accent2);font-weight:700;font-size:11.5px;margin-left:1px;user-select:none;pointer-events:none}
+.slider-val{display:inline-flex;align-items:center;justify-content:center;background:rgba(224,163,58,.1);border:1px solid rgba(224,163,58,.28);border-radius:var(--r-sm);padding:2px 7px;cursor:text;transition:all .15s ease;line-height:1}
+.slider-val:hover{border-color:rgba(224,163,58,.5);background:rgba(224,163,58,.16)}
+.slider-val:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px rgba(224,163,58,.25);background:rgba(224,163,58,.22)}
+.slider-val input[type=number].slider-val-input{border:0 !important;background:transparent !important;color:var(--accent2);font-weight:700;font-size:12px;font-family:inherit;font-variant-numeric:tabular-nums;text-align:right;width:28px;min-height:unset !important;height:auto !important;padding:0 !important;margin:0 !important;outline:none !important;box-shadow:none !important;-moz-appearance:textfield}
+.slider-val input[type=number].slider-val-input:focus{border:0 !important;outline:none !important;box-shadow:none !important}
+.slider-val input[type=number].slider-val-input::-webkit-outer-spin-button,.slider-val input[type=number].slider-val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.slider-val-unit{color:var(--accent2);font-weight:700;font-size:12px;margin-left:1.5px;user-select:none;pointer-events:none;line-height:1}
 .slider-reset{font-size:10.5px;color:var(--muted);background:none;border:none;padding:1px 4px;cursor:pointer;opacity:0.75}
 .slider-reset:hover{color:var(--text);opacity:1;text-decoration:underline}
 .slider-bar{width:100%;height:6px;border-radius:3px;background:var(--panel2);accent-color:var(--accent);cursor:pointer;margin:4px 0}
@@ -653,22 +654,24 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
           <button type="button" id="btnDuplexWizard" class="primary" style="grid-column:span 2" title="Walks through the double-sided test and does the arithmetic for you">Duplex calibration wizard</button>
         </div>
         <p class="hint" style="font-size:11.5px">Print test sheets at <b>Actual size / 100%</b>, never "Fit to page".</p>
-        <div class="cal-profile-box" style="margin-top:10px;padding:12px;background:var(--panel2);border:1px solid var(--hair);border-radius:var(--r-md)">
-          <div class="field full">
-            <label for="calProfileSel" style="font-weight:600">Saved calibration profile</label>
+        <div class="cal-profile-box" style="margin-top:12px;padding:12px 14px;background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+            <div>
+              <b style="font-size:12.5px;color:var(--text)">Printer alignment profiles</b>
+              <div class="hint" style="font-size:11px;margin-top:1px">Saves paper shift, scale, and duplex back-side alignment for your printer.</div>
+            </div>
             <div class="row" style="gap:6px">
-              <select id="calProfileSel" style="flex:1"><option value="">No saved profile</option></select>
-              <button type="button" id="calProfileDelete" class="danger" title="Delete selected profile">Delete</button>
+              <button type="button" id="calProfileNew" class="icon" style="font-size:11.5px;padding:4px 9px;cursor:pointer">+ New profile</button>
+              <button type="button" id="calProfileSave" class="primary icon" style="font-size:11.5px;padding:4px 10px;cursor:pointer">Save profile</button>
             </div>
           </div>
-          <p class="hint" id="calProfileStatus" style="margin:4px 0 8px;font-style:italic;color:var(--accent2);min-height:16px"></p>
-          <div class="field full" style="margin-top:4px">
-            <label for="calProfileName" style="font-weight:600">Save current alignment as profile</label>
-            <div class="row" style="gap:6px">
-              <input id="calProfileName" type="text" placeholder="Canon cardstock" style="flex:1">
-              <button type="button" id="calProfileSave" class="primary">Save profile</button>
-            </div>
+          <div class="row" id="calNameRow" style="gap:6px;margin:8px 0 10px">
+            <input id="calProfileName" type="text" placeholder="Profile name (e.g. Canon cardstock)" style="flex:1" aria-label="Profile name">
+            <button type="button" id="calProfileDelete" class="danger icon" title="Delete selected profile">Delete</button>
           </div>
+          <select id="calProfileSel" style="display:none"></select>
+          <div id="calProfileCards"></div>
+          <p class="hint" id="calProfileStatus" style="margin:8px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
         </div>
         <details style="margin:8px 0 10px;font-size:12px">
           <summary style="color:var(--muted);cursor:pointer">How alignment profiles work across orientations &amp; sheet sizes</summary>
@@ -1418,7 +1421,7 @@ async function renderFace(face, dpi, hi, rot = 0) {
   if (cornerLumCache.has(img)) face._cornerLum = cornerLumCache.get(img);
   const filter = filterFor(s);
   if (filter) x.filter = filter;
-  x.fillStyle = borderCache.get(img); x.fillRect(0, 0, W, H);
+  x.fillStyle = s.bleedMode === 'black' ? '#000000' : borderCache.get(img); x.fillRect(0, 0, W, H);
   const iw = img.naturalWidth, ih = img.naturalHeight;
   const isMpcRatio = Math.abs((iw / ih) - (2.75 / 3.75)) < 0.012;
   const sb = face.srcBleed ?? (face.drive || isMpcRatio ? MPC_BLEED : (face.custom ? s.customSrcBleed : 0));
@@ -3207,7 +3210,8 @@ let faceTarget = null;
 async function renderCards() {
   const d = deck(), list = $('#cardList');
   const total = d.entries.reduce((a, e) => a + e.qty, 0);
-  $('#deckCount').textContent = `(${total})`;
+  const tokens = d.entries.filter(e => e.kind === 'TOKEN').reduce((a, e) => a + e.qty, 0);
+  $('#deckCount').textContent = tokens ? `(${total} · ${total - tokens} cards, ${tokens} token${tokens === 1 ? '' : 's'})` : `(${total})`;
   $('#listIn').classList.toggle('compact', d.entries.length > 0);
   document.body.classList.toggle('has-cards', d.entries.length > 0);
   const any = d.entries.length > 0;
@@ -4790,7 +4794,7 @@ const FIELDS = [
   {k:'margin', adv:true, label:'Min. page margin (mm)', type:'num', step:0.1, min:0, hint:'The least space to leave at the sheet edge when working out how many cards fit. Cards are centred on the sheet, so the real margin is whatever is left over \u2014 see the figure in the summary above. Raising this changes the sheet only when it drops a column or a row.'},
   {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
   {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
-  {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid border color']]},
+  {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid card border color'],['black','Solid black (contrast edges)']]},
   {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
   {sec:'Double-faced cards & backs'},
   {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, show:() => deck().entries.some(e => e.qty > 0 && e.kind!=='TOKEN' && e.faces.length > 1), opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
@@ -4813,7 +4817,7 @@ const FIELDS = [
   {k:'printRotate', adv:true, label:'Print rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'Turns the whole print clockwise on the paper as you look at the front, both sides alike, for a feed that runs slightly crooked. Measure it on the alignment sheet: rule from the paper edge to the scale at each end of one edge, and 1.0 mm of difference is about a quarter of a degree. Lining the backs up with the fronts is separate.'},
   {k:'backRotate', adv:true, label:'Back-page rotation (\u00b0)', type:'num', step:0.01, min:-3, max:3, full:true, hint:'For the turn the second pass puts in, which no offset or scale can take out. Read it off the double-sided test \u2014 it is what makes opposite corners wrong by different amounts in opposite directions \u2014 and ADD what you read to whatever is here, the same way the back offsets work. Subtracting doubles the error instead of cancelling it. Measured in the back page\u2019s own frame, not the front\u2019s.'},
   {sec:'Export quality'},
-  {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)']]},
+  {k:'dpi', adv:true, label:'PDF resolution', type:'select', num:true, opts:[[300,'300 DPI'],[600,'600 DPI'],[800,'800 DPI'],[1200,'1200 DPI (large files)'],[1440,'1440 DPI (ultra-res photo)']]},
   {k:'jpeg', adv:true, label:'JPEG quality', type:'num', step:1, min:50, max:100},
   {k:'brightness', adv:true, label:'Brightness (%)', type:'num', step:1, min:50, max:150, hint:() => printerOf(S.printer).kind === 'Laser' ? 'Start at 100%. If laser prints look too dark, check the selected media profile and toner density before changing image brightness. This changes the PDF image, not the printer’s toner settings.' : 'Inkjets often print a little dark on coated stock. Try 105–110 if your prints look muddy.'},
   {k:'saturation', adv:true, label:'Saturation (%)', type:'num', step:1, min:50, max:200, hint:'Foil stock reads less vibrant than card, so the foil presets raise this to 160%. Unlike Brightness this changes colour only, so black borders and text stay black. High values clip already-saturated colours and shift hues; where that starts depends on the source colour.'},
@@ -5103,10 +5107,10 @@ const BUILTIN_CAL_PROFILES = [
     settings:{duplexFlip:'short', backOffsetUnit:'mm', backOffsetX:0, backOffsetY:1}},
 ];
 const calProfiles = () => [...BUILTIN_CAL_PROFILES, ...S.calibrationProfiles];
-function renderCalibrationProfiles() {
+function renderCalibrationProfiles(activeId) {
   const sel = $('#calProfileSel');
   if (!sel) return;
-  const current = sel.value;
+  const current = activeId !== undefined ? activeId : sel.value;
   const held = p => {
     const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
     return keys.length ? ` \u00b7 ${keys.map(calSlotName).join(' + ')}` : '';
@@ -5114,6 +5118,44 @@ function renderCalibrationProfiles() {
   const opt = p => `<option value="${esc(p.id)}">${esc(p.name + held(p))}</option>`;
   sel.innerHTML = `<option value="">No saved profile</option><optgroup label="Measured starting points">${BUILTIN_CAL_PROFILES.map(opt).join('')}</optgroup>${S.calibrationProfiles.map(opt).join('')}`;
   if (calProfiles().some(p => p.id === current)) sel.value = current;
+
+  const cardContainer = $('#calProfileCards');
+  if (cardContainer) {
+    const activeIdVal = sel.value;
+    const card = (p, mine) => {
+      const isAct = p.id === activeIdVal;
+      const got = calSlotFor(p, S.settings);
+      let sub;
+      if (got.set) {
+        const bk = got.set;
+        const ox = bk.backOffsetX ?? 0, oy = bk.backOffsetY ?? 0;
+        sub = `Back: X ${ox >= 0 ? '+' : ''}${ox}, Y ${oy >= 0 ? '+' : ''}${oy} mm`;
+        if (got.key && got.key !== 'any') sub = `${calSlotName(got.key)} · ${sub}`;
+      } else {
+        const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
+        sub = keys.length ? keys.map(calSlotName).join(', ') : 'Calibration starting point';
+      }
+      const button = `<button type="button" data-cal-profile="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(p.name)}</b><span>${esc(sub)}</span></button>`;
+      return mine ? `<div class="preset-item">${button}<button type="button" class="del icon" data-cal-del="${esc(p.id)}" title="Delete profile" aria-label="Delete profile ${esc(p.name)}">×</button></div>` : button;
+    };
+    let html = '';
+    if (BUILTIN_CAL_PROFILES.length) {
+      html += `<div class="preset-group">
+        <div class="preset-group-title">Measured starting points</div>
+        <div class="pick presets">${BUILTIN_CAL_PROFILES.map(p => card(p, false)).join('')}</div>
+      </div>`;
+    }
+    html += `<div class="preset-group" style="margin-top:8px">
+      <div class="preset-group-title">Saved alignment profiles${S.calibrationProfiles.length ? ` (${S.calibrationProfiles.length})` : ''}</div>
+      ${S.calibrationProfiles.length ? `
+        <div class="pick presets custom-presets">${S.calibrationProfiles.map(p => card(p, true)).join('')}</div>
+      ` : `
+        <div class="custom-presets-empty">No custom alignment profiles saved yet. Calibrate with the test sheets or wizard, then click <b>Save profile</b> to save for this printer.</div>
+      `}
+    </div>`;
+    cardContainer.innerHTML = html;
+  }
+
   const statusEl = $('#calProfileStatus');
   if (statusEl) {
     const active = calProfiles().find(p => p.id === sel.value);
@@ -5213,6 +5255,32 @@ $('#tab-setup').addEventListener('click', ev => {
   if (ev.target.hasAttribute('data-backup')) $('#fileBack').click();
   if (ev.target.hasAttribute('data-mpcback')) openMpcPicker({cardback:true});
   if (ev.target.hasAttribute('data-backclear')) { const old = S.settings.backImage; S.settings.backImage = null; if (!old) deck().cardback = null; removeImageIfUnused(old); save(); renderAll(); }
+  const calCard = ev.target.closest('[data-cal-profile]');
+  if (calCard) {
+    const id = calCard.dataset.calProfile;
+    const p = calProfiles().find(x => x.id === id);
+    if (p) {
+      $('#calProfileSel').value = p.id;
+      const nameBox = $('#calProfileName');
+      if (nameBox) nameBox.value = p && !p.builtin ? p.name : '';
+      applyCalProfile(p);
+      renderCalibrationProfiles();
+    }
+    return;
+  }
+  const calDel = ev.target.closest('[data-cal-del]');
+  if (calDel) {
+    const id = calDel.dataset.calDel;
+    const p = S.calibrationProfiles.find(x => x.id === id);
+    if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
+    S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
+    if ($('#calProfileSel')?.value === id) {
+      $('#calProfileSel').value = '';
+      $('#calProfileName').value = '';
+    }
+    save(); renderCalibrationProfiles();
+    return;
+  }
 });
 $('#tab-setup').addEventListener('input', ev => {
   const t = ev.target, k = t.dataset.k;
@@ -5249,13 +5317,29 @@ $('#calProfileSel').onchange = ev => {
   if (!p) {
     const statusEl = $('#calProfileStatus');
     if (statusEl) statusEl.textContent = '';
+    renderCalibrationProfiles();
     return;
   }
   applyCalProfile(p);
+  renderCalibrationProfiles();
+};
+const newCalBtn = $('#calProfileNew');
+if (newCalBtn) newCalBtn.onclick = () => {
+  $('#calProfileSel').value = '';
+  const nameBox = $('#calProfileName');
+  if (nameBox) { nameBox.value = ''; nameBox.focus(); }
+  renderCalibrationProfiles();
+  toast('Ready to create new alignment profile. Adjust alignment numbers, enter a profile name, and click Save profile.');
 };
 $('#calProfileSave').onclick = () => {
-  const name = $('#calProfileName').value.trim().slice(0, 100);
-  if (!name) return toast('Enter a profile name first.');
+  let name = $('#calProfileName').value.trim().slice(0, 100);
+  if (!name) {
+    const def = printerOf(S.printer).name.replace(/ \(.*\)$/, '') + ' alignment';
+    const entered = prompt('Name this calibration profile:', def);
+    if (!entered || !entered.trim()) return;
+    name = entered.trim().slice(0, 100);
+    $('#calProfileName').value = name;
+  }
   if (BUILTIN_CAL_PROFILES.some(p => p.name.toLowerCase() === name.toLowerCase()))
     return toast('That name belongs to a built-in starting point. Pick another.');
   const chosen = S.calibrationProfiles.find(p => p.id === $('#calProfileSel').value);
@@ -5270,8 +5354,9 @@ $('#calProfileSave').onclick = () => {
   const settings = {...calSlots(target), [key]: Object.fromEntries(CAL_SLOT_KEYS.map(k => [k, S.settings[k]]))};
   if (target) Object.assign(target, {name, printer:S.printer, settings});
   else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
-  save(); renderCalibrationProfiles();
-  $('#calProfileSel').value = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
+  const targetId = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
+  save();
+  renderCalibrationProfiles(targetId);
   const kept = Object.keys(settings).filter(k => k !== key && k !== 'any');
   toast(`Saved the ${calSlotName(key)} alignment in "${name}".`
     + (kept.length ? ` It still holds ${kept.map(calSlotName).join(' and ')}.` : ''));
@@ -5284,6 +5369,7 @@ $('#calProfileDelete').onclick = () => {
   if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
   $('#calProfileName').value = '';
+  $('#calProfileSel').value = '';
   save(); renderCalibrationProfiles();
 };
 
@@ -5352,11 +5438,6 @@ function renderPrinter() {
       <select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
     </div>
     <p class="hint" style="margin:4px 0 10px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
-    ${pr.presets?.length ? `
-      <div style="margin:0 0 10px">
-        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tested stock presets for this printer:</div>
-        <div class="pick presets compact">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>
-      </div>` : ''}
     <details class="adv" id="driverDetails" style="margin:6px 0 14px" ${driverOpen ? 'open' : ''}>
       <summary>Driver settings &amp; tips</summary>
       <table class="drv" style="margin-top:8px">${pr.settings.slice(0, 5).map(row).join('')}</table>
@@ -5663,7 +5744,9 @@ function renderStats() {
   }
   const slots = buildSlots(), L = layout(), pages = Math.ceil(slots.length / L.per);
   const backs = slots.some(x => x.back);
-  $('#stats').textContent = `${slots.length} card${slots.length===1?'':'s'} · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
+  const tokens = slots.filter(s => s.e?.kind === 'TOKEN').length;
+  const tokenBreakdown = tokens ? ` (${slots.length - tokens} deck, ${tokens} token${tokens === 1 ? '' : 's'})` : '';
+  $('#stats').textContent = `${slots.length} card${slots.length===1?'':'s'}${tokenBreakdown} · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
   $('#mbarCount').textContent = slots.length ? `· ${pages} sheet${pages === 1 ? '' : 's'}` : '';
 }
 $$('#mbar button').forEach(b => b.onclick = () => {
@@ -6769,7 +6852,7 @@ async function compactShareImage(blob, opaque, maxSide) {
     const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
     canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
     const ctx = canvas.getContext('2d'), jpeg = opaque || blob.type === 'image/jpeg';
-    if (jpeg) { ctx.fillStyle = sampleBorder(image); ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (jpeg) { ctx.fillStyle = S.settings.bleedMode === 'black' ? '#000000' : sampleBorder(image); ctx.fillRect(0, 0, canvas.width, canvas.height); }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     const compact = await new Promise(resolve => canvas.toBlob(resolve, jpeg ? 'image/jpeg' : 'image/png', 0.9));
     if (!compact) throw new Error('A card image could not be compressed.');

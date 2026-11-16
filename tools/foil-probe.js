@@ -51,25 +51,17 @@
     eq('foil tips exist and are not the laser tips', typeof FOIL_TIPS !== 'undefined' && FOIL_TIPS.length > 0 && FOIL_TIPS !== LASER_TIPS, true);
     eq('foil tips reach the mf753 guide', typeof FOIL_TIPS !== 'undefined' && FOIL_TIPS.every(t => PRINTERS.find(p => p.id === 'mf753').tips.includes(t)), true);
 
-    // Wiring: presets in the printer guide render and actually apply on click.
-    S.printer = 'mf753'; S.settings = {...DEFAULTS}; renderPrinter();
-    const btn = document.querySelector('#printerGuide [data-preset="b-foil-port"]');
-    eq('foil preset button renders in the printer guide', !!btn, true);
-    const guideLabel = id => document.querySelector(`#printerGuide [data-preset="${id}"] b`)?.textContent;
-    eq('the foil guide button keeps its sheet, not just the orientation',
-       guideLabel('b-foil-port'), 'A4 foil · Portrait');
-    eq('the landscape foil guide button keeps its sheet too',
-       guideLabel('b-foil-land'), 'A4 foil · Landscape');
-    eq('a cardstock guide button still drops its kind',
-       guideLabel('b-laser-port'), 'Black-core cardstock · Portrait');
-    eq('no guide button is labelled by orientation alone',
-       PRINTERS.find(p => p.id === 'mf753').presets.map(guideLabel).filter(l => /^(Landscape|Portrait)/.test(l)), []);
-    btn?.click();
-    eq('clicking it in the printer guide applies brightness', S.settings.brightness, 110);
-    eq('clicking it in the printer guide applies saturation', S.settings.saturation, 160);
-    eq('clicking it in the printer guide applies contrast', S.settings.contrast, 115);
-    eq('clicking it in the printer guide applies foilTint', S.settings.foilTint, 6);
-    eq('clicking it in the printer guide applies A4', S.settings.pageSize, 'a4');
+    // Unification: sheet presets live under Paper & sheet size (#presetGrid), not duplicated in the printer guide.
+    S.printer = 'mf753'; S.settings = {...DEFAULTS}; renderPrinter(); renderPresets();
+    eq('printer guide no longer has redundant presets', document.querySelectorAll('#printerGuide [data-preset]').length, 0);
+    const foilGridBtn = document.querySelector('#presetGrid [data-preset="b-foil-port"]');
+    eq('foil preset button renders in the paper grid', !!foilGridBtn, true);
+    foilGridBtn?.click();
+    eq('clicking foil preset applies brightness', S.settings.brightness, 110);
+    eq('clicking foil preset applies saturation', S.settings.saturation, 160);
+    eq('clicking foil preset applies contrast', S.settings.contrast, 115);
+    eq('clicking foil preset applies foilTint', S.settings.foilTint, 6);
+    eq('clicking foil preset applies A4', S.settings.pageSize, 'a4');
 
     // Discoverability: the foil presets are in the main grid too, titled by sheet, not by vendor.
     S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', brightness:100, saturation:100}; renderPresets();
