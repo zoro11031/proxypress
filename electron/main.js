@@ -64,6 +64,8 @@ const ASSET_TYPES = {
   '.svg': 'image/svg+xml',
   '.json': 'application/json',
   '.txt': 'text/plain',
+  '.studio3': 'application/octet-stream',
+  '.js': 'application/javascript; charset=utf-8',
   'style': 'text/plain'
 };
 

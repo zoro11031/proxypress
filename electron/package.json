@@ -46,7 +46,9 @@
         "to": "assets",
         "filter": [
           "fonts/**/*",
-          "frames/**/*"
+          "frames/**/*",
+          "studio3/**/*",
+          "vendor/**/*"
         ]
       }
     ],

@@ -63,6 +63,7 @@ ASSET_TYPES = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".w
                # Silhouette Studio base documents and their offset manifest, for
                # the .studio3 cut export. Both are read-only data under ASSETS.
                ".studio3": "application/octet-stream", ".json": "application/json",
+               ".js": "application/javascript; charset=utf-8",
                "": "text/plain; charset=utf-8"}
 
 
@@ -728,6 +729,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.share_json(503, {"message": "Could not save or search shared artwork. Your deck still keeps its image."})
 
     def public_share(self, route):
+        if route.startswith("/share/assets/"):
+            self.path = route[len("/share"):]
+            return True
         match = re.fullmatch(r"/share/(" + SHARE_TOKEN + r")(?:/(.*))?", route)
         if not match:
             return None
@@ -930,6 +934,29 @@ class Handler(http.server.BaseHTTPRequestHandler):
                      ("ETag", f'"{hashlib.sha256(body).hexdigest()[:16]}"')]
         self.send(status, body, "application/json", extra)
 
+    def serve_asset(self, route):
+        if route == "/assets/manifest.json":
+            body, etag = asset_manifest_data()
+            return self.send(200, body, "application/json", [("ETag", etag), ("Cache-Control", "private, max-age=3600")])
+        if route.startswith("/assets/"):
+            full, ctype = asset_path(route)
+            if not full:
+                return self.send(404, b"Not found", "text/plain")
+            try:
+                stat = os.stat(full)
+                etag = f'"{int(stat.st_mtime):x}-{stat.st_size:x}"'
+                inm = self.headers.get("If-None-Match")
+                if inm and etag in [x.strip() for x in inm.split(",")]:
+                    return self.send(200, b"", ctype, [("ETag", etag), ("Cache-Control", "private, max-age=86400")])
+                headers = [("ETag", etag), ("Cache-Control", "private, max-age=86400")]
+                if not ctype.startswith("application/javascript"):
+                    headers.append(("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'"))
+                with open(full, "rb") as f:
+                    return self.send(200, f.read(), ctype, headers)
+            except OSError:
+                return self.send(404, b"Not found", "text/plain")
+        return self.send(404, b"Not found", "text/plain")
+
     def do_GET(self):
         route = self.path.split("?")[0]
         if route == "/healthz":
@@ -939,6 +966,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(200, f.read(), "image/png", [("Cache-Control", "public, max-age=86400"), ("Cross-Origin-Resource-Policy", "cross-origin")])
         if route == "/logout":
             return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax")])
+        if route == "/assets/manifest.json" or route.startswith("/assets/"):
+            return self.serve_asset(route)
         public = self.public_share(route) if route.startswith("/share/") else None
         if public is False:
             return
