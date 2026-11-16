@@ -83,6 +83,11 @@
     S.settings = {...DEFAULTS, pageSize:'a4', orientation:'portrait', brightness:110, saturation:160, contrast:115, foilTint:6}; renderPresets();
     eq('foil portrait is active at saturation 160', gridBtn('b-foil-port')?.getAttribute('aria-pressed'), 'true');
     eq('foil landscape is not active on a portrait sheet', gridBtn('b-foil-land')?.getAttribute('aria-pressed'), 'false');
+
+    // Stability: A4 foil portrait must always be 9 cards (3x3), even when landscape with bleed:2 is currently active.
+    S.settings = {...DEFAULTS, pageSize:'a4', orientation:'landscape', bleed:2, margin:5}; renderPresets();
+    eq('portrait foil preset stays 9 cards when landscape is active', gridBtn('b-foil-port')?.querySelector('b').textContent.includes('9 Cards'), true);
+    eq('portrait foil preset applies 1.5mm bleed', presetSettings(BUILTIN_PRESETS.find(p => p.id === 'b-foil-port')).bleed, 1.5);
     eq('the A3 tip says the vendor cuts to A4', FOIL_TIPS.some(t => /ProxyJak/.test(t) && /40\s*[×x]\s*A4/.test(t) && /A3/.test(t)), true);
     eq('the A3 tip keeps the printer-feed clause', FOIL_TIPS.some(t => /can feed A3/.test(t)), true);
     // Curl correction is panel-only: no profile can apply it, so the tip must say so.

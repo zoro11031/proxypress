@@ -5185,8 +5185,8 @@ function presetSettings(p) {
     next[k] = p.settings[k] !== undefined ? p.settings[k] : DEFAULTS[k];
   }
   if (S.settings.silhouette) Object.assign(next, cameoPaperLayout(next.orientation));
-  else if (!p.kind) {
-    const laser = printerOf(S.printer).kind === 'Laser', portrait = next.orientation === 'portrait';
+  else if (!p.kind || FOIL_IDS.includes(p.id)) {
+    const laser = (p.kind || printerOf(S.printer).kind) === 'Laser', portrait = next.orientation === 'portrait';
     const bleed = portrait ? (next.pageSize === 'letter' ? (laser ? 0.75 : 1) : (laser ? 1.5 : 2)) : 2;
     Object.assign(next, {cols:0, rows:0, gap:0, margin:laser ? 5 : 4, bleed});
   }
