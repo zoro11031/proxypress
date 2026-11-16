@@ -634,7 +634,8 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
       <div id="settingsForm"></div>
       <h3>Printer &amp; driver</h3>
       <div class="field full">
-        <select id="printerSel" aria-label="Printer type"></select>
+        <label for="printerSel">Printer technology</label>
+        <select id="printerSel" aria-label="Printer technology"></select>
       </div>
       <div id="printerGuide"></div>
       <h3>Calibration &amp; advanced</h3>
@@ -3121,7 +3122,8 @@ function syncCardSelection() {
   const valid = new Set(deck().entries.flatMap(e => Array.from({length:e.qty}, (_, q) => copyKey(e, q))));
   selectedCopies = new Set([...selectedCopies].filter(k => valid.has(k)));
   const bar = $('#cardSelection'), mobilePreview = innerWidth <= 820 && document.body.classList.contains('m-preview');
-  if (mobilePreview) { if (bar.parentElement !== $('#stage')) $('#pages').before(bar); }
+  const stageBar = mobilePreview || S.mode === 'order' || !$('#tab-cards').classList.contains('on');
+  if (stageBar) { if (bar.parentElement !== $('#stage')) $('#pages').before(bar); }
   else if (bar.parentElement !== $('#cardList').parentElement) $('#cardList').before(bar);
   bar.hidden = !selectedCopies.size;
   $('#cardSelectionCount').textContent = `${selectedCopies.size} cop${selectedCopies.size === 1 ? 'y' : 'ies'} selected`;
@@ -4987,7 +4989,11 @@ function renderSettings() {
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-  const foilBadge = (s.foilTint > 0 || s.saturation === 160) ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%${s.foilTint ? ` · Tint ${s.foilTint}%` : ''})</span>` : '';
+  const foilBadge = (s.foilTint > 0 || s.saturation === 160)
+    ? ` · <span style="color:var(--accent);font-weight:600">Foil prep (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%${s.foilTint ? ` · Tint ${s.foilTint}%` : ''})</span>`
+    : (s.brightness !== 100 || s.saturation !== 100 || s.contrast !== 100)
+      ? ` · <span style="color:var(--accent);font-weight:600">Color tuned (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%)</span>`
+      : '';
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
   const sumEl = $('#setupSummary');
@@ -5313,16 +5319,19 @@ function renderPrinter() {
   const driverOpen = !!$('#driverDetails')?.open;
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
   $('#printerGuide').innerHTML = `
+    <div class="field full" style="margin-top:6px">
+      <label for="driverPrinterSel" style="font-weight:600">Printer model</label>
+      <select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+    </div>
+    <p class="hint" style="margin:4px 0 10px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
+    ${pr.presets?.length ? `
+      <div style="margin:0 0 10px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tested stock presets for this printer:</div>
+        <div class="pick presets compact">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>
+      </div>` : ''}
     <details class="adv" id="driverDetails" style="margin:6px 0 14px" ${driverOpen ? 'open' : ''}>
       <summary>Driver settings &amp; tips</summary>
-      <div class="field full" style="margin-top:8px"><label for="driverPrinterSel">Printer model</label><select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-      <p class="hint" style="margin-top:6px"><b>Recommended paper:</b> ${esc(pr.paper)}</p>
-      ${pr.presets?.length ? `
-        <div style="margin:10px 0 8px">
-          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tested stock presets for this printer:</div>
-          <div class="pick presets compact">${pr.presets.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean).map(presetButton).join('')}</div>
-        </div>` : ''}
-      <table class="drv">${pr.settings.slice(0, 5).map(row).join('')}</table>
+      <table class="drv" style="margin-top:8px">${pr.settings.slice(0, 5).map(row).join('')}</table>
       ${pr.sources ? `<p class="hint">${pr.sources.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`).join(' · ')}</p>` : ''}
       ${rest.length ? `<details class="adv"><summary>Additional driver options (${rest.length} more)</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
       <details class="adv"><summary>Tips for this printer</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>
@@ -7109,6 +7118,7 @@ function switchTab(name) {
   const activePane = $('#tab-' + name);
   if (activePane) activePane.scrollTop = 0;
   if (name === 'guide') renderGuideTab();
+  syncCardSelection();
   const btnPdf = $('#btnPdf');
   if (btnPdf) {
     if (name === 'guide') {
