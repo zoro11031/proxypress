@@ -622,21 +622,34 @@ details.adv details.adv{background:rgba(255,255,255,.02)}
       <h3>Calibration &amp; advanced</h3>
       <details class="adv" id="calDrawer">
         <summary>Printer alignment &amp; test sheets</summary>
-        <p class="hint">Two test sheets, in this order. The <b>alignment sheet</b> makes the cards come out the right size in the right place on one side of the paper. The <b>double-sided test</b> and the wizard then get the backs sitting behind the fronts.</p>
-        <div class="row" style="margin-top:8px">
-          <button id="btnCal" title="Print it once, measure the two marked lines, and type what you measured in">1. Alignment sheet</button>
-          <button id="btnDuplexTest" title="Two pages: print one on each side of a sheet, then read the number off the back">2. Double-sided test</button>
-          <button id="btnDuplexWizard" title="Walks through the double-sided test and does the arithmetic for you">Duplex calibration wizard</button>
+        <p class="hint">Two test sheets, in this order: the <b>alignment sheet</b> calibrates front size and position; the <b>double-sided test</b> lines up backs with fronts.</p>
+        <div class="test-sheets-cluster" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0">
+          <button type="button" id="btnCal" title="Print it once, measure the two marked lines, and type what you measured in">1. Alignment sheet</button>
+          <button type="button" id="btnDuplexTest" title="Two pages: print one on each side of a sheet, then read the number off the back">2. Double-sided test</button>
+          <button type="button" id="btnDuplexWizard" class="primary" style="grid-column:span 2" title="Walks through the double-sided test and does the arithmetic for you">Duplex calibration wizard</button>
         </div>
-        <p class="hint">Print both at Actual size / 100%, never "Fit to page" — a sheet that has been scaled to fit measures the printer's guesswork rather than yours.</p>
-        <div class="row" style="margin-top:10px;align-items:end">
-          <div class="field" style="flex:1"><label for="calProfileSel">Printer calibration profile</label><select id="calProfileSel"><option value="">No saved profile</option></select></div>
-          <div class="field" style="flex:1"><label for="calProfileName">Profile name</label><input id="calProfileName" type="text" placeholder="Canon cardstock"></div>
-          <button id="calProfileSave">Save profile</button>
-          <button id="calProfileDelete" class="danger">Delete</button>
+        <p class="hint" style="font-size:11.5px">Print test sheets at <b>Actual size / 100%</b>, never "Fit to page".</p>
+        <div class="cal-profile-box" style="margin-top:10px;padding:12px;background:var(--panel2);border:1px solid var(--hair);border-radius:var(--r-md)">
+          <div class="field full">
+            <label for="calProfileSel" style="font-weight:600">Saved calibration profile</label>
+            <div class="row" style="gap:6px">
+              <select id="calProfileSel" style="flex:1"><option value="">No saved profile</option></select>
+              <button type="button" id="calProfileDelete" class="danger" title="Delete selected profile">Delete</button>
+            </div>
+          </div>
+          <p class="hint" id="calProfileStatus" style="margin:4px 0 8px;font-style:italic;color:var(--accent2);min-height:16px"></p>
+          <div class="field full" style="margin-top:4px">
+            <label for="calProfileName" style="font-weight:600">Save current alignment as profile</label>
+            <div class="row" style="gap:6px">
+              <input id="calProfileName" type="text" placeholder="Canon cardstock" style="flex:1">
+              <button type="button" id="calProfileSave" class="primary">Save profile</button>
+            </div>
+          </div>
         </div>
-        <p class="hint" id="calProfileStatus" style="margin:4px 0 8px;font-style:italic"></p>
-        <p class="hint">A profile remembers the alignment for one printer and stock, and keeps a separate set for each sheet size and orientation: the flip, the printer offset and scale, and the back page's offset, scale and rotation. Every one of those is in the printed page's own axes, so a set that is right in landscape is wrong in portrait &mdash; calibrate the sheet the other way round, save it under the same name, and the profile holds both. Switching sheet or orientation then loads the matching set. The list starts with offsets measured on one machine, as a starting point &mdash; print the double-sided test afterwards to check them against yours.</p>
+        <details style="margin:8px 0 10px;font-size:12px">
+          <summary style="color:var(--muted);cursor:pointer">How alignment profiles work across orientations &amp; sheet sizes</summary>
+          <p class="hint" style="margin-top:6px">A profile remembers printer offsets and back-page drift for one machine and stock. It stores independent settings for each sheet size and orientation: calibrate landscape and portrait under the same profile name, and it automatically applies the correct numbers whenever you change layouts.</p>
+        </details>
         <div class="grid2" id="calForm"></div>
       </details>
       <div id="advSettings"></div>
