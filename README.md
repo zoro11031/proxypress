@@ -14,16 +14,16 @@ No accounts, no tracking, and no subscriptions. Everything runs directly on your
 
 Download the desktop app from **[Releases](https://github.com/zoro11031/proxypress/releases)**:
 
-- **Windows:** Download and run `Proxy-Press-0.5.3.exe` (or `Proxy-Press-0.5.3.msi`).
-- **Linux:** Download `Proxy-Press-0.5.3.AppImage`, make it executable (`chmod +x Proxy-Press-0.5.3.AppImage`), and double-click to launch.
+- **Windows:** Download and run `Proxy-Press-0.8.0.exe` (or `Proxy-Press-0.8.0.msi`).
+- **Linux:** Download `Proxy-Press-0.8.0.AppImage`, make it executable (`chmod +x Proxy-Press-0.8.0.AppImage`), and double-click to launch.
 
 *No setup required. All authentic MTG fonts, card frames, and high-res art search tools are built in with no login or password needed.*
 
 #### Other Linux packages (optional)
 If you prefer installing via your distribution's package manager:
-- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-0.5.3.deb`
-- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-0.5.3.rpm` (or `sudo zypper install ./Proxy-Press-0.5.3.rpm`)
-- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-0.5.3.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
+- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-0.8.0.deb`
+- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-0.8.0.rpm` (or `sudo zypper install ./Proxy-Press-0.8.0.rpm`)
+- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-0.8.0.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
 
 ---
 
@@ -65,7 +65,7 @@ Open **Setup** to change paper, layout, sides, color or cutting settings. The pr
 
 Choose **Review export** to check warnings and download. Select **Current sheet** to reprint that sheet with its original number and matching cut file. **Review order** provides the order bundle and XML options.
 
-Imports show a review before changing the deck. Unresolved input stays available through **Resume import**. Use **Settings & backup** for full backups; the top bar reports when changes have been saved to this device. See the [overhaul verification record](OVERHAUL-VERIFICATION.md) for the feature map, migration notes, tests and before/after views.
+Imports show a review before changing the deck. Unresolved input stays available through **Resume import**. Use **Settings & backup** for full backups; the top bar reports when changes have been saved to this device. See the [overhaul verification record](FOLLOW-UP-VERIFICATION.md) for the feature map, migration notes, tests and before/after views.
 
 For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across shared decks and the instance art library. Identical images are stored once. Shares and the art library are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other shared deck or library entry uses; copies already saved by recipients remain theirs.
 

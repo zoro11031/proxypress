@@ -4,8 +4,10 @@ const {spawn}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path');
 const destination=path.resolve(process.argv[2]||'out/overhaul-review/checks');fs.mkdirSync(destination,{recursive:true});
 const checks=[
+  ['followup','followup-correctness-probe.js'],
   ['navigation','navigation-probe.js',1440,900],
   ['phone','navigation-probe.js',390,844],
+  ...[821,1024,1100,1101].map(width=>['pointer-'+width,'navigation-probe.js',width,768,['--pointer-selector','#toggleInspector','--pointer-assert','!!document.querySelector("#workspaceInspector").getClientRects().length']]),
   ['narrow-dialog','narrow-dialog-probe.js',320,740],
   ['snapshot','job-snapshot-probe.js'],
   ['readiness','art-readiness-probe.js'],
@@ -26,8 +28,8 @@ const checks=[
 ];
 (async()=>{
   const results=[];
-  for(const [name,probe,width=1440,height=900] of checks){
-    const args=['tools/console-check.js','--offline-fixtures','--probe','tools/'+probe,'--width',String(width),'--height',String(height),'--deadline','150','--artifacts',path.join(destination,name+'.json')];
+  for(const [name,probe,width=1440,height=900,extra=[]] of checks){
+    const args=['tools/console-check.js','--offline-fixtures','--probe','tools/'+probe,'--width',String(width),'--height',String(height),'--deadline','150','--artifacts',path.join(destination,name+'.json'),...extra];
     const started=Date.now();let output='';
     const code=await new Promise((resolve,reject)=>{const child=spawn(process.execPath,args,{stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);child.on('error',reject);child.on('close',resolve);});
     const pass=code===0&&output.includes('app loaded: yes')&&output.includes('probe: true')&&output.includes('PASS - page clean');
