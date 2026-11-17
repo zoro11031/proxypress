@@ -42,8 +42,9 @@ import urllib.parse
 import urllib.request
 import webbrowser
 
-PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "proxy-press.html")
-OG_IMAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "og.png")
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+PAGE = os.path.join(APP_DIR, "proxy-press.html")
+OG_IMAGE = os.path.join(APP_DIR, "og.png")
 OG_DESCRIPTION = "Turn a decklist into print-ready Magic proxies. Print at home with bleed and cut guides, or order from MakePlayingCards."
 UPSTREAM = "https://mpcfill.com/"
 ALLOWED = {"2/editorSearch/", "2/cards/", "2/sources/", "2/cardbacks/", "2/languages/", "2/DFCPairs/"}
@@ -57,7 +58,8 @@ AUTH = os.environ.get("BASIC_AUTH", "")
 PASSWORD = os.environ.get("PASSWORD", "")
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 COOKIE = "pp_session"
-ASSETS = os.path.realpath(os.environ.get("ASSETS") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets"))
+ASSETS = os.path.realpath(os.environ.get("ASSETS") or os.path.join(APP_DIR, "assets"))
+JSPDF_ASSET = "vendor/jspdf.umd.min.js"
 ASSET_TYPES = {".ttf": "font/ttf", ".otf": "font/otf", ".woff": "font/woff", ".woff2": "font/woff2",
                ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
                # Silhouette Studio base documents and their offset manifest, for
@@ -104,6 +106,12 @@ def asset_manifest_data():
 
 def asset_path(route):
     rel = urllib.parse.unquote(route[len("/assets/"):])
+    if rel == JSPDF_ASSET:
+        for root in ("runtime-assets", "assets"):
+            bundled = os.path.join(APP_DIR, root, JSPDF_ASSET)
+            if os.path.isfile(bundled):
+                return bundled, ASSET_TYPES[".js"]
+        return None, None
     full = os.path.realpath(os.path.join(ASSETS, rel))
     if not full.startswith(ASSETS + os.sep) or not os.path.isfile(full):
         return None, None
@@ -1008,23 +1016,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if name == "index.json":
                 return self.send(200, body, "application/json", [("ETag", etag), ("Cache-Control", "private, max-age=86400")])
             return self.send(200, body, "image/svg+xml", [("ETag", etag), ("Cache-Control", "private, max-age=2592000, immutable"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
-        if route == "/assets/manifest.json":
-            body, etag = asset_manifest_data()
-            return self.send(200, body, "application/json", [("ETag", etag), ("Cache-Control", "private, max-age=3600")])
         if route.startswith("/assets/"):
-            full, ctype = asset_path(route)
-            if not full:
-                return self.send(404, b"Not found", "text/plain")
-            try:
-                stat = os.stat(full)
-                etag = f'"{int(stat.st_mtime):x}-{stat.st_size:x}"'
-                inm = self.headers.get("If-None-Match")
-                if inm and etag in [x.strip() for x in inm.split(",")]:
-                    return self.send(200, b"", ctype, [("ETag", etag), ("Cache-Control", "private, max-age=86400")])
-                with open(full, "rb") as f:
-                    return self.send(200, f.read(), ctype, [("ETag", etag), ("Cache-Control", "private, max-age=86400"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
-            except OSError:
-                return self.send(404, b"Not found", "text/plain")
+            return self.serve_asset(route)
         if route in ("/", "/proxy-press.html"):
             body, csp, etag = page_response(self.headers.get("Host", ""), self.https(), self.preview_tags)
             return self.send(200, body, "text/html; charset=utf-8", [("Content-Security-Policy", csp), ("Cache-Control", "no-cache"), ("ETag", etag)])

@@ -27,6 +27,11 @@ def main():
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
         env = {**os.environ, 'CACHE': cache, 'PASSWORD': 'share-check', 'BASIC_AUTH': '', 'NO_BROWSER': '1', 'PUBLIC_URL': 'https://proxy.example.com', 'SHARE_STORAGE_MB': '2', 'SHARE_DECK_MB': '1'}
+        custom_assets = Path(cache) / 'custom-assets'
+        (custom_assets / 'vendor').mkdir(parents=True)
+        (custom_assets / 'vendor/jspdf.umd.min.js').write_text('/* stale mounted copy */')
+        env['ASSETS'] = str(custom_assets)
+        jspdf = (ROOT / 'assets/vendor/jspdf.umd.min.js').read_bytes()
         server = subprocess.Popen(['python3', 'proxy-press-server.py', str(port)], cwd=args.server_root, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         cookie = ''
         checks = 0
@@ -95,6 +100,11 @@ def main():
             status, headers, page = request('/share/'+a, auth=False)
             check(status == 200 and b'function layout' in page and b'public-url' in page, 'public app opens without password')
             check('https://proxy.example.com' in headers['Content-Security-Policy'], 'configured original origin allowed by CSP')
+            for url in ('/assets/vendor/jspdf.umd.min.js', '/share/assets/vendor/jspdf.umd.min.js',
+                        '/share/'+a+'/assets/vendor/jspdf.umd.min.js'):
+                status, headers, script = request(url, auth=False)
+                check(status == 200 and headers['Content-Type'].startswith('application/javascript') and script == jspdf,
+                      'bundled PDF library survives a stale asset mount at '+url)
             status, _, raw = request('/share/'+a+'/deck.json', auth=False)
             check(status == 200 and len(raw) < 1000 and b'data:image' not in raw, 'manifest is small and reference-only')
             status, headers, raw = request('/share/'+a+'/images/'+digest, auth=False)

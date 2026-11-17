@@ -3,6 +3,8 @@ FROM python:3.13-alpine
 WORKDIR /app
 COPY proxy-press.html proxy-press-server.py og.png ./
 COPY assets/ ./assets/
+# Runtime dependencies must remain available when Compose mounts custom assets.
+COPY assets/vendor/jspdf.umd.min.js ./runtime-assets/vendor/jspdf.umd.min.js
 
 RUN adduser -D -H -u 10001 proxypress && mkdir -p cache && chown -R proxypress cache assets
 USER proxypress
