@@ -1,15 +1,18 @@
 // Offline geometry exports from the actual application functions. No browser/PDF claim.
 const fs = require('node:fs'), vm = require('node:vm'), path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '../proxy-press.html'), 'utf8');
-const names = ['layout', 'slotPos', 'makeT', 'regArm', 'regMarks', 'cutSvg'];
+const names = ['layout', 'slotPos', 'makeT', 'registrationFrame', 'regArm', 'regArmCap',
+  'regMarks', 'studio3Key', 'cutSheetCards', 'cutterCardRect', 'cutSvg'];
 const functions = names.map(name => {
   const start = html.indexOf(`function ${name}(`), end = html.indexOf('\n}', start);
   if (start < 0 || end < 0) throw Error(`Missing function ${name}`);
   return html.slice(start, end + 2);
 }).join('\n');
 const defaults = html.slice(html.indexOf('const DEFAULTS ='), html.indexOf('const BUILTIN_PRESETS ='));
+const markConstants = html.slice(html.indexOf('const REG_MIN_LEN'), html.indexOf('function registrationFrame'));
+const studioBases = html.slice(html.indexOf('const STUDIO3_BASES'), html.indexOf('const STUDIO3_MARKS_MISMATCH'));
 const context = vm.createContext({});
-vm.runInContext(defaults + `\nconst PAGE_SIZES={letter:[215.9,279.4],a4:[210,297]}; const S={settings:{}}; let count=0; function buildSlots(){return Array(count);} const REG_MIN_LEN=5,REG_MAX_LEN=20,REG_SAFETY=1.25;\n` + functions, context);
+vm.runInContext(defaults + markConstants + studioBases + `\nconst PAGE_SIZES={letter:[215.9,279.4],a4:[210,297]}; const S={settings:{}}; let count=0; function buildSlots(){return Array(count);} function buildPrintJob(){return {settings:S.settings,layout:layout(),slots:buildSlots()};}\n` + functions, context);
 const artifacts = vm.runInContext(`(() => { const out=[];
 for(const [orientation, per, counts, sets] of [
   ['landscape', 8, [1, 8, 9, 16], {orientation:'landscape', cols:4, rows:2, margin:10, bleed:0.625}],

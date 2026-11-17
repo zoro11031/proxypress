@@ -20,14 +20,8 @@
     for (const paper of ['letter', 'a4']) for (const orientation of ['landscape', 'portrait']) {
       S.settings = {...DEFAULTS, pageSize: paper, orientation, silhouette: true, guides: 'none',
         ...cameoPaperLayout(orientation)};
-      if (orientation === 'portrait') {
-        let mismatch = '';
-        try { await cutStudio3(0); } catch (err) { mismatch = err.message; }
-        eq(`${paper} portrait preset rejects a mismatched Studio template`, mismatch, STUDIO3_MARKS_MISMATCH);
-        eq(`${paper} portrait still supports DXF`, cutDxf(0).includes('POLYLINE'), true);
-        S.settings.regInset = 10;
-      }
       const L = layout(), tag = `${paper}/${orientation}`;
+      const pad = orientation === 'portrait' ? 6.5 : 0;
       const key = studio3Key();
       if (!key) { fails.push(`${tag}: no Studio base`); continue; }
       const spec = man[key];
@@ -53,8 +47,9 @@
       eq(`${tag} only coordinates changed`, strayed.map(i => '0x' + i.toString(16)).join(','), '');
 
       const dv = new DataView(out.buffer);
-      near(`${tag} page width`, dv.getFloat32(spec.pageOffsets[0], true), L.W);
-      near(`${tag} page height`, dv.getFloat32(spec.pageOffsets[1], true), L.H);
+      near(`${tag} page width`, dv.getFloat32(spec.pageOffsets[0], true), L.W+2*pad);
+      near(`${tag} page height`, dv.getFloat32(spec.pageOffsets[1], true), L.H+2*pad);
+      near(`${tag} stored arm equals the printed arm`, dv.getFloat32(1137, true), regArm(L), 0.001);
 
       // Read every outline back and check it against the SVG the same sheet
       // would export: one geometry, three files, no second opinion.
@@ -78,8 +73,8 @@
             // whether or not the offsets are preserved, which is how a first
             // version of this probe reported a clean run while the writer
             // was dropping them.
-            near(`${tag} card ${i} copy ${c} x`, x, +r.getAttribute('x') + o.dx, 0.002);
-            near(`${tag} card ${i} copy ${c} y`, y, +r.getAttribute('y') + o.dy, 0.002);
+            near(`${tag} card ${i} copy ${c} x`, x, +r.getAttribute('x') + o.dx + pad, 0.002);
+            near(`${tag} card ${i} copy ${c} y`, y, +r.getAttribute('y') + o.dy + pad, 0.002);
           }
           wrote++;
         });
@@ -88,11 +83,19 @@
     }
 
     const matching = {...DEFAULTS, ...cameoPaperLayout('landscape'), pageSize:'letter', silhouette:true};
-    for (const change of [{regPattern:4}, {regLen:12}, {regThickness:.5}]) {
+    for (const change of [{regPattern:4}, {regLen:20}, {regThickness:.5}, {regOrientation:'portrait'}, {regInset:12}]) {
       S.settings = {...matching, ...change};
       let mismatch = '';
       try { await cutStudio3(0); } catch (err) { mismatch = err.message; }
       eq(`${JSON.stringify(change)} rejects a mismatched Studio template`, mismatch, STUDIO3_MARKS_MISMATCH);
+    }
+    {
+      const {regOrientation, ...legacy} = {...matching,...cameoPaperLayout('portrait'),regInset:5.5};
+      S.settings = cleanSettings(legacy);
+      const oldPortrait = new DataView((await cutStudio3(0)).buffer);
+      const [width,height] = man['letter-portrait'].pageOffsets;
+      near('saved portrait inset gets a 9 mm wider Studio canvas',oldPortrait.getFloat32(width,true),224.9);
+      near('saved portrait inset gets a 9 mm taller Studio canvas',oldPortrait.getFloat32(height,true),288.4);
     }
 
     // A paper the bases do not cover must refuse rather than write a wrong file.

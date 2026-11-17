@@ -105,6 +105,12 @@ def main():
                 status, headers, script = request(url, auth=False)
                 check(status == 200 and headers['Content-Type'].startswith('application/javascript') and script == jspdf,
                       'bundled PDF library survives a stale asset mount at '+url)
+            status, _, manifest = request('/assets/studio3/manifest.json', auth=False)
+            check(status == 200, 'bundled Studio manifest survives a stale asset mount')
+            for template in json.loads(manifest).values():
+                status, headers, data = request('/assets/studio3/'+template['file'], auth=False)
+                check(status == 200 and len(data) == template['bytes'] and headers['Content-Type'] == 'application/octet-stream',
+                      'bundled Studio template survives a stale asset mount')
             status, _, raw = request('/share/'+a+'/deck.json', auth=False)
             check(status == 200 and len(raw) < 1000 and b'data:image' not in raw, 'manifest is small and reference-only')
             status, headers, raw = request('/share/'+a+'/images/'+digest, auth=False)

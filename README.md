@@ -37,6 +37,11 @@ docker compose up -d
 
 Then open `http://localhost:8642` on the server. To connect from other devices, copy `.env.example` to `.env`, set `PROXY_PRESS_BIND` to the server's LAN IP, and run `docker compose up -d` again. Open `http://SERVER_LAN_IP:8642` from those devices. You can also set a password in `.env`.
 
+To update a local Compose deployment, run `git pull --ff-only` and
+`docker compose up -d --build` in the checkout. The cache volume and browser
+projects stay in place. The image includes the PDF library and Studio
+templates outside the mounted asset directory.
+
 ---
 
 ## What It Does

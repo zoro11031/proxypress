@@ -1051,6 +1051,14 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             </select>
           </div>
           <div class="grid2" style="margin-top:8px">
+            <div class="field full">
+              <label for="cameoRegOrientation">Sheet orientation on the cutter mat</label>
+              <select id="cameoRegOrientation">
+                <option value="auto">Match the printed page</option>
+                <option value="portrait">Portrait on the mat</option>
+                <option value="landscape">Landscape on the mat</option>
+              </select>
+            </div>
             <div class="field">
               <label for="cameoRegInset">Mark inset (mm)</label>
               <input type="number" id="cameoRegInset" step="0.5" min="3.5" max="25" value="10">
@@ -1065,8 +1073,8 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <div class="grid2" style="margin-top:8px">
             <div class="field">
               <label for="cameoRegLen">Mark arm length (mm)</label>
-              <input type="number" id="cameoRegLen" step="0.5" min="0" max="20" value="0">
-              <span class="hint" style="font-size:11px">0 = auto (longest that clears cards)</span>
+              <input type="number" id="cameoRegLen" step="0.01" min="0" max="20" value="0">
+              <span class="hint" style="font-size:11px">0 = match the Studio template where available</span>
             </div>
             <div class="field">
               <label for="cameoCornerRadius">Cut corner radius (mm)</label>
@@ -1654,7 +1662,7 @@ const DEFAULTS = {
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
   dpi:1200, jpeg:92, brightness:100, saturation:100, contrast:100, foilTint:0, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
-  silhouette:false, regPattern:3, regInset:10, regLen:0, regThickness:1, showCuts:false
+  silhouette:false, regPattern:3, regOrientation:'auto', regInset:10, regLen:0, regThickness:1, showCuts:false
 };
 
 const BUILTIN_PRESETS = [
@@ -2486,24 +2494,32 @@ function squarenessMarks(L) {
 //     marks means an L in all four corners and no square (Cameo 5 Alpha);
 //     on a Cameo 5 Alpha, selecting "Cameo 5" in Studio uses three.
 const REG_MIN_LEN = 5, REG_MAX_LEN = 20, REG_SAFETY = 1.25;
+const STUDIO3_INSET = 10;
+// Active length from the page setup record of each bundled Studio file.
+const STUDIO3_ARMS = {'letter-landscape':8.0264, 'letter-portrait':14.3764, 'a4-landscape':9.398, 'a4-portrait':6.6802};
+function registrationFrame(L, s) {
+  const orientation = s.silhouette && (s.regOrientation === 'portrait' || s.regOrientation === 'landscape')
+    ? s.regOrientation : s.orientation;
+  const turned = orientation !== s.orientation;
+  if (!turned) return {W:L.W, H:L.H, orientation, turned, toPaper:(x,y)=>[x,y], toMat:(x,y)=>[x,y]};
+  const portrait = orientation === 'portrait';
+  return {W:L.H, H:L.W, orientation, turned,
+    toPaper:portrait ? (x,y)=>[y,L.H-x] : (x,y)=>[L.W-y,x],
+    toMat:portrait ? (x,y)=>[L.H-y,x] : (x,y)=>[y,L.W-x]};
+}
 function regArm(L, s = S.settings) {
   if (s.regLen > 0) return Math.max(REG_MIN_LEN, Math.min(s.regLen, REG_MAX_LEN));
-  // Auto. Silhouette's own default is the full 20 mm and every Card Maker
-  // cutting template uses it, so start there and shorten only where an arm
-  // would actually run into the cards.
-  //
-  // An arm lies ALONG one page edge, so only the clearance perpendicular to it
-  // can bring it into the grid. The old formula took the smaller of the two
-  // axes and so produced a 7.25 mm stub on a centred letter landscape grid
-  // that nothing was in the way of -- which is why our marks came out short
-  // and stubby next to the same marks drawn from a Card Maker template.
+  const frame = registrationFrame(L, s);
+  const templateArm = !frame.turned && +s.regPattern === 3 ? STUDIO3_ARMS[studio3Key(s)] : undefined;
   const cap = regArmCap(L, s);
-  return Math.max(REG_MIN_LEN, Math.min(Math.floor(cap * 4) / 4, REG_MAX_LEN));
+  return Math.max(REG_MIN_LEN, Math.min(Math.floor(cap * 4) / 4, templateArm ?? REG_MAX_LEN));
 }
 // How long an arm may be before it runs into the cards, or Infinity when
 // nothing is in its way. An arm lies ALONG one page edge, so only the
 // clearance perpendicular to it can bring it into the grid.
 function regArmCap(L, s = S.settings) {
+  const frame = registrationFrame(L, s);
+  if (frame.turned) L = {...L, W:L.H, H:L.W, x0:L.y0, y0:L.x0, gw:L.gh, gh:L.gw};
   const i = s.regInset, t = Math.max(0.5, Math.min(s.regThickness, 1)) / 2;
   const gx0 = L.x0, gx1 = L.x0 + L.gw, gy0 = L.y0, gy1 = L.y0 + L.gh;
   const caps = [];
@@ -2517,14 +2533,17 @@ function regArmCap(L, s = S.settings) {
 }
 function regMarks(L, s = S.settings) {
   if (!s.silhouette) return {rects:[], lines:[]};
+  const {W, H, toPaper} = registrationFrame(L, s);
   const i = s.regInset, four = +s.regPattern === 4;
   const t = Math.max(0.5, Math.min(s.regThickness, 1)), r = regArm(L, s) - t/2;
   const lines = [];
   if (four) lines.push([i, i, i+r, i], [i, i, i, i+r]);                              // top-left
-  lines.push([L.W-i-r, i, L.W-i, i], [L.W-i, i, L.W-i, i+r]);                        // top-right
-  lines.push([i, L.H-i, i+r, L.H-i], [i, L.H-i-r, i, L.H-i]);                        // bottom-left
-  if (four) lines.push([L.W-i-r, L.H-i, L.W-i, L.H-i], [L.W-i, L.H-i-r, L.W-i, L.H-i]);
-  return {rects: four ? [] : [[i, i, 5, 5]], lines, width: t};
+  lines.push([W-i-r, i, W-i, i], [W-i, i, W-i, i+r]);                                // top-right
+  lines.push([i, H-i, i+r, H-i], [i, H-i-r, i, H-i]);                                // bottom-left
+  if (four) lines.push([W-i-r, H-i, W-i, H-i], [W-i, H-i-r, W-i, H-i]);
+  const [a,b] = toPaper(i,i), [c,d] = toPaper(i+5,i+5);
+  return {rects: four ? [] : [[Math.min(a,c),Math.min(b,d),5,5]],
+    lines:lines.map(([x,y,u,v])=>[...toPaper(x,y),...toPaper(u,v)]), width:t};
 }
 
 function regMarksClipped(L, s) {
@@ -2541,26 +2560,21 @@ function regMarksClipped(L, s) {
     return p.x < -0.05 || p.x > L.W + 0.05 || p.y < -0.05 || p.y > L.H + 0.05;
   }));
 }
-// Card Maker's corner rule: a layout is only in trouble when the grid comes
-// within the mark's reach on BOTH axes at once for any mark. Clearing one axis is enough.
-function regConflict(L, s = S.settings, occupied = null) {
+function regConflict(L, s = S.settings, occupied = null, clearance = 0) {
   if (!s.silhouette) return false;
-  if (occupied) {
-    const marks = regMarks(L, s), t = marks.width / 2;
-    const boxes = [...marks.rects, ...marks.lines.map(([a,b,c,d])=>[Math.min(a,c)-t,Math.min(b,d)-t,Math.abs(c-a)+2*t,Math.abs(d-b)+2*t])];
-    return occupied.some((slot,index)=>slot.front && boxes.some(([x,y,w,h])=>{
-      const p = slotPos(L,index,false,s);
-      return x < p.x+L.sw && x+w > p.x && y < p.y+L.sh && y+h > p.y;
-    }));
-  }
-  const i = s.regInset, t = Math.max(0.5, Math.min(s.regThickness, 1)) / 2;
-  // In trouble when even the shortest legal arm would cross the cards.
-  if (regArmCap(L, s) < REG_MIN_LEN) return true;
-  // Or when the cards reach the 5 mm square, which only three marks have.
-  if (+s.regPattern !== 4
-      && i < L.x0 + L.gw + t && i + 5 > L.x0 - t
-      && i < L.y0 + L.gh + t && i + 5 > L.y0 - t) return true;
-  return false;
+  const marks = regMarks(L, s), t = marks.width / 2;
+  const boxes = [...marks.rects, ...marks.lines.map(([a,b,c,d])=>{
+    const dx = a === c ? t : 0, dy = b === d ? t : 0;
+    return [Math.min(a,c)-dx,Math.min(b,d)-dy,Math.abs(c-a)+2*dx,Math.abs(d-b)+2*dy];
+  })];
+  const covers = (left, top, width, height) => boxes.some(([x,y,w,h])=>
+    x-clearance < left+width && x+w+clearance > left && y-clearance < top+height && y+h+clearance > top);
+  if (!occupied) return covers(L.x0,L.y0,L.gw,L.gh);
+  return occupied.some((slot,index)=>{
+    if (!slot.front) return false;
+    const p = slotPos(L,index,false,s);
+    return covers(p.x,p.y,L.sw,L.sh);
+  });
 }
 
 /* ---------- slots ---------- */
@@ -6285,6 +6299,7 @@ const ADV_KEYS = FIELDS.filter(f => f.adv && !CAL_KEYS.includes(f.k) && !PRESET_
 const SELECT_OPTS = {
   ...Object.fromEntries(FIELDS.filter(f => f.opts).map(f => [f.k, f.opts.map(o => String(o[0]))])),
   regPattern: ['3', '4'],
+  regOrientation: ['auto', 'portrait', 'landscape'],
   guides: ['all', 'both', 'lines', 'corners', 'outline', 'lines,outline', 'corners,outline', 'margin', 'none'],
   guideShape: ['brackets', 'ticks'], guidePlacement: ['outside', 'inside'], guideStyle: ['solid', 'dashed'],
 };
@@ -6302,7 +6317,7 @@ function cleanSettings(raw) {
   }
   // regLen used to be a fixed 20 mm - the machine's maximum, which overlaps
   // the cards on most layouts. Settings saved before the pattern option
-  // existed move that exact old default to 0, meaning "longest that clears".
+  // existed move that exact old default to 0, meaning automatic registration.
   if (raw?.regPattern === undefined && Number(raw?.regLen) === 20) out.regLen = 0;
   if (![3, 4].includes(out.regPattern)) out.regPattern = 3;
   // The back offset used to be absolute, with the printer offset applying to fronts
@@ -7416,7 +7431,7 @@ const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
 // leaves margin and bleed at whatever the user last had.
 function cameoPaperLayout(orientation) {
   const portrait = orientation === 'portrait';
-  return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 5.5 : 10, regLen:0};
+  return {orientation, cardRotation:'upright', cols:0, rows:0, gap:0, margin:portrait ? 5 : 10, bleed:portrait ? 0.5 : 0.625, regInset:portrait ? 3.5 : 10, regLen:0};
 }
 function presetSettings(p) {
   if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
@@ -7984,9 +7999,15 @@ async function runPreflight(options = {}) {
       errors.push({type:'reg_clip', tab:'cutting', sheet:sheetIndex(0)+1, side:'front',
         message:'Silhouette registration marks extend off the PDF page. Increase the mark inset or check front alignment.'});
     }
-    for (let index=0; index<totalSheets; index++) if (regConflict(L, s, slots.slice(index*L.per,(index+1)*L.per))) {
+    for (let index=0; index<totalSheets; index++) {
       const sheet = sheetIndex(index)+1;
-      errors.push({ type:'reg_conflict', tab:'cutting', sheet, side:'front', message:`Cards overlap Silhouette Cameo registration marks on Sheet ${sheet}. Adjust the Cameo layout or paper size.` });
+      const occupied = slots.slice(index*L.per,(index+1)*L.per);
+      if (regConflict(L, s, occupied)) {
+        errors.push({ type:'reg_conflict', tab:'cutting', sheet, side:'front', message:`Cards overlap Silhouette Cameo registration marks on Sheet ${sheet}. Adjust the Cameo layout or paper size.` });
+      } else if (regConflict(L, s, occupied, 1.5)) {
+        warnings.push({type:'reg_clearance', tab:'cutting', sheet, side:'front',
+          message:`Artwork is within 1.5 mm of a registration mark on Sheet ${sheet}. Test registration before cutting stock.`});
+      }
     }
     if (s.guides !== 'none') {
       warnings.push({ type: 'guides_cameo', tab: 'cutting', message: 'Printed trimming guides are enabled alongside Cameo registration marks.' });
@@ -8211,6 +8232,7 @@ function renderGuideTab() {
   const slots = scopedSheets.flatMap(sheet=>sheet.slots), pages = scopedSheets.map(sheet=>sheet.slots), sheets = pages.length;
   const isSingleSided = !job.hasBacks;
   const isCameo = !!s.silhouette;
+  const frame = registrationFrame(L,s), pad = studioCanvasPad(s);
 
   const badge = $('#guideCutterBadge');
   if (badge) {
@@ -8272,7 +8294,7 @@ function renderGuideTab() {
       } else if (!s3Support) {
         hint.innerHTML = `Silhouette Studio (.studio3) templates support matching Letter and A4 eight-card landscape and nine-card portrait layouts. For ${esc(paperName)} (${L.cols}×${L.rows} = ${L.per} per sheet), use the DXF cut file.`;
       } else {
-        hint.innerHTML = 'The Studio file opens with the page and registration marks already set. The DXF carries the cut lines only, so set the page and marks yourself. SVG needs Designer Edition.';
+        hint.textContent = 'The Studio file carries the matching canvas and registration settings. DXF carries the cut lines. SVG uses the physical sheet size for direct cutter apps.';
       }
     }
   }
@@ -8314,7 +8336,9 @@ function renderGuideTab() {
         <li><b>Find your cutting settings:</b> Make a small test shape first. Start with one pass, inspect the cut without unloading the mat, and repeat as needed.
           <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> reports depth 7, force 35, speed 25 and 4 passes for the author's Cameo 5, AutoBlade, cardstock and laminate. These are Cameo 5 reference settings. For your cutter, use values supported by Silhouette Studio and determine force, speed and passes with a test cut on your ProxyJak stock.</p>
         </li>
-        <li><b>Silhouette Studio job setup:</b> For a DXF import, set the page to <b>${L.W.toFixed(1)} × ${L.H.toFixed(1)} mm</b>. Match the PDF’s <b>${s.regPattern}-mark pattern</b>, <b>${s.regInset} mm inset</b>, <b>${regArm(L, s).toFixed(2)} mm arm length</b> and <b>${s.regThickness} mm line thickness</b>. ${s.regPattern === 4 ? 'Select Cameo 5 Alpha for the four-mark pattern.' : ''} Check that the cut lines are at actual size and in position before cutting.</li>
+        <li><b>Silhouette Studio job setup:</b> Use a <b>${(frame.W+2*pad).toFixed(1)} × ${(frame.H+2*pad).toFixed(1)} mm</b> Studio canvas. For DXF, set <b>${s.regPattern} marks</b>, a <b>${(s.regInset+pad).toFixed(1)} mm inset</b>, <b>${regArm(L,s).toFixed(2)} mm arms</b> and <b>${s.regThickness} mm thickness</b>. ${s.regPattern === 4 ? 'Select Cameo 5 Alpha for four marks.' : ''}
+          <p class="hint">Load the physical sheet <b>${frame.orientation}</b> on the cutter mat. ${pad ? `Place the paper ${pad.toFixed(1)} mm in from the top and left grid edges. Keep the printer set to the actual paper size.` : 'Align the paper with the top-left of the mat grid.'} ${s.regPattern === 3 ? 'The black square goes at the upper left on the mat.' : ''} Check the cut path at actual size before cutting.</p>
+        </li>
       </ol>
     ` : `
       <div class="callout-box" style="margin-top:0">
@@ -8341,7 +8365,7 @@ function renderGuideTab() {
       const calibrated = s.scaleX !== 100 || s.scaleY !== 100 || s.offsetX !== 0 || s.offsetY !== 0;
       cutPane.innerHTML += calibrated
         ? '<p class="hint">Printer compensation is already applied to the PDF and SVG, including the marks. Compare the cut overlay and test with a pen; nominal registration settings alone do not describe asymmetric compensation.</p>'
-        : `<details><summary>Cut with Silhouette Control Center</summary><p class="hint">Export the matching sheet’s cut SVG. Replace cut-lines.svg with that filename. This builds and verifies without cutting:</p><pre>silhouette-control-center cut --from cut-lines.svg --sheet ${s.pageSize === 'a4' ? 'A4' : 'Letter'} --${s.orientation === 'landscape' ? 'landscape' : 'portrait'} --pattern ${s.regPattern === 4 ? 'four' : 'three'} --mark-inset ${s.regInset} --mark-length ${regArm(L, s)} --mark-thickness ${s.regThickness} --dry-run</pre><p class="hint">Choose your blade preset separately. Inspect the overlay and test on plain paper with a pen before cutting stock. PDF inspection cannot measure physical printer scaling.</p></details>`;
+        : `<details><summary>Cut with Silhouette Control Center</summary><p class="hint">Export the matching sheet’s cut SVG. Replace cut-lines.svg with that filename. This builds and verifies without cutting:</p><pre>silhouette-control-center cut --from cut-lines.svg --sheet ${s.pageSize === 'a4' ? 'A4' : 'Letter'} --${frame.orientation} --pattern ${s.regPattern === 4 ? 'four' : 'three'} --mark-inset ${s.regInset} --mark-length ${regArm(L, s)} --mark-thickness ${s.regThickness} --dry-run</pre><p class="hint">Choose your blade preset separately. Inspect the overlay and test on plain paper with a pen before cutting stock. PDF inspection cannot measure physical printer scaling.</p></details>`;
     }
   }
 }
@@ -8984,16 +9008,34 @@ function cutSheetCards(L, sheet, slots = buildSlots()) {
   return count ? Math.min(L.per, count - sheet * L.per) : L.per;
 }
 
+// Studio's inset is measured from a virtual canvas whenever the printed
+// marks are closer to the edge of the physical paper than Studio allows.
+function studioCanvasPad(s) {
+  return s.silhouette ? Math.max(0, STUDIO3_INSET - s.regInset) : 0;
+}
+
+function cutterCardRect(L, s, index, frame, pad = 0) {
+  const p = slotPos(L,index,false,s), left = p.x+s.bleed, top = p.y+s.bleed;
+  const radius = s.cornerRadius ?? 3.2;
+  if (!s.silhouette) {
+    const T = makeT(L,false,s);
+    return {x:T.x(left), y:T.y(top), w:T.w(L.cw), h:T.h(L.ch), rx:T.w(radius), ry:T.h(radius)};
+  }
+  // The cutter registers against marks printed with the same printer
+  // correction as the artwork. Cut coordinates stay in the nominal frame.
+  const [x0,y0] = frame.toMat(left,top), [x1,y1] = frame.toMat(left+L.cw,top+L.ch);
+  return {x:Math.min(x0,x1)+pad, y:Math.min(y0,y1)+pad,
+    w:frame.turned ? L.ch : L.cw, h:frame.turned ? L.cw : L.ch, rx:radius, ry:radius};
+}
+
 function cutSvg(sheet = 0, job = buildPrintJob()) {
-  const s = job.settings, L = job.layout, T = makeT(L, false, s), n = cutSheetCards(L, sheet, job.slots);
-  let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${L.W}mm" height="${L.H}mm" viewBox="0 0 ${L.W} ${L.H}">\n`;
-  // No rotation here even when the print is turned. The cutter finds the
-  // printed registration marks and lays its own frame on them, and those marks
-  // turn with everything else, so the cut paths stay nominal. Turning them too
-  // would apply the correction a second time.
+  const s = job.settings, L = job.layout, n = cutSheetCards(L, sheet, job.slots);
+  const frame = registrationFrame(L, s);
+  // The SVG is in physical sheet coordinates for direct cutter workflows.
+  let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${frame.W}mm" height="${frame.H}mm" viewBox="0 0 ${frame.W} ${frame.H}">\n`;
   for (let i = 0; i < n; i++) {
-    const p = slotPos(L, i, false, s);
-    svg += `<rect x="${T.x(p.x + s.bleed).toFixed(3)}" y="${T.y(p.y + s.bleed).toFixed(3)}" width="${T.w(L.cw).toFixed(3)}" height="${T.h(L.ch).toFixed(3)}" rx="${T.w(s.cornerRadius ?? 3.2).toFixed(3)}" ry="${T.h(s.cornerRadius ?? 3.2).toFixed(3)}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
+    const {x,y,w,h,rx,ry} = cutterCardRect(L,s,i,frame);
+    svg += `<rect x="${x.toFixed(3)}" y="${y.toFixed(3)}" width="${w.toFixed(3)}" height="${h.toFixed(3)}" rx="${rx.toFixed(3)}" ry="${ry.toFixed(3)}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
   }
   svg += '</svg>\n';
   return svg;
@@ -9043,10 +9085,12 @@ function dxfCard(x, yTop, w, h, radius) {
 // each outline's twelve points live rather than the page hunting for them.
 const STUDIO3_BASES = {letter: {landscape: 'letter-landscape', portrait: 'letter-portrait'},
                        a4: {landscape: 'a4-landscape', portrait: 'a4-portrait'}};
-const STUDIO3_MARKS_MISMATCH = 'The Studio template uses three marks, a 10 mm inset, 20 mm arms, and 1 mm thickness. Download DXF and enter the PDF’s mark settings in Silhouette Studio.';
+const STUDIO3_MARKS_MISMATCH = 'Download DXF for these settings and use the Studio canvas and mark values shown below.';
 function studio3MarksMatch(L, s) {
-  return s.silhouette && +s.regPattern === 3 && s.regInset === 10
-    && regArm(L, s) === 20 && s.regThickness === 1;
+  const length = STUDIO3_ARMS[studio3Key(s)];
+  return s.silhouette && !registrationFrame(L,s).turned && +s.regPattern === 3
+    && s.regInset >= 3.5 && s.regInset <= STUDIO3_INSET
+    && Math.abs(regArm(L,s)-length) < 0.005 && s.regThickness === 1;
 }
 let studio3Manifest = null, studio3ManifestPromise = null;
 function loadStudio3Manifest() {
@@ -9073,7 +9117,7 @@ function s3Points(x, y, w, h, r) {
 }
 
 async function cutStudio3(sheet = 0, job = buildPrintJob()) {
-  const s = job.settings, L = job.layout, T = makeT(L, false, s);
+  const s = job.settings, L = job.layout, frame = registrationFrame(L, s), pad = studioCanvasPad(s);
   cutSheetCards(L, sheet, job.slots);                       // same sheet-range check as the others
   const key = studio3Key(s);
   if (!key) throw new Error('Silhouette Studio export covers Letter and A4 only.');
@@ -9089,14 +9133,16 @@ async function cutStudio3(sheet = 0, job = buildPrintJob()) {
   const buf = new Uint8Array(await res.arrayBuffer());
   if (buf.length !== spec.bytes) throw new Error('Studio template does not match its manifest.');
   const dv = new DataView(buf.buffer);
-  dv.setFloat32(spec.pageOffsets[0], L.W, true);
-  dv.setFloat32(spec.pageOffsets[1], L.H, true);
+  const realArm = dv.getFloat32(1137, true);
+  const sameInset = [1113,1117,1121,1125].every(offset=>Math.abs(dv.getFloat32(offset,true)-STUDIO3_INSET) < 0.02);
+  if (!(Math.abs(realArm-STUDIO3_ARMS[key]) < 0.005) || !sameInset || !(Math.abs(dv.getFloat32(1141,true)-1) < 0.02))
+    throw new Error('The installed Studio template has different registration settings. Download DXF for this sheet.');
+  dv.setFloat32(spec.pageOffsets[0], frame.W+2*pad, true);
+  dv.setFloat32(spec.pageOffsets[1], frame.H+2*pad, true);
   // Every slot is written, including any the last sheet leaves empty: the
   // count is fixed, so an unused slot cuts a blank card rather than vanishing.
   for (let i = 0; i < L.per; i++) {
-    const p = slotPos(L, i, false, s);
-    const x = T.x(p.x + s.bleed), y = T.y(p.y + s.bleed);
-    const w = T.w(L.cw), h = T.h(L.ch), r = T.w(s.cornerRadius ?? 3.2);
+    const {x,y,w,h,rx:r} = cutterCardRect(L,s,i,frame,pad);
     for (const o of spec.outlines[i]) {
       // Each stored copy keeps its own winding, sign and sub-millimetre offset.
       const oy = y + o.dy, span = 2 * oy + h;
@@ -9110,20 +9156,22 @@ async function cutStudio3(sheet = 0, job = buildPrintJob()) {
 }
 
 function cutDxf(sheet = 0, job = buildPrintJob()) {
-  const s = job.settings, L = job.layout, T = makeT(L, false, s), n = cutSheetCards(L, sheet, job.slots);
+  const s = job.settings, L = job.layout, n = cutSheetCards(L, sheet, job.slots);
+  const frame = registrationFrame(L,s), pad = studioCanvasPad(s);
+  const W = frame.W+2*pad, H = frame.H+2*pad;
   // DXF counts up from a bottom-left origin and everything else here counts
   // down from the top-left, so Y flips. No print rotation, for cutSvg's reason.
   let body = '';
   for (let i = 0; i < n; i++) {
-    const p = slotPos(L, i, false, s);
-    body += dxfCard(T.x(p.x + s.bleed), L.H - T.y(p.y + s.bleed), T.w(L.cw), T.h(L.ch), T.w(s.cornerRadius ?? 3.2));
+    const {x,y,w,h,rx} = cutterCardRect(L,s,i,frame,pad);
+    body += dxfCard(x,H-y,w,h,rx);
   }
   return dxfPair(0, 'SECTION') + dxfPair(2, 'HEADER')
     + dxfPair(9, '$ACADVER') + dxfPair(1, 'AC1009')
     + dxfPair(9, '$INSUNITS') + dxfPair(70, 4)       // 4 = millimetres
     + dxfPair(9, '$MEASUREMENT') + dxfPair(70, 1)    // 1 = metric
     + dxfPair(9, '$EXTMIN') + dxfPair(10, '0.0') + dxfPair(20, '0.0') + dxfPair(30, '0.0')
-    + dxfPair(9, '$EXTMAX') + dxfPair(10, dxfNum(L.W)) + dxfPair(20, dxfNum(L.H)) + dxfPair(30, '0.0')
+    + dxfPair(9, '$EXTMAX') + dxfPair(10, dxfNum(W)) + dxfPair(20, dxfNum(H)) + dxfPair(30, '0.0')
     + dxfPair(0, 'ENDSEC')
     + dxfPair(0, 'SECTION') + dxfPair(2, 'ENTITIES') + body + dxfPair(0, 'ENDSEC')
     + dxfPair(0, 'EOF');
@@ -10163,7 +10211,7 @@ function bestCutBleed() {
 }
 // the cutting tab's inputs, id -> settings key. Drives both the fill and the
 // change wiring below, so the two directions cannot drift apart.
-const CUT_INPUTS = {cameoRegPattern:'regPattern', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryCornerColor:'cornerGuideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'};
+const CUT_INPUTS = {cameoRegPattern:'regPattern', cameoRegOrientation:'regOrientation', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryCornerColor:'cornerGuideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'};
 
 // set those inputs from state, never clobbering the control the user is in.
 // cleanSettings starts from a full DEFAULTS spread, so every key has a value.
@@ -10254,7 +10302,8 @@ function renderCutStatus() {
     const marksFit = !regMarksClipped(L, s);
     const cameoOk = s.silhouette && L.fits && noConflict && marksFit && s.guides === 'none' && s.bleed <= 1;
     if (cameoOk) {
-      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Layout ready for the Cameo</b> — ${L.cols}×${L.rows} (${L.per} cards) with optical registration marks.</div>`;
+      const frame = registrationFrame(L,s);
+      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Cameo layout fits</b> · ${L.cols}×${L.rows} · ${frame.orientation} on the mat<br>${s.regPattern} marks · ${s.regInset} mm printed inset · ${regArm(L,s).toFixed(2)} mm arms</div>`;
     } else {
       const why = [];
       if (!s.silhouette) why.push('registration marks are off');
