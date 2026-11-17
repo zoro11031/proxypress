@@ -1,3 +1,58 @@
+# Proxy Press v0.8.3
+
+A redesigned workspace with clearer navigation through print settings, artwork, and order review.
+
+- Print Settings uses the full workspace, with persistent navigation and a return action that takes you back to the initiating view.
+- Export and Order Review preserve their context when you open an alignment fix, artwork picker, or download confirmation. Escape closes the current layer.
+- Unapplied alignment edits survive tab switches. A change to one side preserves the calibration status of the other.
+- The card queue has readable, actionable issue rows. The sheet proof and Order gallery give artwork more space, with a single shared-cardback prompt for an order.
+- Print and order downloads sit next to the relevant review details. Instructions and sharing stay available below the primary workflow.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.msi).
+
+**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/proxypress-bin-aur.tar.gz).
+
+---
+
+# Proxy Press v0.8.2
+
+Full-width print settings view, stable task navigation, explicit alignment apply, side-specific calibration provenance, and preflight review targeting.
+
+## What's new
+
+- **Full-width print settings view:**
+  - Dedicated full-width settings view with stable tab navigation across Layout, Printer & paper, Alignment, Color, and Cutting.
+  - Docked sidebar quick summary with compact status indicators (Paper, Layout, Sides, Cut, Calibration) providing direct shortcuts to each settings page.
+  - One-click "Back to proof" action that cleanly restores active sheet, proof side, card selection, zoom level, and returns keyboard focus to the opener.
+- **Explicit alignment controls & input validation:**
+  - Decoupled alignment input fields on the Alignment page with explicit "Apply changes" button, preventing half-entered values from becoming active corrections.
+  - Inline error validation for decimal offsets with real-time feedback.
+  - Side-by-side display of front corrections and extra back corrections with relevant test-sheet actions beside them.
+- **Calibration provenance & preflight review:**
+  - Removed persistent "Estimated alignment" badge from the proof toolbar.
+  - Detailed active setup and source tracking on the Alignment page distinguishing saved profiles, entered manual alignments, and recorded measurements.
+  - Back-only profiles now preserve existing front calibration without claiming false credit.
+  - Saving profiles displays "Saved profile", reserving "Measured" exclusively for explicitly recorded measurements.
+  - Review preflight warns only when an alignment correction originates from a different setup or unknown source, with a direct link opening the Alignment page and focusing the specific offset field.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/Proxy-Press-0.8.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/Proxy-Press-0.8.2.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/Proxy-Press-0.8.2.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/Proxy-Press-0.8.2.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/Proxy-Press-0.8.2.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/Proxy-Press-0.8.2.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.8.2/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.8.1
 
 Print setup inspector task panels, responsive drawer, side-specific calibration status tracking, order prints gallery, and import correction hardening.

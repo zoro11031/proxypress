@@ -10,14 +10,16 @@
 <script src="assets/vendor/jspdf.umd.min.js"></script>
 <style>
 :root{
-  --bg:#11151b;--panel:#1b2028;--panel2:#242b35;--line:#2e3643;--text:#edf0f5;--muted:#a0aab9;
-  --accent:#e0a33a;--accent2:#f2c26b;--danger:#e2615a;--ok:#5cc27a;--desk:#0c1016;
+  color-scheme:dark;
+  --bg:#12141e;--panel:#1a1d2a;--panel2:#262b3d;--line:#3a4157;--text:#f3f2fa;--muted:#b5bbcf;
+  --accent:#f2bd6c;--accent2:#ffda9f;--focus:#c2b2ff;--danger:#ffaaa9;--ok:#8edab0;--desk:#10121b;
   /* One hairline, one near-flat fill, one sunken track: everything that used to be
      a box within a box is built from these three instead of another panel shade. */
-  --hair:rgba(255,255,255,.08);--fill:rgba(255,255,255,.028);--sunk:#14181f;
-  --r-sm:6px;--r-md:8px;--r-lg:12px;
+  --hair:#ced5ff20;--fill:#ced5ff0c;--sunk:#131622;
+  --r-sm:7px;--r-md:10px;--r-lg:14px;
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;
-  --ctl:34px;
+  --ctl:36px;
+  --display:"Spectral",Georgia,serif;
 }
 @media (max-width:820px){:root{--ctl:42px}}
 *{box-sizing:border-box}
@@ -28,7 +30,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 11px;min-height:var(--ctl);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .1s ease,box-shadow .15s ease}
 button:hover{border-color:#4a515c}
 button:active:not(:disabled){transform:scale(.98)}
-:where(button,input,select,textarea,summary,a,[tabindex]):focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+:where(button,input,select,textarea,summary,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 button.primary{background:var(--accent);color:#1b1407;border-color:var(--accent);font-weight:600;transition:background .15s ease,border-color .15s ease,transform .1s ease,box-shadow .15s ease}
 button.primary:hover{background:var(--accent2);box-shadow:0 2px 8px rgba(224,163,58,.25)}
 button.primary:active{transform:scale(.98)}
@@ -136,7 +138,7 @@ h3+.hint{margin-top:-6px}
 .preset{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--hair);border-radius:var(--r-md);margin-bottom:6px;background:var(--fill)}
 .preset .nm{flex:1;font-size:13px}
 .preset.active{border-color:var(--accent)}
-#stage{overflow:auto;background-color:#161b26;padding:24px;min-width:0}
+#stage{overflow:auto;background-color:#131b24;background-image:radial-gradient(#9aacc11f 1px,transparent 1px);background-size:24px 24px;padding:24px;min-width:0}
 .import-panel{padding:var(--s3);background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md);margin-bottom:var(--s3)}
 .import-panel textarea{min-height:120px;padding:9px 10px}
 .import-panel #listIn.compact{min-height:0}
@@ -176,7 +178,7 @@ body.has-cards .import-panel textarea{min-height:0}
    scrollTop 0. That shift eats a plain 24px bottom margin exactly, leaving the
    page label - which hangs at top:-24px - entirely behind the glass bar. */
 .stage-controls{position:sticky;top:0;z-index:5;margin:-24px -24px calc(var(--s5) * 2);padding:10px 24px;background:rgba(12,16,22,.78);backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid var(--hair)}
-.stage-heading{display:flex;align-items:baseline;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s2)}
+.stage-heading{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-bottom:0}
 .stage-heading b{font-size:15px;font-weight:600;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stage-heading span{color:var(--muted);font-size:12px;white-space:nowrap}
 .stage-title{flex:1;min-width:0;display:flex;align-items:baseline;gap:var(--s3);flex-wrap:wrap}
@@ -191,13 +193,11 @@ body.has-cards .import-panel textarea{min-height:0}
 #toggleSidebar:hover{color:var(--text);border-color:var(--line)}
 body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 @media (min-width:821px){
-  body.preview-focus main{grid-template-columns:minmax(0,1fr)}
+  body[data-mode=print].preview-focus main{grid-template-columns:minmax(0,1fr)}
   body.preview-focus main>aside{display:none}
   body.preview-focus #workspaceInspector{display:none}
-  body[data-mode=print].inspector-collapsed:not(.preview-focus) main{grid-template-columns:280px minmax(0,1fr) 0 !important}
+  body[data-mode=print].inspector-collapsed:not(.preview-focus,.print-settings-active) main{grid-template-columns:280px minmax(0,1fr) 0}
   body.inspector-collapsed #workspaceInspector{display:none !important}
-  body.inspector-collapsed #toggleInspector{display:inline-flex !important}
-  body:not(.inspector-collapsed) #toggleInspector{display:none !important}
 }
 @media (min-width:821px) and (max-width:1100px){body:not(.order-mode) main{grid-template-columns:230px minmax(0,1fr) 240px}}
 @media (max-width:820px){.stage-controls{margin:-12px -8px var(--s5);padding:8px 12px}.stage-heading{margin-bottom:var(--s2)}.stage-heading b{font-size:15px}.stage-heading span{font-size:11px;white-space:normal}.toolbar-views{margin-left:0}.toolbar-views .toolbar-cluster+.toolbar-cluster{padding-left:0;border-left:0}#toggleSidebar{display:none}#toggleInspector{display:none}.tabs .step-index{display:none}#workspaceInspector{display:none}#workspaceBar{display:flex;height:48px;padding:0 12px}#workspaceBar .bar-status{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#workspaceBar button.primary{padding:6px 12px;font-size:12px}}
@@ -308,9 +308,12 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .duplex-choice-hd{display:block;font-weight:600;font-size:13px;margin-bottom:2px}
 .duplex-read{background:#161b22;border:1px solid var(--line);border-radius:8px;padding:10px;max-width:480px}
 @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.modal .hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.modal .hd{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .modal .hd b{flex:1;min-width:0;overflow-wrap:anywhere}
+.modal .hd [data-close]{white-space:normal}
 .modal .bd{overflow:auto;padding:14px}
+.import-source-lines table{width:100%;table-layout:fixed;overflow-wrap:anywhere}
+.import-source-lines th:nth-child(2){width:5em}
 .modal .bd p,.modal .bd li,.modal .bd dd,.modal .bd>.hint,.modal .bd .wizard-step>.hint,.modal .bd .wiz-pane>.hint,.modal .bd>div>.hint{max-width:74ch}
 .prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .prints figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px}
@@ -666,10 +669,10 @@ body.has-cards #importDrawer:not([open]){display:none}
  .stage-controls{margin-bottom:16px}
 }
 @media(min-width:821px){
- body.preview-focus #toggleInspector{display:inline-flex!important}
+ #toggleInspector{display:inline-flex}
 }
 @media(min-width:821px) and (max-width:1100px){
- body:not(.inspector-open) #toggleInspector{display:inline-flex!important}
+ body:not(.inspector-open) #btnShowPrintSetup{display:inline-flex}
 }
 @media(max-width:380px){
  #modeSeg{grid-row:2;grid-column:1/-1}
@@ -699,50 +702,170 @@ body[data-mode=order] .card .queue-issue-badge{font-size:12px}
 body[data-mode=order] main{grid-template-columns:280px minmax(0,1fr)}
 @media(min-width:821px){body[data-mode=order].preview-focus main{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:820px){body[data-mode=order] main{grid-template-columns:minmax(0,1fr)}.order-gallery-tools{gap:8px}.order-gallery-tools button,.order-gallery-tools select{min-height:40px}}
-/* Print setup inspector */
-body[data-mode=print] #workspaceInspector{min-width:0;overflow:auto;scrollbar-gutter:stable;padding:16px;gap:12px;scroll-padding:70px 12px 24px}
+/* Print setup inspector quick summary */
+body[data-mode=print] #workspaceInspector{min-width:0;overflow:auto;scrollbar-gutter:stable;padding:16px;gap:12px}
 #workspaceInspector *,#workspaceSetupSlot,#calDrawer,#calProfileCards{min-width:0;max-width:100%;box-sizing:border-box}
 #workspaceInspector button,#workspaceInspector summary,#workspaceInspector label,#workspaceInspector p,#workspaceInspector b{white-space:normal;overflow-wrap:anywhere}
 #workspaceInspector button{min-height:36px;line-height:1.4}
-#workspaceInspector .inspector-hdr{position:sticky;top:-16px;z-index:4;padding:12px 0;background:var(--panel)}
+#workspaceInspector .inspector-hdr{position:sticky;top:-16px;z-index:4;padding:12px 0;background:var(--panel);display:flex;align-items:center;justify-content:space-between}
+#workspaceInspector .inspector-hdr h3{margin:0;font-size:15px;font-weight:700}
 #workspaceInspector .inspector-summary{border:0;background:none;padding:0;display:grid;gap:10px}
-#workspaceInspector .insp-row{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;align-items:center}
-#workspaceInspector .insp-row button{text-align:left;padding:6px 8px;font-size:13px}
+#workspaceInspector .insp-row{display:grid;grid-template-columns:75px minmax(0,1fr);gap:8px;align-items:center}
+#workspaceInspector .insp-row button{text-align:left;padding:6px 8px;font-size:12.5px}
 #workspaceInspector .insp-row b{text-align:left;font-size:12px}
-#inspectorEntrypoints{display:grid;gap:8px}
-#workspaceInspector .pane{overflow:visible;padding:0}
-#workspaceInspector .adv,#workspaceInspector .hero-card,#workspaceInspector .cal-profile-box,#workspaceInspector .setup-hero-pill{border:0!important;box-shadow:none!important;background:none!important;padding:0!important;border-radius:0!important}
-#workspaceInspector details{margin:0;padding:12px 0;border:0;border-top:1px solid var(--line);border-radius:0}
-#workspaceInspector .setup-task[open]>summary::before{transform:rotate(90deg)}
-#workspaceInspector summary{padding:6px 0;font-size:14px;font-weight:600}
-#workspaceSetupDetails{display:none}
-#workspaceCutDetails{display:none}
-body.settings-open #workspaceSetupDetails,body.settings-open #workspaceCutDetails{display:block}
-body.settings-open #workspaceSetupDetails{padding:0;border:0}
-body.settings-open #workspaceSetupDetails>summary{display:none}
-body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{display:none}
-#workspaceInspector .grid2,#workspaceInspector .test-sheets-cluster,#workspaceInspector .pick.presets,#workspaceInspector .cut-options{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px}
-#workspaceInspector .field{margin:0 0 12px}
-#workspaceInspector .field.full{grid-column:1/-1}
-#workspaceInspector .row{flex-wrap:wrap}
-#workspaceInspector input:not([type=checkbox]):not([type=radio]),#workspaceInspector select{max-width:100%;min-width:0;width:100%}
-#workspaceInspector .drv{table-layout:fixed;width:100%;overflow-wrap:anywhere}
-#workspaceInspector .drv th,#workspaceInspector .drv td{width:50%;white-space:normal;word-break:normal}
-#calNameRow{display:grid;grid-template-columns:minmax(0,1fr)}
+#inspectorEntrypoints{display:grid;gap:8px;margin-top:4px}
+#inspectorEntrypoints button{text-align:left;padding:8px 10px;font-size:13px}
+
+/* Dedicated Print Settings view */
+#printSettingsView{display:none;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;background:radial-gradient(ellipse at 50% 0,#c2b2ff0b,transparent 720px),var(--bg);padding:0 clamp(12px,4vw,48px) 36px}
+body.print-settings-active main{display:flex}
+body.print-settings-active #stage,body.print-settings-active main>aside,body.print-settings-active #workspaceInspector,body.print-settings-active #workspaceBar,body.print-settings-active #mbar{display:none!important}
+body.print-settings-active #printSettingsView{display:flex!important}
+
+.settings-view-nav{position:sticky;top:0;z-index:5;flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:20px;padding-top:12px}
+.settings-view-nav,.settings-pages-wrap{width:min(100%,1120px);margin-inline:auto}
+.settings-view-hdr{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.settings-view-hdr h2{margin:0;color:var(--text)}
+.settings-nav-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.settings-nav-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:8px clamp(7px,2vw,14px);font-size:13.5px;font-weight:600;color:var(--muted);border-radius:0;cursor:pointer;white-space:normal}
+.settings-nav-tabs button:hover{color:var(--text)}
+.settings-nav-tabs button.active{color:var(--accent2);border-bottom-color:var(--accent);background:linear-gradient(0deg,#f2bd6c14,transparent);border-radius:var(--r-sm) var(--r-sm) 0 0}
+
+.settings-pages-wrap{display:flex;flex-direction:column;gap:16px}
+.settings-page{display:none;flex-direction:column;gap:16px;min-width:0}
+.settings-page.active{display:flex;animation:panel-in .2s cubic-bezier(.2,.8,.2,1) both}
+.settings-section{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 20px}
+.settings-section h3{margin:0;font-size:15px;font-weight:600;color:var(--text);border-bottom:1px solid var(--hair);padding-bottom:8px}
+#presetGrid .pick.presets{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.custom-presets-wrap .custom-hdr{flex-wrap:wrap;gap:8px}
+
+/* Alignment page */
+.active-setup-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:12px}
+.active-setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+.setup-item{display:flex;flex-direction:column;gap:3px}
+.setup-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.active-values-banner{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;padding-top:10px;border-top:1px solid var(--hair)}
+.val-col{display:flex;flex-direction:column;gap:4px}
+.val-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.src-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--sunk);color:var(--muted)}
+.src-badge.measured{background:#15392b;color:#5cc27a}
+.src-badge.manual{background:#172b4d;color:#5b9aff}
+.src-badge.estimated{background:#3d2f14;color:#f2c26b}
+.val-text{font-size:12px;color:var(--text);font-family:monospace}
+
+.alignment-split-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.alignment-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:14px}
+.alignment-col,.settings-section,.val-col{min-width:0;overflow-wrap:anywhere}
+.alignment-col button,.settings-section button{white-space:normal}
+.align-fields-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.align-fields-grid .field.full{grid-column:1/-1}
+.test-action-btn{width:100%;text-align:center;padding:8px 12px;font-size:13px;min-height:36px}
+.alignment-commit-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md)}
+.warn-inline{font-size:12.5px;color:var(--bad,#ff6b6b);padding:4px 8px;background:#3b1818;border-radius:4px;border:1px solid #722424}
+
 #calProfileActions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
-#calProfileActions button{font-size:13px!important;padding:8px!important}
 #calProfileCards .preset-item{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px 0;border-bottom:1px solid var(--line)}
 #calProfileCards .preset-item .del{position:static;transform:none;justify-self:end;width:auto;padding:6px 10px}
 #calProfileCards button b,#calProfileCards button span{display:block;padding-right:0;white-space:normal;text-align:left;line-height:1.5}
 #calProfileCards .pick button{height:auto;min-height:48px;text-align:left;padding:10px}
-#activeCalibrationProfile{padding:0 0 16px;line-height:1.6;overflow-wrap:anywhere}
-#activeCalibrationProfile b{display:block}
-#workspaceInspector .test-sheets-cluster button{width:100%;grid-column:1/-1;padding:10px;text-align:left;font-size:14px}
-#workspaceInspector .setup-task-body{padding:12px 0 20px}
-@media(min-width:1400px){body[data-mode=print].settings-open:not(.preview-focus) main{grid-template-columns:280px minmax(0,1fr) 460px!important}body[data-mode=print].settings-open #workspaceInspector{display:flex!important;position:relative;inset:auto;width:auto;box-shadow:none}}
-@media(min-width:821px) and (max-width:1399px){body[data-mode=print].settings-open #workspaceInspector{display:flex!important;position:fixed;right:0;top:var(--drawer-top);bottom:var(--drawer-bottom);width:min(520px,calc(100vw - 36px));z-index:40;box-shadow:-12px 0 40px #0008}}
-@media(max-width:820px){body[data-mode=print].settings-open #workspaceInspector{display:flex!important;width:100%;padding-bottom:24px}#calProfileActions{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:820px){body[data-mode=print] #proofCalBadge{display:inline-flex!important;max-width:100%!important;flex-basis:100%;font-size:12px}}
+
+/* Workspace and task layout */
+.pane button:not(.primary):not(.tag):not(.nm):not(.more),.modal .bd button:not(.primary){max-width:100%;white-space:normal}
+#modeSeg{background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+#modeSeg button{min-height:32px;border:0}
+#modeSeg button.on{background:var(--panel2);color:var(--accent2)}
+#saveStatus{font-size:12px;color:var(--muted)}
+#tab-cards{padding:16px;overflow:auto}
+.queue-hd,.queue-title-row,.queue-sub-row{min-width:0}
+.queue-title-row,.queue-sub-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.queue-title-row>b{font-size:17px;letter-spacing:-.02em;margin-right:auto}
+.queue-actions{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.queue-actions #btnAddCards{color:var(--accent2)}
+.queue-sub-row{padding:5px 0 8px}
+.queue-copies,.queue-status{font-size:12px;color:var(--muted)}
+.queue-sub-row .tag{min-height:32px}
+.queue-card-issues{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:4px}
+.queue-card-issues button{min-height:28px;white-space:normal;font-size:11.5px;line-height:1.3;justify-content:flex-start;text-align:left;max-width:100%;overflow-wrap:anywhere}
+#cardList .card{border-color:transparent;background:transparent;border-bottom:1px solid var(--hair);border-radius:6px;padding-block:8px}
+#cardList .card:hover{background:var(--fill)}
+#cardList .card.selected{border-color:var(--accent);background:#f0b65313}
+#cardList .card .nm{width:100%;padding:0;display:block;text-align:left}
+.import-panel>label{display:block;font-size:13px;font-weight:650;margin:0 0 8px}
+.import-panel .import-go{flex-wrap:wrap}
+.import-panel .import-go button{flex:1 1 auto;white-space:normal}
+.source-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+.source-actions .source-wide{grid-column:1/-1}
+#moreSources button{flex:1 1 100%}
+.stage-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent)}
+.stage-controls .toolbar{min-width:0}
+.stage-heading .proof-kicker{font-size:15px;font-weight:700;letter-spacing:-.02em}
+#stage .empty{background:linear-gradient(135deg,var(--panel2),var(--panel));border-color:var(--line);max-width:520px}
+#stage .empty h2,.settings-view-hdr h2,.modal .hd>b{font-family:var(--display);font-size:24px;line-height:1.15;font-weight:600}
+#workspaceInspector .insp-row{grid-template-columns:minmax(54px,.45fr) minmax(0,1fr);border-bottom:1px solid var(--hair);padding:2px 0 8px}
+#workspaceInspector .insp-row button{justify-content:flex-start;background:transparent;border-color:transparent}
+#workspaceInspector .insp-row button:hover{background:var(--fill);border-color:var(--line)}
+#workspaceInspector [data-quick-setup]{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px}
+#workspaceInspector [data-quick-setup]::after{content:'';width:5px;height:5px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .16s ease}
+#workspaceInspector [data-quick-setup][aria-expanded=true]{background:var(--panel2);border-color:var(--line)}
+#workspaceInspector [data-quick-setup][aria-expanded=true]::after{transform:rotate(225deg) translate(-1px,-1px)}
+#inspectorEntrypoints [data-quick-setup]{justify-content:stretch}
+#btnShowPrintSetup{display:none}
+@media(min-width:821px){body[data-mode=print]:is(.inspector-collapsed,.preview-focus) #btnShowPrintSetup{display:inline-flex}}
+@media(min-width:821px) and (max-width:1100px){body[data-mode=print]:not(.inspector-open) #btnShowPrintSetup{display:inline-flex}}
+#quickSetup{position:fixed;inset:var(--quick-top,8px) auto auto var(--quick-left,8px);margin:0;width:min(360px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;background:var(--panel);color:var(--text);box-shadow:0 16px 45px #0809129c}
+#quickSetup:popover-open{display:grid;gap:12px;animation:panel-in .18s cubic-bezier(.2,.8,.2,1) both}
+.quick-setup-head{position:sticky;top:-14px;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--panel);padding-block:4px}
+.quick-setup-head h2{margin:0;font:600 22px/1.15 var(--display)}
+#quickSetupFields{display:grid;gap:10px;min-width:0}
+#quickSetupFields .field{margin:0;min-width:0}
+#quickSetupFields select{min-width:0}
+#quickSetupFields .row{flex-wrap:wrap}
+#quickSetupFields button,#quickSetupMore{white-space:normal}
+#quickSetupMore{justify-self:start;background:transparent;color:var(--focus)}
+@keyframes panel-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+body[data-mode=order] #stage{background-image:none}
+.order-gallery{max-width:1480px;margin-inline:auto}
+.order-gallery-name{display:grid;gap:1px;margin-right:auto}
+.order-gallery-name b{font-size:18px;letter-spacing:-.025em}
+.order-gallery-name span{color:var(--muted);font-size:12px}
+.order-gallery-tools{padding:12px 0;margin-bottom:12px;border-bottom:1px solid var(--hair)}
+body[data-mode=order] .gal .tile{border-color:var(--hair);padding:8px;background:var(--panel)}
+body[data-mode=order] .gal .tile img{object-fit:contain;background:var(--sunk);cursor:pointer}
+body[data-mode=order] .gal .tile:has(img.selected){border-color:var(--accent);background:#f0b65313}
+body[data-mode=order] .gal .tile .tile-name{font-size:13px;margin:8px 2px 2px;font-weight:650}
+body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
+.order-back-prompt{padding:12px 16px;border-radius:var(--r-md)}
+.modal .hd{background:var(--panel);padding:14px 20px;flex-shrink:0}
+.modal .bd{min-height:0;padding:18px 20px}
+.art-comparison-wrap{padding:14px;background:var(--sunk);border:1px solid var(--hair);border-radius:var(--r-lg)}
+.comparison-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.col-hdr{min-width:0;overflow-wrap:anywhere}
+.review-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.review-section{min-width:0;display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--fill);overflow-wrap:anywhere}
+.review-section h3,.review-section h4{margin:0}
+.review-section>button{width:100%}
+.review-section .hint{margin:0}
+.review-more{margin-top:14px;padding:10px 0;border-top:1px solid var(--hair)}
+.review-more>summary{cursor:pointer;color:var(--text);font-weight:600}
+.review-scope{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.review-scope select{width:auto;max-width:100%}
+#workspaceBar{box-shadow:none;padding-inline:clamp(12px,2.5vw,30px);background:var(--panel)}
+#workspaceBar .bar-status{color:var(--muted);line-height:1.25}
+#printSettingsView{scroll-padding-top:125px}
+#printSettingsView input,#printSettingsView select{max-width:100%}
+@media(max-width:700px){
+  .review-layout{grid-template-columns:minmax(0,1fr)}
+  .comparison-grid{grid-template-columns:minmax(0,1fr)}
+  .modal .hd,.modal .bd{padding-inline:12px}
+  .modal .hd>b,.settings-view-hdr h2{font-size:20px}
+  .proof-kicker{flex-basis:100%}
+  #stage .empty{padding:18px}
+  .settings-section,.alignment-col{padding:12px}
+  .duplex-choices{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:480px){#printSettingsView .grid2{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
 </style>
 </head>
 <body>
@@ -775,7 +898,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
   </div>
   <div class="hzone hzone-act">
     <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour">?</button>
-    <button id="btnSettings" class="icon round" title="Settings &amp; backup" aria-label="Settings and backup">⚙</button>
+    <button id="btnSettings" class="icon" title="Project files and backup">Project files</button>
     <button id="btnPdf" class="primary print-only" title="Review your print setup and download files">Review &amp; export</button>
     <button id="btnXml" class="primary order-only" title="Review your cards, cardback and order settings">Review order</button>
   </div>
@@ -792,22 +915,22 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       <details class="adv" id="importDrawer" open style="margin-top:0;margin-bottom:var(--s3)">
         <summary id="importDrawerSummary" style="font-weight:600">Add cards…</summary>
         <div class="import-panel" style="margin-top:8px;margin-bottom:0">
-        <textarea id="listIn" aria-label="Decklist" placeholder="Paste a decklist, one card per line:&#10;4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;1 Delver of Secrets // Insectile Aberration&#10;&#10;Moxfield, Archidekt, MTGA and MTGO exports all work."></textarea>
+        <label for="listIn">Paste a decklist</label>
+        <textarea id="listIn" placeholder="4 Lightning Bolt&#10;1 Sol Ring (CMM) 410"></textarea>
         <div class="import-go">
           <button id="btnImport" class="primary" title="Add these cards (Ctrl+Enter)">Add to deck</button>
           <button id="btnTokens" title="Add the tokens and emblems created by cards in this deck">Add needed tokens</button>
         </div>
         <div class="source-actions">
-          <button id="btnLink" class="source-wide" title="Import from Moxfield, Archidekt or a local file">Import deck…</button>
+          <button id="btnLink" class="source-wide" title="Import from Moxfield, Archidekt or a local file">Import from link or file…</button>
           <button id="btnUpload" title="Add your own card images (or drag &amp; drop them anywhere)">Upload images…</button>
           <button id="btnMaker" title="Put your own art into a card frame with the card’s text">Create a card…</button>
         </div>
         <details class="adv" id="moreSources">
-          <summary>Local images &amp; order files</summary>
+          <summary>Local image options</summary>
           <div style="margin-top:8px">
             <input type="file" id="filePrintDeck" accept=".json,.txt,.dec,.dek,.csv,.xml,application/json,text/plain,text/xml" hidden>
 
-            <b style="font-size:12px;color:var(--text);display:block;margin-top:12px">Local pictures &amp; order files</b>
             <div class="row" style="margin-top:6px">
               <button id="btnMpc" title="Open a saved order file as a new deck">Open order file…</button>
               <button id="btnLocalDir" title="Search a folder of card images on this computer">Use local image folder…</button>
@@ -833,16 +956,18 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       <div class="deck-manage">
         <div class="queue-hd">
           <div class="queue-title-row">
-            <b>Cards</b><button type="button" id="btnAddCards">Add cards</button><button type="button" id="btnMultiSelect">Select</button><button type="button" id="btnResumeImport" hidden>Resume import</button>
-            <span id="queueCopyCount" class="queue-copies">0 copies</span>
+            <b>Cards</b><span id="queueCopyCount" class="queue-copies">0 copies</span>
           </div>
-          <div class="queue-sub-row" style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+          <div class="queue-actions">
+            <button type="button" id="btnAddCards">Add cards</button><button type="button" id="btnMultiSelect">Select</button><button type="button" id="btnResumeImport" hidden>Resume import</button>
+            <button type="button" id="btnMpcAuto" title="Pick high-resolution artwork for cards that need it">Fill missing art</button>
+          </div>
+          <div class="queue-sub-row">
             <div id="queueReadyStatus" class="queue-status">0 fronts ready</div>
             <button type="button" id="btnFilterNeedsArt" class="tag" style="background:#3a3020;color:var(--accent2);cursor:pointer;border:0">Needs attention (<span id="countNeedsArt">0</span>)</button>
           </div>
         </div>
-        <h3 class="row" style="justify-content:space-between;align-items:center"><span>Deck <span id="deckCount"></span></span>
-          <span class="row"><span id="deckHealth" class="hint"></span><button class="icon" id="btnMpcAuto" title="Pick the best high-res art for every card that still needs it">Auto fill art</button></span></h3>
+        <span id="deckCount" hidden></span><span id="deckHealth" hidden></span>
         <p class="hint" id="deckSelectHint">Click cards in the preview to select copies. Shift-click to select a range. Right-click for more options.</p>
         <input type="search" id="deckFilter" placeholder="Filter cards…" aria-label="Filter cards" hidden>
       </div>
@@ -859,67 +984,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       </details>
     </div>
 
-    <div class="pane" id="tab-setup">
-      <div class="step-hdr">
-        <h2>Print setup &amp; paper</h2>
-        <p class="hint">Configure your printer, paper size, and card layout.</p>
-      </div>
-      <h3>Paper &amp; sheet size</h3>
-      <div class="setup-hero-pill" id="setupSummary"></div>
-      <div id="presetGrid"></div>
-      <details class="adv" id="customPaperDrawer">
-        <summary>Custom paper dimensions &amp; manual orientation</summary>
-        <p class="hint" style="margin-top:6px">For non-standard paper (Tabloid, Legal, A3, A5) or custom millimetre sheet dimensions.</p>
-        <div class="grid2" id="paperForm" style="margin-top:8px"></div>
-      </details>
-      <h3>Color &amp; stock tuning</h3>
-      <div id="colorSliders"></div>
-      <h3>Card &amp; print options</h3>
-      <div id="settingsForm"></div>
-      <h3>Printer &amp; driver</h3>
-      <div class="field full">
-        <label for="printerSel">Printer technology</label>
-        <select id="printerSel" aria-label="Printer technology"></select>
-      </div>
-      <div id="printerGuide"></div>
-      <h3>Calibration &amp; advanced</h3>
-      <div class="adv" id="calDrawer">
-        <h3>Printer alignment &amp; test sheets</h3>
-        <p class="hint">Two test sheets, in this order: the <b>alignment sheet</b> calibrates front size and position; the <b>double-sided test</b> lines up backs with fronts.</p>
-        <div class="test-sheets-cluster" style="display:grid;gap:8px;margin:12px 0">
-          <button type="button" id="btnCal" title="Print it once, measure the two marked lines, and type what you measured in">1. Alignment sheet</button>
-          <button type="button" id="btnDuplexTest" title="Two pages: print one on each side of a sheet, then read the number off the back">2. Double-sided test</button>
-          <button type="button" id="btnDuplexWizard" class="primary" title="Walks through the double-sided test and does the arithmetic for you">Duplex calibration wizard</button>
-        </div>
-        <p class="hint" style="font-size:11.5px">Print test sheets at <b>Actual size / 100%</b>, never "Fit to page".</p>
-        <div class="cal-profile-box" style="margin-top:12px;padding:12px 14px;background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-            <div>
-              <b style="font-size:12.5px;color:var(--text)">Printer alignment profiles</b>
-              <div class="hint" style="font-size:11px;margin-top:1px">Saves paper shift, scale, and duplex back-side alignment for your printer.</div>
-            </div>
-            <div class="row" style="gap:6px">
-              <button type="button" id="calProfileNew" class="icon" style="font-size:11.5px;padding:4px 9px;cursor:pointer">+ New profile</button>
-              <button type="button" id="calProfileSave" class="primary icon" style="font-size:11.5px;padding:4px 10px;cursor:pointer">Save profile</button>
-            </div>
-          </div>
-          <div class="row" id="calNameRow" style="gap:6px;margin:8px 0 10px">
-            <input id="calProfileName" type="text" placeholder="Profile name (e.g. Canon cardstock)" style="flex:1" aria-label="Profile name">
-            <button type="button" id="calProfileDelete" class="danger icon" title="Delete selected profile">Delete</button>
-          </div>
-          <select id="calProfileSel" style="display:none"></select>
-          <div id="calProfileCards"></div>
-          <p class="hint" id="calProfileStatus" style="margin:8px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
-        </div>
-        <details style="margin:8px 0 10px;font-size:12px">
-          <summary style="color:var(--muted);cursor:pointer">How alignment profiles work across orientations &amp; sheet sizes</summary>
-          <p class="hint" style="margin-top:6px">A profile remembers printer offsets and back-page drift for one machine and stock. It stores independent settings for each sheet size and orientation: calibrate landscape and portrait under the same profile name, and it automatically applies the correct numbers whenever you change layouts.</p>
-        </details>
-        <details id="alignmentOverlayDetails"><summary>Expected front/back alignment</summary><label class="check"><input type="checkbox" id="proofAlignment"> Show on proof</label><label>Overlay opacity <input id="alignmentOpacity" type="range" min="10" max="100" value="60"></label><div id="alignmentOverlay"></div></details>
-        <div class="grid2" id="calForm"></div>
-      </div>
-      <div id="advSettings"></div>
-    </div>
+    <div class="pane" id="tab-setup"></div>
 
     <div class="pane" id="tab-cutting">
       <div class="step-hdr">
@@ -1136,33 +1201,31 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
     </div>
 
     <div class="pane" id="tab-guide">
-      <div class="step-hdr">
-        <h2>Export &amp; print</h2>
-        <p class="hint">Download print files or share your deck with its artwork and layout.</p>
+      <div class="review-layout">
+        <section class="review-section" aria-label="Print job">
+          <h3>Print job</h3>
+          <div class="review-scope">
+            <label for="exportScope">Sheets</label>
+            <select id="exportScope"><option value="all">All sheets</option><option value="current">Current sheet</option></select>
+          </div>
+          <div class="hero-card-summary" id="guideJobSummary"></div>
+          <div id="exportReview" aria-live="polite"></div>
+        </section>
+        <section class="review-section" aria-label="Print files">
+          <div class="hero-card-title"><h3>Print files</h3><span class="cutter-badge" id="guideCutterBadge">Silhouette Cameo</span></div>
+          <button id="btnExportPdfTab" class="primary">Download PDF</button>
+          <button id="btnExportStudio3Tab" style="display:none">Download cut file (.studio3)</button>
+          <button id="btnExportDxfTab" style="display:none">Download cut file (.dxf)</button>
+          <button id="btnExportSvgTab" style="display:none">Download cut file (.svg)</button>
+          <p class="hint" id="cutFileHint" style="display:none">The Studio file includes the page and registration marks. DXF carries the cut lines. SVG needs Designer Edition.</p>
+        </section>
       </div>
-
-      <div class="hero-card">
-        <div class="hero-card-title">
-          <b>Print files</b>
-          <span class="cutter-badge" id="guideCutterBadge">Silhouette Cameo</span>
-        </div>
-        <div class="hero-card-summary" id="guideJobSummary"></div>
-        <label for="exportScope">Sheets</label><select id="exportScope"><option value="all">All sheets</option><option value="current">Current sheet</option></select>
-        <div id="exportReview" aria-live="polite"></div>
-        <button id="btnExportPdfTab" class="primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:8px">Download PDF</button>
-        <button id="btnExportStudio3Tab" style="width:100%;display:none">Download cut file (.studio3)</button>
-        <button id="btnExportDxfTab" style="width:100%;display:none;margin-top:6px">Download cut file (.dxf)</button>
-        <button id="btnExportSvgTab" style="width:100%;display:none;margin-top:6px">Download cut file (.svg)</button>
-        <p class="hint" id="cutFileHint" style="display:none;margin:6px 0 0">The Studio file opens with the page and registration marks already set. The DXF carries the cut lines only, so set the page and marks yourself. SVG needs Designer Edition.</p>
-      </div>
-      <details class="hero-card share-export"><summary>Share and offline files</summary>
-        <div class="hero-card-title"><b>Share deck</b></div>
+      <details class="review-more share-export"><summary>Share and offline files</summary>
         <p class="hint" id="shareHint">Share a copy with its artwork and layout. Friends keep their own printer alignment.</p>
-        <button id="shareDeckLink" class="primary server-share">Create share link</button>
-        <details id="printDeckDetails" style="margin-top:8px"><summary>Offline deck file</summary><p class="hint">Includes compact artwork at up to 600 DPI. Original art is restored from this server when available.</p><button id="printDeckOut">Download deck file (.json)</button></details>
+        <div class="row"><button id="shareDeckLink" class="server-share">Create share link</button><button id="printDeckOut">Download deck file (.json)</button></div>
       </details>
 
-      <details><summary>Print and cut instructions</summary><div class="guide-tabs">
+      <details class="review-more"><summary>Print and cut instructions</summary><div class="guide-tabs">
         <button type="button" class="guide-tab-btn active" id="tabGuideBtnPrint">Print instructions</button>
         <button type="button" class="guide-tab-btn" id="tabGuideBtnCut">Cut instructions</button>
       </div>
@@ -1173,9 +1236,10 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
     </div>
 
     <div class="pane" id="tab-order">
-      <div class="step-hdr"><div class="step-num">Step 2 of 2</div><h2>Review &amp; order prints</h2><p class="hint">Check your cards and cardback, then download the order for the autofill tool.</p></div>
-      <h3>Order settings</h3>
-      <div class="grid2">
+      <div class="review-layout">
+        <section class="review-section" aria-label="Order settings">
+          <h3>Order settings</h3>
+          <div class="grid2">
         <div class="field full"><label for="oStock">Cardstock</label><select id="oStock"></select>
           <details class="adv" id="stockGuide" style="margin-top:8px">
             <summary>Compare cardstock &amp; quality</summary>
@@ -1205,7 +1269,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
         </div>
         <label class="check"><input type="checkbox" id="oFoil"> Foil</label>
       </div>
-      <h3>Cardback</h3>
+      <h4>Shared cardback</h4>
       <div class="row">
         <img id="oBackThumb" alt="" style="width:46px;height:64px;object-fit:cover;border-radius:3px;background:#000;display:none">
         <button id="oBackBrowse">Browse cardbacks…</button>
@@ -1214,23 +1278,21 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       </div>
       <input type="file" id="fileOrderBack" accept="image/*" hidden>
       <p class="hint" id="oBackHint"></p>
-      <h3>Summary</h3>
-      <div id="orderSummary"></div>
-      <h3>Export</h3>
-      <div class="hero-card">
-        <div class="hero-card-title"><b>Order package</b></div>
-        <button class="primary" id="oZip" title="Order file plus every image, ready for the desktop tool" style="width:100%;font-size:15px;padding:12px">Download full order (ZIP)</button>
-        <p class="hint" style="margin-bottom:0">The .zip has the order file and a <code>cards</code> folder with every image, including your uploads and cardback.</p>
+        </section>
+        <section class="review-section" aria-label="Order files">
+          <h3>Order files</h3>
+          <div id="orderSummary"></div>
+          <button class="primary" id="oZip">Download full order (ZIP)</button>
+          <p class="hint">Includes the order file, artwork, and uploads.</p>
+          <button id="oXml">Download order file (XML)</button>
+          <p class="hint" id="xmlSummary"></p>
+        </section>
       </div>
-      <div class="hero-card share-export">
-        <div class="hero-card-title"><b>Share deck</b></div>
+      <details class="review-more share-export"><summary>Share and offline files</summary>
         <p class="hint" id="orderShareHint">Share a copy with its artwork and layout. Friends keep their own printer alignment.</p>
-        <button id="orderShareDeckLink" class="primary server-share">Create share link</button>
-        <details id="orderPrintDeckDetails" style="margin-top:8px"><summary>Offline deck file</summary><p class="hint">Includes compact artwork at up to 600 DPI. Original art is restored from this server when available.</p><button id="orderPrintDeckOut">Download deck file (.json)</button></details>
-      </div>
-      <details class="adv"><summary>Order file only</summary><p class="hint">The order tool downloads the online artwork. Uploaded images and custom cards are left out. Download the complete package (.zip) to include them.</p><p class="hint" id="xmlSummary"></p><button id="oXml">Download order file (XML)</button></details>
-      <h3>Placing the order</h3>
-      <div id="orderSteps"></div>
+        <div class="row"><button id="orderShareDeckLink" class="server-share">Create share link</button><button id="orderPrintDeckOut">Download deck file (.json)</button></div>
+      </details>
+      <details class="review-more"><summary>How to place the order</summary><div id="orderSteps"></div></details>
     </div>
 
     <div class="pane" id="tab-data">
@@ -1256,6 +1318,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
   <section id="stage">
     <div class="stage-controls">
     <div class="stage-heading">
+      <b class="proof-kicker print-only">Sheet proof</b>
       <div class="sheet-nav print-only">
         <button type="button" id="btnSheetPrev" class="icon" title="Previous sheet" aria-label="Previous sheet">‹</button>
         <select id="sheetJumpSel" aria-label="Jump to sheet"></select>
@@ -1269,7 +1332,6 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
         <button type="button" id="btnProofBack">Back</button>
         <button type="button" id="btnProofGuides">Guides</button>
       </div>
-      <span id="proofCalBadge" role="status" aria-live="polite" class="cal-badge" style="margin-left:auto;font-size:11.5px;padding:2px 8px;border-radius:12px;font-weight:600;display:none;align-items:center;gap:4px"></span>
     </div>
     <div class="toolbar">
       <div class="toolbar-cluster print-only quick-paper-cluster" style="display:none">
@@ -1285,7 +1347,8 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
         <input type="checkbox" id="showCuts" style="display:none">
         <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
         <button id="toggleSidebar" aria-pressed="false">Hide queue</button>
-        <button id="toggleInspector" class="print-only" style="display:none" aria-pressed="false">Show setup</button>
+        <button type="button" id="btnShowPrintSetup" class="print-only" aria-controls="workspaceInspector">Show setup</button>
+        <button type="button" id="toggleInspector" class="print-only" aria-controls="printSettingsView">Print settings</button>
       </div>
     </div>
     </div>
@@ -1298,22 +1361,248 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       <div id="proofCardTrim" class="proof-card-trim">63 × 88 mm trim</div><button type="button" id="btnProofChangeArt">Change art</button>
     </div>
   </section>
+
+  <section id="printSettingsView" class="print-only" style="display:none">
+    <div class="settings-view-nav">
+    <div class="settings-view-hdr">
+      <button type="button" id="btnBackToProof" class="icon">← Back to proof</button>
+      <div class="settings-view-title-wrap">
+        <h2 id="settingsViewTitle">Print Settings</h2>
+      </div>
+    </div>
+    <nav class="settings-nav-tabs" role="tablist" aria-label="Print Settings tabs">
+      <button type="button" role="tab" id="tabNav-layout" data-settings-page="layout" class="active" aria-selected="true">Layout</button>
+      <button type="button" role="tab" id="tabNav-printer" data-settings-page="printer" aria-selected="false">Printer &amp; paper</button>
+      <button type="button" role="tab" id="tabNav-alignment" data-settings-page="alignment" aria-selected="false">Alignment</button>
+      <button type="button" role="tab" id="tabNav-color" data-settings-page="color" aria-selected="false">Color</button>
+      <button type="button" role="tab" id="tabNav-cutting" data-settings-page="cutting" aria-selected="false">Cutting</button>
+    </nav>
+    </div>
+
+    <div class="settings-pages-wrap">
+      <!-- Layout Page -->
+      <div class="settings-page active" id="settingsPage-layout" role="tabpanel" aria-labelledby="tabNav-layout">
+        <div class="settings-section">
+          <h3>Sheet &amp; grid summary</h3>
+          <div class="setup-hero-pill" id="setupSummary"></div>
+          <div id="presetGrid"></div>
+        </div>
+        <div class="settings-section" id="setupGroup-paper">
+          <h3>Sheet dimensions &amp; orientation</h3>
+          <div class="grid2" id="paperForm"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Card layout &amp; sides</h3>
+          <div id="settingsForm"></div>
+        </div>
+        <div id="advSettings"></div>
+      </div>
+
+      <!-- Printer & paper Page -->
+      <div class="settings-page" id="settingsPage-printer" role="tabpanel" aria-labelledby="tabNav-printer" style="display:none">
+        <div class="settings-section" id="setupGroup-printer">
+          <h3>Printer technology &amp; model</h3>
+          <div class="field full">
+            <label for="printerSel">Printer technology</label>
+            <select id="printerSel" aria-label="Printer technology"></select>
+          </div>
+          <div id="printerGuide"></div>
+        </div>
+      </div>
+
+      <!-- Alignment Page -->
+      <div class="settings-page" id="settingsPage-alignment" role="tabpanel" aria-labelledby="tabNav-alignment" style="display:none">
+        <div class="active-setup-card" id="alignmentActiveCard">
+          <div class="active-setup-grid">
+            <div class="setup-item">
+              <span class="setup-lbl">Active printer</span>
+              <b id="alignPrinterName">Printer</b>
+            </div>
+            <div class="setup-item">
+              <span class="setup-lbl">Paper &amp; feed</span>
+              <b id="alignPaperFeed">Letter · Landscape</b>
+            </div>
+            <div class="setup-item">
+              <span class="setup-lbl">Duplex mode</span>
+              <b id="alignDuplexMode">Manual duplex · Long-edge flip</b>
+            </div>
+          </div>
+          <div class="active-values-banner">
+            <div class="val-col">
+              <div class="val-header">
+                <b>Front active values</b>
+                <span id="alignFrontSourceBadge" class="src-badge">No correction set</span>
+              </div>
+              <div id="alignFrontValuesText" class="val-text">X: 0.00 mm · Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
+            </div>
+            <div class="val-col">
+              <div class="val-header">
+                <b>Back active values</b>
+                <span id="alignBackSourceBadge" class="src-badge">No correction set</span>
+              </div>
+              <div id="alignBackValuesText" class="val-text">Extra X: 0.00 mm · Extra Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alignment-split-grid" id="setupGroup-calibration">
+          <div class="alignment-col" id="alignFrontCol">
+            <div class="col-hdr">
+              <h3>Front corrections</h3>
+              <p class="hint">Adjusts position and scaling for the front of every card on the sheet.</p>
+            </div>
+            <div class="align-fields-grid">
+              <div class="field">
+                <label for="input-offsetX">Printer offset X (mm)</label>
+                <input type="number" step="0.05" id="input-offsetX" data-align="offsetX" value="0">
+                <span class="hint">Shift print right (+) or left (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-offsetY">Printer offset Y (mm)</label>
+                <input type="number" step="0.05" id="input-offsetY" data-align="offsetY" value="0">
+                <span class="hint">Shift print down (+) or up (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-scaleX">Horizontal scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-scaleX" data-align="scaleX" value="100">
+              </div>
+              <div class="field">
+                <label for="input-scaleY">Vertical scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-scaleY" data-align="scaleY" value="100">
+              </div>
+              <div class="field full">
+                <label for="input-printRotate">Print rotation (°)</label>
+                <input type="number" step="0.1" min="-180" max="180" id="input-printRotate" data-align="printRotate" value="0">
+              </div>
+            </div>
+            <div class="col-actions" style="margin-top:auto">
+              <button type="button" id="btnCal" class="test-action-btn">Print alignment sheet (1 page)</button>
+              <p class="hint" style="margin-top:4px">Measure marked lines and top-left cross with a ruler to calculate offsets.</p>
+            </div>
+          </div>
+
+          <div class="alignment-col" id="alignBackCol">
+            <div class="col-hdr">
+              <h3>Extra back corrections</h3>
+              <p class="hint">Extra shift and scale added on the reverse pass to line up backs with fronts.</p>
+            </div>
+            <div class="align-fields-grid">
+              <div class="field">
+                <label for="input-backOffsetX">Extra back offset X (mm)</label>
+                <input type="number" step="0.05" id="input-backOffsetX" data-align="backOffsetX" value="0">
+                <span class="hint">Shift back right (+) or left (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-backOffsetY">Extra back offset Y (mm)</label>
+                <input type="number" step="0.05" id="input-backOffsetY" data-align="backOffsetY" value="0">
+                <span class="hint">Shift back down (+) or up (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-backScaleX">Back horizontal scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-backScaleX" data-align="backScaleX" value="100">
+              </div>
+              <div class="field">
+                <label for="input-backScaleY">Back vertical scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-backScaleY" data-align="backScaleY" value="100">
+              </div>
+              <div class="field full">
+                <label for="input-backRotate">Back rotation (°)</label>
+                <input type="number" step="0.1" min="-180" max="180" id="input-backRotate" data-align="backRotate" value="0">
+              </div>
+            </div>
+            <div class="col-actions" style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+              <button type="button" id="btnDuplexTest" class="test-action-btn">Print double-sided test (2 pages)</button>
+              <button type="button" id="btnDuplexWizard" class="primary test-action-btn">Duplex calibration wizard</button>
+              <p class="hint" style="margin-top:4px">Print double-sided and check the back hash marks for duplex drift.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="alignment-commit-bar">
+          <div class="row" style="gap:8px">
+            <button type="button" id="btnApplyAlignment" class="primary">Apply changes</button>
+            <button type="button" id="btnResetAlignment">Revert</button>
+          </div>
+          <span id="alignmentDraftStatus" class="hint" hidden>Unapplied changes</span>
+          <div id="alignmentInputError" class="warn-inline" style="display:none" role="alert"></div>
+        </div>
+
+        <details class="adv" id="alignmentOverlayDetails" style="margin:8px 0">
+          <summary>Expected front/back alignment overlay</summary>
+          <div class="row" style="gap:12px;margin:8px 0">
+            <label class="check"><input type="checkbox" id="proofAlignment"> Show on proof</label>
+            <label>Overlay opacity <input id="alignmentOpacity" type="range" min="10" max="100" value="60"></label>
+          </div>
+          <div id="alignmentOverlay"></div>
+        </details>
+
+        <div class="saved-profiles-section settings-section">
+          <h3>Saved alignment profiles</h3>
+          <p class="hint">Saved profiles store printer offsets and duplex drift for specific printer and paper setups.</p>
+          <div class="row" style="gap:8px;flex-wrap:wrap;margin:8px 0">
+            <input id="calProfileName" type="text" placeholder="Profile name (e.g. Canon cardstock)" style="flex:1;min-width:200px" aria-label="Profile name">
+            <button type="button" id="calProfileSave" class="primary">Save profile</button>
+            <button type="button" id="calProfileNew">+ New profile</button>
+            <button type="button" id="calProfileDelete" class="danger">Delete</button>
+          </div>
+          <select id="calProfileSel" style="display:none"></select>
+          <div id="calProfileCards"></div>
+          <p class="hint" id="calProfileStatus" style="margin:4px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
+        </div>
+
+        <div class="grid2" id="calForm" style="display:none"></div>
+      </div>
+
+      <!-- Color Page -->
+      <div class="settings-page" id="settingsPage-color" role="tabpanel" aria-labelledby="tabNav-color" style="display:none">
+        <div class="settings-section" id="setupGroup-color">
+          <h3>Stock presets</h3>
+          <div id="stockPresetGrid"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Color tuning</h3>
+          <div id="colorSliders"></div>
+          <div class="row" style="gap:8px;margin-top:12px">
+            <button type="button" id="btnInspFoilPreview" class="primary">Foil tone preview…</button>
+            <button type="button" id="btnInspFoilTestSheet">Print foil test sheet</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cutting Page -->
+      <div class="settings-page" id="settingsPage-cutting" role="tabpanel" aria-labelledby="tabNav-cutting" style="display:none">
+        <div class="settings-section" id="workspaceCutDetails">
+          <h3>Choose cutting tool</h3>
+          <div id="cutOptionsMount"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <aside id="workspaceInspector" class="print-only">
     <div class="inspector-hdr">
-      <h3>Setup</h3><button type="button" id="btnCloseSetup" aria-label="Close setup">Close</button>
+      <h3>Print setup</h3>
+      <button type="button" id="btnCloseSetup" aria-label="Hide print setup summary">Hide</button>
     </div>
     <div class="inspector-summary">
-      <div class="insp-row"><span class="insp-lbl">Paper</span><button type="button" id="inspPaper">Letter · Landscape</button></div>
-      <div class="insp-row"><span class="insp-lbl">Layout</span><button type="button" id="inspLayout">4 × 2 · 8 per sheet</button></div>
-      <div class="insp-row"><span class="insp-lbl">Sides</span><button type="button" id="inspSides">Single-sided</button></div>
-      <div class="insp-row"><span class="insp-lbl">Cut</span><button type="button" id="inspCut">Rotary trimmer</button></div>
-      <div class="insp-row"><span class="insp-lbl">Calibration</span><b id="inspCal" style="color:var(--ok)">Measured for this setup</b></div>
+      <div class="insp-row"><span id="inspPaperLabel" class="insp-lbl">Paper</span><button type="button" id="inspPaper" data-quick-setup="paper" aria-labelledby="inspPaperLabel inspPaper">Letter · Landscape</button></div>
+      <div class="insp-row"><span id="inspLayoutLabel" class="insp-lbl">Layout</span><button type="button" id="inspLayout" data-quick-setup="layout" aria-labelledby="inspLayoutLabel inspLayout">4 × 2 · 8 per sheet</button></div>
+      <div class="insp-row"><span id="inspSidesLabel" class="insp-lbl">Sides</span><button type="button" id="inspSides" data-quick-setup="sides" aria-labelledby="inspSidesLabel inspSides">Single-sided</button></div>
+      <div class="insp-row"><span id="inspCutLabel" class="insp-lbl">Cut</span><button type="button" id="inspCut" data-quick-setup="cutting" aria-labelledby="inspCutLabel inspCut">Rotary trimmer</button></div>
+      <div class="insp-row"><span id="inspCalLabel" class="insp-lbl">Alignment</span><button type="button" id="inspCal" data-quick-setup="alignment" aria-labelledby="inspCalLabel inspCal">Front: X 0, Y 0 mm</button></div>
     </div>
-    <div id="inspectorEntrypoints"><button data-setup-group="printer">Printer &amp; driver</button><button data-setup-group="color">Color &amp; stock</button><button data-setup-group="calibration">Calibration &amp; test sheets</button></div>
-    <details class="adv" id="workspaceSetupDetails"><summary>Paper, layout &amp; printer</summary><div id="workspaceSetupSlot"></div></details>
-    <details class="adv" id="workspaceCutDetails"><summary>Cut, guides &amp; registration</summary><div id="workspaceCutSlot"></div></details>
+    <div id="inspectorEntrypoints">
+      <button type="button" data-quick-setup="color">Color &amp; stock</button>
+    </div>
+    <div id="workspaceSetupDetails" style="display:none"><div id="workspaceSetupSlot"></div></div>
+    <div id="workspaceCutSlot" style="display:none"></div>
   </aside>
 </main>
+<div id="quickSetup" popover role="dialog" aria-labelledby="quickSetupTitle">
+  <div class="quick-setup-head"><h2 id="quickSetupTitle"></h2><button type="button" id="quickSetupClose">Close</button></div>
+  <div id="quickSetupFields"></div>
+  <button type="button" id="quickSetupMore">More settings</button>
+</div>
 <footer id="workspaceBar">
   <div class="bar-status" id="barStatus">Ready to export · 1 sheet · 2 PDF pages</div>
   <button type="button" id="btnReviewExport" class="primary">Review export</button>
@@ -1333,19 +1622,12 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 $('#tab-cards').insertBefore($('.deck-manage'), $('#importDrawer'));
-$('#workspaceSetupSlot').appendChild($('#tab-setup'));
-$('#workspaceCutSlot').appendChild($('#tab-cutting'));
-const setupTasks=[['paper','Paper & layout'],['printer','Printer & driver'],['color','Color & stock'],['calibration','Calibration & test sheets']];
-const setupNodes=[...$('#tab-setup').children], taskBodies=new Map();
-for(const [key,label] of setupTasks){const details=document.createElement('details');details.className='setup-task';details.id='setupGroup-'+key;details.innerHTML=`<summary>${label}</summary><div class="setup-task-body"></div>`;$('#tab-setup').appendChild(details);taskBodies.set(key,details.lastElementChild);}
-let setupTask='paper';
-for(const node of setupNodes){if(node.classList.contains('step-hdr')){node.remove();continue;}if(node.tagName==='H3'){const text=node.textContent;setupTask=text.startsWith('Color')?'color':text.startsWith('Printer')?'printer':text.startsWith('Calibration')?'calibration':'paper';if(!text.startsWith('Card')){node.remove();continue;}}taskBodies.get(setupTask).appendChild(node);}
-const stockPresets=document.createElement('div');stockPresets.id='stockPresetGrid';taskBodies.get('color').prepend(stockPresets);
-$('#workspaceCutDetails').classList.add('setup-task');$('#workspaceCutDetails').querySelector('summary').textContent='Cut & registration';
-const profileActions=document.createElement('div');profileActions.id='calProfileActions';for(const id of ['calProfileNew','calProfileSave','calProfileDelete'])profileActions.appendChild($('#'+id));$('#calNameRow').after(profileActions);
-const activeProfile=document.createElement('div');activeProfile.id='activeCalibrationProfile';$('#calDrawer').prepend(activeProfile);activeProfile.after($('.cal-profile-box'));
-
-for (const id of ['tab-guide','tab-order','tab-data']) $('#workspaceParking').appendChild($('#' + id));
+const cutMount = $('#cutOptionsMount'), tabCutting = $('#tab-cutting');
+if (cutMount && tabCutting) {
+  const kids = [...tabCutting.children].filter(el => !el.classList.contains('step-hdr'));
+  kids.forEach(el => cutMount.appendChild(el));
+}
+for (const id of ['tab-setup','tab-cutting','tab-guide','tab-order','tab-data']) $('#workspaceParking').appendChild($('#' + id));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SHARE_TOKEN = location.pathname.match(/^\/share\/([A-Za-z0-9_-]{32})(?:\/|$)/)?.[1];
 const serverPath = path => (SHARE_TOKEN ? '/share/' + SHARE_TOKEN : '') + path;
@@ -2498,13 +2780,13 @@ function reviewReplacement(target, staged, replace = true) {
     let body = `<div class="hd"><b>${replace ? 'Replace deck' : 'Add cards'}: ${esc(target.name)}</b><button id="modalCloseX" data-close>Close</button></div><div class="bd">`;
     body += replace ? `<p>This will replace all <b>${target.copiesCount} current card${target.copiesCount === 1 ? '' : 's'}</b> in <b>${esc(target.name)}</b> with <b>${totalCopies} resolved card${totalCopies === 1 ? '' : 's'}</b>.</p>` : `<p>Add <b>${totalCopies} resolved copies</b> to <b>${esc(target.name)}</b>. The deck will contain ${target.copiesCount + totalCopies} copies.</p>`;
 
-    if (staged.rows?.length) body += `<details><summary>Exact source lines</summary><div style="overflow:auto;max-height:240px"><table><thead><tr><th>Source</th><th>Copies</th><th>Result</th></tr></thead><tbody>${staged.rows.map(row=>`<tr><td>${esc(row.sourceLine || row.name)}${row.section ? `<br><small>${esc(row.section)}</small>` : ''}</td><td>${row.qty}</td><td>${esc(row.outcome)}${row.resolvedPrinting ? `<br>${esc(row.resolvedPrinting)}` : ''}</td></tr>`).join('')}</tbody></table></div></details>`;
+    if (staged.rows?.length) body += `<details class="import-source-lines"><summary>Exact source lines</summary><table><thead><tr><th>Source</th><th>Copies</th><th>Result</th></tr></thead><tbody>${staged.rows.map(row=>`<tr><td>${esc(row.sourceLine || row.name)}${row.section ? `<br><small>${esc(row.section)}</small>` : ''}</td><td>${row.qty}</td><td>${esc(row.outcome)}${row.resolvedPrinting ? `<br>${esc(row.resolvedPrinting)}` : ''}</td></tr>`).join('')}</tbody></table></details>`;
 
     if (staged.fallbacks && staged.fallbacks.length) {
       body += `<div class="callout-box" style="margin:8px 0;font-size:12px">
         <b>Printing substitutions (${staged.fallbacks.length}):</b>
         <p class="hint" style="margin:4px 0 0">Specific set printings were not found and fell back to available Scryfall printings:</p>
-        <ul style="margin:4px 0 0;padding-left:16px;max-height:80px;overflow-y:auto">
+        <ul style="margin:4px 0 0;padding-left:16px">
           ${staged.fallbacks.map(f => `<li>${esc(f.req.name)}: requested (${esc((f.originalSet || '').toUpperCase())}) → ${esc((f.card.set || '').toUpperCase())}</li>`).join('')}
         </ul>
       </div>`;
@@ -2520,12 +2802,13 @@ function reviewReplacement(target, staged, replace = true) {
 
     const sections=[...new Set((staged.rows || []).map(row=>row.section || 'Main deck'))];
     if(sections.length>1)body += `<fieldset><legend>Include sections</legend>${sections.map((name,index)=>`<label class="check"><input type="checkbox" data-import-section="${index}" ${deck().importDraft?.rows?.filter(row=>(row.section || 'Main deck')===name).some(row=>row.included===false) ? '' : 'checked'}> ${esc(name)}</label>`).join('')}</fieldset><p id="includedImportCount" class="hint">${totalCopies} resolved copies included.</p>`;
+    const fromLink = !!$('#modal #linkIn');
     body += `<div class="row" style="margin-top:12px;gap:8px;justify-content:flex-end">
-      <button type="button" id="btnReviewCancel">Cancel</button>
+      ${fromLink ? '' : '<button type="button" id="btnReviewCancel">Edit decklist</button>'}
       <button type="button" id="btnReviewConfirm" class="${replace ? 'danger' : 'primary'}">${replace ? 'Replace deck' : 'Add cards'}</button>
     </div></div>`;
 
-    openModal(body);
+    openModal(body, fromLink ? 'Back to import' : '');
 
     modalAfterClose = () => resolve(false);
     let settled = false;
@@ -2534,6 +2817,7 @@ function reviewReplacement(target, staged, replace = true) {
         settled = true;
         modalAfterClose = null;
         closeModal(true);
+        if (fromLink && val) closeModal(true);
         resolve(val);
       }
     };
@@ -2551,11 +2835,11 @@ function reviewReplacement(target, staged, replace = true) {
     const confirmBtn = $('#btnReviewConfirm');
     if (confirmBtn) confirmBtn.onclick = () => finish(true);
     const cancelBtn = $('#btnReviewCancel');
-    if (cancelBtn) cancelBtn.onclick = () => finish(false);
-    const closeBtn = $('#modalCloseX');
-    if (closeBtn) closeBtn.onclick = () => finish(false);
-    const modalEl = $('#modal');
-    if (modalEl) modalEl.onclick = ev => { if (ev.target.id === 'modal') finish(false); };
+    if (cancelBtn) cancelBtn.onclick = () => {
+      finish(false);
+      document.querySelector('#importDrawer').open = true;
+      focusNavigationTarget($('#listIn'));
+    };
   });
 }
 
@@ -3172,17 +3456,33 @@ function getCardIssues(entry, slots = buildSlots(deck(),queueSettings()), s = qu
 }
 
 function countAffectedCopies(issues,slots){return new Set(slots.filter(slot=>issues.some(issue=>issue.cardback ? slot.bi===undefined&&!slot.back : issue.uid===slot.e.uid&&(issue.copy===undefined||issue.copy===slot.copy))).map(slot=>copyKey(slot.e,slot.copy))).size;}
+function queueIssueButtons(issues) {
+  return issues.map(issue => {
+    const action = issue.type === 'missing_back' ? 'Fix back art' : issue.label;
+    return `<button type="button" class="queue-issue-badge ${issue.type}" data-act="fix-issue" data-face="${issue.faceIdx}" data-side="${issue.side}" data-cardback="${!!issue.cardback}">${esc(action)}</button>`;
+  }).join('');
+}
+function renderQueueStatus(issues,slots) {
+  const n = issues.length;
+  $('#queueReadyStatus').textContent = n ? `${n} issue${n === 1 ? '' : 's'} · ${countAffectedCopies(issues,slots)} copies` : `${slots.length} fronts ready`;
+  if (!n) S.filterNeedsArt = false;
+  const filter = $('#btnFilterNeedsArt');
+  filter.hidden = !n;
+  filter.classList.toggle('active',!!S.filterNeedsArt);
+  filter.setAttribute('aria-pressed',String(!!S.filterNeedsArt));
+  $('#countNeedsArt').textContent = n;
+  $('#btnMpcAuto').hidden = !issues.some(issue=>!issue.cardback);
+}
 function refreshArtworkIssues() {
   const slots = buildSlots(deck(),queueSettings());
   for (const row of $$('#cardList .card')) {
-    const entry = deck().entries.find(e=>e.uid === row.dataset.uid), meta = $('.meta',row); if (!entry || !meta) continue;
+    const entry = deck().entries.find(e=>e.uid === row.dataset.uid), status = $('.queue-card-issues',row); if (!entry || !status) continue;
     const issues = getCardIssues(entry,slots);
-    for (const badge of $$('.queue-issue-badge',meta)) badge.remove();
-    meta.insertAdjacentHTML('beforeend',issues.map(issue=>`<button type="button" class="queue-issue-badge ${issue.type}" data-act="fix-issue" data-face="${issue.faceIdx}" data-side="${issue.side}" data-cardback="${!!issue.cardback}">${esc(issue.label)}</button>`).join(''));
+    const html = queueIssueButtons(issues);
+    if (status.innerHTML !== html) status.innerHTML = html;
+    status.hidden = !issues.length;
   }
-  const issues = getPrintJobIssues();
-  $('#queueReadyStatus').textContent = issues.length ? `${issues.length} issues · ${countAffectedCopies(issues,slots)} copies` : `${slots.length} fronts ready`;
-  $('#countNeedsArt').textContent = issues.length;
+  renderQueueStatus(getPrintJobIssues(),slots);
   applyDeckFilter();
 }
 async function retryArtworkIssue(issue) {
@@ -3268,7 +3568,7 @@ async function openMpcPicker(target) {
   const face = () => isBack ? deck().cardback : e?.faces[faceIdx];
   const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
   const current = () => isBack ? deck().cardback?.drive : face()?.drive;
-  let activeTab = target.defaultTab || 'printings';
+  let activeTab = target.defaultTab || (isBack ? 'community' : 'printings');
   let selectedCandidate = null;
 
   const allIssues = getPrintJobIssues();
@@ -3384,7 +3684,7 @@ async function openMpcPicker(target) {
         <div class="prints" id="localArt"></div>
         <div class="prints" id="sharedArt"></div>
       </div>
-    </div>`);
+    </div>`, target.backLabel);
 
   const bd = $('#modal .bd'), find = q => $(q, bd);
   const pickerDeck = S.deckId, pickerActive = () => bd.isConnected && $('#overlay').classList.contains('on') && S.deckId === pickerDeck;
@@ -3630,7 +3930,6 @@ async function openMpcPicker(target) {
       const nextIdx = (curIssueIdx + 1) % issues.length;
       const nextTarget = findIssueTarget(issues[nextIdx]);
       if (nextTarget) {
-        closeModal();
         showSheet(nextTarget.sheetIndex, nextTarget.side);
         selectCardCopy(nextTarget.entryId, nextTarget.copyIndex, nextTarget.i);
         openMpcPicker(nextTarget);
@@ -3653,7 +3952,7 @@ async function openMpcPicker(target) {
     if (ev.target.id === 'mpcMore') return page();
     if (ev.target.id === 'sfArtMore') return moreScryfall();
     if (ev.target.id === 'mpcOwn') { faceTarget = {...target, e, i:faceIdx}; closeModal(); return $('#fileFace').click(); }
-    if (ev.target.id === 'mpcMaker') { closeModal(); return openCardMaker({e, i:faceIdx}); }
+    if (ev.target.id === 'mpcMaker') return openCardMaker({e, i:faceIdx, backLabel:'Back to artwork'});
     if (ev.target.dataset.removeArt) {
       const id = ev.target.dataset.removeArt;
       if (!confirm('Remove this upload from shared art search? Saved decks keep their copies.')) return;
@@ -3873,19 +4172,20 @@ function mpcNotes(order) {
   if (order.slot > 612) n.push('over 612 cards, so split the order in the desktop tool');
   return n.length ? ' Note: ' + n.join('; ') + '.' : '';
 }
-function reviewOrderExport(order, withImages, proceed, force = false) {
+function reviewOrderExport(order, withImages, proceed) {
   const missing = order.skipped.length + order.noBack.length + order.uploads.length;
   const dfc = [...order.backs.values()].reduce((n, c) => n + c.slots.length, 0);
   const noBack = !order.cardback && dfc < order.slot;
-  if (!force && !missing && !noBack && order.slot <= 612) return false;
+  if (!missing && !noBack && order.slot <= 612) return false;
+  const fromReview = !!$('#tab-order').closest('#modal');
   openModal(`<div class="hd"><b>${withImages?'Full order (ZIP)':'Order file (XML)'}</b><button data-close>Close</button></div><div class="bd">
     <p><b>${esc(order.d.name)}</b> · ${esc(order.settings?.stock || S.mpc.stock)} · ${order.settings?.foil && order.settings.stock!=='(P10) Plastic'?'Foil':'Non-foil'}</p><p>${order.slot} ${order.slot===1?'card':'cards'} will be exported${missing ? `; ${missing} will be left out` : ''}.</p>
     ${missing ? `<div class="warn">${esc(mpcNotes(order).trim())}</div>` : ''}
     ${!withImages && order.sharedBack?.custom ? '<p class="warn">Your uploaded shared back is left out of XML. Download the full order (ZIP) to include it.</p>' : ''}
     ${noBack ? '<p class="warn">Some cards have no cardback. Choose one before exporting, or add their backs in the desktop tool.</p>' : ''}
     ${order.slot > 612 ? '<p class="warn">The desktop tool will need to split this into smaller orders.</p>' : ''}
-    <div class="row"><button id="orderReviewBack">Review cards &amp; settings</button><button id="orderReviewExport" class="primary">${withImages?'Download full order (ZIP)':'Download order file (XML)'}</button></div></div>`);
-  $('#orderReviewBack').onclick = () => { closeModal(); switchTab('order'); };
+    <div class="row">${fromReview ? '' : '<button id="orderReviewBack">Review order</button>'}<button id="orderReviewExport" class="primary">${withImages?'Download full order (ZIP)':'Download order file (XML)'}</button></div></div>`, fromReview ? 'Back to order review' : '');
+  if (!fromReview) $('#orderReviewBack').onclick = () => { closeModal(); switchTab('order'); };
   $('#orderReviewExport').onclick = () => { closeModal(); proceed(); };
   return true;
 }
@@ -4024,7 +4324,7 @@ distrobox enter autofill -- bash -c 'cd ~/proxy-order &amp;&amp; ./autofill-linu
 }
 function showOrderSteps(done) {
   openModal(`<div class="hd"><b>Your order is ready</b><button data-close>Close</button></div>
-    <div class="bd">${done ? `<p class="hint">${esc(done)}</p>` : ''}${orderStepsHtml()}</div>`);
+    <div class="bd">${done ? `<p class="hint">${esc(done)}</p>` : ''}${orderStepsHtml()}</div>`, $('#tab-order').closest('#modal') ? 'Back to order review' : '');
 }
 let reviewedOrderSnapshots=null;
 function renderOrder() {
@@ -4053,19 +4353,24 @@ function renderOrder() {
     ${missing.length ? `<div class="warn">${missing.length} card${missing.length === 1 ? ' needs' : 's need'} high-res art and will be left out: ${esc([...new Set(missing)].slice(0, 4).join(', '))}${missing.length > 4 ? '…' : ''}.</div><div class="row"><button id="oFix">Review missing art</button><button id="oAuto">${fillable ? 'Auto fill art' : 'Attach images…'}</button></div>` : ''}
     ${!order.cardback && dfc < order.slot ? '<div class="warn">Choose a cardback for your single-faced cards.</div>' : ''}
     ${!d.entries.length ? '<p class="hint">Add a decklist, upload images or create a custom card in the Cards tab to start.</p>' : ''}`;
-  const fix = $('#oFix'); if (fix) fix.onclick = () => { switchTab('cards'); const e = d.entries.find(e => e.qty && e.faces.some(isPreview)); if (e) openMpcPicker({e, i:e.faces.findIndex(isPreview)}); };
+  const fix = $('#oFix'); if (fix) fix.onclick = () => {
+    const e = d.entries.find(entry=>entry.qty && entry.faces.some(face=>face && (!face.custom && !face.drive || face.lowRes)));
+    if (!e) return;
+    const i = e.faces.findIndex(face=>face && (!face.custom && !face.drive || face.lowRes));
+    openMpcPicker({e, i, backLabel:'Back to order review'});
+  };
   const auto = $('#oAuto'); if (auto) auto.onclick = () => fillable ? mpcAutofill() : $('#fileMpcImgs').click();
   $('#oZip').disabled = !order.slot;
   $('#btnXml').disabled = $('#tab-order').classList.contains('on') && !order.slot;
   const xml = buildMpcOrder(false), excluded = d.entries.reduce((n, e) => n + e.qty, 0) - xml.slot;
   $('#oXml').disabled = !xml.slot;
-  $('#xmlSummary').textContent = `${xml.slot} cards included · ${excluded} left out.${order.cardback && !xml.cardback ? ' Your uploaded cardback is also left out.' : ''}`;
+  $('#xmlSummary').textContent = `${xml.slot} included · ${excluded} left out. The autofill tool downloads online artwork.${order.cardback && !xml.cardback ? ' Your uploaded cardback is left out of XML.' : ''}`;
   $('#orderSteps').innerHTML = orderStepsHtml();
   applyServerShare();
 }
 $('#oStock').onchange = e => { S.mpc.stock = e.target.value; if (S.mpc.stock === '(P10) Plastic') S.mpc.foil = false; save(); renderOrder(); };
 $('#oFoil').onchange = e => { S.mpc.foil = e.target.checked; save(); renderOrder(); };
-$('#oBackBrowse').onclick = () => openMpcPicker({cardback:true});
+$('#oBackBrowse').onclick = () => openMpcPicker({cardback:true, backLabel:'Back to order review'});
 $('#oBackUpload').onclick = () => $('#fileOrderBack').click();
 $('#fileOrderBack').onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
@@ -4077,8 +4382,8 @@ $('#oBackClear').onclick = async () => {
   for (const key of old) await removeImageIfUnused(key);
   save(); renderAll();
 };
-$('#oZip').onclick = () => {const order=reviewedOrderSnapshots.zip;reviewOrderExport(order,true,()=>exportMpcZip(true,order),true);};
-$('#oXml').onclick = () => {const order=reviewedOrderSnapshots.xml;reviewOrderExport(order,false,()=>exportMpcXml(true,order),true);};
+$('#oZip').onclick = () => exportMpcZip(false,reviewedOrderSnapshots.zip);
+$('#oXml').onclick = () => exportMpcXml(false,reviewedOrderSnapshots.xml);
 $('#btnXml').onclick = () => {
   if ($('#tab-order').classList.contains('on')) {
     exportMpcZip();
@@ -4110,7 +4415,10 @@ function renderDeckSel() {
   $('#deckSel').innerHTML = S.decks.slice().sort((a, b) => a.name.localeCompare(b.name))
     .map(d => `<option value="${esc(d.id)}" ${d.id === S.deckId ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
 }
-$('#deckSel').onchange = e => { activateDeck(e.target.value); save(); renderAll(); };
+$('#deckSel').onchange = e => {
+  if (!abandonPrintSettings()) { e.target.value = S.deckId; return; }
+  activateDeck(e.target.value); save(); renderAll();
+};
 $('#deckNew').onclick = () => {
   const name = prompt('Deck name', 'New deck'); if (!name) return;
   const d = {id:uid(), name, entries:[], updated:Date.now()}; S.decks.push(d); activateDeck(d.id); save(); renderAll();
@@ -4132,6 +4440,18 @@ $('#deckDel').onclick = async () => {
 /* ---------- UI: card list ---------- */
 let selectedCopies = new Set(), selectionDeck = null, selectionAnchor = null;
 const copyKey = (e, copy) => `${e.uid}:${copy}`;
+function updateProofCardSummary(slots = buildSlots(), settings = S.settings) {
+  const key = selectedCopies.values().next().value;
+  const active = slots.find(slot=>copyKey(slot.e,slot.copy) === key && (S.showBacks || slot.fi === (S.activeFace || 0)))
+    || slots.find(slot=>copyKey(slot.e,slot.copy) === key);
+  $('#proofCardFooter').style.display = active ? 'flex' : 'none';
+  if (!active) return;
+  const face = S.showBacks ? active.back : active.front;
+  $('#proofCardName').textContent = face?.name || active.e.name;
+  $('#proofCardStatus').textContent = !face ? 'No back for this copy' : isPreview(face) ? 'Needs high-resolution art' : S.showBacks ? 'Back art ready' : 'Front art ready';
+  $('#proofCardTrim').textContent = `${settings.cardW} × ${settings.cardH} mm trim`;
+  $('#btnProofChangeArt').textContent = !face && S.showBacks ? 'Choose cardback' : 'Change art';
+}
 function syncCardSelection() {
   if (selectionDeck !== S.deckId) { selectedCopies.clear(); selectionAnchor = null; selectionDeck = S.deckId; }
   const valid = new Set(deck().entries.flatMap(e => Array.from({length:e.qty}, (_, q) => copyKey(e, q))));
@@ -4158,21 +4478,7 @@ function syncCardSelection() {
     box.hidden = !S.multiSelect && !selectedCopies.size;
     box.checked = !!e.qty && count === e.qty; box.indeterminate = count > 0 && count < e.qty;
   });
-  const cardFooter = $('#proofCardFooter');
-  if (cardFooter) {
-    const slots = buildSlots();
-    cardFooter.style.display = slots.length ? 'flex' : 'none';
-    const activeKey = [...selectedCopies][0];
-    const activeSlot = slots.find(sl => copyKey(sl.e, sl.copy) === activeKey && (S.showBacks || sl.fi === (S.activeFace || 0))) || slots.find(sl=>copyKey(sl.e,sl.copy) === activeKey);
-    cardFooter.style.display = activeSlot ? 'flex' : 'none';
-    if (activeSlot?.e) {
-      const e = activeSlot.e;
-      const face = (S.showBacks ? activeSlot.back : activeSlot.front) || e.faces[0];
-      const nm = $('#proofCardName'); if (nm) nm.textContent = e.name;
-      const st = $('#proofCardStatus'); if (st) st.textContent = isPreview(face) ? 'Needs high-res art' : 'Front art ready';
-      const tr = $('#proofCardTrim'); if (tr) tr.textContent = `${S.settings.cardW} × ${S.settings.cardH} mm trim`;
-    }
-  }
+  updateProofCardSummary();
 }
 function selectCopy(e, copy, ev = {}) {
   const face = ev.target?.dataset.face; if (face !== undefined) S.activeFace = face === 'back' ? 'back' : +face;
@@ -4257,20 +4563,13 @@ async function renderCards() {
   if (drawer && d.entries.length > 0 && drawer.dataset.project !== d.id && !$('#listIn').value.trim()) drawer.open = false;
   if (drawer && d.entries.length > 0) drawer.dataset.project = d.id;
   const any = d.entries.length > 0;
-  $('#btnMpcAuto').hidden = !any;
   $('#deckSelectHint').hidden = !any;
   $('#suggestionDrawer').hidden = !any;
   $('#deckFilter').hidden = !any;
   const allIssues = getPrintJobIssues();
   $('#deckHealth').innerHTML = allIssues.length ? `<span style="color:#ff9c95">${allIssues.length} need${allIssues.length === 1 ? 's' : ''} attention</span>` : '';
   const qCopies = $('#queueCopyCount'); if (qCopies) qCopies.textContent = `${total} cop${total === 1 ? 'y' : 'ies'}`;
-  const qStatus = $('#queueReadyStatus'); if (qStatus) qStatus.textContent = allIssues.length ? `${allIssues.length} issues · ${countAffectedCopies(allIssues,slots)} copies` : `${total} fronts ready`;
-  const btnNeedsArt = $('#btnFilterNeedsArt');
-  if (btnNeedsArt) {
-    btnNeedsArt.classList.toggle('active', !!S.filterNeedsArt); btnNeedsArt.setAttribute('aria-pressed', String(!!S.filterNeedsArt));
-    const cnt = $('#countNeedsArt'); if (cnt) cnt.textContent = allIssues.length;
-  }
-  $('#btnMpcAuto').classList.toggle('primary', allIssues.length > 0);
+  renderQueueStatus(allIssues,slots);
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet. Paste a decklist above or upload images.</p>'; syncCardSelection(); return; }
   list.innerHTML = d.entries.map(e => {
     const issues = getCardIssues(e, slots, s);
@@ -4281,7 +4580,6 @@ async function renderCards() {
       <div style="min-width:0;flex:1">
         <button type="button" class="nm" data-act="jump" title="${esc(e.name)}" aria-label="Jump to proof: ${esc(e.name)}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</button>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
-          ${issues.map(iss => `<button type="button" class="queue-issue-badge ${iss.type}" data-act="fix-issue" data-face="${iss.faceIdx}" data-side="${iss.side}" data-cardback="${!!iss.cardback}" title="Click to fix ${iss.label}">${iss.label}</button>`).join(' ')}
           ${!issues.length ? (e.faces.length > 1 ? '<span class="tag">DFC</span>' : '') : ''}${e.cornerColor ? `<span class="tag" style="display:inline-flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:${esc(e.cornerColor)};display:inline-block"></span>corner</span>` : ''}</div>
       </div>
       <span class="copy-badge" style="font-size:12px;color:var(--muted);padding:0 4px">×${e.qty}</span>
@@ -4291,6 +4589,7 @@ async function renderCards() {
         <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity"><button class="icon" data-act="inc" aria-label="More">+</button></div>
         <button class="icon more" data-act="more" title="Change art, custom card, upload, remove" aria-label="Card options">⋯</button>
       </div>
+      <div class="queue-card-issues"${issues.length ? '' : ' hidden'}>${queueIssueButtons(issues)}</div>
     </div>`;
   }).join('');
   for (const e of d.entries) {
@@ -4322,7 +4621,12 @@ $('#btnResumeImport').onclick = () => { const draft = deck().importDraft; if (dr
 $('#listIn').addEventListener('input', () => { deck().importDraft = $('#listIn').value.trim() ? makeImportDraft($('#listIn').value) : null; save(); });
 $('#btnAddCards').onclick = () => { $('#importDrawer').open = !$('#importDrawer').open; if ($('#importDrawer').open) $('#listIn').focus(); };
 $('#btnMultiSelect').onclick = () => { S.multiSelect = !S.multiSelect; if (!S.multiSelect) selectedCopies.clear(); $('#btnMultiSelect').textContent = S.multiSelect ? 'Done' : 'Select'; syncCardSelection(); };
-if ($('#btnFilterNeedsArt')) $('#btnFilterNeedsArt').onclick = () => { const issues=getPrintJobIssues(); if(issues.length===1 && issues[0].cardback)return openMpcPicker({cardback:true}); S.filterNeedsArt = !S.filterNeedsArt; applyDeckFilter(); if ($('#btnFilterNeedsArt')) $('#btnFilterNeedsArt').classList.toggle('active', S.filterNeedsArt); };
+$('#btnFilterNeedsArt').onclick = () => {
+  const issues=getPrintJobIssues(),slots=buildSlots(deck(),queueSettings());
+  if(issues.length===1 && issues[0].cardback)return openMpcPicker({cardback:true});
+  S.filterNeedsArt = !S.filterNeedsArt;
+  renderQueueStatus(issues,slots);applyDeckFilter();
+};
 if ($('#importDrawer')) $('#importDrawer').addEventListener('toggle', () => { $('#importDrawer').dataset.userToggled = '1'; });
 $('#cardList').addEventListener('keydown', ev=>{if(ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)){ev.preventDefault();ev.target.click();}});
 $('#cardList').addEventListener('click', async ev => {
@@ -4419,7 +4723,7 @@ $('#btnLink').onclick = () => {
     let v = $('#linkIn').value.trim();
     if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
     if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link.');
-    closeModal(); importList(v, false);
+    importList(v, false);
   };
   $('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#importLinkSubmit').click(); });
   $('#importLocal').onclick = () => $('#filePrintDeck').click();
@@ -4441,26 +4745,68 @@ $('#btnCopyList').onclick = async () => {
 };
 
 let modalBeforeClose = null, modalReturnFocus = null, modalAfterClose = null;
+const modalParents = [];
 const modalFocusable = () => $$('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal [tabindex]').filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
-function openModal(html) {
-  if (!$('#overlay').classList.contains('on')) modalReturnFocus = document.activeElement;
-  parkData();
-  const after = modalAfterClose; modalAfterClose = null; if (after) after();
-  modalBeforeClose = null;
-  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex'); $('#overlay').classList.add('on');
+function focusNavigationTarget(...targets) {
+  targets.find(el => el?.isConnected && el !== document.body && !el.disabled && el.getClientRects().length)?.focus({preventScroll:true});
+}
+function labelModal() {
   const title = $('#modal .hd b');
   if (title) { title.id = 'modalTitle'; $('#modal').setAttribute('aria-labelledby', title.id); }
   else $('#modal').removeAttribute('aria-labelledby');
+}
+function suspendModal() {
+  const modal = $('#modal'), body = $('.bd', modal);
+  const panels = ['tab-data','tab-guide','tab-order'].map(id => $('#' + id))
+    .filter(panel => modal.contains(panel))
+    .map(panel => ({panel, host:panel.parentElement}));
+  const frame = {
+    content: document.createDocumentFragment(), panels, className:modal.className,
+    focus:document.activeElement, scrollTop:body?.scrollTop || 0,
+    before:modalBeforeClose, after:modalAfterClose, opener:modalReturnFocus
+  };
+  parkData();
+  frame.content.append(...modal.childNodes);
+  modalBeforeClose = modalAfterClose = modalReturnFocus = null;
+  return frame;
+}
+function resumeModal(frame) {
+  const modal = $('#modal');
+  modal.replaceChildren(frame.content);
+  modal.className = frame.className;
+  for (const {panel, host} of frame.panels) { panel.classList.add('on'); host.appendChild(panel); }
+  modalBeforeClose = frame.before; modalAfterClose = frame.after; modalReturnFocus = frame.opener;
+  labelModal(); $('#overlay').classList.add('on');
+  const body = $('.bd', modal);
+  if (body) body.scrollTop = frame.scrollTop;
+  focusNavigationTarget(frame.focus, modalFocusable()[0]);
+}
+function openModal(html, backLabel = '') {
+  if (!$('#overlay').classList.contains('on')) modalReturnFocus = document.activeElement;
+  if (backLabel && $('#overlay').classList.contains('on')) {
+    modalParents.push({frame:suspendModal(), backLabel});
+  } else {
+    parkData();
+    const after = modalAfterClose; modalAfterClose = null; if (after) after();
+    modalBeforeClose = null;
+  }
+  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex'); $('#overlay').classList.add('on');
+  const parent = modalParents.at(-1), back = $('#modal .hd [data-close]');
+  if (parent && back) back.textContent = '← ' + parent.backLabel;
+  labelModal();
   modalFocusable()[0]?.focus();
 }
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
 function closeModal(force = false) {
-  if (!$('#overlay').classList.contains('on') || (!force && modalBeforeClose && !modalBeforeClose())) return;
-  modalBeforeClose = null; parkData(); $('#overlay').classList.remove('on');
-  if (modalReturnFocus?.isConnected && modalReturnFocus.getClientRects().length) modalReturnFocus.focus();
-  else $('#btnReviewExport').focus();
-  modalReturnFocus = null;
+  if (!$('#overlay').classList.contains('on') || (!force && modalBeforeClose && !modalBeforeClose())) return false;
+  const parent = modalParents.pop();
+  modalBeforeClose = null; parkData();
   const after = modalAfterClose; modalAfterClose = null; if (after) after();
+  if (parent) { resumeModal(parent.frame); return true; }
+  $('#overlay').classList.remove('on');
+  focusNavigationTarget(modalReturnFocus, $('#btnBackToProof'), $('#btnReviewExport'));
+  modalReturnFocus = null;
+  return true;
 }
 $('#modal').addEventListener('keydown', ev => {
   if (ev.key !== 'Tab') return;
@@ -4469,7 +4815,13 @@ $('#modal').addEventListener('keydown', ev => {
   if ((ev.shiftKey && at <= 0) || (!ev.shiftKey && (at < 0 || at === items.length - 1))) { ev.preventDefault(); items[ev.shiftKey ? items.length - 1 : 0].focus(); }
 });
 $('#overlay').onclick = e => { if (e.target.id === 'overlay' || e.target.hasAttribute('data-close')) closeModal(); };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCtx(true); $('#deckMenu').removeAttribute('open'); } });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  if ($('#overlay').classList.contains('on')) { e.preventDefault(); closeModal(); return; }
+  if ($('#ctx').classList.contains('on') || $('#deckMenu').open) {
+    e.preventDefault(); closeCtx(true); $('#deckMenu').removeAttribute('open');
+  }
+});
 
 /* ---------- custom card maker ---------- */
 const CC_COLORS = [['auto', 'Auto (card colors)'], ['W', 'White'], ['U', 'Blue'], ['B', 'Black'], ['R', 'Red'], ['G', 'Green'], ['M', 'Gold (multicolor)'], ['C', 'Colorless / artifact'], ['L', 'Land']];
@@ -5339,7 +5691,7 @@ async function openCardMaker(target) {
         <p class="hint" id="ccStatus" role="status">${art ? '' : 'Choose an art image before saving.'}</p>
         <p class="hint">Saved at print quality with bleed, for printing and orders.</p>
       </div>
-    </div></div>`);
+    </div></div>`, target.backLabel);
   const cv = $('#ccCanvas'), K = 6.2, ratio = devicePixelRatio || 1;
   cv.style.width = `${(63 + 2 * MPC_BLEED) * K}px`;
   let n = 0;
@@ -5603,7 +5955,7 @@ function openTour(at = 0) {
 $('#btnHelp').onclick = () => openTour(0);
 $('#projectFiles').onclick = () => $('#btnSettings').click();
 $('#btnSettings').onclick = () => {
-  openModal(`<div class="hd"><b>Settings &amp; backup</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
+  openModal(`<div class="hd"><b>Project files</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
   $('#modal').classList.add('narrow');
   const d = $('#tab-data'); d.classList.add('on'); $('#dataSlot').appendChild(d);
   renderStorage();
@@ -6457,13 +6809,14 @@ function renderSettings() {
   const advEl = $('#advSettings');
   if (advEl) advEl.innerHTML = `<details class="adv" id="advDrawer" ${S.advOpen ? 'open' : ''}><summary>Advanced layout &amp; export quality${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
 
-  const form = $('#settingsForm'), st = form.closest('.pane').scrollTop;
-  form.innerHTML = html;
-  form.closest('.pane').scrollTop = st;
+  const form = $('#settingsForm'), scrollParent = form?.closest('.pane') || form?.closest('#printSettingsView'), st = scrollParent ? scrollParent.scrollTop : 0;
+  if (form) form.innerHTML = html;
+  if (scrollParent) scrollParent.scrollTop = st;
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
   renderCalibrationProfiles();
   renderColorSliders();
+  updateInspectorSummary();
   if(focused){$('[data-k="'+CSS.escape(focused)+'"]',panel)?.focus({preventScroll:true});panel.scrollTop=scroll;}
 }
 // What a profile keeps, and for which layout. Every alignment number is in the
@@ -6522,9 +6875,14 @@ function calSlotFor(p, s) {
     if (res.byDuplex && res.byDuplex[dupKey]) {
       res = {...res, ...res.byDuplex[dupKey]};
     }
-    const hasDuplex=!!rawSet.byDuplex?.[dupKey],backMeasured=hasDuplex && rawSet.byDuplex[dupKey].backMeasured!==false && ['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'].some(k=>Object.hasOwn(rawSet.byDuplex[dupKey],k)&&Number.isFinite(rawSet.byDuplex[dupKey][k]));
+    const hasDuplex=!!rawSet.byDuplex?.[dupKey];
+    const targetSet = hasDuplex ? {...rawSet, ...rawSet.byDuplex[dupKey]} : rawSet;
+    const hasBack = ['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'].some(k=>Object.hasOwn(targetSet,k)&&Number.isFinite(targetSet[k]));
+    const backMeasured = hasDuplex && rawSet.byDuplex[dupKey].backMeasured === true && hasBack;
     if (rawSet.byDuplex && !hasDuplex) Object.assign(res, {backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
-    return {set: res, from, key, backMeasured, frontMeasured:rawSet.frontMeasured!==false && ['offsetX','offsetY','scaleX','scaleY','printRotate'].some(k=>Object.hasOwn(rawSet,k)&&Number.isFinite(rawSet[k])), status: from === 'exact' ? 'Measured' : from === 'any' ? 'Legacy' : 'Estimated'};
+    const hasFront = ['offsetX','offsetY','scaleX','scaleY','printRotate'].some(k=>Object.hasOwn(rawSet,k)&&Number.isFinite(rawSet[k]));
+    const frontMeasured = rawSet.frontMeasured === true && hasFront;
+    return {set: res, from, key, hasFront, hasBack, backMeasured, frontMeasured, status: from === 'exact' ? ((frontMeasured || backMeasured) ? 'Measured' : 'Saved') : from === 'any' ? 'Legacy' : 'Estimated'};
   };
 
   if (slots[want]) return applySlot(slots[want], 'exact', want);
@@ -6549,25 +6907,114 @@ function cleanCalibrationState(raw){
 function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, profileId = S.calibrationProfileId) {
   const p=calProfiles().find(profile=>profile.id===profileId && (!profile.printer || profile.printer===printer)),got=p&&calSlotFor(p,s);
   const sideStatus=(side,keys)=>{
-    const back=side==='back',record=d.calibrationState?.[side],same=values=>values && keys.every(k=>Number.isFinite(values[k]??DEFAULTS[k])&&Math.abs((values[k]??DEFAULTS[k])-s[k])<0.00001),neutral=keys.every(k=>s[k]===DEFAULTS[k]);
-    let status='Uncalibrated',source='No recorded measurement';
-    const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
-    if(recordExact){status=record.kind==='none'?'Uncalibrated':record.kind==='manual'?'Manual':'Measured';source=record.kind==='manual'?'Entered alignment':'Recorded alignment';}
-    else if(got?.set && same(got.set) && got.from==='exact' && (back?got.backMeasured:got.frontMeasured)){status='Measured';source=p.name;}
-    else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
-    else if(!neutral){status='Estimated';source=got?.set?p.name:'Carried alignment';}
-    const label={Manual:'Manual alignment applied',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
+    const back=side==='back',record=d?.calibrationState?.[side],same=values=>values && keys.every(k=>Number.isFinite(values[k]??DEFAULTS[k])&&Math.abs((values[k]??DEFAULTS[k])-s[k])<0.00001),neutral=keys.every(k=>Math.abs(s[k]-DEFAULTS[k])<0.00001);
+    const profHasSide=back?(got?.hasBack??false):(got?.hasFront??false),profMeasured=back?got?.backMeasured:got?.frontMeasured;
+    let status='Uncalibrated',source='No correction set';
+    if(neutral){status='Uncalibrated';source='No correction set';}
+    else {
+      const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
+      if(recordExact){status=record.kind==='measured'?'Measured':'Manual';source=record.kind==='measured'?'Recorded measurement':'Entered alignment';}
+      else if(profHasSide && got?.set && same(got.set) && got.from==='exact'){status=profMeasured?'Measured':'Saved';source=p.name;}
+      else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
+      else if(profHasSide && got?.set && same(got.set)){status='Estimated';source=got.from==='turned'?'Turned from other orientation':'Carried alignment';}
+      else {status='Manual';source='Entered alignment';}
+    }
+    const label={Manual:'Manual alignment applied',Saved:'Saved profile',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
     return {status,label,source,values:Object.fromEntries(keys.map(k=>[k,s[k]])),x:s[back?'backOffsetX':'offsetX'],y:s[back?'backOffsetY':'offsetY']};
   };
   const front=sideStatus('front',FRONT_CAL_KEYS),back=sideStatus('back',BACK_CAL_KEYS),hasBacks=buildSlots(d,s).some(slot=>slot.back),sides=hasBacks?[front,back]:[front];
-  const status=sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
+  const status=sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.some(side=>side.status==='Saved')?'Saved':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
   const label='Front: '+front.label+(hasBacks?' · Back: '+back.label:'');
   const values='Front: X '+front.x+' mm, Y '+front.y+' mm, scale '+s.scaleX+' / '+s.scaleY+'%, rotation '+s.printRotate+'°'+(hasBacks?' · Back: extra X '+back.x+' mm, Y '+back.y+' mm, scale '+s.backScaleX+' / '+s.backScaleY+'%, rotation '+s.backRotate+'°':'');
   return {status,label,values,hasBacks,from:got?.from || 'none',front,back};
 }
+function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots(deck(), s)) {
+  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const hasBacks = slots.some(slot => slot.back);
+
+  const inspPaper = $('#inspPaper');
+  if (inspPaper) inspPaper.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
+
+  const inspLayout = $('#inspLayout');
+  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} per sheet`;
+
+  const inspSides = $('#inspSides');
+  if (inspSides) inspSides.textContent = hasBacks ? `Duplex · ${s.duplexMethod === 'auto' ? 'Auto flip' : 'Manual flip'}` : 'Single-sided';
+
+  const inspCut = $('#inspCut');
+  if (inspCut) inspCut.textContent = s.silhouette ? 'Silhouette Cameo' : 'Rotary trimmer';
+
+  const inspCal = $('#inspCal');
+  if (inspCal) {
+    const calStat = getCalibrationStatus(s);
+    inspCal.textContent = calStat.label;
+    inspCal.title = calStat.values;
+    inspCal.style.color = ({Measured:'var(--ok)', Saved:'var(--ok)', Estimated:'var(--accent2)', Manual:'var(--focus)'})[calStat.status] || '';
+  }
+}
+function refreshAlignmentPage() {
+  const s = S.settings;
+  const p = printerOf(S.printer);
+  const L = layout();
+  const calStat = getCalibrationStatus(s);
+  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const hasBacks = buildSlots(deck(), s).some(slot => slot.back);
+
+  const printerEl = $('#alignPrinterName');
+  if (printerEl) printerEl.textContent = p.name.replace(/ \(.*\)$/, '');
+  const paperEl = $('#alignPaperFeed');
+  if (paperEl) paperEl.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
+  const dupEl = $('#alignDuplexMode');
+  if (dupEl) dupEl.textContent = !hasBacks ? 'Single-sided job' : `${s.duplexMethod === 'auto' ? 'Automatic duplex' : 'Manual duplex'} · ${s.duplexFlip === 'short' ? 'Short-edge flip' : 'Long-edge flip'}`;
+
+  const frontBadge = $('#alignFrontSourceBadge');
+  if (frontBadge) {
+    frontBadge.textContent = calStat.front.label + (calStat.front.source && calStat.front.source !== 'No correction set' ? ` (${calStat.front.source})` : '');
+    frontBadge.className = 'src-badge ' + (calStat.front.status === 'Measured' ? 'measured' : calStat.front.status === 'Saved' ? 'saved' : calStat.front.status === 'Estimated' ? 'estimated' : calStat.front.status === 'Manual' ? 'manual' : '');
+  }
+  const frontTxt = $('#alignFrontValuesText');
+  if (frontTxt) {
+    frontTxt.textContent = `Offset X: ${calStat.front.x >= 0 ? '+' : ''}${calStat.front.x.toFixed(2)} mm · Offset Y: ${calStat.front.y >= 0 ? '+' : ''}${calStat.front.y.toFixed(2)} mm · Scale: ${s.scaleX.toFixed(1)}% / ${s.scaleY.toFixed(1)}% · Rotation: ${s.printRotate.toFixed(1)}°`;
+  }
+
+  const backBadge = $('#alignBackSourceBadge');
+  if (backBadge) {
+    backBadge.textContent = calStat.back.label + (calStat.back.source && calStat.back.source !== 'No correction set' ? ` (${calStat.back.source})` : '');
+    backBadge.className = 'src-badge ' + (calStat.back.status === 'Measured' ? 'measured' : calStat.back.status === 'Saved' ? 'saved' : calStat.back.status === 'Estimated' ? 'estimated' : calStat.back.status === 'Manual' ? 'manual' : '');
+  }
+  const backTxt = $('#alignBackValuesText');
+  if (backTxt) {
+    backTxt.textContent = `Extra X: ${calStat.back.x >= 0 ? '+' : ''}${calStat.back.x.toFixed(2)} mm · Extra Y: ${calStat.back.y >= 0 ? '+' : ''}${calStat.back.y.toFixed(2)} mm · Scale: ${s.backScaleX.toFixed(1)}% / ${s.backScaleY.toFixed(1)}% · Rotation: ${s.backRotate.toFixed(1)}°`;
+  }
+
+  const inputs = {
+    'input-offsetX': s.offsetX,
+    'input-offsetY': s.offsetY,
+    'input-scaleX': s.scaleX,
+    'input-scaleY': s.scaleY,
+    'input-printRotate': s.printRotate,
+    'input-backOffsetX': s.backOffsetX,
+    'input-backOffsetY': s.backOffsetY,
+    'input-backScaleX': s.backScaleX,
+    'input-backScaleY': s.backScaleY,
+    'input-backRotate': s.backRotate
+  };
+  const draft = alignmentDrafts.get(alignmentDraftKey());
+  for (const [id, val] of Object.entries(inputs)) {
+    const el = $('#' + id);
+    if (el) el.value = draft?.[el.dataset.align] ?? val;
+  }
+  $('#alignmentDraftStatus').hidden = !draft;
+  const err = $('#alignmentInputError');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+  renderCalibrationProfiles();
+  renderAlignmentOverlay();
+}
 function refreshCalibrationStatus(){
-  const status=getCalibrationStatus();$('#inspCal').textContent=status.label;$('#inspCal').title=status.values;
+  updateInspectorSummary();
   renderCalibrationProfiles();syncPreviewControls();renderAlignmentOverlay();renderGuideTab();renderPreview();
+  if (document.body.classList.contains('print-settings-active')) refreshAlignmentPage();
 }
 
 function renderAlignmentOverlay() {
@@ -6601,18 +7048,41 @@ function resolveAppliedCalibration() {
   if (!profile) return;
   if (profile.printer && profile.printer !== S.printer) { S.calibrationProfileId = null; for (const key of CALIBRATION_KEYS) S.settings[key] = DEFAULTS[key]; return; }
   const got = calSlotFor(profile, S.settings);
-  if (got.set) S.settings = cleanSettings({...S.settings, ...got.set});
+  if (got.set) {
+    const toApply = {};
+    if (got.hasFront) for (const k of FRONT_CAL_KEYS) if (k in got.set) toApply[k] = got.set[k];
+    if (got.hasBack) {
+      for (const k of BACK_CAL_KEYS) if (k in got.set) toApply[k] = got.set[k];
+    } else {
+      for (const k of BACK_CAL_KEYS) toApply[k] = DEFAULTS[k];
+    }
+    if (got.set.duplexFlip) toApply.duplexFlip = got.set.duplexFlip;
+    if (got.set.duplexMethod) toApply.duplexMethod = got.set.duplexMethod;
+    S.settings = cleanSettings({...S.settings, ...toApply});
+  }
 }
 function applyCalProfile(p) {
-  deck().calibrationState={};
   S.calibrationProfileId = p.id;
   const got = calSlotFor(p, S.settings), here = calSlotName(calSlotKey(S.settings));
   if (!got.set) return toast(`"${p.name}" has nothing saved yet.`);
-  S.settings = cleanSettings({...S.settings, ...got.set});
   if (PRINTERS.some(x => x.id === p.printer)) {
     S.printer = p.printer;
     S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
   }
+  const d = deck();
+  if (!d.calibrationState) d.calibrationState = {};
+  if (got.hasFront) {
+    for (const k of FRONT_CAL_KEYS) if (k in got.set) S.settings[k] = got.set[k];
+    d.calibrationState.front = {kind: got.frontMeasured ? 'measured' : 'manual', scope: calibrationScope(S.settings, S.printer, false), values: Object.fromEntries(FRONT_CAL_KEYS.map(k => [k, S.settings[k]]))};
+  } else if (d.calibrationState?.front?.values) {
+    d.calibrationState.front = {...d.calibrationState.front, scope: calibrationScope(S.settings, S.printer, false)};
+  }
+  if (got.hasBack) {
+    for (const k of BACK_CAL_KEYS) if (k in got.set) S.settings[k] = got.set[k];
+    d.calibrationState.back = {kind: got.backMeasured ? 'measured' : 'manual', scope: calibrationScope(S.settings, S.printer, true), values: Object.fromEntries(BACK_CAL_KEYS.map(k => [k, S.settings[k]]))};
+  }
+  if (got.set.duplexFlip) S.settings.duplexFlip = got.set.duplexFlip;
+  if (got.set.duplexMethod) S.settings.duplexMethod = got.set.duplexMethod;
   S.activePreset = null; save(); renderAll();
   if (got.from === 'exact') return toast(`Loaded the ${calSlotName(got.key)} alignment from "${p.name}".`);
   if (got.from === 'size') return toast(`"${p.name}" has no ${here} set. Used its ${calSlotName(got.key)} numbers: the axes match, the sheet size does not.`, 9000);
@@ -6642,7 +7112,8 @@ function renderCalibrationProfiles(activeId) {
   if (activeId !== undefined) S.calibrationProfileId = activeId;
   const current = S.calibrationProfileId;
   const active=calProfiles().find(p=>p.id===current),scope=calSlotName(calSlotKey(S.settings)),status=getCalibrationStatus();
-  $('#activeCalibrationProfile').innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p><p class="hint">${esc(status.values)}</p>`;
+  const actProfEl = $('#activeCalibrationProfile');
+  if (actProfEl) actProfEl.innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p><p class="hint">${esc(status.values)}</p>`;
   const held = p => {
     const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
     return keys.length ? ` \u00b7 ${keys.map(calSlotName).join(' + ')}` : '';
@@ -6690,7 +7161,7 @@ function renderCalibrationProfiles(activeId) {
 
   const statusEl=$('#calProfileStatus');if(statusEl){const state=getCalibrationStatus();statusEl.textContent=state.label;statusEl.title=state.values;}
 }
-$('#tab-setup').addEventListener('change', async ev => {
+$('#printSettingsView').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
   if (PRESET_IMAGE_KEYS.includes(k)) {
@@ -6712,7 +7183,7 @@ $('#tab-setup').addEventListener('change', async ev => {
     const n = parseFloat(t.value) || 0;
     s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
   } else s[k] = t.value;
-  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k))noteCalibration(FRONT_CAL_KEYS.includes(k)?'front':'back');
+  if (FRONT_CAL_KEYS.includes(k) || BACK_CAL_KEYS.includes(k)) return;
   if (k === 'orientation') s.cardRotation = 'upright';
   if (['orientation', 'pageSize'].includes(k)) {
     // The alignment numbers belong to the layout that produced them. If the
@@ -6748,10 +7219,10 @@ $('#tab-setup').addEventListener('change', async ev => {
   if (['pageSize','orientation','pageW','pageH','duplexMethod','duplexFlip'].includes(k)) resolveAppliedCalibration();
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
 });
-$('#tab-setup').addEventListener('toggle', ev => {
+$('#printSettingsView').addEventListener('toggle', ev => {
   if (ev.target.id === 'advDrawer') { S.advOpen = ev.target.open; save(); }
 }, true);
-$('#tab-setup').addEventListener('click', ev => {
+$('#printSettingsView').addEventListener('click', ev => {
   const chip = ev.target.closest('[data-color-profile]');
   if (chip) {
     const prof = chip.dataset.colorProfile;
@@ -6805,9 +7276,9 @@ $('#tab-setup').addEventListener('click', ev => {
     return;
   }
 });
-$('#tab-setup').addEventListener('input', ev => {
+$('#printSettingsView').addEventListener('input', ev => {
   const t = ev.target, k = t.dataset.k;
-  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k)){if(!t.checkValidity()||t.value.trim()===''||!Number.isFinite(+t.value))return;S.settings[k]=['backOffsetX','backOffsetY'].includes(k)&&S.settings.backOffsetUnit==='in'?+t.value*25.4:+t.value;noteCalibration(FRONT_CAL_KEYS.includes(k)?'front':'back');S.activePreset=null;save();refreshCalibrationStatus();return;}
+  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k)) return;
   if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
   const n = parseFloat(t.value) || 0;
   S.settings[k] = n;
@@ -6820,7 +7291,7 @@ $('#tab-setup').addEventListener('input', ev => {
   }
   renderPreview();
 });
-$('#tab-setup').addEventListener('keydown', ev => {
+$('#printSettingsView').addEventListener('keydown', ev => {
   if (ev.key === 'Enter' && ev.target.classList.contains('slider-val-input')) {
     ev.preventDefault();
     ev.target.blur();
@@ -6875,7 +7346,7 @@ $('#calProfileSave').onclick = () => {
   // sheet the other way round, save under the same name, and the profile holds
   // both. An old unscoped set is kept as a last-resort fallback rather than
   // being relabelled as a layout it may never have been measured on.
-  const priorStatus=getCalibrationStatus(),frontMeasured=['Manual','Measured'].includes(priorStatus.front.status),backMeasured=['Manual','Measured'].includes(priorStatus.back.status);
+  const priorStatus=getCalibrationStatus(),frontMeasured=priorStatus.front.status==='Measured',backMeasured=priorStatus.back.status==='Measured';
   const key = calSlotKey(S.settings);
   const curSlots = calSlots(target);
   const curSlot = curSlots[key] || {};
@@ -6896,12 +7367,9 @@ $('#calProfileSave').onclick = () => {
   else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
   const targetId = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
   S.calibrationProfileId = targetId;
-  if(frontMeasured)noteCalibration('front','measured');if(backMeasured)noteCalibration('back','measured');
   save();
   renderCalibrationProfiles(targetId);refreshCalibrationStatus();
-  const kept = Object.keys(settings).filter(k => k !== key && k !== 'any');
-  toast(`Saved the ${calSlotName(key)} alignment in "${name}".`
-    + (kept.length ? ` It still holds ${kept.map(calSlotName).join(' and ')}.` : ''));
+  toast(`Saved profile "${name}".`);
 };
 $('#calProfileDelete').onclick = () => {
   const id = $('#calProfileSel').value;
@@ -7154,16 +7622,27 @@ function setPreviewFocus(on) {
 $('#toggleSidebar').onclick=()=>setPreviewFocus(!document.body.classList.contains('preview-focus'));
 $('#quickPaper').onchange=ev=>{
   const input=$('#paperForm [data-k="pageSize"]');input.value=ev.target.value;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
-  if (S.settings.pageSize==='custom') { switchTab('setup'); $('#paperForm').closest('details').open=true; $('#setting-pageW').focus(); }
+  if (S.settings.pageSize==='custom') { openPrintSettings('layout', ev.target); requestAnimationFrame(()=>$('#setting-pageW')?.focus()); }
 };
 $$('.paper-direction button').forEach(button=>button.onclick=()=>{
   const input=$('#paperForm [data-k="orientation"]');input.value=button.dataset.orientation;input.dispatchEvent(new Event('change',{bubbles:true}));renderGuideTab();
 });
 function syncProofViewButtons() {
   const f = $('#btnProofFront'), b = $('#btnProofBack'), g = $('#btnProofGuides');
-  if (f) f.classList.toggle('on', !S.showBacks);
-  if (b) b.classList.toggle('on', !!S.showBacks);
-  if (g) g.classList.toggle('on', !!S.showCuts);
+  for (const [button,on] of [[f,!S.showBacks],[b,!!S.showBacks],[g,!!S.showCuts]]) {
+    if (!button) continue;
+    button.classList.toggle('on',on);
+    button.setAttribute('aria-pressed',String(on));
+  }
+}
+function emptyWorkspaceHtml(order = false) {
+  return `<div class="empty">
+    <div class="empty-art" aria-hidden="true"><i></i><i></i><i>P</i></div>
+    <h2>${order ? 'Add cards to your order' : 'Add cards to your deck'}</h2>
+    <p class="hint">${order ? 'Your card artwork will appear in this gallery.' : 'Your printable sheets will appear here.'}</p>
+    <div class="row"><button class="primary" data-start="paste">Paste a decklist</button>
+    <button data-start="import">Import from link or file…</button><button data-start="upload">Upload images…</button></div>
+  </div>`;
 }
 async function drawPreview() {
   clearTimeout(previewTimer);
@@ -7199,46 +7678,12 @@ async function drawPreview() {
     : `${cardCount} · ${pages.length} sheet${pages.length === 1 ? '' : 's'} · ${L.W} × ${L.H} mm`;
   $('#zoomValue').textContent = Math.round(z / 2.4 * 100) + '%';
   $('#stage').style.setProperty('--stage-controls-height',$('.stage-controls').offsetHeight+'px');
-  // Card Detail Footer
-  const cardFooter = $('#proofCardFooter');
-  if (cardFooter) {
-    cardFooter.style.display = slots.length ? 'flex' : 'none';
-    const activeKey = [...selectedCopies][0];
-    const activeSlot = slots.find(sl => copyKey(sl.e, sl.copy) === activeKey && (S.showBacks || sl.fi === (S.activeFace || 0))) || slots.find(sl=>copyKey(sl.e,sl.copy) === activeKey);
-    cardFooter.style.display = activeSlot ? 'flex' : 'none';
-    if (activeSlot?.e) {
-      const e = activeSlot.e;
-      const face = (S.showBacks ? activeSlot.back : activeSlot.front) || e.faces[0];
-      const nm = $('#proofCardName'); if (nm) nm.textContent = e.name;
-      const st = $('#proofCardStatus'); if (st) st.textContent = isPreview(face) ? 'Needs high-res art' : 'Front art ready';
-      const tr = $('#proofCardTrim'); if (tr) tr.textContent = `${s.cardW} × ${s.cardH} mm trim`;
-    }
-  }
-  // Inspector Summaries
-  const inspPaper = $('#inspPaper');
-  if (inspPaper) {
-    const paperName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-    inspPaper.textContent = `${paperName} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
-  }
-  const inspLayout = $('#inspLayout');
-  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} per sheet`;
-  const inspSides = $('#inspSides');
-  if (inspSides) inspSides.textContent = slots.some(slot=>slot.back) ? `Duplex · ${s.duplexMethod === 'auto' ? 'Auto flip' : 'Manual flip'}` : 'Single-sided';
-  const inspCut = $('#inspCut');
-  if (inspCut) inspCut.textContent = s.silhouette ? 'Silhouette Cameo' : 'Rotary trimmer';
+  updateProofCardSummary(slots,s);
+  updateInspectorSummary(s, L, slots);
   renderAlignmentOverlay();drawProofAlignment();syncInspectorAccess();
-  const inspCal = $('#inspCal');
-  if (inspCal) {
-    const cal = getCalibrationStatus(s);
-    inspCal.textContent = cal.label || cal.status; inspCal.title=cal.values;
-    inspCal.style.color = cal.status === 'Measured' ? '#5cc27a' : cal.status === 'Estimated' ? '#f2c26b' : '#a0aab9';
-  }
   if (S.mode === 'order') return drawGallery(gen,wrap,z);
   if (!slots.length) {
-    wrap.innerHTML = `<div class="empty"><div class="empty-art" aria-hidden="true"><i></i><i></i><i>P</i></div><h2>${S.mode === 'order' ? 'Build your next order' : 'Your next deck starts here'}</h2><p class="hint">Bring a decklist or your favorite artwork. ${S.mode === 'order' ? 'Your order' : 'Your sheets'} update${S.mode === 'order' ? 's' : ''} as you work.</p><div class="row" style="margin:20px 0"><button class="primary" data-start="import">Import a deck…</button><button data-start="upload">Upload images…</button></div><ol>
-      <li><b>Paste a decklist</b> on the left and press <b>Add to deck</b>, or choose <b>Import deck…</b> for a deck link or local file.</li>
-      <li><b>High-res art is picked for you.</b> Right-click any card to change it.</li>
-      <li>${S.mode === 'order' ? 'Choose a cardback in <b>Review order</b>, then press <b>Review order</b>.' : 'Pick your printer in <b>Setup</b>, choose your tool in <b>Setup → Cut</b>, then download your files in <b>Review export</b>.'}</li></ol></div>`;
+    wrap.innerHTML = emptyWorkspaceHtml();
     return;
   }
   if (S.mode === 'order') return drawGallery(gen, wrap, z);
@@ -7311,14 +7756,23 @@ async function drawPreview() {
   wrap.replaceChildren(frag); syncCardSelection();
 }
 function orderSharedBack(d=deck(),settings=S.settings){return settings.backImage ? {name:'Card back',custom:settings.backImage} : d.cardback;}
-function sizeOrderGallery(){if(S.mode!=='order')return;const available=Math.max(80,$('#pages').clientWidth),desired=S.orderDensity || 180,columns=Math.max(1,Math.round((available+14)/(desired+14))),width=Math.min(desired,Math.floor((available-14*(columns-1))/columns));$('#pages').style.setProperty('--order-card-width',width+'px');}
+function sizeOrderGallery() {
+  if (S.mode !== 'order') return;
+  const gallery = $('.order-gallery');
+  if (!gallery?.clientWidth) return;
+  const available = gallery.clientWidth;
+  const desired = S.orderDensity || 180;
+  const columns = Math.max(1,Math.round((available + 14) / (desired + 14)));
+  const width = Math.min(desired,Math.floor((available - 14 * (columns - 1)) / columns));
+  gallery.style.setProperty('--order-card-width',width+'px');
+}
 new ResizeObserver(sizeOrderGallery).observe($('#pages'));
 async function drawGallery(gen, wrap, z) {
   const d=deck(), cb=orderSharedBack(d), count=d.entries.reduce((n,e)=>n+e.qty,0), sharedCount=d.entries.filter(e=>e.faces.length===1).reduce((n,e)=>n+e.qty,0);
   const previews=new Map(),thumbnail=face=>{const key=artworkKey(face);if(!previews.has(key))previews.set(key,thumbSrc(face));return previews.get(key);};
   const root=document.createElement('div');root.className='order-gallery';
-  root.innerHTML=`<div class="order-gallery-tools"><b>${count} ${count===1?'copy':'copies'}</b><div class="seg" role="group" aria-label="Gallery side"><button data-order-side="front" aria-pressed="${!S.orderShowBacks}" class="${!S.orderShowBacks?'on':''}">Front</button><button data-order-side="back" aria-pressed="${!!S.orderShowBacks}" class="${S.orderShowBacks?'on':''}">Back</button></div><label>Density <select id="orderDensity" aria-label="Gallery density"><option value="120">Compact</option><option value="180">Comfortable</option><option value="240">Large</option></select></label><button id="orderQueueToggle" aria-pressed="${document.body.classList.contains('preview-focus')}">${innerWidth<=820 || document.body.classList.contains('preview-focus')?'Show queue':'Hide queue'}</button></div>`;
-  if(sharedCount){const prompt=document.createElement('div');prompt.className='order-back-prompt';prompt.innerHTML=cb?'<img alt="Shared cardback"><span>Shared cardback</span><button class="gal-cb">Change cardback</button><button class="order-back-clear">Clear cardback</button>':`<button class="primary gal-cb">Choose a cardback</button><span>${sharedCount} ${sharedCount===1?'copy needs':'copies need'} a shared back.</span>`;if(cb)thumbnail(cb).then(u=>{if(gen===previewGen&&u)$('img',prompt).src=u;});root.appendChild(prompt);}
+  root.innerHTML=`<div class="order-gallery-tools"><div class="order-gallery-name"><b>Order gallery</b><span>${count} ${count===1?'copy':'copies'}</span></div><div class="seg" role="group" aria-label="Gallery side"><button data-order-side="front" aria-pressed="${!S.orderShowBacks}" class="${!S.orderShowBacks?'on':''}">Front</button><button data-order-side="back" aria-pressed="${!!S.orderShowBacks}" class="${S.orderShowBacks?'on':''}">Back</button></div><label>Card size <select id="orderDensity" aria-label="Gallery density"><option value="120">Compact</option><option value="180">Comfortable</option><option value="240">Large</option></select></label><button id="orderQueueToggle" aria-pressed="${document.body.classList.contains('preview-focus')}">${innerWidth<=820 || document.body.classList.contains('preview-focus')?'Show queue':'Hide queue'}</button></div>`;
+  if(sharedCount){const prompt=document.createElement('div');prompt.className='order-back-prompt';prompt.innerHTML=cb?'<img alt="Shared cardback"><b>Shared cardback</b><button class="gal-cb">Change cardback</button><button class="order-back-clear">Clear cardback</button>':`<span>${sharedCount} ${sharedCount===1?'copy needs':'copies need'} a shared back.</span><button class="gal-cb">Choose a cardback</button>`;if(cb)thumbnail(cb).then(u=>{if(gen===previewGen&&u)$('img',prompt).src=u;});root.appendChild(prompt);}
   const grid=document.createElement('div');grid.className='gal';
   for(const e of d.entries){if(!e.qty||!e.faces.length)continue;for(let copy=0;copy<e.qty;copy++){
     const tile=document.createElement('div');tile.className='tile';const back=!!S.orderShowBacks,face=back ? e.faces[1] || (e.faces.length===1 ? cb : null) : e.faces[0],faceIndex=back ? e.faces.length>1?1:'back' : 0;
@@ -7326,7 +7780,10 @@ async function drawGallery(gen, wrap, z) {
     if(face&&(face.custom||face.drive||face.png||face.normal||face.scryArt)){thumbnail(face).then(u=>{if(gen===previewGen&&u)im.src=u;});tile.appendChild(im);}else{const empty=document.createElement(back&&e.faces.length===1?'div':'button');empty.className='noback';empty.style.aspectRatio='63/88';empty.textContent=back?(e.faces.length>1?'Missing back artwork':'Shared cardback'):'Missing front artwork';if(!(back&&e.faces.length===1)){empty.dataset.orderIssue=e.uid;empty.dataset.orderFace=back?'1':'0';empty.dataset.orderCopy=copy;}tile.appendChild(empty);}
     tile.insertAdjacentHTML('beforeend',`<span class="tile-name" title="${esc(e.name)}">${esc(e.name)}</span>${e.qty>1?`<span class="qty">${copy+1} / ${e.qty}</span>`:''}`);grid.appendChild(tile);
   }}
-  if(!count)root.insertAdjacentHTML('beforeend','<p class="hint">Add cards or import a deck to start your order.</p>');
+  if (!count) {
+    $('.order-gallery-tools',root).hidden = true;
+    root.insertAdjacentHTML('beforeend',emptyWorkspaceHtml(true));
+  }
   root.appendChild(grid);wrap.replaceChildren(root);$('#orderDensity').value=String(S.orderDensity || 180);sizeOrderGallery();syncCardSelection();
   root.addEventListener('click',async ev=>{const side=ev.target.closest('[data-order-side]');if(side){S.orderShowBacks=side.dataset.orderSide==='back';save();await drawPreview();$('[data-order-side="'+side.dataset.orderSide+'"]')?.focus();}if(ev.target.id==='orderQueueToggle'){if(innerWidth<=820)setWorkspaceView('cards');else{setPreviewFocus(!document.body.classList.contains('preview-focus'));drawPreview();}}if(ev.target.closest('.order-back-clear'))$('#oBackClear').click();const issue=ev.target.closest('[data-order-issue]:not(.gal-cb)');if(issue){const e=deck().entries.find(e=>e.uid===issue.dataset.orderIssue);selectCardCopy(e.uid,+issue.dataset.orderCopy,+issue.dataset.orderFace);openMpcPicker({e,i:+issue.dataset.orderFace,deckId:S.deckId,copies:[{uid:e.uid,copies:[+issue.dataset.orderCopy]}]});}});
   $('#orderDensity').onchange=ev=>{S.orderDensity=+ev.target.value;sizeOrderGallery();save();};
@@ -7534,11 +7991,20 @@ async function runPreflight(options = {}) {
   }
 
   const calStat = options.calibration || getCalibrationStatus(s, d, printer);
-  if (calStat.status === 'Estimated') {
+  if (calStat.front.status === 'Estimated') {
     warnings.push({
-      type: 'cal_estimated',
-      tab: 'setup',
-      message: `Calibration: ${calStat.label}. Measure with alignment & duplex test sheets for best duplex accuracy.`
+      type: 'cal_estimated_front',
+      tab: 'alignment',
+      side: 'front',
+      message: `Front alignment: using ${calStat.front.source.toLowerCase()}. Verify or apply alignment in Print Settings.`
+    });
+  }
+  if (calStat.hasBacks && calStat.back.status === 'Estimated') {
+    warnings.push({
+      type: 'cal_estimated_back',
+      tab: 'alignment',
+      side: 'back',
+      message: `Back alignment: using ${calStat.back.source.toLowerCase()}. Verify or apply alignment in Print Settings.`
     });
   }
 
@@ -7672,6 +8138,7 @@ function openExportWizard(initialStep = 1) {
 function showPostExportInstructions(sheets, {hasBacks, cutter}) {
   switchTab('guide');
   $('#tabGuideBtnPrint').click();
+  $('#tabGuideBtnPrint').closest('details').open = true;
   toast(`PDF downloaded: ${sheets} sheet${sheets === 1 ? '' : 's'}. Follow the printing steps below.`, 7000);
 }
 
@@ -8236,7 +8703,7 @@ function duplexReadSvg() {
     <text x="192" y="144" font-size="11.5" fill="#a0aab9">One square is 1 mm.</text>
   </svg>`;
 }
-function openDuplexWizard(state = {}) {
+function openDuplexWizard(state = {}, backLabel = '') {
   const s = S.settings, L = layout();
   // On a turn that mirrors top to bottom, page 2 of the test prints turned, so its
   // grid's axes point the other way and a reading must be subtracted, not added.
@@ -8250,11 +8717,12 @@ function openDuplexWizard(state = {}) {
   const choice = ([mode, name]) => `<button type="button" class="duplex-choice${s.duplexFlip === mode ? ' on' : ''}" data-flip="${mode}" role="radio" aria-checked="${s.duplexFlip === mode}">
     <span class="duplex-choice-hd">${name}${s.duplexFlip === mode ? '<span class="tag">selected</span>' : ''}</span>
     ${duplexFlipDiagram(L, mode, frontEdge)}</button>`;
-  openModal(`<div class="hd"><b>Double-sided calibration</b><button data-close>Close</button></div><div class="bd">
+  const closeLabel = document.body.classList.contains('print-settings-active') ? '← Back to alignment' : 'Close';
+  openModal(`<div class="hd"><b>Double-sided calibration</b><button data-close>${closeLabel}</button></div><div class="bd">
     <p class="hint" style="margin-top:0">Get the fronts right first with the <b>Alignment sheet</b>. Then this: check the sheet is turned the right way, print the two-page test, and type in the two numbers it gives you.</p>
 
     <h4 class="wiz-h">1 · How you turn the sheet over</h4>
-    <p class="hint">Pick the one that matches what you actually do. It is the same setting as <b>Double-sided flip</b> under Setup → Advanced, and the layout of the backs follows it.</p>
+    <p class="hint">Pick the flip you use on your printer. This sets <b>Double-sided flip</b> for the current layout.</p>
     <div class="duplex-choices" id="duplexWizardChoices" role="radiogroup" aria-label="Double-sided flip">${DUPLEX_FLIPS.map(choice).join('')}</div>
     <div class="field full" style="margin-top:10px"><label for="duplexWizardFrontEdge">Which edge of page 1 went into the printer first?</label>
       <select id="duplexWizardFrontEdge">${['left', 'right', 'top', 'bottom'].map(x => `<option value="${x}" ${x === frontEdge ? 'selected' : ''}>${esc(edgeOptionLabel(x))}</option>`).join('')}</select>
@@ -8279,7 +8747,7 @@ function openDuplexWizard(state = {}) {
     <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Add the reading</button><button id="duplexWizardZero">Back to no correction</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
     <p class="hint">Then print the test again. Both readings should come back 0. Nothing here touches the printer offsets from the alignment sheet.</p>
-  </div>`);
+  </div>`, backLabel);
   $('#modal').classList.add('duplex');
 
   const reading = () => [$('#duplexWizardX').value.trim(), $('#duplexWizardY').value.trim()].map(v => v === '' ? NaN : Number(v));
@@ -8309,7 +8777,7 @@ function openDuplexWizard(state = {}) {
     const [x, y] = reading();
     if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
     s.backOffsetX = +(s.backOffsetX + rsgn * x).toFixed(3); s.backOffsetY = +(s.backOffsetY + rsgn * y).toFixed(3); s.backOffsetRel = true;
-    noteCalibration('back');
+    noteCalibration('back', 'measured');
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
     $('#duplexWizardStatus').textContent = `Saved. Extra back-page offset is now X ${inUnit(s.backOffsetX)}, Y ${inUnit(s.backOffsetY)}. Print the test again to check.`;
@@ -8788,8 +9256,8 @@ async function importPrintDeck(data, useLayout = true) {
     S.decks.push(d); activateDeck(d.id);
     if (useLayout) { S.settings = {...settings, ...calibration}; S.showCuts = !!settings.showCuts; S.activePreset = null; }
     else S.settings.backImage = null;
-    S.mode = 'print'; save(); applyMode(); renderAll(); switchTab('setup');
-    toast(`Imported ${d.name} with its art. Choose your printer and paper size.`, 7000);
+    S.mode = 'print'; save(); applyMode(); setWorkspaceView('proof'); renderAll();
+    toast(`Imported ${d.name} with its art.`, 7000);
     return d;
   } catch (err) { for (const key of written) await removeImageIfUnused(key); throw err; }
 }
@@ -8835,7 +9303,10 @@ async function shareRequest(path, body, type = 'application/json') {
   return data;
 }
 function showShareLink(url) {
-  openModal(`<div class="hd"><b>Share link ready</b><button data-close>Close</button></div><div class="bd"><p class="hint">Anyone with this link can open this copy of the deck. Later changes to your deck stay private.</p><label for="deckShareUrl">Deck link</label><input id="deckShareUrl" type="text" readonly style="margin:6px 0 10px"><button id="copyShareUrl" class="primary">Copy link</button><p class="hint" id="shareLinkStatus" role="status">Remove this link from Settings → Manage shared decks when you no longer need it.</p></div>`);
+  const backLabel = $('#modal #sharedDeckList') ? 'Back to shared decks'
+    : $('#tab-data').closest('#modal') ? 'Back to project files'
+    : $('#tab-order').closest('#modal') ? 'Back to order review' : '';
+  openModal(`<div class="hd"><b>Share link ready</b><button data-close>Close</button></div><div class="bd"><p class="hint">Anyone with this link can open this copy of the deck. Later changes to your deck stay private.</p><label for="deckShareUrl">Deck link</label><input id="deckShareUrl" type="text" readonly style="margin:6px 0 10px"><button id="copyShareUrl" class="primary">Copy link</button><p class="hint" id="shareLinkStatus" role="status">Remove this link from Settings → Manage shared decks when you no longer need it.</p></div>`, backLabel);
   const input = $('#deckShareUrl'), status = $('#shareLinkStatus'); input.value = url;
   $('#copyShareUrl').onclick = async () => {
     try { await navigator.clipboard.writeText(url); status.textContent = 'Link copied.'; }
@@ -8867,7 +9338,7 @@ $('#manageShares').onclick = async () => {
   busy(true, 'Loading shared decks…');
   try {
     const data = await shareRequest('/shares');
-    openModal(`<div class="hd"><b>Shared decks</b><button data-close>Close</button></div><div class="bd" id="sharedDeckList"><p class="hint">Removing a link stops access through that link. People who saved a copy keep it.</p>${data.shares.length ? data.shares.map(item => `<div class="row" style="margin:10px 0" data-share-row="${esc(item.id)}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(item.name)}</span><button data-share-copy="${esc(item.id)}">Copy link</button><button class="danger" data-share-remove="${esc(item.id)}">Remove link</button></div>`).join('') : '<p class="hint">No shared decks yet.</p>'}<p class="hint" id="sharedDeckStatus" role="status"></p></div>`);
+    openModal(`<div class="hd"><b>Shared decks</b><button data-close>Close</button></div><div class="bd" id="sharedDeckList"><p class="hint">Removing a link stops access through that link. People who saved a copy keep it.</p>${data.shares.length ? data.shares.map(item => `<div class="row" style="margin:10px 0" data-share-row="${esc(item.id)}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(item.name)}</span><button data-share-copy="${esc(item.id)}">Copy link</button><button class="danger" data-share-remove="${esc(item.id)}">Remove link</button></div>`).join('') : '<p class="hint">No shared decks yet.</p>'}<p class="hint" id="sharedDeckStatus" role="status"></p></div>`, $('#tab-data').closest('#modal') ? 'Back to settings & backup' : '');
     const status = $('#sharedDeckStatus');
     $('#sharedDeckList').onclick = async ev => {
       const button = ev.target.closest('button'); if (!button) return;
@@ -8908,7 +9379,7 @@ async function importServerDeck(token, data, useLayout) {
     S.decks.push(d); activateDeck(d.id);
     if (useLayout) { S.settings = {...settings, ...calibration}; S.showCuts = !!settings.showCuts; S.activePreset = null; }
     else S.settings.backImage = null;
-    S.mode = 'print'; S.welcomed = true; save(); applyMode(); renderAll(); switchTab('setup');
+    S.mode = 'print'; S.welcomed = true; save(); applyMode(); setWorkspaceView('proof'); renderAll();
     toast(`Saved ${d.name} and its artwork to your decks on this device.`, 6000);
     return d;
   } catch (err) { for (const key of written) await removeImageIfUnused(key); throw err; }
@@ -9006,7 +9477,7 @@ async function openPrintDeckFile(file) {
     }
     if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Please choose a valid Proxy Press shared deck file.');
     const d = cleanDeck(data.deck);
-    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout"> Use the shared paper and layout settings</label><p class="hint">You can adjust these for your printer in the next step.</p><button class="primary" id="printDeckConfirm">Save to my decks</button></div>`);
+    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Adds this deck with its artwork. Your existing decks and printer alignment stay saved.</p><label class="check"><input type="checkbox" id="printDeckLayout"> Use the shared paper and layout settings</label><button class="primary" id="printDeckConfirm">Save to my decks</button></div>`);
     $('#printDeckConfirm').onclick = async () => {
       const useLayout = $('#printDeckLayout').checked; closeModal(); busy(true, 'Adding deck and artwork…');
       try { await importPrintDeck(data, useLayout); } catch (err) { toast('Could not open shared deck: ' + err.message, 9000); }
@@ -9126,7 +9597,12 @@ function setWorkspaceView(view) {
   if (view === 'proof') { renderPreview(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); }
 }
 function switchTab(name) {
-  if (name === 'presets' || name === 'layout') name = 'setup';
+  if (['setup', 'layout', 'presets', 'cutting', 'alignment', 'printer', 'color'].includes(name)) {
+    if (S.mode === 'order') return switchTab('order');
+    if ($('#overlay').classList.contains('on')) closeModal();
+    openPrintSettings(name === 'setup' || name === 'presets' ? 'layout' : name);
+    return;
+  }
   const review = name === 'guide' || name === 'order';
   if ($('#overlay').classList.contains('on')) {
     if (review && $('#tab-' + name).closest('#modal')) { if (name === 'guide') renderGuideTab(); return; }
@@ -9139,14 +9615,14 @@ function switchTab(name) {
     modalFocusable()[0]?.focus();
     return;
   }
-  if (name === 'setup' || name === 'cutting') { if(S.mode==='order')return switchTab('order');openSetupGroup(name==='cutting'?'cut':'paper');return; }
   setWorkspaceView('cards');
   syncCardSelection();
 }
-function syncInspectorAccess(){const open=!!$('#workspaceInspector').getClientRects().length;$('#toggleInspector').setAttribute('aria-expanded',String(open));$('#toggleInspector').setAttribute('aria-controls','workspaceInspector');}
+function syncInspectorAccess(){$('#btnShowPrintSetup').setAttribute('aria-expanded',String(!!$('#workspaceInspector').getClientRects().length));}
 function measureInspector() { document.body.style.setProperty('--drawer-top',document.querySelector('header').getBoundingClientRect().bottom+'px');document.body.style.setProperty('--drawer-bottom',(innerHeight-$('#workspaceBar').getBoundingClientRect().top)+'px'); }
 addEventListener('resize',()=>{measureInspector();syncInspectorAccess();});
 function toggleInspector(open) {
+  closeQuickSetup();
   measureInspector();
   const shouldOpen = open !== undefined ? open : document.body.classList.contains('inspector-collapsed');
   if (innerWidth <= 820) {
@@ -9157,36 +9633,394 @@ function toggleInspector(open) {
     document.body.classList.remove('preview-focus');
     if (shouldOpen) {
       document.body.classList.add('inspector-open');
-      const details = $('#workspaceSetupDetails'); if (details) details.open = true;
     } else {
       document.body.classList.remove('inspector-open'); setWorkspaceView('cards');
     }
   }
   syncInspectorAccess();
-  if (!shouldOpen) (innerWidth <= 820 ? $('[data-mview=setup]') : $('#toggleInspector'))?.focus();
+  focusNavigationTarget(shouldOpen ? $('#inspPaper') : $('#btnShowPrintSetup'), $('[data-mview=setup]'), $('#toggleInspector'));
   if (S.zoomMode === 'fit') $('#zoomFit')?.click();
 }
-let setupOpener=null, setupReturnView='cards';
-function openSetupGroup(group,opener=document.activeElement){
-  if(S.mode!=='print')return;
-  if(!document.body.classList.contains('settings-open')){setupOpener=opener;setupReturnView=document.body.dataset.workspaceView || 'cards';}
-  document.body.classList.remove('preview-focus','inspector-collapsed');document.body.classList.add('inspector-open','settings-open');measureInspector();
-  $('#workspaceSetupDetails').open=true;
-  const details=group==='cut'?$('#workspaceCutDetails'):$('#setupGroup-'+group);details.open=true;
-  if(innerWidth<=820)setWorkspaceView('setup');
-  requestAnimationFrame(()=>{$('summary',details).focus();details.scrollIntoView({block:'start'});syncInspectorAccess();});
+
+let proofRestoreState = null;
+const settingsScroll = new Map(), alignmentDrafts = new Map();
+const alignmentDraftKey = () => JSON.stringify([S.deckId, calibrationScope(S.settings,S.printer,true)]);
+const SETTINGS_PAGE_TITLES = {
+  layout: 'Layout',
+  printer: 'Printer & paper',
+  alignment: 'Alignment & test sheets',
+  color: 'Color & stock',
+  cutting: 'Cutting & registration'
+};
+
+const quickSetup = $('#quickSetup');
+const quickSettings = {
+  paper: {title:'Paper', page:'layout', keys:['pageSize','orientation','pageW','pageH']},
+  layout: {title:'Layout', page:'layout', keys:['cardPreset','cardW','cardH','cols','rows','cardRotation']},
+  sides: {title:'Sides', page:'layout', keys:['backs','dfcMode','duplexMethod','duplexFlip']},
+  cutting: {title:'Cutting', page:'cutting'},
+  alignment: {title:'Alignment', page:'alignment'},
+  color: {title:'Color & stock', page:'color', keys:['brightness','saturation','contrast','foilTint']}
+};
+let quickSetupOpener = null;
+
+function quickSettingControl(key) {
+  return document.getElementById(`num-${key}`) || $(`#printSettingsView [data-k="${key}"]`);
 }
-function closeSetupGroup(){
-  document.body.classList.remove('settings-open','inspector-open');
-  if(innerWidth<=820)setWorkspaceView(setupReturnView==='setup'?'proof':setupReturnView);
-  if(setupOpener?.isConnected && setupOpener.getClientRects().length)setupOpener.focus();else (innerWidth<=820?$('[data-mview=setup]'):$('#toggleInspector')).focus();
-  syncInspectorAccess();if(S.zoomMode==='fit'&&$('#stage').getClientRects().length)$('#zoomFit').click();
+
+function renderQuickSetup() {
+  if (!quickSetupOpener) return;
+  const menu = quickSettings[quickSetupOpener.dataset.quickSetup];
+  const body = $('#quickSetupFields');
+  const focused = body.contains(document.activeElement) ? document.activeElement : null;
+  body.replaceChildren();
+  for (const key of menu.keys || []) {
+    const source = quickSettingControl(key);
+    if (!source) continue;
+    const control = source.cloneNode(true);
+    control.id = `quickSetting-${key}`;
+    control.dataset.quickSetting = key;
+    control.removeAttribute('data-k');
+    control.value = source.value;
+    control.checked = source.checked;
+    if (control.type === 'number') control.required = true;
+    const label = document.createElement('label');
+    label.htmlFor = control.id;
+    label.textContent = source.labels?.[0]?.textContent.trim() || key;
+    if (PRESET_IMAGE_KEYS.includes(key)) label.textContent = $(`label[for="setting-${key}"]`, $('#colorSliders')).textContent + ' (%)';
+    const field = document.createElement('div');
+    field.className = 'field';
+    if (control.type === 'checkbox') {
+      label.className = 'check';
+      label.prepend(control, ' ');
+      field.append(label);
+    } else field.append(label, control);
+    body.append(field);
+  }
+  const action = (id, label) => `<button type="button" data-quick-action="${id}">${label}</button>`;
+  if (menu.page === 'cutting') {
+    body.insertAdjacentHTML('beforeend', `<div class="field"><label for="quickCutTool">Cutting tool</label><select id="quickCutTool"><option value="rotary">Rotary trimmer</option><option value="cameo">Silhouette Cameo</option></select></div>`);
+    $('#quickCutTool').value = S.settings.silhouette ? 'cameo' : 'rotary';
+  } else if (menu.page === 'alignment') {
+    const profiles = calProfiles().filter(p => Object.keys(calSlots(p)).length);
+    body.insertAdjacentHTML('beforeend', `<div class="field"><label for="quickAlignmentProfile">Alignment profile</label><select id="quickAlignmentProfile"><option value="" disabled>Choose a profile</option>${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></div><div class="row">${action('btnCal','Print alignment sheet')}${getCalibrationStatus().hasBacks ? action('btnDuplexTest','Print duplex test') : ''}</div>`);
+    $('#quickAlignmentProfile').value = profiles.some(p => p.id === S.calibrationProfileId) ? S.calibrationProfileId : '';
+  } else if (menu.page === 'color') {
+    body.insertAdjacentHTML('beforeend', `<div class="row">${action('standardColor','Standard paper')}${action('foilColor','Foil stock')}${action('btnInspFoilPreview','Foil tone preview…')}</div>`);
+  }
+  const next = focused?.id ? document.getElementById(focused.id)
+    : focused?.dataset.quickAction ? $(`[data-quick-action="${focused.dataset.quickAction}"]`,body) : null;
+  next?.focus({preventScroll:true});
 }
-for(const [id,group] of [['inspPaper','paper'],['inspLayout','paper'],['inspSides','paper'],['inspCut','cut']])$('#'+id).onclick=ev=>{openSetupGroup(group,ev.currentTarget);if(id==='inspSides')requestAnimationFrame(()=>{const field=$('#settingsForm [data-k=dfcMode]');field?.scrollIntoView({block:'center'});field?.focus();});};
-$$('[data-setup-group]').forEach(button=>button.onclick=()=>openSetupGroup(button.dataset.setupGroup,button));
-$('#btnWorkspaceSetup').onclick=()=>openSetupGroup('paper');
-$('#btnCloseSetup').onclick=()=>document.body.classList.contains('settings-open')?closeSetupGroup():toggleInspector(false);
-addEventListener('keydown',ev=>{if(ev.key==='Escape'&&document.body.classList.contains('settings-open')&&!$('#overlay').classList.contains('on')){ev.preventDefault();closeSetupGroup();}});
+
+function positionQuickSetup() {
+  if (!quickSetupOpener) return;
+  if (!quickSetupOpener.getClientRects().length) return closeQuickSetup();
+  const bounds = $('#workspaceInspector').getBoundingClientRect(), anchor = quickSetupOpener.getBoundingClientRect();
+  const width = quickSetup.offsetWidth;
+  const left = bounds.left - width - 10;
+  quickSetup.style.setProperty('--quick-left', `${left >= 8 ? left : Math.max(8, Math.min(anchor.left, innerWidth - width - 8))}px`);
+  quickSetup.style.setProperty('--quick-top', `${Math.max(8, Math.min(anchor.top, innerHeight - quickSetup.offsetHeight - 8))}px`);
+}
+
+function closeQuickSetup() {
+  if (quickSetup.matches(':popover-open')) quickSetup.hidePopover();
+}
+quickSetup.addEventListener('beforetoggle', ev => {
+  if (ev.newState !== 'closed' || !quickSetupOpener) return;
+  quickSetupOpener.setAttribute('aria-expanded','false');
+  quickSetupOpener = null;
+});
+quickSetup.addEventListener('change', ev => {
+  const control = ev.target;
+  const source = control.dataset.quickSetting && quickSettingControl(control.dataset.quickSetting);
+  if (source) {
+    if (!control.reportValidity()) return;
+    if (source.type === 'checkbox') source.checked = control.checked;
+    else source.value = control.value;
+    source.dispatchEvent(new Event('change',{bubbles:true}));
+  } else if (control.id === 'quickCutTool') $(`#${control.value === 'cameo' ? 'btnCutModeCameo' : 'btnCutModeRotary'}`).click();
+  else if (control.id === 'quickAlignmentProfile') {
+    const profile = calProfiles().find(p => p.id === control.value);
+    if (profile) applyCalProfile(profile);
+  }
+  renderQuickSetup();
+  positionQuickSetup();
+});
+quickSetup.addEventListener('click', ev => {
+  const action = ev.target.closest('[data-quick-action]')?.dataset.quickAction;
+  if (!action) return;
+  if (action === 'standardColor' || action === 'foilColor') {
+    $(`#colorSliders [data-color-profile="${action === 'foilColor' ? 'foil' : 'standard'}"]`).click();
+    renderQuickSetup();
+  } else {
+    closeQuickSetup();
+    document.getElementById(action)?.click();
+  }
+});
+$('#quickSetupClose').onclick = () => {
+  const opener = quickSetupOpener;
+  closeQuickSetup();
+  opener?.focus({preventScroll:true});
+};
+$('#quickSetupMore').onclick = () => {
+  const opener = quickSetupOpener;
+  if (opener) openPrintSettings(quickSettings[opener.dataset.quickSetup].page, opener);
+};
+$$('[data-quick-setup]').forEach(button => {
+  button.setAttribute('popovertarget','quickSetup');
+  button.setAttribute('aria-haspopup','dialog');
+  button.setAttribute('aria-controls','quickSetup');
+  button.setAttribute('aria-expanded','false');
+  button.onclick = () => {
+    if (quickSetupOpener === button) return;
+    closeQuickSetup();
+    quickSetupOpener = button;
+    const menu = quickSettings[button.dataset.quickSetup];
+    $('#quickSetupTitle').textContent = menu.title;
+    $('#quickSetupMore').textContent = `Open ${SETTINGS_PAGE_TITLES[menu.page]} settings`;
+    renderQuickSetup();
+    button.focus({preventScroll:true});
+    button.setAttribute('aria-expanded','true');
+    requestAnimationFrame(() => {
+      if (quickSetupOpener !== button || !quickSetup.matches(':popover-open')) return;
+      positionQuickSetup();
+      ($('#quickSetupFields input, #quickSetupFields select') || $('#quickSetupClose')).focus({preventScroll:true});
+    });
+  };
+});
+addEventListener('resize', positionQuickSetup);
+$('#workspaceInspector').addEventListener('scroll', positionQuickSetup);
+
+function switchSettingsPage(page) {
+  const pages = Object.keys(SETTINGS_PAGE_TITLES);
+  const target = pages.includes(page) ? page : 'layout';
+  const view = $('#printSettingsView');
+  const previous = view.dataset.page;
+  if (previous && previous !== target) settingsScroll.set(previous, view.scrollTop);
+  view.dataset.page = target;
+  pages.forEach(p => {
+    const el = $('#settingsPage-' + p);
+    if (el) el.style.display = p === target ? 'flex' : 'none';
+    const tabBtn = $('#tabNav-' + p);
+    if (tabBtn) {
+      const active = p === target;
+      tabBtn.classList.toggle('active', active);
+      tabBtn.setAttribute('aria-selected', String(active));
+      tabBtn.setAttribute('aria-controls', 'settingsPage-' + p);
+      tabBtn.tabIndex = active ? 0 : -1;
+    }
+  });
+  if (target === 'alignment') {
+    refreshAlignmentPage();
+  } else if (target === 'printer') {
+    renderPrinter();
+  } else if (target === 'color') {
+    renderColorSliders();
+  } else if (target === 'cutting') {
+    renderCutStatus();
+  }
+  if (previous !== target) view.scrollTop = settingsScroll.get(target) || 0;
+}
+
+function openPrintSettings(page = 'layout', opener = document.activeElement, reviewFrame = null) {
+  if (S.mode !== 'print') return;
+  closeQuickSetup();
+  if (!document.body.classList.contains('print-settings-active')) {
+    const workspaceView = document.body.dataset.workspaceView || 'cards';
+    const stage = $('#stage'), queue = $('#tab-cards').parentElement;
+    proofRestoreState = {
+      deckId: S.deckId,
+      activeSheet: S.activeSheet,
+      showBacks: S.showBacks,
+      proofSide: S.proofSide,
+      selectedCopies: new Set(selectedCopies),
+      activeFace: S.activeFace,
+      selectionAnchor,
+      zoom: S.zoom,
+      zoomMode: S.zoomMode,
+      opener: opener?.isConnected ? opener : null,
+      workspaceView, reviewFrame, stageLeft:stage.scrollLeft, stageTop:stage.scrollTop, queueTop:queue.scrollTop
+    };
+    $('#btnBackToProof').textContent = reviewFrame ? '← Back to export review'
+      : innerWidth <= 820 && workspaceView === 'cards' ? '← Back to cards' : '← Back to proof';
+    $('#printSettingsView').dataset.page = '';
+  }
+  document.body.classList.add('print-settings-active');
+  switchSettingsPage(page);
+  requestAnimationFrame(() => {
+    const activeTab = $(`#tabNav-${page}`);
+    if (activeTab) activeTab.focus();
+    if (page === 'layout' && opener?.id === 'inspSides') {
+      const field = $('#settingsForm [data-k=dfcMode]') || $('#setting-dfcMode');
+      field?.scrollIntoView({ block: 'center' });
+      field?.focus();
+    }
+  });
+}
+
+function leavePrintSettings() {
+  if (alignmentDrafts.size && !confirm('Discard unapplied alignment changes?')) return false;
+  alignmentDrafts.clear();
+  document.body.classList.remove('print-settings-active');
+  return true;
+}
+
+function abandonPrintSettings() {
+  if (!document.body.classList.contains('print-settings-active')) return true;
+  if (!leavePrintSettings()) return false;
+  proofRestoreState = null;
+  settingsScroll.clear();
+  return true;
+}
+
+function backToProof() {
+  if (!document.body.classList.contains('print-settings-active') || !leavePrintSettings()) return;
+  const state = proofRestoreState;
+  proofRestoreState = null;
+  if (state?.deckId === S.deckId) {
+    S.activeSheet = state.activeSheet ?? 0;
+    S.showBacks = !!state.showBacks;
+    S.proofSide = state.proofSide || (S.showBacks ? 'back' : 'front');
+    if ($('#showBacks')) $('#showBacks').checked = S.showBacks;
+    selectedCopies = state.selectedCopies;
+    S.activeFace = state.activeFace;
+    selectionAnchor = state.selectionAnchor;
+    S.zoom = state.zoom;
+    S.zoomMode = state.zoomMode;
+    $('#zoom').value = S.zoom;
+    setWorkspaceView(state.workspaceView === 'setup' ? 'proof' : state.workspaceView);
+    const stage = $('#stage');
+    stage.scrollLeft = state.stageLeft; stage.scrollTop = state.stageTop;
+    $('#tab-cards').parentElement.scrollTop = state.queueTop;
+  }
+  drawPreview();
+  syncProofViewButtons();
+  renderStats();
+  if (S.zoomMode === 'fit' && $('#stage')?.getClientRects().length) {
+    $('#zoomFit')?.click();
+  }
+  if (state?.deckId === S.deckId && state.reviewFrame) { resumeModal(state.reviewFrame); return; }
+  focusNavigationTarget(state?.opener, $('#toggleInspector'), $('[data-mview=setup]'), $('#btnReviewExport'));
+}
+
+function openSetupGroup(group, opener = document.activeElement) {
+  openPrintSettings(group === 'cut' ? 'cutting' : group === 'paper' ? 'layout' : group === 'calibration' ? 'alignment' : group, opener);
+}
+function closeSetupGroup() { backToProof(); }
+
+$$('.settings-nav-tabs button').forEach(button => {
+  button.onclick = () => {
+    const page = button.dataset.settingsPage;
+    if (page) switchSettingsPage(page);
+  };
+});
+$('.settings-nav-tabs').addEventListener('keydown', ev => {
+  const directions = {ArrowLeft:-1, ArrowRight:1, Home:0, End:-1};
+  if (!Object.hasOwn(directions, ev.key) || !ev.target.matches('[data-settings-page]')) return;
+  const buttons = $$('[data-settings-page]', ev.currentTarget), current = buttons.indexOf(ev.target);
+  const index = ev.key === 'Home' ? 0 : ev.key === 'End' ? buttons.length - 1
+    : (current + directions[ev.key] + buttons.length) % buttons.length;
+  ev.preventDefault();
+  buttons[index].click();
+  buttons[index].focus();
+});
+$('#btnBackToProof').onclick = backToProof;
+$('#btnCloseSetup').onclick = () => {
+  if (document.body.classList.contains('print-settings-active')) return backToProof();
+  toggleInspector(false);
+};
+addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && !ev.defaultPrevented && !$('#overlay').classList.contains('on')) {
+    if (document.body.classList.contains('print-settings-active')) {
+      ev.preventDefault();
+      backToProof();
+    }
+  }
+});
+
+$('#btnShowPrintSetup').onclick = () => toggleInspector(true);
+$('#btnWorkspaceSetup').onclick = ev => openPrintSettings('layout', ev.currentTarget);
+$('#toggleInspector').onclick = ev => openPrintSettings('layout', ev.currentTarget);
+
+$('#btnApplyAlignment').onclick = () => {
+  const fields = [
+    { id: 'input-offsetX', k: 'offsetX', min: -100, max: 100 },
+    { id: 'input-offsetY', k: 'offsetY', min: -100, max: 100 },
+    { id: 'input-scaleX', k: 'scaleX', min: 50, max: 150 },
+    { id: 'input-scaleY', k: 'scaleY', min: 50, max: 150 },
+    { id: 'input-printRotate', k: 'printRotate', min: -180, max: 180 },
+    { id: 'input-backOffsetX', k: 'backOffsetX', min: -100, max: 100 },
+    { id: 'input-backOffsetY', k: 'backOffsetY', min: -100, max: 100 },
+    { id: 'input-backScaleX', k: 'backScaleX', min: 50, max: 150 },
+    { id: 'input-backScaleY', k: 'backScaleY', min: 50, max: 150 },
+    { id: 'input-backRotate', k: 'backRotate', min: -180, max: 180 },
+  ];
+  const err = $('#alignmentInputError');
+  let invalidField = null;
+  const parsed = {};
+  for (const f of fields) {
+    const el = $('#' + f.id);
+    const val = el ? el.value.trim() : '';
+    const num = Number(val);
+    if (!el || val === '' || !Number.isFinite(num) || (f.min != null && num < f.min) || (f.max != null && num > f.max)) {
+      invalidField = { el, f, val };
+      break;
+    }
+    parsed[f.k] = num;
+  }
+  if (invalidField) {
+    if (err) {
+      err.textContent = `Please enter a valid decimal number for all alignment fields.`;
+      err.style.display = 'block';
+    }
+    invalidField.el?.focus();
+    return;
+  }
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+  const draftKey = alignmentDraftKey(), draft = alignmentDrafts.get(draftKey) || {};
+  const changed = Object.keys(parsed).filter(k => parsed[k] !== S.settings[k] || Object.hasOwn(draft,k));
+  for (const [k, v] of Object.entries(parsed)) {
+    S.settings[k] = v;
+  }
+  if (changed.some(k => FRONT_CAL_KEYS.includes(k))) noteCalibration('front', 'manual');
+  if (changed.some(k => BACK_CAL_KEYS.includes(k))) noteCalibration('back', 'manual');
+  alignmentDrafts.delete(draftKey);
+  S.activePreset = null;
+  save();
+  refreshCalibrationStatus();
+  refreshAlignmentPage();
+  toast('Applied alignment changes.');
+};
+
+$('#btnResetAlignment').onclick = () => {
+  alignmentDrafts.delete(alignmentDraftKey());
+  refreshAlignmentPage();
+  toast('Reverted alignment fields to active settings.');
+};
+
+$('#settingsPage-alignment').addEventListener('input', ev => {
+  const key = ev.target.dataset.align;
+  if (!key) return;
+  const scope = alignmentDraftKey();
+  const draft = alignmentDrafts.get(scope) || {};
+  draft[key] = ev.target.value;
+  alignmentDrafts.set(scope,draft);
+  $('#alignmentDraftStatus').hidden = false;
+});
+
+$('#settingsPage-alignment').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && ev.target.matches('input[type=number]')) {
+    ev.preventDefault();
+    $('#btnApplyAlignment').click();
+  }
+});
+
+function downloadCalibrationSheet(type) {
+  if (type === 'duplex') $('#btnDuplexTest')?.click();
+  else $('#btnCal')?.click();
+}
 
 const tabGuideBtnPrint = $('#tabGuideBtnPrint');
 const tabGuideBtnCut = $('#tabGuideBtnCut');
@@ -9212,14 +10046,25 @@ $('#exportReview').addEventListener('click', async ev => {
   if (button.dataset.retryIssue !== undefined) {
     retryArtworkIssue(issue); return;
   }
-  switchTab(issue.tab);
+  if (issue.tab === 'alignment') {
+    const review = suspendModal();
+    $('#overlay').classList.remove('on');
+    openPrintSettings('alignment', null, review);
+    requestAnimationFrame(() => {
+      const col = issue.side === 'back' ? $('#alignBackCol') : $('#alignFrontCol');
+      col?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const firstInput = issue.side === 'back' ? $('#input-backOffsetX') : $('#input-offsetX');
+      firstInput?.focus();
+    });
+    return;
+  }
   if (issue.uid && issue.tab === 'cards') {
     const target = findIssueTarget({...issue,side:issue.face}); if (!target) return;
     showSheet(target.sheetIndex,target.side); selectCardCopy(target.entryId,issue.copy ?? target.copyIndex,target.i); setWorkspaceView('proof');
-    openMpcPicker({...target,copies:[{uid:target.entryId,copies:[issue.copy ?? target.copyIndex]}]});
-  }
+    openMpcPicker({...target,backLabel:'Back to export review',copies:[{uid:target.entryId,copies:[issue.copy ?? target.copyIndex]}]});
+  } else switchTab(issue.tab);
 });
-$('#tab-guide').addEventListener('click', e => { if (e.target.closest('[data-duplex-wizard]')) openDuplexWizard(); });
+$('#tab-guide').addEventListener('click', e => { if (e.target.closest('[data-duplex-wizard]')) openDuplexWizard({},'Back to export review'); });
 
 $('#exportScope').onchange = () => renderGuideTab();
 if ($('#btnExportPdfTab')) $('#btnExportPdfTab').onclick = async () => { await exportPDF(true); };
@@ -9232,7 +10077,6 @@ if ($('#btnProofGuides')) $('#btnProofGuides').onclick = () => { S.showCuts = !S
 if ($('#btnSheetPrev')) $('#btnSheetPrev').onclick = () => { if (S.activeSheet > 0) { S.activeSheet--; schedulePrintReview(); drawPreview(); } };
 if ($('#btnSheetNext')) $('#btnSheetNext').onclick = () => { const pages = paginate(buildSlots(), layout().per); if (S.activeSheet < pages.length - 1) { S.activeSheet++; schedulePrintReview(); drawPreview(); } };
 if ($('#sheetJumpSel')) $('#sheetJumpSel').onchange = e => { S.activeSheet = +e.target.value; schedulePrintReview(); drawPreview(); };
-$('#toggleInspector').onclick = () => openSetupGroup('paper');
 if ($('#btnInspCal')) $('#btnInspCal').onclick = () => downloadCalibrationSheet('alignment');
 if ($('#btnInspDuplexTest')) $('#btnInspDuplexTest').onclick = () => downloadCalibrationSheet('duplex');
 if ($('#btnInspDuplexWizard')) $('#btnInspDuplexWizard').onclick = () => openDuplexWizard();
@@ -9450,11 +10294,22 @@ $('#rotarySection').addEventListener('click', ev => {
 });
 $('#pages').addEventListener('click', ev => {
   const start = ev.target.closest('[data-start]'); if (!start) return;
-  if (start.dataset.start === 'upload') $('#btnUpload').click(); else $('#btnLink').click();
+  if (start.dataset.start === 'paste') {
+    if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
+    setWorkspaceView('cards');
+    $('#importDrawer').open = true;
+    $('#listIn').focus();
+  } else if (start.dataset.start === 'upload') $('#btnUpload').click();
+  else $('#btnLink').click();
 });
 function applyMode() {
   document.body.dataset.mode = S.mode;
-  if(S.mode==='order')document.body.classList.remove('settings-open');
+  if (S.mode === 'order') {
+    closeQuickSetup();
+    document.body.classList.remove('print-settings-active');
+    proofRestoreState = null;
+    alignmentDrafts.clear();
+  }
   $('[data-mview=proof]').firstChild.textContent=S.mode==='order'?'Gallery ':'Proof ';
   $('#btnReviewExport').textContent = S.mode === 'order' ? 'Review order' : 'Review export';
   $('#cardsStepHint').textContent = S.mode === 'order'
@@ -9463,7 +10318,10 @@ function applyMode() {
   $$('#modeSeg button').forEach(b => { const on = b.dataset.mode === S.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   if (document.body.dataset.workspaceView === 'setup' && S.mode === 'order') setWorkspaceView('cards');
 }
-$$('#modeSeg button').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; save(); applyMode(); renderAll(); });
+$$('#modeSeg button').forEach(b => b.onclick = () => {
+  if (S.mode === b.dataset.mode || !abandonPrintSettings()) return;
+  S.mode = b.dataset.mode; save(); applyMode(); renderAll();
+});
 $$('#deckMenu .menu-list button').forEach(b => b.addEventListener('click', () => $('#deckMenu').removeAttribute('open')));
 addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckMenu').removeAttribute('open'); });
 $('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
