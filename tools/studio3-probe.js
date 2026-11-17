@@ -20,6 +20,13 @@
     for (const paper of ['letter', 'a4']) for (const orientation of ['landscape', 'portrait']) {
       S.settings = {...DEFAULTS, pageSize: paper, orientation, silhouette: true, guides: 'none',
         ...cameoPaperLayout(orientation)};
+      if (orientation === 'portrait') {
+        let mismatch = '';
+        try { await cutStudio3(0); } catch (err) { mismatch = err.message; }
+        eq(`${paper} portrait preset rejects a mismatched Studio template`, mismatch, STUDIO3_MARKS_MISMATCH);
+        eq(`${paper} portrait still supports DXF`, cutDxf(0).includes('POLYLINE'), true);
+        S.settings.regInset = 10;
+      }
       const L = layout(), tag = `${paper}/${orientation}`;
       const key = studio3Key();
       if (!key) { fails.push(`${tag}: no Studio base`); continue; }
@@ -78,6 +85,14 @@
         });
       });
       if (!wrote) fails.push(`${tag}: no outlines written`);
+    }
+
+    const matching = {...DEFAULTS, ...cameoPaperLayout('landscape'), pageSize:'letter', silhouette:true};
+    for (const change of [{regPattern:4}, {regLen:12}, {regThickness:.5}]) {
+      S.settings = {...matching, ...change};
+      let mismatch = '';
+      try { await cutStudio3(0); } catch (err) { mismatch = err.message; }
+      eq(`${JSON.stringify(change)} rejects a mismatched Studio template`, mismatch, STUDIO3_MARKS_MISMATCH);
     }
 
     // A paper the bases do not cover must refuse rather than write a wrong file.

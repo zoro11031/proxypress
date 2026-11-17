@@ -2526,6 +2526,21 @@ function regMarks(L, s = S.settings) {
   if (four) lines.push([L.W-i-r, L.H-i, L.W-i, L.H-i], [L.W-i, L.H-i-r, L.W-i, L.H-i]);
   return {rects: four ? [] : [[i, i, 5, 5]], lines, width: t};
 }
+
+function regMarksClipped(L, s) {
+  if (!s.silhouette) return false;
+  const marks = regMarks(L, s), T = makeT(L, false, s), half = marks.width / 2;
+  const boxes = marks.rects.map(([x, y, w, h]) => [T.x(x), T.y(y), T.x(x + w), T.y(y + h)]);
+  for (const [x1, y1, x2, y2] of marks.lines) {
+    const dx = x1 === x2 ? half : 0, dy = y1 === y2 ? half : 0;
+    boxes.push([T.x(Math.min(x1, x2)) - dx, T.y(Math.min(y1, y2)) - dy,
+      T.x(Math.max(x1, x2)) + dx, T.y(Math.max(y1, y2)) + dy]);
+  }
+  return boxes.some(([x0, y0, x1, y1]) => [[x0,y0], [x0,y1], [x1,y0], [x1,y1]].some(([x, y]) => {
+    const p = turnPt(L, {x,y}, false, s);
+    return p.x < -0.05 || p.x > L.W + 0.05 || p.y < -0.05 || p.y > L.H + 0.05;
+  }));
+}
 // Card Maker's corner rule: a layout is only in trouble when the grid comes
 // within the mark's reach on BOTH axes at once for any mark. Clearing one axis is enough.
 function regConflict(L, s = S.settings, occupied = null) {
@@ -7965,6 +7980,10 @@ async function runPreflight(options = {}) {
   }
 
   if (s.silhouette) {
+    if (totalSheets && regMarksClipped(L, s)) {
+      errors.push({type:'reg_clip', tab:'cutting', sheet:sheetIndex(0)+1, side:'front',
+        message:'Silhouette registration marks extend off the PDF page. Increase the mark inset or check front alignment.'});
+    }
     for (let index=0; index<totalSheets; index++) if (regConflict(L, s, slots.slice(index*L.per,(index+1)*L.per))) {
       const sheet = sheetIndex(index)+1;
       errors.push({ type:'reg_conflict', tab:'cutting', sheet, side:'front', message:`Cards overlap Silhouette Cameo registration marks on Sheet ${sheet}. Adjust the Cameo layout or paper size.` });
@@ -8239,15 +8258,18 @@ function renderGuideTab() {
   });
   const s3 = $('#btnExportStudio3Tab'), dxf = $('#btnExportDxfTab'), hint = $('#cutFileHint');
   if (isCameo) {
-    const key = studio3Key();
-    const s3Support = key && studio3Manifest?.[key]?.cards === L.per;
+    const key = studio3Key(s);
+    const matchesMarks = studio3MarksMatch(L, s);
+    const s3Support = matchesMarks && key && studio3Manifest?.[key]?.cards === L.per;
     if (!studio3Manifest) loadStudio3Manifest().then(() => { if (generation === guideGeneration) renderGuideTab(); }).catch(() => {});
     const paperName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
     if (s3) s3.style.display = s3Support ? 'block' : 'none';
     if (dxf) dxf.style.display = 'block';
     if (hint) {
       hint.style.display = 'block';
-      if (!s3Support) {
+      if (key && !matchesMarks) {
+        hint.textContent = STUDIO3_MARKS_MISMATCH;
+      } else if (!s3Support) {
         hint.innerHTML = `Silhouette Studio (.studio3) templates support matching Letter and A4 eight-card landscape and nine-card portrait layouts. For ${esc(paperName)} (${L.cols}×${L.rows} = ${L.per} per sheet), use the DXF cut file.`;
       } else {
         hint.innerHTML = 'The Studio file opens with the page and registration marks already set. The DXF carries the cut lines only, so set the page and marks yourself. SVG needs Designer Edition.';
@@ -8292,7 +8314,7 @@ function renderGuideTab() {
         <li><b>Find your cutting settings:</b> Make a small test shape first. Start with one pass, inspect the cut without unloading the mat, and repeat as needed.
           <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> reports depth 7, force 35, speed 25 and 4 passes for the author's Cameo 5, AutoBlade, cardstock and laminate. These are Cameo 5 reference settings. For your cutter, use values supported by Silhouette Studio and determine force, speed and passes with a test cut on your ProxyJak stock.</p>
         </li>
-        <li><b>Silhouette Studio Job Setup:</b> In Silhouette Studio, select your cutter and set the page to <b>${L.W.toFixed(1)} × ${L.H.toFixed(1)} mm</b>. ${s.regPattern === 4 ? '<b>The four-mark pattern requires a Cameo 5 Alpha. For other models, choose three marks under Cut → Advanced and export again.</b>' : 'Use the standard three registration marks.'} Match the printed <b>${s.regPattern}-mark pattern</b>, <b>${s.regInset} mm inset</b>, <b>${regArm(L).toFixed(2)} mm arm length</b> and <b>${s.regThickness} mm line thickness</b>. Import the SVG at 100% scale and check alignment before cutting.</li>
+        <li><b>Silhouette Studio job setup:</b> For a DXF import, set the page to <b>${L.W.toFixed(1)} × ${L.H.toFixed(1)} mm</b>. Match the PDF’s <b>${s.regPattern}-mark pattern</b>, <b>${s.regInset} mm inset</b>, <b>${regArm(L, s).toFixed(2)} mm arm length</b> and <b>${s.regThickness} mm line thickness</b>. ${s.regPattern === 4 ? 'Select Cameo 5 Alpha for the four-mark pattern.' : ''} Check that the cut lines are at actual size and in position before cutting.</li>
       </ol>
     ` : `
       <div class="callout-box" style="margin-top:0">
@@ -8319,7 +8341,7 @@ function renderGuideTab() {
       const calibrated = s.scaleX !== 100 || s.scaleY !== 100 || s.offsetX !== 0 || s.offsetY !== 0;
       cutPane.innerHTML += calibrated
         ? '<p class="hint">Printer compensation is already applied to the PDF and SVG, including the marks. Compare the cut overlay and test with a pen; nominal registration settings alone do not describe asymmetric compensation.</p>'
-        : `<details><summary>Cut with Silhouette Control Center</summary><p class="hint">Export the matching sheet’s cut SVG. Replace cut-lines.svg with that filename. This builds and verifies without cutting:</p><pre>silhouette-control-center cut --from cut-lines.svg --sheet ${s.pageSize === 'a4' ? 'A4' : 'Letter'} --${s.orientation === 'landscape' ? 'landscape' : 'portrait'} --pattern ${s.regPattern === 4 ? 'four' : 'three'} --mark-inset ${s.regInset} --mark-length ${regArm(L)} --mark-thickness ${s.regThickness} --dry-run</pre><p class="hint">Choose your blade preset separately. Inspect the overlay and test on plain paper with a pen before cutting stock. PDF inspection cannot measure physical printer scaling.</p></details>`;
+        : `<details><summary>Cut with Silhouette Control Center</summary><p class="hint">Export the matching sheet’s cut SVG. Replace cut-lines.svg with that filename. This builds and verifies without cutting:</p><pre>silhouette-control-center cut --from cut-lines.svg --sheet ${s.pageSize === 'a4' ? 'A4' : 'Letter'} --${s.orientation === 'landscape' ? 'landscape' : 'portrait'} --pattern ${s.regPattern === 4 ? 'four' : 'three'} --mark-inset ${s.regInset} --mark-length ${regArm(L, s)} --mark-thickness ${s.regThickness} --dry-run</pre><p class="hint">Choose your blade preset separately. Inspect the overlay and test on plain paper with a pen before cutting stock. PDF inspection cannot measure physical printer scaling.</p></details>`;
     }
   }
 }
@@ -9021,6 +9043,11 @@ function dxfCard(x, yTop, w, h, radius) {
 // each outline's twelve points live rather than the page hunting for them.
 const STUDIO3_BASES = {letter: {landscape: 'letter-landscape', portrait: 'letter-portrait'},
                        a4: {landscape: 'a4-landscape', portrait: 'a4-portrait'}};
+const STUDIO3_MARKS_MISMATCH = 'The Studio template uses three marks, a 10 mm inset, 20 mm arms, and 1 mm thickness. Download DXF and enter the PDF’s mark settings in Silhouette Studio.';
+function studio3MarksMatch(L, s) {
+  return s.silhouette && +s.regPattern === 3 && s.regInset === 10
+    && regArm(L, s) === 20 && s.regThickness === 1;
+}
 let studio3Manifest = null, studio3ManifestPromise = null;
 function loadStudio3Manifest() {
   if (!studio3ManifestPromise) studio3ManifestPromise = fetch(serverPath('/assets/studio3/manifest.json')).then(r => {
@@ -9050,6 +9077,7 @@ async function cutStudio3(sheet = 0, job = buildPrintJob()) {
   cutSheetCards(L, sheet, job.slots);                       // same sheet-range check as the others
   const key = studio3Key(s);
   if (!key) throw new Error('Silhouette Studio export covers Letter and A4 only.');
+  if (!studio3MarksMatch(L, s)) throw new Error(STUDIO3_MARKS_MISMATCH);
   await loadStudio3Manifest();
   const spec = studio3Manifest[key];
   if (!spec) throw new Error('Studio templates are not installed on this server.');
@@ -10223,7 +10251,8 @@ function renderCutStatus() {
   const cEl = $('#cameoStatus');
   if (cEl) {
     const noConflict = !regConflict(L);
-    const cameoOk = s.silhouette && L.fits && noConflict && s.guides === 'none' && s.bleed <= 1;
+    const marksFit = !regMarksClipped(L, s);
+    const cameoOk = s.silhouette && L.fits && noConflict && marksFit && s.guides === 'none' && s.bleed <= 1;
     if (cameoOk) {
       cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Layout ready for the Cameo</b> — ${L.cols}×${L.rows} (${L.per} cards) with optical registration marks.</div>`;
     } else {
@@ -10231,6 +10260,7 @@ function renderCutStatus() {
       if (!s.silhouette) why.push('registration marks are off');
       if (!L.fits) why.push('the card grid does not fit the page');
       if (!noConflict) why.push('cards overlap registration marks');
+      if (!marksFit) why.push('registration marks extend off the PDF page');
       if (s.guides !== 'none') why.push('cut guides are on (should be None)');
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
       cEl.innerHTML = `<div class="warn"><b>Cameo adjustments needed:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
