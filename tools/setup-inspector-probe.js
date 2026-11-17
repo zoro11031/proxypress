@@ -71,6 +71,9 @@
         if (key === 'color') {
           change('#quickSetting-brightness', 110);
           check('Color uses the same brightness as full settings', S.settings.brightness === 110 && $('#num-brightness').value === '110');
+          button.click();
+          check('The same button toggles the quick menu closed', !popover.matches(':popover-open') && button.getAttribute('aria-expanded') === 'false');
+          button.click();
         }
         $('#quickSetupClose').click();
         check(`${key} closes and restores focus`, !popover.matches(':popover-open') && document.activeElement === button && button.getAttribute('aria-expanded') === 'false');

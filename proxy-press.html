@@ -9768,23 +9768,25 @@ $('#quickSetupMore').onclick = () => {
   if (opener) openPrintSettings(quickSettings[opener.dataset.quickSetup].page, opener);
 };
 $$('[data-quick-setup]').forEach(button => {
+  button.setAttribute('popovertarget','quickSetup');
   button.setAttribute('aria-haspopup','dialog');
   button.setAttribute('aria-controls','quickSetup');
   button.setAttribute('aria-expanded','false');
   button.onclick = () => {
-    const wasOpen = quickSetupOpener === button;
+    if (quickSetupOpener === button) return;
     closeQuickSetup();
-    if (wasOpen) return;
     quickSetupOpener = button;
     const menu = quickSettings[button.dataset.quickSetup];
     $('#quickSetupTitle').textContent = menu.title;
     $('#quickSetupMore').textContent = `Open ${SETTINGS_PAGE_TITLES[menu.page]} settings`;
     renderQuickSetup();
     button.focus({preventScroll:true});
-    quickSetup.showPopover();
     button.setAttribute('aria-expanded','true');
-    positionQuickSetup();
-    ($('#quickSetupFields input, #quickSetupFields select') || $('#quickSetupClose')).focus({preventScroll:true});
+    requestAnimationFrame(() => {
+      if (quickSetupOpener !== button || !quickSetup.matches(':popover-open')) return;
+      positionQuickSetup();
+      ($('#quickSetupFields input, #quickSetupFields select') || $('#quickSetupClose')).focus({preventScroll:true});
+    });
   };
 });
 addEventListener('resize', positionQuickSetup);
