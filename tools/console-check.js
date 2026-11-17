@@ -224,6 +224,17 @@ function owns(port) {
         console.log('touch dispatched: ' + touched); if (!touched) probeOut = {failed:['Touch input did not reach the app']};
       }
     }
+    if (loaded && probeOut === true && arg('--pointer-selector')) {
+      const target=JSON.stringify(arg('--pointer-selector'));
+      const point=await ev(`(()=>{const el=document.querySelector(${target});if(!el)return null;const r=el.getBoundingClientRect();const x=r.x+r.width/2,y=r.y+r.height/2;if(!r.width||!r.height||!el.contains(document.elementFromPoint(x,y)))return null;el.addEventListener('click',()=>window.__pointerReached=true,{once:true});return {x,y};})()`);
+      if(!point)probeOut={failed:['Pointer target is hidden or covered']};
+      else {
+        send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});await sleep(200);
+        const reached=await ev('window.__pointerReached === true');if(!reached)probeOut={failed:['Pointer click did not reach target']};
+        console.log('pointer dispatched: '+reached);
+        if(arg('--pointer-assert') && await ev(arg('--pointer-assert')) !== true)probeOut={failed:['Pointer result assertion failed']};
+      }
+    }
     // A probe that deliberately exercises a path where the page asks something
     // sets window.__expectDialogs. The dialogs are still dismissed, still
     // listed, and still counted -- they just stop being failures, because for
