@@ -235,6 +235,17 @@ function owns(port) {
         if(arg('--pointer-assert') && await ev(arg('--pointer-assert')) !== true)probeOut={failed:['Pointer result assertion failed']};
       }
     }
+    if (loaded && probeOut === true && arg('--keyboard-selector')) {
+      const selector=JSON.stringify(arg('--keyboard-selector'));
+      const focused=await ev(`(()=>{const el=document.querySelector(${selector});if(!el?.getClientRects().length)return false;el.focus();return document.activeElement===el;})()`);
+      if(!focused)probeOut={failed:['Keyboard opener cannot receive focus']};
+      else {
+        send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'});send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await sleep(300);
+        if(arg('--keyboard-assert') && await ev(arg('--keyboard-assert')) !== true)probeOut={failed:['Keyboard opening assertion failed']};
+        if(arg('--keyboard-close')) { const key=arg('--keyboard-close');send('Input.dispatchKeyEvent',{type:'keyDown',key,code:key,windowsVirtualKeyCode:27});send('Input.dispatchKeyEvent',{type:'keyUp',key,code:key,windowsVirtualKeyCode:27});await sleep(200);if(!await ev(`document.activeElement===document.querySelector(${selector})`))probeOut={failed:['Keyboard close did not restore opener focus']}; }
+        console.log('keyboard dispatched: '+(probeOut===true));
+      }
+    }
     // A probe that deliberately exercises a path where the page asks something
     // sets window.__expectDialogs. The dialogs are still dismissed, still
     // listed, and still counted -- they just stop being failures, because for

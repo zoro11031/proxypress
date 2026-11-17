@@ -41,7 +41,7 @@
       renderAll();
       eq(`${size} driver instructions`, $('#printerGuide').textContent.includes(size === 'a4' ? 'A4 (210×297 mm)' : 'Letter (8.5×11 in)'), true);
       $('#btnCutModeRotary').click();
-      $(`#presetGrid [data-preset="${size === 'a4' ? 'b-a4-land' : 'b-letter-land'}"]`).click();
+      $(`#workspaceInspector [data-preset="${size === 'a4' ? 'b-a4-land' : 'b-letter-land'}"]`).click();
       $('#btnCutModeCameo').click();
       const L = layout();
       eq(`${size} cameo paper`, S.settings.pageSize, size);
@@ -54,12 +54,12 @@
     }
 
     eq('printer preset groups removed', $$('[data-preset-choice]').length, 0);
-    eq('paper presets retained', $$('#presetGrid [data-preset]').length, 6);
+    eq('paper presets retained', $$('#workspaceInspector [data-preset]').length, 6);
     Object.assign(S.settings, {offsetX:1.2, scaleY:99.8, brightness:100, dpi:600, duplexMethod:'auto'});
     const preserved = () => JSON.stringify([S.settings.offsetX, S.settings.scaleY, S.settings.brightness, S.settings.dpi, S.settings.duplexMethod]);
     const before = preserved();
     S.settings.cardRotation = 'rotated';
-    $('#presetGrid [data-preset="b-a4"]').click();
+    $('#workspaceInspector [data-preset="b-a4"]').click();
     eq('portrait paper uses upright cards', !!layout().rot, false);
     eq('paper preserves alignment and print choices', preserved(), before);
     $('#printerSel').value = 'Laser';
@@ -89,9 +89,9 @@
     }
 
     $('#btnCutModeCameo').click();
-    eq('cameo offers both paper orientations', $$('#presetGrid [data-preset]').length, 6);
+    eq('cameo offers both paper orientations', $$('#workspaceInspector [data-preset]').length, 6);
     for (const id of ['b-letter', 'b-a4']) {
-      $(`#presetGrid [data-preset="${id}"]`).click();
+      $(`#workspaceInspector [data-preset="${id}"]`).click();
       eq(`${id} cameo portrait selected`, S.settings.orientation, 'portrait');
       eq(`${id} cameo portrait upright`, !!layout().rot, false);
       eq(`${id} cameo portrait fits nine`, `${layout().cols}x${layout().rows}`, '3x3');
@@ -99,7 +99,7 @@
       eq(`${id} keeps registration marks`, S.settings.silhouette, true);
       eq(`${id} capacity matches preview`, presetPer(BUILTIN_PRESETS.find(p => p.id === id)).per, layout().per);
     }
-    $('#presetGrid [data-preset="b-letter-land"]').click();
+    $('#workspaceInspector [data-preset="b-letter-land"]').click();
     eq('cameo paper choice fits', layout().fits && !regConflict(layout()), true);
     eq('cameo preview capacity matches effective layout', presetPer(BUILTIN_PRESETS.find(p => p.id === 'b-letter-land')).per, layout().per);
     $('#btnCutModeRotary').click();
@@ -107,7 +107,7 @@
     for (const printer of ['et2800', 'mf753']) {
       S.printer = printer; S.settings = {...DEFAULTS}; renderAll();
       for (const id of ['b-letter', 'b-a4']) {
-        $(`#presetGrid [data-preset="${id}"]`).click();
+        $(`#workspaceInspector [data-preset="${id}"]`).click();
         eq(`${printer} ${id} rotary nine cards`, `${layout().cols}x${layout().rows}`, '3x3');
         eq(`${printer} ${id} rotary fits`, layout().fits, true);
         eq(`${printer} ${id} full-size cards`, `${S.settings.cardW}x${S.settings.cardH}`, '63x88');
@@ -126,14 +126,14 @@
     // Orientation dropdown in setup maintains 9 cards and clear marks
     S.settings = {...DEFAULTS}; renderAll();
     $('#btnCutModeCameo').click();
-    $('#presetGrid [data-preset="b-letter-land"]').click();
+    $('#workspaceInspector [data-preset="b-letter-land"]').click();
     const orSelect = document.querySelector('#tab-setup [data-k="orientation"]');
     orSelect.value = 'portrait';
     orSelect.dispatchEvent(new Event('change', {bubbles: true}));
     eq('cameo dropdown portrait fits nine', `${layout().cols}x${layout().rows}`, '3x3');
     eq('cameo dropdown portrait no conflict', regConflict(layout()), false);
     $('#btnCutModeRotary').click();
-    $('#presetGrid [data-preset="b-letter-land"]').click();
+    $('#workspaceInspector [data-preset="b-letter-land"]').click();
     const orSelectRot = document.querySelector('#tab-setup [data-k="orientation"]');
     orSelectRot.value = 'portrait';
     orSelectRot.dispatchEvent(new Event('change', {bubbles: true}));
