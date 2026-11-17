@@ -4,6 +4,8 @@ const {spawn}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path');
 const destination=path.resolve(process.argv[2]||'out/overhaul-review/checks');fs.mkdirSync(destination,{recursive:true});
 const checks=[
+  ['order-gallery','order-gallery-probe.js',1440,900],
+  ['order-gallery-phone','order-gallery-probe.js',390,844],
   ['followup','followup-correctness-probe.js'],
   ['navigation','navigation-probe.js',1440,900],
   ['phone','navigation-probe.js',390,844],
