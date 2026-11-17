@@ -61,7 +61,11 @@ For tokens, choose **Choose token faces…** to use either face by itself or bro
 - **Print at Home:** Generates standard Letter or A4 PDFs with cut guides and automatic bleed edges so cards never have white borders after cutting. Supports front-to-back printer calibration and Silhouette Cameo cutter registration marks.
 - **Order Online:** One-click bundle ready for MakePlayingCards with formatted order files and card images.
 
-Use the preview toolbar to switch paper size or orientation, fit the whole sheet in the window, or hide the sidebar for more room.
+Open **Setup** to change paper, layout, sides, color or cutting settings. The proof shows one sheet at a time; use its sheet selector, Front / Back and zoom controls to inspect the job. On phones, switch between **Cards / Proof / Setup**.
+
+Choose **Review export** to check warnings and download. Select **Current sheet** to reprint that sheet with its original number and matching cut file. **Review order** provides the order bundle and XML options.
+
+Imports show a review before changing the deck. Unresolved input stays available through **Resume import**. Use **Settings & backup** for full backups; the top bar reports when changes have been saved to this device. See the [overhaul verification record](OVERHAUL-VERIFICATION.md) for the feature map, migration notes, tests and before/after views.
 
 For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across shared decks and the instance art library. Identical images are stored once. Shares and the art library are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other shared deck or library entry uses; copies already saved by recipients remain theirs.
 
@@ -76,7 +80,7 @@ Design custom cards, commanders, and tokens right in your browser with authentic
 
 - **The #1 Rule:** Always set your printer scaling to **100% / Actual Size** (never "Fit to page" or "Shrink to fit", or cards will be slightly smaller than real Magic cards).
 - **Paper choices:** Heavy cardstock (300 gsm / 110 lb) works great for sleeves. For foil peels or sticker proxies, matte vinyl sticker paper on real basic lands gives a great feel.
-- **Alignment:** If double-sided printing drifts slightly on your printer, use the calibration sliders in the preview sidebar to adjust horizontal and vertical alignment.
+- **Alignment:** If double-sided printing drifts slightly on your printer, open Setup → Calibration to adjust horizontal and vertical alignment.
 
 ---
 

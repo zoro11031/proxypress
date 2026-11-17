@@ -105,10 +105,12 @@
 
     // Cameo registration mark conflict preflight
     S.settings.silhouette = true;
-    S.settings.margin = 1; // force card into mark clearance
+    const oldInset = S.settings.regInset;
+    S.settings.regInset = Math.max(layout().x0,layout().y0)+2; // put the square inside an occupied card
     const cameoPreflight = await runPreflight({settings: S.settings, deck: testDeck});
     eq('Cameo registration mark conflict blocked', cameoPreflight.errors.some(e => e.type === 'reg_conflict'), true);
     S.settings.silhouette = false;
+    S.settings.regInset = oldInset;
     S.settings.margin = 4;
 
     // Missing artwork preflight

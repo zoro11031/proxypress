@@ -6,6 +6,7 @@ const destination=path.resolve(process.argv[2]||'out/overhaul-review/checks');fs
 const checks=[
   ['navigation','navigation-probe.js',1440,900],
   ['phone','navigation-probe.js',390,844],
+  ['narrow-dialog','narrow-dialog-probe.js',320,740],
   ['snapshot','job-snapshot-probe.js'],
   ['readiness','art-readiness-probe.js'],
   ['imports','staged-import-probe.js'],
@@ -19,6 +20,7 @@ const checks=[
   ['commander-phone','commander-workflow-probe.js',390,844],
   ['order-snapshot','order-snapshot-probe.js'],
   ['sheet-exports','sheet-export-probe.js'],
+  ['cut-exports','cut-sheet-export-probe.js'],
   ['foil-isolation','foil-export-isolation-probe.js'],
   ['cube','cube-performance-probe.js']
 ];

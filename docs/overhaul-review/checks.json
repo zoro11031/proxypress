@@ -1,0 +1,84 @@
+{
+  "aggregate": {
+    "cases": 17,
+    "passed": true,
+    "names": [
+      "navigation",
+      "phone",
+      "snapshot",
+      "readiness",
+      "imports",
+      "order-intake",
+      "project-settings",
+      "backup-merge",
+      "calibration",
+      "registration",
+      "copy-selection",
+      "face-routing",
+      "commander-phone",
+      "order-snapshot",
+      "sheet-exports",
+      "foil-isolation",
+      "cube"
+    ]
+  },
+  "extended": {
+    "cases": 14,
+    "passed": true,
+    "names": [
+      "duplex",
+      "duplex-roundtrip",
+      "duplex-scan",
+      "squareness",
+      "studio3",
+      "dxf",
+      "regmark",
+      "calprofile",
+      "workflow",
+      "sharing",
+      "preflight-calibration",
+      "save-status",
+      "deck-replace",
+      "import-suggestions"
+    ]
+  },
+  "additional": {
+    "narrow-dialog": "PASS",
+    "narrow-dialog-390": "PASS",
+    "docker-ui": "PASS",
+    "preflight-calibration-final": "PASS",
+    "commander-final": "PASS",
+    "visual-art-phone": "PASS",
+    "visual-loading": "PASS",
+    "capture-tool": "PASS",
+    "cut-parity": "PASS",
+    "electron-offline": "PASS",
+    "electron-collision": "PASS"
+  },
+  "cube": {
+    "cards": 360,
+    "sheets": 45,
+    "renderMs": 196.6000000089407,
+    "inputP95Ms": 0.7999999970197678,
+    "previewEntries": 20,
+    "decodedEntries": 8
+  },
+  "pdfRasterParity": {
+    "simplexSheets": 3,
+    "duplexPages": 6,
+    "rasterComparisons": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "registrationMutation": "Expected failure on occupied-slot regression",
+  "cutComparisons": 36,
+  "packageHtmlMatchesSource": true
+}

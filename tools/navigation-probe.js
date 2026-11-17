@@ -8,7 +8,8 @@
   S.settings=cleanSettings({...DEFAULTS,backs:false});S.showBacks=false;renderAll();await drawPreview();
   setWorkspaceView('cards');
   check('wizard removed',!$('.tabs')&&!$('.wiz-nav'));
-  $('#btnWorkspaceSetup').click();
+  if(innerWidth<=820)$('[data-mview=setup]').click();
+  else if(!$('#workspaceInspector').getClientRects().length){check('Setup opener is visible',!!$('#toggleInspector').getClientRects().length);$('#toggleInspector').click();}
   check('original print controls in inspector',!!$('#paperForm').closest('#workspaceInspector'));
   check('original cut controls in inspector',!!$('#cameoSection').closest('#workspaceInspector'));
   check('setup visible',!!$('#workspaceInspector').getClientRects().length);
@@ -19,6 +20,7 @@
   check('canonical setup change applied',S.settings.pageSize==='a4');
   $('#btnCloseSetup').click();
   check('close returns to Cards',document.body.dataset.workspaceView==='cards');
+  if(innerWidth>820){check('close leaves a visible Setup opener',!!$('#toggleInspector').getClientRects().length);$('#toggleInspector').click();check('Setup reopens',!!$('#workspaceInspector').getClientRects().length);$('#btnCloseSetup').click();}
   $('#btnReviewExport').click();
   check('review dialog uses existing download controls',!!$('#btnExportPdfTab').closest('#modal'));
   $('#modal [data-close]').click();
