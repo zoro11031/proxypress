@@ -445,9 +445,10 @@ LOGIN_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="theme-color" content="#18232e"><!--head--><style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#121a24;color:#edf5fa;font:15px/1.4 system-ui,sans-serif}
 form{background:#18232e;border:1px solid #364b5e;border-radius:12px;padding:26px;width:min(340px,calc(100vw - 32px));box-sizing:border-box}
-h1{font-size:19px;margin:0 0 4px}h1 span{color:#96e4d5}p{color:#afc0cf;font-size:13px;margin:0 0 16px}
-label{display:block;margin-bottom:6px;font-size:13px}input:focus-visible,button:focus-visible{outline:2px solid #bfc8ff;outline-offset:3px}input{width:100%%;box-sizing:border-box;background:#111a24;border:1px solid #364b5e;border-radius:7px;padding:9px 10px;color:inherit;font:inherit}
-button{margin-top:12px;width:100%%;background:#96e4d5;color:#102b2a;border:0;border-radius:7px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
+h1{font-size:19px;margin:0 0 4px}h1 span{color:#ad9ff2}p{color:#afc0cf;font-size:13px;margin:0 0 16px}
+label{display:block;margin-bottom:6px;font-size:13px}input:focus-visible,button:focus-visible{outline:2px solid #d0c5ff;outline-offset:3px}input{width:100%%;box-sizing:border-box;background:#111a24;border:1px solid #364b5e;border-radius:7px;padding:9px 10px;color:inherit;font:inherit}
+button{margin-top:12px;width:100%%;background:#543eaa;color:#f7f3ff;border:1px solid #8a75db;border-radius:7px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{background:#624ac2}
 .err{color:#ffaaaa;font-size:13px;margin:10px 0 0}</style></head><body>
 <form method="post" action="/login"><h1>Proxy<span>Press</span></h1><p>Enter the password to continue.</p>
 <input type="text" name="username" value="user" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1">

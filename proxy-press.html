@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proxy Press</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235578A7' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%237B79B8' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%2314222F' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%2396E4D5' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235578A7' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%237B79B8' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%2314222F' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23AD9FF2' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#18232e">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Goudy+Bookletter+1911&family=Spectral:wght@600;700&display=swap">
 <script src="assets/vendor/jspdf.umd.min.js"></script>
@@ -12,8 +12,9 @@
 :root{
   color-scheme:dark;
   --bg:#121a24;--panel:#18232e;--panel2:#223241;--line:#364b5e;--text:#edf5fa;--muted:#afc0cf;
-  --accent:#96e4d5;--accent2:#c3f5eb;--accent-ink:#102b2a;--accent-rgb:150 228 213;
-  --accent-wash:rgb(var(--accent-rgb) / .10);--focus:#bfc8ff;--focus-rgb:191 200 255;
+  --accent:#ad9ff2;--accent2:#ddd4ff;--accent-ink:#211642;--accent-rgb:173 159 242;
+  --action:#543eaa;--action-hover:#624ac2;--action-edge:#8a75db;--action-ink:#f7f3ff;
+  --accent-wash:rgb(var(--accent-rgb) / .10);--focus:#d0c5ff;--focus-rgb:208 197 255;
   --warning:#eee0a5;--warning-rgb:238 224 165;--danger:#ffaaaa;--ok:#a1d7aa;--desk:#0d1721;
   /* One hairline, one near-flat fill, one sunken track: everything that used to be
      a box within a box is built from these three instead of another panel shade. */
@@ -35,10 +36,10 @@ button{background:var(--panel2);border:1px solid var(--line);border-radius:var(-
 button:hover{border-color:rgb(var(--accent-rgb) / .35)}
 button:active:not(:disabled){transform:scale(.98)}
 :where(button,input,select,textarea,summary,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-button.primary,#readyFileSave{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;box-shadow:0 1px 2px #07111b45}
-button.primary:hover,#readyFileSave:hover{background-color:var(--accent2);border-color:var(--accent2);box-shadow:0 4px 14px rgb(var(--accent-rgb) / .19)}
+button.primary,#readyFileSave{background:var(--action);color:var(--action-ink);border-color:var(--action-edge);font-weight:700;box-shadow:0 1px 2px #07111b45}
+button.primary:hover,#readyFileSave:hover{background-color:var(--action-hover);border-color:var(--accent);box-shadow:0 4px 14px rgb(var(--accent-rgb) / .19)}
 button.primary:active{transform:scale(.98)}
-#readyFileSave{display:inline-flex;align-items:center;min-height:var(--ctl);border:1px solid var(--accent);border-radius:var(--r-sm);padding:6px 11px;text-decoration:none}
+#readyFileSave{display:inline-flex;align-items:center;min-height:var(--ctl);border:1px solid var(--action-edge);border-radius:var(--r-sm);padding:6px 11px;text-decoration:none}
 button.danger{color:var(--danger)}
 button:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 button.icon{padding:3px 7px;font-size:13px}
@@ -363,7 +364,7 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
   body:not(.m-preview) #stage{display:none}
   #mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--panel);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:6px}
   #mbar button{flex:1;min-height:42px;font-size:15px;border-radius:9px}
-  #mbar button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+  #mbar button.on{background:var(--action);color:var(--action-ink);border-color:var(--action-edge);font-weight:600}
   .tabs{overflow-x:auto;scrollbar-width:none}
   .tabs button{flex:1 0 auto;min-height:var(--ctl);padding:0 14px}
   button{min-height:var(--ctl)}
@@ -543,7 +544,7 @@ table.specs-tbl th{color:var(--muted);font-weight:500;width:42%}
 body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:none !important}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#111317}
 .seg button{border:0;border-radius:0;background:none;color:var(--muted);padding:6px 12px;transition:background .15s,color .15s}
-.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg button.on{background:var(--action);color:var(--action-ink);font-weight:600}
 .deckbar{display:flex;align-items:center;gap:4px}
 .menu{position:relative}
 .menu summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--panel2);user-select:none;transition:border-color .15s,background .15s}
@@ -559,7 +560,7 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .empty-art{height:112px;position:relative;margin-bottom:14px}
 .empty-art i{position:absolute;left:42px;top:8px;width:59px;height:83px;border:1px solid #6589ad;border-radius:7px;background:linear-gradient(140deg,#345a7d,#172733);transform:rotate(-17deg);box-shadow:0 5px 16px #0004}
 .empty-art i:nth-child(2){left:69px;top:5px;border-color:#827db9;background:linear-gradient(140deg,#575082,#232738);transform:rotate(-5deg)}
-.empty-art i:last-child{left:96px;border-color:var(--accent);background:linear-gradient(140deg,#27605c,var(--panel));transform:rotate(9deg);font:44px/83px Georgia,serif;text-align:center;color:var(--accent2)}
+.empty-art i:last-child{left:96px;border-color:var(--accent);background:linear-gradient(140deg,#433278,var(--panel));transform:rotate(9deg);font:44px/83px Georgia,serif;text-align:center;color:var(--accent2)}
 .empty ol{margin:0;padding-left:20px;color:var(--muted)}
 .empty li{margin-bottom:8px}
 .empty b{color:var(--text)}
@@ -879,7 +880,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 <body>
 <header>
   <div class="hzone hzone-brand">
-    <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235578A7' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%237B79B8' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%2314222F' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%2396E4D5' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
+    <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235578A7' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%237B79B8' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%2314222F' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23AD9FF2' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
     <div class="seg" id="modeSeg" role="tablist" aria-label="Mode">
       <button data-mode="print" role="tab" title="Make a PDF to print and cut yourself">Print at home</button>
       <button data-mode="order" role="tab" title="Make an order file for MakePlayingCards.com">Order prints</button>
@@ -7037,11 +7038,11 @@ function renderAlignmentOverlay() {
       return `${physical.x.toFixed(3)},${physical.y.toFixed(3)}`;
     }).join(' ');
   };
-  const outlines = Array.from({length:page.length}, (_,index)=>`<polygon points="${points(index,false)}" fill="none" stroke="#147064" stroke-width="0.5"/>${page[index].back ? `<polygon points="${points(index,true)}" fill="none" stroke="#5455a5" stroke-width="0.5" stroke-dasharray="2 1"/>` : ''}`).join('');
+  const outlines = Array.from({length:page.length}, (_,index)=>`<polygon points="${points(index,false)}" fill="none" stroke="#543eaa" stroke-width="0.5"/>${page[index].back ? `<polygon points="${points(index,true)}" fill="none" stroke="#1c60a5" stroke-width="0.5" stroke-dasharray="2 1"/>` : ''}`).join('');
   const selected=page.findIndex(slot=>selectedCopies.has(copyKey(slot.e,slot.copy)));
   let displacement='';
   if(selected>=0 && page[selected].back){const center=back=>points(selected,back).split(' ').map(pair=>pair.split(',').map(Number)).reduce((sum,pt)=>[sum[0]+pt[0]/4,sum[1]+pt[1]/4],[0,0]);const front=center(false),back=center(true);displacement=`<p class="hint">Selected copy ${page[selected].copy+1}: back displacement X ${(back[0]-front[0]).toFixed(2)} mm, Y ${(back[1]-front[1]).toFixed(2)} mm.</p>`;}
-  container.innerHTML = `<p class="hint">Solid teal outlines show the front. Dashed violet outlines show the back, viewed through the front of the sheet.</p><svg role="img" aria-label="Expected front and back alignment in millimetres" viewBox="-2 -2 ${L.W+4} ${L.H+4}" style="display:block;width:100%;background:#e8e5de"><rect width="${L.W}" height="${L.H}" fill="#fff" stroke="#777" stroke-width="0.3"/>${outlines}</svg><p class="hint">${L.W} × ${L.H} mm. Front: X ${s.offsetX}, Y ${s.offsetY} mm. Extra back: X ${s.backOffsetX}, Y ${s.backOffsetY} mm.</p>${displacement}<p class="hint">${esc(status.label)}. This is the expected alignment; print the test sheets to measure your printer.</p>`;
+  container.innerHTML = `<p class="hint">Solid violet outlines show the front. Dashed blue outlines show the back, viewed through the front of the sheet.</p><svg role="img" aria-label="Expected front and back alignment in millimetres" viewBox="-2 -2 ${L.W+4} ${L.H+4}" style="display:block;width:100%;background:#e8e5de"><rect width="${L.W}" height="${L.H}" fill="#fff" stroke="#777" stroke-width="0.3"/>${outlines}</svg><p class="hint">${L.W} × ${L.H} mm. Front: X ${s.offsetX}, Y ${s.offsetY} mm. Extra back: X ${s.backOffsetX}, Y ${s.backOffsetY} mm.</p>${displacement}<p class="hint">${esc(status.label)}. This is the expected alignment; print the test sheets to measure your printer.</p>`;
 }
 function drawProofAlignment() {
   $$('.proof-alignment').forEach(el=>el.remove());
@@ -8645,8 +8646,8 @@ function duplexFlipDiagram(L, mode, frontEdge) {
     const d = {left:[-1, 0], right:[1, 0], up:[0, -1], down:[0, 1]}[dir];
     const arrows = [0, 7].map(o => {
       const px = x + d[0] * o, py = y + d[1] * o;
-      return d[0] ? `<path d="M${px} ${py - 5} L${px + d[0] * 5} ${py} L${px} ${py + 5}" fill="none" stroke="#96e4d5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
-                  : `<path d="M${px - 5} ${py} L${px} ${py + d[1] * 5} L${px + 5} ${py}" fill="none" stroke="#96e4d5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+      return d[0] ? `<path d="M${px} ${py - 5} L${px + d[0] * 5} ${py} L${px} ${py + 5}" fill="none" stroke="#ad9ff2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
+                  : `<path d="M${px - 5} ${py} L${px} ${py + d[1] * 5} L${px + 5} ${py}" fill="none" stroke="#ad9ff2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
     }).join('');
     const sx = x + d[0] * 16, sy = y + d[1] * 16;
     const slot = d[0] ? `<line x1="${sx}" y1="${sy - 12}" x2="${sx}" y2="${sy + 12}" stroke="#6b7482" stroke-width="4" stroke-linecap="round"/>`
@@ -8668,7 +8669,7 @@ function duplexFlipDiagram(L, mode, frontEdge) {
     }[edge];
     const note = turned ? `<text x="${cx}" y="${y + h - 7}" text-anchor="middle" font-size="7.5" fill="#8e9bad">page 1, face down</text>` : '';
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${turned ? '#20262f' : '#e8edf4'}" stroke="#7d8898" stroke-width="1.5"/>${glyph}${note}` +
-      `<line x1="${edgeLine[0]}" y1="${edgeLine[1]}" x2="${edgeLine[2]}" y2="${edgeLine[3]}" stroke="#96e4d5" stroke-width="5" stroke-linecap="round"/>` +
+      `<line x1="${edgeLine[0]}" y1="${edgeLine[1]}" x2="${edgeLine[2]}" y2="${edgeLine[3]}" stroke="#ad9ff2" stroke-width="5" stroke-linecap="round"/>` +
       chevron(edgeLine[4], edgeLine[5], edgeLine[6]);
   };
   const turnArt = lr
@@ -8679,7 +8680,7 @@ function duplexFlipDiagram(L, mode, frontEdge) {
        <path d="M${mx} ${mid - 23} A 17 27 0 0 1 ${mx} ${mid + 31}" fill="none" stroke="#d7dde5" stroke-width="2.5" stroke-linecap="round"/>
        <path d="M${mx} ${mid + 31} l-5 -7 M${mx} ${mid + 31} l8 -2" fill="none" stroke="#d7dde5" stroke-width="2.5" stroke-linecap="round"/>`;
   const label = (x, line1, line2) => `<text x="${x + w / 2}" y="22" text-anchor="middle" font-size="11" fill="#edf0f5" font-weight="600">${line1}</text>` +
-    `<text x="${x + w / 2}" y="${top + 104}" text-anchor="middle" font-size="10" fill="#c3f5eb">${line2}</text>`;
+    `<text x="${x + w / 2}" y="${top + 104}" text-anchor="middle" font-size="10" fill="#ddd4ff">${line2}</text>`;
   return `<svg viewBox="0 0 320 166" role="img" aria-label="Page 1 goes in ${paperEdgeName(frontEdge, L)} first, the sheet is turned ${lr ? 'left to right' : 'top to bottom'}, page 2 goes in ${paperEdgeName(backEdge, L)} first" style="width:100%;height:auto">
     ${sheet(ax, ay, frontEdge, false)}${sheet(bx, ay, backEdge, true)}${turnArt}
     ${label(ax, 'PAGE 1 printed', `${paperEdgeName(frontEdge, L)} first`)}
@@ -8701,12 +8702,12 @@ function duplexReadSvg() {
   const hx = o + 3.5 * g, hy = o + 2 * g;
   return `<svg viewBox="0 0 430 180" role="img" aria-label="A pin hole half a square right of zero and one square above it reads X plus 0.5 and Y minus 1.0" style="width:100%;height:auto">
     ${cells.join('')}
-    <circle cx="${hx}" cy="${hy}" r="11" fill="none" stroke="#96e4d5" stroke-width="2"/>
-    <circle cx="${hx}" cy="${hy}" r="4" fill="#96e4d5"/>
+    <circle cx="${hx}" cy="${hy}" r="11" fill="none" stroke="#ad9ff2" stroke-width="2"/>
+    <circle cx="${hx}" cy="${hy}" r="4" fill="#ad9ff2"/>
     <text x="192" y="46" font-size="12" fill="#edf0f5" font-weight="600">The pin hole</text>
     <text x="192" y="66" font-size="12" fill="#a0aab9">half a square right of 0,</text>
     <text x="192" y="82" font-size="12" fill="#a0aab9">one square above it</text>
-    <text x="192" y="108" font-size="13" fill="#c3f5eb" font-weight="600">X = +0.5   Y = -1.0</text>
+    <text x="192" y="108" font-size="13" fill="#ddd4ff" font-weight="600">X = +0.5   Y = -1.0</text>
     <text x="192" y="128" font-size="11.5" fill="#a0aab9">Type those two numbers in.</text>
     <text x="192" y="144" font-size="11.5" fill="#a0aab9">One square is 1 mm.</text>
   </svg>`;
