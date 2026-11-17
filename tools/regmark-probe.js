@@ -22,6 +22,7 @@
       // they get Silhouette's full default length rather than a stub.
       eq(`${tag} auto arm`, regArm(L), 20);
       eq(`${tag} marks clear`, regConflict(L), false);
+      eq(`${tag} marks inside the PDF`, regMarksClipped(L, s), false);
 
       const m = regMarks(L), i = s.regInset, t = m.width;
       // Three-mark pattern: a 5 mm square in the top-left corner, sitting with
@@ -65,6 +66,11 @@
     eq('arm clamped high', regArm(layout()), 20);
     S.settings.regLen = 2;
     eq('arm clamped low', regArm(layout()), 5);
+
+    const s = {...S.settings, regInset:3.5, offsetY:-4, regLen:20}, L = layout(s);
+    eq('front offset can clip the registration marks', regMarksClipped(L, s), true);
+    eq('extra back offset does not move the front registration marks',
+      regMarksClipped(L, {...s, offsetY:0, backOffsetY:-4}), false);
 
     // A grid pushed out to the mark line must still shorten the arms, or the
     // fix would just be "always 20" with no obstruction test left.

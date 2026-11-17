@@ -21,6 +21,12 @@
     const slots=Array.from({length:L.per},()=>({front:{custom:key},e:d.entries[0]}));
     const result=await runPreflight({settings:s,deck:d,slots,sheetIndices:[7]});
     check('actual overlap identifies original sheet',result.errors.some(e=>e.type==='reg_conflict'&&e.sheet===8));
+    const shifted = cleanSettings({...DEFAULTS, ...cameoPaperLayout('landscape'), pageSize:'letter',
+      silhouette:true, guides:'none', backs:false, offsetY:-11});
+    const clipped = await runPreflight({settings:shifted,deck:d,sheetIndices:[3]});
+    check('clipped marks block export even though the card fits', !clipped.valid
+      && clipped.errors.some(e=>e.type==='reg_clip'&&e.sheet===4)
+      && !clipped.errors.some(e=>e.type==='trim_clip'));
     return fails.length?{failed:fails}:true;
   }finally{Object.assign(S,saved);renderAll();}
 })();

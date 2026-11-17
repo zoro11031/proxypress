@@ -3,7 +3,7 @@
   try{
     S.welcomed=true;closeModal(true);const c=document.createElement('canvas');c.width=630;c.height=880;const key=await storeImage(await new Promise(r=>c.toBlob(r)));
     deck().entries=[{uid:uid(),name:'Snapshot',qty:11,faces:[{name:'Front',custom:key}]}];
-    S.settings=cleanSettings({...DEFAULTS,pageSize:'letter',orientation:'landscape',cols:4,rows:2,backs:false});
+    S.settings=cleanSettings({...DEFAULTS,...cameoPaperLayout('landscape'),pageSize:'letter',silhouette:true,cols:4,rows:2,backs:false});
     const job=buildPrintJob(), svg=cutSvg(1,job), dxf=cutDxf(1,job), studio=await cutStudio3(1,job);
     const position=slotPos(job.layout,2,false,job.settings),transform=makeT(job.layout,false,job.settings).x(position.x);
     S.settings.pageSize='a4';S.settings.orientation='portrait';S.settings.offsetX=500;S.settings.gap=9;deck().entries[0].qty=1;

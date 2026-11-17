@@ -25,5 +25,7 @@ as many cards as the sheet does.
 | `a4-standard-v5.studio3` | A4 | 8 | A4 landscape |
 | `a4-bridge-v4.studio3` | A4 | 9 | A4 portrait |
 
-The card size a base was built for does not matter; its outlines are moved and
-resized to the sheet. Only the count does.
+Proxy Press resizes the card outlines to match the sheet. The card count and
+registration settings must match the template. The templates use three marks,
+a 10 mm inset, 20 mm arms, and 1 mm line thickness. For other settings, export
+DXF and match the PDF’s registration settings in Silhouette Studio.

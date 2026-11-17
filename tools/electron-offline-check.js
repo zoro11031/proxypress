@@ -40,7 +40,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       const canvas=document.createElement('canvas');canvas.width=630;canvas.height=880;canvas.getContext('2d').fillRect(0,0,630,880);
       const key=await storeImage(await new Promise(r=>canvas.toBlob(r)));
       deck().name='Offline Electron fixture';deck().entries=[{uid:uid(),name:'Local editable card',qty:1,faces:[{name:'Front',custom:key,template:{name:'Local editable card',artKey:key,style:'modern',text:'Editable source survives.'}}]}];
-      S.settings=cleanSettings({...DEFAULTS,pageSize:'letter',orientation:'landscape',cols:4,rows:2,backs:false});S.showBacks=false;
+      S.settings=cleanSettings({...DEFAULTS,...cameoPaperLayout('landscape'),pageSize:'letter',silhouette:true,cols:4,rows:2,backs:false});S.showBacks=false;
       const pack=await makePrintDeck();assert('compact file contains editable layers',!!pack.images[pack.deck.entries[0].faces[0].template.artKey]);
       await importPrintDeck(pack,false);closeModal(true);
       assert('offline compact file restores artwork',!!await store.get('images',deck().entries[0].faces[0].custom));
