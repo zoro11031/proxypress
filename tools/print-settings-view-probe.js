@@ -39,13 +39,11 @@
 
     // Test entrypoints in inspector
     const entrypoints = ['layout', 'printer', 'alignment', 'color', 'cutting'];
-    for (const page of entrypoints) {
-      backToProof();
-      const btn = $(`#inspectorEntrypoints [data-open-page="${page}"]`);
-      check(`found entrypoint ${page}`, !!btn);
-      btn?.click();
-      check(`entrypoint landed on ${page}`, $(`#settingsPage-${page}`).style.display !== 'none');
-    }
+    backToProof();
+    const color = $('#inspectorEntrypoints [data-open-page="color"]');
+    check('Color has one extra shortcut beside the summary rows', !!color);
+    color?.click();
+    check('Color shortcut lands on Color', $('#settingsPage-color').style.display !== 'none');
 
     // Test tab navigation inside #printSettingsView
     for (const page of entrypoints) {
