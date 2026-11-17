@@ -742,6 +742,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
 @media(min-width:1400px){body[data-mode=print].settings-open:not(.preview-focus) main{grid-template-columns:280px minmax(0,1fr) 460px!important}body[data-mode=print].settings-open #workspaceInspector{display:flex!important;position:relative;inset:auto;width:auto;box-shadow:none}}
 @media(min-width:821px) and (max-width:1399px){body[data-mode=print].settings-open #workspaceInspector{display:flex!important;position:fixed;right:0;top:var(--drawer-top);bottom:var(--drawer-bottom);width:min(520px,calc(100vw - 36px));z-index:40;box-shadow:-12px 0 40px #0008}}
 @media(max-width:820px){body[data-mode=print].settings-open #workspaceInspector{display:flex!important;width:100%;padding-bottom:24px}#calProfileActions{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:820px){body[data-mode=print] #proofCalBadge{display:inline-flex!important;max-width:100%!important;flex-basis:100%;font-size:12px}}
 </style>
 </head>
 <body>
@@ -1268,7 +1269,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
         <button type="button" id="btnProofBack">Back</button>
         <button type="button" id="btnProofGuides">Guides</button>
       </div>
-      <span id="proofCalBadge" class="cal-badge" style="margin-left:auto;font-size:11.5px;padding:2px 8px;border-radius:12px;font-weight:600;display:none;align-items:center;gap:4px"></span>
+      <span id="proofCalBadge" role="status" aria-live="polite" class="cal-badge" style="margin-left:auto;font-size:11.5px;padding:2px 8px;border-radius:12px;font-weight:600;display:none;align-items:center;gap:4px"></span>
     </div>
     <div class="toolbar">
       <div class="toolbar-cluster print-only quick-paper-cluster" style="display:none">
@@ -5988,6 +5989,7 @@ function cleanDeck(raw) {
     id:String(raw?.id || uid()).slice(0, 64), name:String(raw?.name || 'Imported deck').slice(0, 200), updated:+raw?.updated || Date.now(),
     cardback:face(raw?.cardback),
     ...(typeof raw?.importDraft?.text === 'string' ? {importDraft:{version:2,rows:Array.isArray(raw.importDraft.rows) ? raw.importDraft.rows.slice(0,20000).map(row=>({id:key(row.id) || uid(),lineId:str(row.lineId),sourceLine:str(row.sourceLine,2000),section:str(row.section),included:row.included!==false})) : [],id:typeof raw.importDraft.id==='string' ? raw.importDraft.id.slice(0,64) : uid(),text:raw.importDraft.text.slice(0,1048576),replace:!!raw.importDraft.replace,...(raw.importDraft.format === 'order-xml' ? {format:'order-xml',fileName:String(raw.importDraft.fileName || 'Imported order').slice(0,300)} : {})}} : {}),
+    calibrationState:cleanCalibrationState(raw?.calibrationState),
     ...(raw?.printSettings && typeof raw.printSettings === 'object' ? {printSettings:cleanSettings(raw.printSettings)} : {}),
     ...(raw?.orderSettings && typeof raw.orderSettings === 'object' ? {orderSettings:cleanOrderSettings(raw.orderSettings)} : {}),
     entries:(Array.isArray(raw?.entries) ? raw.entries : []).filter(e => e && typeof e === 'object').map(e => pick({
@@ -6520,9 +6522,9 @@ function calSlotFor(p, s) {
     if (res.byDuplex && res.byDuplex[dupKey]) {
       res = {...res, ...res.byDuplex[dupKey]};
     }
-    const backMeasured = !!rawSet.byDuplex?.[dupKey];
-    if (rawSet.byDuplex && !backMeasured) Object.assign(res, {backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
-    return {set: res, from, key, backMeasured, status: from === 'exact' ? 'Measured' : from === 'any' ? 'Legacy' : 'Estimated'};
+    const hasDuplex=!!rawSet.byDuplex?.[dupKey],backMeasured=hasDuplex && rawSet.byDuplex[dupKey].backMeasured!==false && ['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'].some(k=>Object.hasOwn(rawSet.byDuplex[dupKey],k)&&Number.isFinite(rawSet.byDuplex[dupKey][k]));
+    if (rawSet.byDuplex && !hasDuplex) Object.assign(res, {backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
+    return {set: res, from, key, backMeasured, frontMeasured:rawSet.frontMeasured!==false && ['offsetX','offsetY','scaleX','scaleY','printRotate'].some(k=>Object.hasOwn(rawSet,k)&&Number.isFinite(rawSet[k])), status: from === 'exact' ? 'Measured' : from === 'any' ? 'Legacy' : 'Estimated'};
   };
 
   if (slots[want]) return applySlot(slots[want], 'exact', want);
@@ -6533,22 +6535,41 @@ function calSlotFor(p, s) {
   if (turn) { const got = applySlot(slots[turn], 'turned', turn); got.set = turnCalSet(s.orientation, got.set); return got; }
   return {set: null, from: 'none', status: 'Uncalibrated'};
 }
-function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, profileId = S.calibrationProfileId) {
-  const p = calProfiles().find(profile=>profile.id === profileId && (!profile.printer || profile.printer === printer));
-  const got = p && calSlotFor(p, s);
-  const matches = keys => got?.set && keys.every(key=>Math.abs((got.set[key] ?? DEFAULTS[key]) - s[key]) < 0.00001);
-  const frontMatches = matches(['offsetX','offsetY','scaleX','scaleY','printRotate']);
-  const backMatches = matches(['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate']);
-  const frontStatus = got?.from === 'exact' && frontMatches ? 'Measured' : got?.set ? 'Estimated' : 'Uncalibrated';
-  const backStatus = got?.from === 'exact' && got.backMeasured && backMatches ? 'Measured' : got?.set ? 'Estimated' : 'Uncalibrated';
-  const manual = ['offsetX','offsetY','backOffsetX','backOffsetY','scaleX','scaleY','backScaleX','backScaleY','printRotate','backRotate'].some(key=>s[key] !== DEFAULTS[key]);
-  const hasBacks = buildSlots(d, s).some(slot=>slot.back);
-  const status = frontStatus === 'Measured' && (!hasBacks || backStatus === 'Measured') ? 'Measured' : got?.set || manual ? 'Estimated' : 'Uncalibrated';
-  const source = got?.key ? `${p.name} · ${calSlotName(got.key)}` : manual ? 'Manual alignment' : 'No saved profile';
-  const front = {status:frontStatus, source, x:s.offsetX, y:s.offsetY};
-  const back = {status:backStatus, source, x:s.backOffsetX, y:s.backOffsetY};
-  return {status, label:`Front: ${frontStatus}. Back: ${backStatus}. ${source}`, from:got?.from || (manual ? 'manual' : 'none'), front, back};
+const FRONT_CAL_KEYS=['offsetX','offsetY','scaleX','scaleY','printRotate'];
+const BACK_CAL_KEYS=['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'];
+function calibrationScope(s,printer,back=false){return JSON.stringify([printer,calSlotKey(s),...(back?[s.duplexMethod || 'manual',s.duplexFlip || 'long']:[])]);}
+function noteCalibration(side,kind='manual'){
+  const keys=side==='front'?FRONT_CAL_KEYS:BACK_CAL_KEYS;
+  if(kind==='none' && keys.some(k=>S.settings[k]!==DEFAULTS[k]))kind='manual';
+  deck().calibrationState={...deck().calibrationState,[side]:{kind,scope:calibrationScope(S.settings,S.printer,side==='back'),values:Object.fromEntries(keys.map(k=>[k,S.settings[k]]))}};
 }
+function cleanCalibrationState(raw){
+  const result={};for(const [side,keys] of [['front',FRONT_CAL_KEYS],['back',BACK_CAL_KEYS]]){const value=raw?.[side];if(!value||!['manual','measured','none'].includes(value.kind)||typeof value.scope!=='string'||value.scope.length>500)continue;if(!keys.every(k=>Number.isFinite(value.values?.[k])))continue;result[side]={kind:value.kind,scope:value.scope,values:Object.fromEntries(keys.map(k=>[k,value.values[k]]))};}return result;
+}
+function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, profileId = S.calibrationProfileId) {
+  const p=calProfiles().find(profile=>profile.id===profileId && (!profile.printer || profile.printer===printer)),got=p&&calSlotFor(p,s);
+  const sideStatus=(side,keys)=>{
+    const back=side==='back',record=d.calibrationState?.[side],same=values=>values && keys.every(k=>Number.isFinite(values[k]??DEFAULTS[k])&&Math.abs((values[k]??DEFAULTS[k])-s[k])<0.00001),neutral=keys.every(k=>s[k]===DEFAULTS[k]);
+    let status='Uncalibrated',source='No recorded measurement';
+    const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
+    if(recordExact){status=record.kind==='none'?'Uncalibrated':record.kind==='manual'?'Manual':'Measured';source=record.kind==='manual'?'Entered alignment':'Recorded alignment';}
+    else if(got?.set && same(got.set) && got.from==='exact' && (back?got.backMeasured:got.frontMeasured)){status='Measured';source=p.name;}
+    else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
+    else if(!neutral){status='Estimated';source=got?.set?p.name:'Carried alignment';}
+    const label={Manual:'Manual alignment applied',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
+    return {status,label,source,values:Object.fromEntries(keys.map(k=>[k,s[k]])),x:s[back?'backOffsetX':'offsetX'],y:s[back?'backOffsetY':'offsetY']};
+  };
+  const front=sideStatus('front',FRONT_CAL_KEYS),back=sideStatus('back',BACK_CAL_KEYS),hasBacks=buildSlots(d,s).some(slot=>slot.back),sides=hasBacks?[front,back]:[front];
+  const status=sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
+  const label='Front: '+front.label+(hasBacks?' · Back: '+back.label:'');
+  const values='Front: X '+front.x+' mm, Y '+front.y+' mm, scale '+s.scaleX+' / '+s.scaleY+'%, rotation '+s.printRotate+'°'+(hasBacks?' · Back: extra X '+back.x+' mm, Y '+back.y+' mm, scale '+s.backScaleX+' / '+s.backScaleY+'%, rotation '+s.backRotate+'°':'');
+  return {status,label,values,hasBacks,from:got?.from || 'none',front,back};
+}
+function refreshCalibrationStatus(){
+  const status=getCalibrationStatus();$('#inspCal').textContent=status.label;$('#inspCal').title=status.values;
+  renderCalibrationProfiles();syncPreviewControls();renderAlignmentOverlay();renderGuideTab();renderPreview();
+}
+
 function renderAlignmentOverlay() {
   const container = $('#alignmentOverlay'); if (!container) return;
   const L = layout(), s = S.settings, status = getCalibrationStatus();
@@ -6583,6 +6604,7 @@ function resolveAppliedCalibration() {
   if (got.set) S.settings = cleanSettings({...S.settings, ...got.set});
 }
 function applyCalProfile(p) {
+  deck().calibrationState={};
   S.calibrationProfileId = p.id;
   const got = calSlotFor(p, S.settings), here = calSlotName(calSlotKey(S.settings));
   if (!got.set) return toast(`"${p.name}" has nothing saved yet.`);
@@ -6620,7 +6642,7 @@ function renderCalibrationProfiles(activeId) {
   if (activeId !== undefined) S.calibrationProfileId = activeId;
   const current = S.calibrationProfileId;
   const active=calProfiles().find(p=>p.id===current),scope=calSlotName(calSlotKey(S.settings)),status=getCalibrationStatus();
-  $('#activeCalibrationProfile').innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p>`;
+  $('#activeCalibrationProfile').innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p><p class="hint">${esc(status.values)}</p>`;
   const held = p => {
     const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
     return keys.length ? ` \u00b7 ${keys.map(calSlotName).join(' + ')}` : '';
@@ -6666,18 +6688,7 @@ function renderCalibrationProfiles(activeId) {
     cardContainer.innerHTML = html;
   }
 
-  const statusEl = $('#calProfileStatus');
-  if (statusEl) {
-    const active = calProfiles().find(p => p.id === sel.value);
-    if (!active) statusEl.textContent = '';
-    else {
-      const got = calSlotFor(active, S.settings), here = calSlotName(calSlotKey(S.settings));
-      if (got.from === 'exact') statusEl.textContent = `Active for ${calSlotName(got.key)}.`;
-      else if (got.from === 'size') statusEl.textContent = `No set for ${here}; using ${calSlotName(got.key)} numbers.`;
-      else if (got.from === 'turned') statusEl.textContent = `Calculated turn from ${calSlotName(got.key)} numbers for ${here}.`;
-      else statusEl.textContent = `Loaded numbers from ${active.name}.`;
-    }
-  }
+  const statusEl=$('#calProfileStatus');if(statusEl){const state=getCalibrationStatus();statusEl.textContent=state.label;statusEl.title=state.values;}
 }
 $('#tab-setup').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
@@ -6701,6 +6712,7 @@ $('#tab-setup').addEventListener('change', async ev => {
     const n = parseFloat(t.value) || 0;
     s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
   } else s[k] = t.value;
+  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k))noteCalibration(FRONT_CAL_KEYS.includes(k)?'front':'back');
   if (k === 'orientation') s.cardRotation = 'upright';
   if (['orientation', 'pageSize'].includes(k)) {
     // The alignment numbers belong to the layout that produced them. If the
@@ -6789,12 +6801,13 @@ $('#tab-setup').addEventListener('click', ev => {
       $('#calProfileSel').value = ''; S.calibrationProfileId = null;
       $('#calProfileName').value = '';
     }
-    save(); renderCalibrationProfiles();
+    save(); renderCalibrationProfiles();refreshCalibrationStatus();
     return;
   }
 });
 $('#tab-setup').addEventListener('input', ev => {
   const t = ev.target, k = t.dataset.k;
+  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k)){if(!t.checkValidity()||t.value.trim()===''||!Number.isFinite(+t.value))return;S.settings[k]=['backOffsetX','backOffsetY'].includes(k)&&S.settings.backOffsetUnit==='in'?+t.value*25.4:+t.value;noteCalibration(FRONT_CAL_KEYS.includes(k)?'front':'back');S.activePreset=null;save();refreshCalibrationStatus();return;}
   if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
   const n = parseFloat(t.value) || 0;
   S.settings[k] = n;
@@ -6829,7 +6842,7 @@ $('#calProfileSel').onchange = ev => {
   if (!p) {
     const statusEl = $('#calProfileStatus');
     if (statusEl) statusEl.textContent = '';
-    renderCalibrationProfiles();
+    renderCalibrationProfiles();save();refreshCalibrationStatus();
     return;
   }
   applyCalProfile(p);
@@ -6840,7 +6853,7 @@ if (newCalBtn) newCalBtn.onclick = () => {
   $('#calProfileSel').value = ''; S.calibrationProfileId = null;
   const nameBox = $('#calProfileName');
   if (nameBox) { nameBox.value = ''; nameBox.focus(); }
-  renderCalibrationProfiles();
+  renderCalibrationProfiles();save();refreshCalibrationStatus();
   toast('Ready to create new alignment profile. Adjust alignment numbers, enter a profile name, and click Save profile.');
 };
 $('#calProfileSave').onclick = () => {
@@ -6862,12 +6875,14 @@ $('#calProfileSave').onclick = () => {
   // sheet the other way round, save under the same name, and the profile holds
   // both. An old unscoped set is kept as a last-resort fallback rather than
   // being relabelled as a layout it may never have been measured on.
+  const priorStatus=getCalibrationStatus(),frontMeasured=['Manual','Measured'].includes(priorStatus.front.status),backMeasured=['Manual','Measured'].includes(priorStatus.back.status);
   const key = calSlotKey(S.settings);
   const curSlots = calSlots(target);
   const curSlot = curSlots[key] || {};
   const dupKey = `${S.settings.duplexMethod || 'manual'}/${S.settings.duplexFlip || 'long'}`;
   const byDuplex = curSlot.byDuplex ? {...curSlot.byDuplex} : {};
   byDuplex[dupKey] = {
+    backMeasured,
     backOffsetX: S.settings.backOffsetX,
     backOffsetY: S.settings.backOffsetY,
     backScaleX: S.settings.backScaleX,
@@ -6876,13 +6891,14 @@ $('#calProfileSave').onclick = () => {
     duplexFlip: S.settings.duplexFlip,
     duplexMethod: S.settings.duplexMethod
   };
-  const settings = {...curSlots, [key]: {...curSlot, ...Object.fromEntries(CAL_SLOT_KEYS.map(k => [k, S.settings[k]])), byDuplex}};
+  const settings = {...curSlots, [key]: {...curSlot, frontMeasured, ...Object.fromEntries(CAL_SLOT_KEYS.map(k => [k, S.settings[k]])), byDuplex}};
   if (target) Object.assign(target, {name, printer:S.printer, settings});
   else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
   const targetId = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
   S.calibrationProfileId = targetId;
+  if(frontMeasured)noteCalibration('front','measured');if(backMeasured)noteCalibration('back','measured');
   save();
-  renderCalibrationProfiles(targetId);
+  renderCalibrationProfiles(targetId);refreshCalibrationStatus();
   const kept = Object.keys(settings).filter(k => k !== key && k !== 'any');
   toast(`Saved the ${calSlotName(key)} alignment in "${name}".`
     + (kept.length ? ` It still holds ${kept.map(calSlotName).join(' and ')}.` : ''));
@@ -6896,7 +6912,7 @@ $('#calProfileDelete').onclick = () => {
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
   $('#calProfileName').value = '';
   $('#calProfileSel').value = ''; S.calibrationProfileId = null;
-  save(); renderCalibrationProfiles();
+  save(); renderCalibrationProfiles();refreshCalibrationStatus();
 };
 
 /* ---------- presets ---------- */
@@ -7126,19 +7142,7 @@ function syncPreviewControls() {
   if (calBadge) {
     const calStat = getCalibrationStatus(s);
     calBadge.style.display = 'inline-flex';
-    if (calStat.status === 'Measured') {
-      calBadge.textContent = 'Measured for this setup';
-      calBadge.style.color = 'var(--ok)';
-      calBadge.style.background = 'rgba(92,194,122,.15)';
-    } else if (calStat.status === 'Estimated') {
-      calBadge.textContent = 'Estimated alignment';
-      calBadge.style.color = 'var(--accent2)';
-      calBadge.style.background = 'rgba(224,163,58,.15)';
-    } else {
-      calBadge.textContent = 'Uncalibrated';
-      calBadge.style.color = 'var(--muted)';
-      calBadge.style.background = 'rgba(255,255,255,.05)';
-    }
+    calBadge.textContent=calStat.label;calBadge.title=calStat.values;calBadge.style.maxWidth='52ch';calBadge.style.whiteSpace='normal';calBadge.style.lineHeight='1.4';calBadge.style.color=calStat.status==='Estimated'?'var(--accent2)':calStat.status==='Uncalibrated'?'var(--muted)':'var(--ok)';
   }
 }
 function setPreviewFocus(on) {
@@ -7226,7 +7230,7 @@ async function drawPreview() {
   const inspCal = $('#inspCal');
   if (inspCal) {
     const cal = getCalibrationStatus(s);
-    inspCal.textContent = cal.label || cal.status;
+    inspCal.textContent = cal.label || cal.status; inspCal.title=cal.values;
     inspCal.style.color = cal.status === 'Measured' ? '#5cc27a' : cal.status === 'Estimated' ? '#f2c26b' : '#a0aab9';
   }
   if (S.mode === 'order') return drawGallery(gen,wrap,z);
@@ -7551,7 +7555,7 @@ async function runPreflight(options = {}) {
   };
 }
 
-function printJobKey() { return JSON.stringify([S.deckId, {name:deck().name, entries:deck().entries, cardback:deck().cardback}, S.settings, S.printer], (key, value) => key === 'updated' || key.startsWith('_') ? undefined : value); }
+function printJobKey() { return JSON.stringify([S.deckId, {name:deck().name, entries:deck().entries, cardback:deck().cardback, calibrationState:deck().calibrationState}, S.settings, S.printer, S.calibrationProfileId, calProfiles().find(p=>p.id===S.calibrationProfileId)], (key, value) => key === 'updated' || key.startsWith('_') ? undefined : value); }
 function buildPrintJob() {
   const key = printJobKey(), settings = structuredClone(S.settings), project = structuredClone(deck());
   const slots = buildSlots(project, settings), L = layout(settings), printer = S.printer, calibration = getCalibrationStatus(settings, project);
@@ -7727,6 +7731,7 @@ function renderGuideTab() {
       `${job.hasBacks && !slots.some(slot=>slot.back) ? 'Intentionally blank back page · ' : ''}${isCameo ? 'Cameo registration marks' : ({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks',outline:'Full card outlines',none:'No printed cut guides'}[s.guides] || 'Custom cut guides')}</span>`;
   }
 
+  jobSum?.insertAdjacentHTML('beforeend',`<br><span>${esc(job.calibration.label)}</span><br><span>${esc(job.calibration.values)}</span>`);
   const review = $('#exportReview');
   $('#barStatus').textContent = 'Checking print files…';
   $('#btnExportPdfTab').disabled = true;
@@ -8304,12 +8309,14 @@ function openDuplexWizard(state = {}) {
     const [x, y] = reading();
     if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
     s.backOffsetX = +(s.backOffsetX + rsgn * x).toFixed(3); s.backOffsetY = +(s.backOffsetY + rsgn * y).toFixed(3); s.backOffsetRel = true;
+    noteCalibration('back');
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
     $('#duplexWizardStatus').textContent = `Saved. Extra back-page offset is now X ${inUnit(s.backOffsetX)}, Y ${inUnit(s.backOffsetY)}. Print the test again to check.`;
   };
   $('#duplexWizardZero').onclick = () => {
     s.backOffsetX = 0; s.backOffsetY = 0; s.backOffsetRel = true;
+    noteCalibration('back','none');
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
     $('#duplexWizardStatus').textContent = 'Back-page correction cleared.';
@@ -8708,7 +8715,7 @@ async function makePrintDeck(writeImage = null) {
 }
 async function buildPrintDeck(writeImage, d, settings) {
   const images = Object.create(null), sources = new Map();
-  delete d.printSettings; delete d.orderSettings; delete d.importDraft;
+  delete d.printSettings; delete d.orderSettings; delete d.importDraft; delete d.calibrationState;
   if (!d.entries.some(e => e.qty > 0)) throw new Error('Add cards to the deck before sharing it.');
   const faces = [...d.entries.flatMap(e => e.faces), ...(d.cardback ? [d.cardback] : [])];
   const source = f => f.drive ? `https://cdn.mpcautofill.com/images/google_drive/full/${f.drive}.jpg?dpi=1200&jpgQuality=100` : f.png || f.normal;
@@ -8777,7 +8784,7 @@ async function importPrintDeck(data, useLayout = true) {
     if (!useLayout && settings.backImage) d.cardback = {name:'Card back', custom:settings.backImage, srcBleed:settings.customSrcBleed};
     const calibration = Object.fromEntries(CALIBRATION_KEYS.map(k => [k, S.settings[k]]));
     d.id = uid(); d.entries.forEach(e => e.uid = uid()); d.updated = Date.now();
-    delete d.printSettings; delete d.orderSettings; delete d.importDraft;
+    delete d.printSettings; delete d.orderSettings; delete d.importDraft; delete d.calibrationState;
     S.decks.push(d); activateDeck(d.id);
     if (useLayout) { S.settings = {...settings, ...calibration}; S.showCuts = !!settings.showCuts; S.activePreset = null; }
     else S.settings.backImage = null;
@@ -8897,7 +8904,7 @@ async function importServerDeck(token, data, useLayout) {
     remap(settings, ['backImage']);
     if (!useLayout && settings.backImage) d.cardback = {name:'Card back', custom:settings.backImage, srcBleed:settings.customSrcBleed};
     d.id = uid(); d.entries.forEach(e => e.uid = uid()); d.updated = Date.now();
-    delete d.printSettings; delete d.orderSettings; delete d.importDraft;
+    delete d.printSettings; delete d.orderSettings; delete d.importDraft; delete d.calibrationState;
     S.decks.push(d); activateDeck(d.id);
     if (useLayout) { S.settings = {...settings, ...calibration}; S.showCuts = !!settings.showCuts; S.activePreset = null; }
     else S.settings.backImage = null;
