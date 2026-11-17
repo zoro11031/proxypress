@@ -699,50 +699,74 @@ body[data-mode=order] .card .queue-issue-badge{font-size:12px}
 body[data-mode=order] main{grid-template-columns:280px minmax(0,1fr)}
 @media(min-width:821px){body[data-mode=order].preview-focus main{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:820px){body[data-mode=order] main{grid-template-columns:minmax(0,1fr)}.order-gallery-tools{gap:8px}.order-gallery-tools button,.order-gallery-tools select{min-height:40px}}
-/* Print setup inspector */
-body[data-mode=print] #workspaceInspector{min-width:0;overflow:auto;scrollbar-gutter:stable;padding:16px;gap:12px;scroll-padding:70px 12px 24px}
+/* Print setup inspector quick summary */
+body[data-mode=print] #workspaceInspector{min-width:0;overflow:auto;scrollbar-gutter:stable;padding:16px;gap:12px}
 #workspaceInspector *,#workspaceSetupSlot,#calDrawer,#calProfileCards{min-width:0;max-width:100%;box-sizing:border-box}
 #workspaceInspector button,#workspaceInspector summary,#workspaceInspector label,#workspaceInspector p,#workspaceInspector b{white-space:normal;overflow-wrap:anywhere}
 #workspaceInspector button{min-height:36px;line-height:1.4}
-#workspaceInspector .inspector-hdr{position:sticky;top:-16px;z-index:4;padding:12px 0;background:var(--panel)}
+#workspaceInspector .inspector-hdr{position:sticky;top:-16px;z-index:4;padding:12px 0;background:var(--panel);display:flex;align-items:center;justify-content:space-between}
+#workspaceInspector .inspector-hdr h3{margin:0;font-size:15px;font-weight:700}
 #workspaceInspector .inspector-summary{border:0;background:none;padding:0;display:grid;gap:10px}
-#workspaceInspector .insp-row{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;align-items:center}
-#workspaceInspector .insp-row button{text-align:left;padding:6px 8px;font-size:13px}
+#workspaceInspector .insp-row{display:grid;grid-template-columns:75px minmax(0,1fr);gap:8px;align-items:center}
+#workspaceInspector .insp-row button{text-align:left;padding:6px 8px;font-size:12.5px}
 #workspaceInspector .insp-row b{text-align:left;font-size:12px}
-#inspectorEntrypoints{display:grid;gap:8px}
-#workspaceInspector .pane{overflow:visible;padding:0}
-#workspaceInspector .adv,#workspaceInspector .hero-card,#workspaceInspector .cal-profile-box,#workspaceInspector .setup-hero-pill{border:0!important;box-shadow:none!important;background:none!important;padding:0!important;border-radius:0!important}
-#workspaceInspector details{margin:0;padding:12px 0;border:0;border-top:1px solid var(--line);border-radius:0}
-#workspaceInspector .setup-task[open]>summary::before{transform:rotate(90deg)}
-#workspaceInspector summary{padding:6px 0;font-size:14px;font-weight:600}
-#workspaceSetupDetails{display:none}
-#workspaceCutDetails{display:none}
-body.settings-open #workspaceSetupDetails,body.settings-open #workspaceCutDetails{display:block}
-body.settings-open #workspaceSetupDetails{padding:0;border:0}
-body.settings-open #workspaceSetupDetails>summary{display:none}
-body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{display:none}
-#workspaceInspector .grid2,#workspaceInspector .test-sheets-cluster,#workspaceInspector .pick.presets,#workspaceInspector .cut-options{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px}
-#workspaceInspector .field{margin:0 0 12px}
-#workspaceInspector .field.full{grid-column:1/-1}
-#workspaceInspector .row{flex-wrap:wrap}
-#workspaceInspector input:not([type=checkbox]):not([type=radio]),#workspaceInspector select{max-width:100%;min-width:0;width:100%}
-#workspaceInspector .drv{table-layout:fixed;width:100%;overflow-wrap:anywhere}
-#workspaceInspector .drv th,#workspaceInspector .drv td{width:50%;white-space:normal;word-break:normal}
-#calNameRow{display:grid;grid-template-columns:minmax(0,1fr)}
+#inspectorEntrypoints{display:grid;gap:8px;margin-top:4px}
+#inspectorEntrypoints button{text-align:left;padding:8px 10px;font-size:13px}
+
+/* Dedicated Print Settings view */
+#printSettingsView{display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;background:var(--bg);padding:16px 24px 60px;box-sizing:border-box}
+body.print-settings-active #stage{display:none!important}
+body.print-settings-active #printSettingsView{display:flex!important}
+
+.settings-view-hdr{display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap}
+.settings-view-hdr h2{margin:0;font-size:18px;font-weight:700;color:var(--text)}
+.settings-nav-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow-x:auto}
+.settings-nav-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:13.5px;font-weight:600;color:var(--muted);border-radius:0;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.settings-nav-tabs button:hover{color:var(--text)}
+.settings-nav-tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.settings-pages-wrap{display:flex;flex-direction:column;gap:16px}
+.settings-page{display:none;flex-direction:column;gap:16px;max-width:960px}
+.settings-page.active{display:flex}
+.settings-section{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 20px}
+.settings-section h3{margin:0;font-size:15px;font-weight:600;color:var(--text);border-bottom:1px solid var(--hair);padding-bottom:8px}
+
+/* Alignment page */
+.active-setup-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:12px}
+.active-setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.setup-item{display:flex;flex-direction:column;gap:3px}
+.setup-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.active-values-banner{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;padding-top:10px;border-top:1px solid var(--hair)}
+.val-col{display:flex;flex-direction:column;gap:4px}
+.val-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.src-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--sunk);color:var(--muted)}
+.src-badge.measured{background:#15392b;color:#5cc27a}
+.src-badge.manual{background:#172b4d;color:#5b9aff}
+.src-badge.estimated{background:#3d2f14;color:#f2c26b}
+.val-text{font-size:12px;color:var(--text);font-family:monospace}
+
+.alignment-split-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.alignment-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:14px}
+.align-fields-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.align-fields-grid .field.full{grid-column:1/-1}
+.test-action-btn{width:100%;text-align:center;padding:8px 12px;font-size:13px;min-height:36px}
+.alignment-commit-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md)}
+.warn-inline{font-size:12.5px;color:var(--bad,#ff6b6b);padding:4px 8px;background:#3b1818;border-radius:4px;border:1px solid #722424}
+
 #calProfileActions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
-#calProfileActions button{font-size:13px!important;padding:8px!important}
 #calProfileCards .preset-item{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px 0;border-bottom:1px solid var(--line)}
 #calProfileCards .preset-item .del{position:static;transform:none;justify-self:end;width:auto;padding:6px 10px}
 #calProfileCards button b,#calProfileCards button span{display:block;padding-right:0;white-space:normal;text-align:left;line-height:1.5}
 #calProfileCards .pick button{height:auto;min-height:48px;text-align:left;padding:10px}
-#activeCalibrationProfile{padding:0 0 16px;line-height:1.6;overflow-wrap:anywhere}
-#activeCalibrationProfile b{display:block}
-#workspaceInspector .test-sheets-cluster button{width:100%;grid-column:1/-1;padding:10px;text-align:left;font-size:14px}
-#workspaceInspector .setup-task-body{padding:12px 0 20px}
-@media(min-width:1400px){body[data-mode=print].settings-open:not(.preview-focus) main{grid-template-columns:280px minmax(0,1fr) 460px!important}body[data-mode=print].settings-open #workspaceInspector{display:flex!important;position:relative;inset:auto;width:auto;box-shadow:none}}
-@media(min-width:821px) and (max-width:1399px){body[data-mode=print].settings-open #workspaceInspector{display:flex!important;position:fixed;right:0;top:var(--drawer-top);bottom:var(--drawer-bottom);width:min(520px,calc(100vw - 36px));z-index:40;box-shadow:-12px 0 40px #0008}}
-@media(max-width:820px){body[data-mode=print].settings-open #workspaceInspector{display:flex!important;width:100%;padding-bottom:24px}#calProfileActions{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:820px){body[data-mode=print] #proofCalBadge{display:inline-flex!important;max-width:100%!important;flex-basis:100%;font-size:12px}}
+
+@media(min-width:1101px){
+  body[data-mode=print].print-settings-active main{grid-template-columns:clamp(250px,22vw,280px) minmax(0,1fr) clamp(250px,22vw,280px)!important}
+  body[data-mode=print].print-settings-active #workspaceInspector{display:flex!important}
+}
+@media(max-width:1100px){
+  body[data-mode=print].print-settings-active main{grid-template-columns:minmax(0,1fr)!important}
+  body[data-mode=print].print-settings-active #workspaceInspector,body[data-mode=print].print-settings-active #workspaceCards{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -859,67 +883,7 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       </details>
     </div>
 
-    <div class="pane" id="tab-setup">
-      <div class="step-hdr">
-        <h2>Print setup &amp; paper</h2>
-        <p class="hint">Configure your printer, paper size, and card layout.</p>
-      </div>
-      <h3>Paper &amp; sheet size</h3>
-      <div class="setup-hero-pill" id="setupSummary"></div>
-      <div id="presetGrid"></div>
-      <details class="adv" id="customPaperDrawer">
-        <summary>Custom paper dimensions &amp; manual orientation</summary>
-        <p class="hint" style="margin-top:6px">For non-standard paper (Tabloid, Legal, A3, A5) or custom millimetre sheet dimensions.</p>
-        <div class="grid2" id="paperForm" style="margin-top:8px"></div>
-      </details>
-      <h3>Color &amp; stock tuning</h3>
-      <div id="colorSliders"></div>
-      <h3>Card &amp; print options</h3>
-      <div id="settingsForm"></div>
-      <h3>Printer &amp; driver</h3>
-      <div class="field full">
-        <label for="printerSel">Printer technology</label>
-        <select id="printerSel" aria-label="Printer technology"></select>
-      </div>
-      <div id="printerGuide"></div>
-      <h3>Calibration &amp; advanced</h3>
-      <div class="adv" id="calDrawer">
-        <h3>Printer alignment &amp; test sheets</h3>
-        <p class="hint">Two test sheets, in this order: the <b>alignment sheet</b> calibrates front size and position; the <b>double-sided test</b> lines up backs with fronts.</p>
-        <div class="test-sheets-cluster" style="display:grid;gap:8px;margin:12px 0">
-          <button type="button" id="btnCal" title="Print it once, measure the two marked lines, and type what you measured in">1. Alignment sheet</button>
-          <button type="button" id="btnDuplexTest" title="Two pages: print one on each side of a sheet, then read the number off the back">2. Double-sided test</button>
-          <button type="button" id="btnDuplexWizard" class="primary" title="Walks through the double-sided test and does the arithmetic for you">Duplex calibration wizard</button>
-        </div>
-        <p class="hint" style="font-size:11.5px">Print test sheets at <b>Actual size / 100%</b>, never "Fit to page".</p>
-        <div class="cal-profile-box" style="margin-top:12px;padding:12px 14px;background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-            <div>
-              <b style="font-size:12.5px;color:var(--text)">Printer alignment profiles</b>
-              <div class="hint" style="font-size:11px;margin-top:1px">Saves paper shift, scale, and duplex back-side alignment for your printer.</div>
-            </div>
-            <div class="row" style="gap:6px">
-              <button type="button" id="calProfileNew" class="icon" style="font-size:11.5px;padding:4px 9px;cursor:pointer">+ New profile</button>
-              <button type="button" id="calProfileSave" class="primary icon" style="font-size:11.5px;padding:4px 10px;cursor:pointer">Save profile</button>
-            </div>
-          </div>
-          <div class="row" id="calNameRow" style="gap:6px;margin:8px 0 10px">
-            <input id="calProfileName" type="text" placeholder="Profile name (e.g. Canon cardstock)" style="flex:1" aria-label="Profile name">
-            <button type="button" id="calProfileDelete" class="danger icon" title="Delete selected profile">Delete</button>
-          </div>
-          <select id="calProfileSel" style="display:none"></select>
-          <div id="calProfileCards"></div>
-          <p class="hint" id="calProfileStatus" style="margin:8px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
-        </div>
-        <details style="margin:8px 0 10px;font-size:12px">
-          <summary style="color:var(--muted);cursor:pointer">How alignment profiles work across orientations &amp; sheet sizes</summary>
-          <p class="hint" style="margin-top:6px">A profile remembers printer offsets and back-page drift for one machine and stock. It stores independent settings for each sheet size and orientation: calibrate landscape and portrait under the same profile name, and it automatically applies the correct numbers whenever you change layouts.</p>
-        </details>
-        <details id="alignmentOverlayDetails"><summary>Expected front/back alignment</summary><label class="check"><input type="checkbox" id="proofAlignment"> Show on proof</label><label>Overlay opacity <input id="alignmentOpacity" type="range" min="10" max="100" value="60"></label><div id="alignmentOverlay"></div></details>
-        <div class="grid2" id="calForm"></div>
-      </div>
-      <div id="advSettings"></div>
-    </div>
+    <div class="pane" id="tab-setup"></div>
 
     <div class="pane" id="tab-cutting">
       <div class="step-hdr">
@@ -1269,7 +1233,6 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
         <button type="button" id="btnProofBack">Back</button>
         <button type="button" id="btnProofGuides">Guides</button>
       </div>
-      <span id="proofCalBadge" role="status" aria-live="polite" class="cal-badge" style="margin-left:auto;font-size:11.5px;padding:2px 8px;border-radius:12px;font-weight:600;display:none;align-items:center;gap:4px"></span>
     </div>
     <div class="toolbar">
       <div class="toolbar-cluster print-only quick-paper-cluster" style="display:none">
@@ -1298,20 +1261,242 @@ body.settings-open .inspector-summary,body.settings-open #inspectorEntrypoints{d
       <div id="proofCardTrim" class="proof-card-trim">63 × 88 mm trim</div><button type="button" id="btnProofChangeArt">Change art</button>
     </div>
   </section>
+
+  <section id="printSettingsView" class="print-only" style="display:none">
+    <div class="settings-view-hdr">
+      <button type="button" id="btnBackToProof" class="primary icon" aria-label="Back to proof">← Back to proof</button>
+      <div class="settings-view-title-wrap">
+        <h2 id="settingsViewTitle">Print Settings</h2>
+      </div>
+    </div>
+    <nav class="settings-nav-tabs" role="tablist" aria-label="Print Settings tabs">
+      <button type="button" role="tab" id="tabNav-layout" data-settings-page="layout" class="active" aria-selected="true">Layout</button>
+      <button type="button" role="tab" id="tabNav-printer" data-settings-page="printer" aria-selected="false">Printer &amp; paper</button>
+      <button type="button" role="tab" id="tabNav-alignment" data-settings-page="alignment" aria-selected="false">Alignment</button>
+      <button type="button" role="tab" id="tabNav-color" data-settings-page="color" aria-selected="false">Color</button>
+      <button type="button" role="tab" id="tabNav-cutting" data-settings-page="cutting" aria-selected="false">Cutting</button>
+    </nav>
+
+    <div class="settings-pages-wrap">
+      <!-- Layout Page -->
+      <div class="settings-page active" id="settingsPage-layout" role="tabpanel" aria-labelledby="tabNav-layout">
+        <div class="settings-section">
+          <h3>Sheet &amp; grid summary</h3>
+          <div class="setup-hero-pill" id="setupSummary"></div>
+          <div id="presetGrid"></div>
+        </div>
+        <div class="settings-section" id="setupGroup-paper">
+          <h3>Sheet dimensions &amp; orientation</h3>
+          <div class="grid2" id="paperForm"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Card layout &amp; sides</h3>
+          <div id="settingsForm"></div>
+        </div>
+        <div id="advSettings"></div>
+      </div>
+
+      <!-- Printer & paper Page -->
+      <div class="settings-page" id="settingsPage-printer" role="tabpanel" aria-labelledby="tabNav-printer" style="display:none">
+        <div class="settings-section" id="setupGroup-printer">
+          <h3>Printer technology &amp; model</h3>
+          <div class="field full">
+            <label for="printerSel">Printer technology</label>
+            <select id="printerSel" aria-label="Printer technology"></select>
+          </div>
+          <div id="printerGuide"></div>
+        </div>
+      </div>
+
+      <!-- Alignment Page -->
+      <div class="settings-page" id="settingsPage-alignment" role="tabpanel" aria-labelledby="tabNav-alignment" style="display:none">
+        <div class="active-setup-card" id="alignmentActiveCard">
+          <div class="active-setup-grid">
+            <div class="setup-item">
+              <span class="setup-lbl">Active printer</span>
+              <b id="alignPrinterName">Printer</b>
+            </div>
+            <div class="setup-item">
+              <span class="setup-lbl">Paper &amp; feed</span>
+              <b id="alignPaperFeed">Letter · Landscape</b>
+            </div>
+            <div class="setup-item">
+              <span class="setup-lbl">Duplex mode</span>
+              <b id="alignDuplexMode">Manual duplex · Long-edge flip</b>
+            </div>
+          </div>
+          <div class="active-values-banner">
+            <div class="val-col">
+              <div class="val-header">
+                <b>Front active values</b>
+                <span id="alignFrontSourceBadge" class="src-badge">No correction set</span>
+              </div>
+              <div id="alignFrontValuesText" class="val-text">X: 0.00 mm · Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
+            </div>
+            <div class="val-col">
+              <div class="val-header">
+                <b>Back active values</b>
+                <span id="alignBackSourceBadge" class="src-badge">No correction set</span>
+              </div>
+              <div id="alignBackValuesText" class="val-text">Extra X: 0.00 mm · Extra Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alignment-split-grid" id="setupGroup-calibration">
+          <div class="alignment-col" id="alignFrontCol">
+            <div class="col-hdr">
+              <h3>Front corrections</h3>
+              <p class="hint">Adjusts position and scaling for the front of every card on the sheet.</p>
+            </div>
+            <div class="align-fields-grid">
+              <div class="field">
+                <label for="input-offsetX">Printer offset X (mm)</label>
+                <input type="number" step="0.05" id="input-offsetX" data-align="offsetX" value="0">
+                <span class="hint">Shift print right (+) or left (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-offsetY">Printer offset Y (mm)</label>
+                <input type="number" step="0.05" id="input-offsetY" data-align="offsetY" value="0">
+                <span class="hint">Shift print down (+) or up (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-scaleX">Horizontal scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-scaleX" data-align="scaleX" value="100">
+              </div>
+              <div class="field">
+                <label for="input-scaleY">Vertical scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-scaleY" data-align="scaleY" value="100">
+              </div>
+              <div class="field full">
+                <label for="input-printRotate">Print rotation (°)</label>
+                <input type="number" step="0.1" min="-180" max="180" id="input-printRotate" data-align="printRotate" value="0">
+              </div>
+            </div>
+            <div class="col-actions" style="margin-top:auto">
+              <button type="button" id="btnCal" class="test-action-btn">Print alignment sheet (1 page)</button>
+              <p class="hint" style="margin-top:4px">Measure marked lines and top-left cross with a ruler to calculate offsets.</p>
+            </div>
+          </div>
+
+          <div class="alignment-col" id="alignBackCol">
+            <div class="col-hdr">
+              <h3>Extra back corrections</h3>
+              <p class="hint">Extra shift and scale added on the reverse pass to line up backs with fronts.</p>
+            </div>
+            <div class="align-fields-grid">
+              <div class="field">
+                <label for="input-backOffsetX">Extra back offset X (mm)</label>
+                <input type="number" step="0.05" id="input-backOffsetX" data-align="backOffsetX" value="0">
+                <span class="hint">Shift back right (+) or left (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-backOffsetY">Extra back offset Y (mm)</label>
+                <input type="number" step="0.05" id="input-backOffsetY" data-align="backOffsetY" value="0">
+                <span class="hint">Shift back down (+) or up (-)</span>
+              </div>
+              <div class="field">
+                <label for="input-backScaleX">Back horizontal scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-backScaleX" data-align="backScaleX" value="100">
+              </div>
+              <div class="field">
+                <label for="input-backScaleY">Back vertical scale (%)</label>
+                <input type="number" step="0.1" min="50" max="150" id="input-backScaleY" data-align="backScaleY" value="100">
+              </div>
+              <div class="field full">
+                <label for="input-backRotate">Back rotation (°)</label>
+                <input type="number" step="0.1" min="-180" max="180" id="input-backRotate" data-align="backRotate" value="0">
+              </div>
+            </div>
+            <div class="col-actions" style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+              <button type="button" id="btnDuplexTest" class="test-action-btn">Print double-sided test (2 pages)</button>
+              <button type="button" id="btnDuplexWizard" class="primary test-action-btn">Duplex calibration wizard</button>
+              <p class="hint" style="margin-top:4px">Print double-sided and check the back hash marks for duplex drift.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="alignment-commit-bar">
+          <div class="row" style="gap:8px">
+            <button type="button" id="btnApplyAlignment" class="primary">Apply changes</button>
+            <button type="button" id="btnResetAlignment">Revert</button>
+          </div>
+          <div id="alignmentInputError" class="warn-inline" style="display:none" role="alert"></div>
+        </div>
+
+        <details class="adv" id="alignmentOverlayDetails" style="margin:8px 0">
+          <summary>Expected front/back alignment overlay</summary>
+          <div class="row" style="gap:12px;margin:8px 0">
+            <label class="check"><input type="checkbox" id="proofAlignment"> Show on proof</label>
+            <label>Overlay opacity <input id="alignmentOpacity" type="range" min="10" max="100" value="60"></label>
+          </div>
+          <div id="alignmentOverlay"></div>
+        </details>
+
+        <div class="saved-profiles-section settings-section">
+          <h3>Saved alignment profiles</h3>
+          <p class="hint">Saved profiles store printer offsets and duplex drift for specific printer and paper setups.</p>
+          <div class="row" style="gap:8px;flex-wrap:wrap;margin:8px 0">
+            <input id="calProfileName" type="text" placeholder="Profile name (e.g. Canon cardstock)" style="flex:1;min-width:200px" aria-label="Profile name">
+            <button type="button" id="calProfileSave" class="primary">Save profile</button>
+            <button type="button" id="calProfileNew">+ New profile</button>
+            <button type="button" id="calProfileDelete" class="danger">Delete</button>
+          </div>
+          <select id="calProfileSel" style="display:none"></select>
+          <div id="calProfileCards"></div>
+          <p class="hint" id="calProfileStatus" style="margin:4px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
+        </div>
+
+        <div class="grid2" id="calForm" style="display:none"></div>
+      </div>
+
+      <!-- Color Page -->
+      <div class="settings-page" id="settingsPage-color" role="tabpanel" aria-labelledby="tabNav-color" style="display:none">
+        <div class="settings-section" id="setupGroup-color">
+          <h3>Stock presets</h3>
+          <div id="stockPresetGrid"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Color tuning</h3>
+          <div id="colorSliders"></div>
+          <div class="row" style="gap:8px;margin-top:12px">
+            <button type="button" id="btnInspFoilPreview" class="primary">Foil tone preview…</button>
+            <button type="button" id="btnInspFoilTestSheet">Print foil test sheet</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cutting Page -->
+      <div class="settings-page" id="settingsPage-cutting" role="tabpanel" aria-labelledby="tabNav-cutting" style="display:none">
+        <div class="settings-section" id="workspaceCutDetails">
+          <h3>Choose cutting tool</h3>
+          <div id="cutOptionsMount"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <aside id="workspaceInspector" class="print-only">
     <div class="inspector-hdr">
-      <h3>Setup</h3><button type="button" id="btnCloseSetup" aria-label="Close setup">Close</button>
+      <h3>Setup summary</h3>
+      <button type="button" id="btnCloseSetup" aria-label="Close setup">Close</button>
     </div>
     <div class="inspector-summary">
-      <div class="insp-row"><span class="insp-lbl">Paper</span><button type="button" id="inspPaper">Letter · Landscape</button></div>
-      <div class="insp-row"><span class="insp-lbl">Layout</span><button type="button" id="inspLayout">4 × 2 · 8 per sheet</button></div>
-      <div class="insp-row"><span class="insp-lbl">Sides</span><button type="button" id="inspSides">Single-sided</button></div>
-      <div class="insp-row"><span class="insp-lbl">Cut</span><button type="button" id="inspCut">Rotary trimmer</button></div>
-      <div class="insp-row"><span class="insp-lbl">Calibration</span><b id="inspCal" style="color:var(--ok)">Measured for this setup</b></div>
+      <div class="insp-row"><span class="insp-lbl">Paper</span><button type="button" id="inspPaper" data-open-page="printer">Letter · Landscape</button></div>
+      <div class="insp-row"><span class="insp-lbl">Layout</span><button type="button" id="inspLayout" data-open-page="layout">4 × 2 · 8 per sheet</button></div>
+      <div class="insp-row"><span class="insp-lbl">Sides</span><button type="button" id="inspSides" data-open-page="layout">Single-sided</button></div>
+      <div class="insp-row"><span class="insp-lbl">Cut</span><button type="button" id="inspCut" data-open-page="cutting">Rotary trimmer</button></div>
+      <div class="insp-row"><span class="insp-lbl">Alignment</span><button type="button" id="inspCal" data-open-page="alignment">Front: X 0, Y 0 mm</button></div>
     </div>
-    <div id="inspectorEntrypoints"><button data-setup-group="printer">Printer &amp; driver</button><button data-setup-group="color">Color &amp; stock</button><button data-setup-group="calibration">Calibration &amp; test sheets</button></div>
-    <details class="adv" id="workspaceSetupDetails"><summary>Paper, layout &amp; printer</summary><div id="workspaceSetupSlot"></div></details>
-    <details class="adv" id="workspaceCutDetails"><summary>Cut, guides &amp; registration</summary><div id="workspaceCutSlot"></div></details>
+    <div id="inspectorEntrypoints">
+      <button type="button" data-open-page="layout" data-setup-group="paper">Layout</button>
+      <button type="button" data-open-page="printer" data-setup-group="printer">Printer &amp; paper</button>
+      <button type="button" data-open-page="alignment" data-setup-group="calibration">Alignment &amp; test sheets</button>
+      <button type="button" data-open-page="color" data-setup-group="color">Color &amp; stock</button>
+      <button type="button" data-open-page="cutting" data-setup-group="cut">Cutting</button>
+    </div>
+    <div id="workspaceSetupDetails" style="display:none"><div id="workspaceSetupSlot"></div></div>
+    <div id="workspaceCutSlot" style="display:none"></div>
   </aside>
 </main>
 <footer id="workspaceBar">
@@ -1333,19 +1518,12 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 $('#tab-cards').insertBefore($('.deck-manage'), $('#importDrawer'));
-$('#workspaceSetupSlot').appendChild($('#tab-setup'));
-$('#workspaceCutSlot').appendChild($('#tab-cutting'));
-const setupTasks=[['paper','Paper & layout'],['printer','Printer & driver'],['color','Color & stock'],['calibration','Calibration & test sheets']];
-const setupNodes=[...$('#tab-setup').children], taskBodies=new Map();
-for(const [key,label] of setupTasks){const details=document.createElement('details');details.className='setup-task';details.id='setupGroup-'+key;details.innerHTML=`<summary>${label}</summary><div class="setup-task-body"></div>`;$('#tab-setup').appendChild(details);taskBodies.set(key,details.lastElementChild);}
-let setupTask='paper';
-for(const node of setupNodes){if(node.classList.contains('step-hdr')){node.remove();continue;}if(node.tagName==='H3'){const text=node.textContent;setupTask=text.startsWith('Color')?'color':text.startsWith('Printer')?'printer':text.startsWith('Calibration')?'calibration':'paper';if(!text.startsWith('Card')){node.remove();continue;}}taskBodies.get(setupTask).appendChild(node);}
-const stockPresets=document.createElement('div');stockPresets.id='stockPresetGrid';taskBodies.get('color').prepend(stockPresets);
-$('#workspaceCutDetails').classList.add('setup-task');$('#workspaceCutDetails').querySelector('summary').textContent='Cut & registration';
-const profileActions=document.createElement('div');profileActions.id='calProfileActions';for(const id of ['calProfileNew','calProfileSave','calProfileDelete'])profileActions.appendChild($('#'+id));$('#calNameRow').after(profileActions);
-const activeProfile=document.createElement('div');activeProfile.id='activeCalibrationProfile';$('#calDrawer').prepend(activeProfile);activeProfile.after($('.cal-profile-box'));
-
-for (const id of ['tab-guide','tab-order','tab-data']) $('#workspaceParking').appendChild($('#' + id));
+const cutMount = $('#cutOptionsMount'), tabCutting = $('#tab-cutting');
+if (cutMount && tabCutting) {
+  const kids = [...tabCutting.children].filter(el => !el.classList.contains('step-hdr'));
+  kids.forEach(el => cutMount.appendChild(el));
+}
+for (const id of ['tab-setup','tab-cutting','tab-guide','tab-order','tab-data']) $('#workspaceParking').appendChild($('#' + id));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SHARE_TOKEN = location.pathname.match(/^\/share\/([A-Za-z0-9_-]{32})(?:\/|$)/)?.[1];
 const serverPath = path => (SHARE_TOKEN ? '/share/' + SHARE_TOKEN : '') + path;
@@ -6457,13 +6635,14 @@ function renderSettings() {
   const advEl = $('#advSettings');
   if (advEl) advEl.innerHTML = `<details class="adv" id="advDrawer" ${S.advOpen ? 'open' : ''}><summary>Advanced layout &amp; export quality${changed ? ` <span class="tag">${changed} changed</span>` : ''}</summary>${block(true)}<div class="row" style="margin-top:12px"><button data-advreset>Reset advanced to defaults</button></div></details>`;
 
-  const form = $('#settingsForm'), st = form.closest('.pane').scrollTop;
-  form.innerHTML = html;
-  form.closest('.pane').scrollTop = st;
+  const form = $('#settingsForm'), scrollParent = form?.closest('.pane') || form?.closest('#printSettingsView'), st = scrollParent ? scrollParent.scrollTop : 0;
+  if (form) form.innerHTML = html;
+  if (scrollParent) scrollParent.scrollTop = st;
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
   renderCalibrationProfiles();
   renderColorSliders();
+  updateInspectorSummary();
   if(focused){$('[data-k="'+CSS.escape(focused)+'"]',panel)?.focus({preventScroll:true});panel.scrollTop=scroll;}
 }
 // What a profile keeps, and for which layout. Every alignment number is in the
@@ -6522,9 +6701,14 @@ function calSlotFor(p, s) {
     if (res.byDuplex && res.byDuplex[dupKey]) {
       res = {...res, ...res.byDuplex[dupKey]};
     }
-    const hasDuplex=!!rawSet.byDuplex?.[dupKey],backMeasured=hasDuplex && rawSet.byDuplex[dupKey].backMeasured!==false && ['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'].some(k=>Object.hasOwn(rawSet.byDuplex[dupKey],k)&&Number.isFinite(rawSet.byDuplex[dupKey][k]));
+    const hasDuplex=!!rawSet.byDuplex?.[dupKey];
+    const targetSet = hasDuplex ? {...rawSet, ...rawSet.byDuplex[dupKey]} : rawSet;
+    const hasBack = ['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'].some(k=>Object.hasOwn(targetSet,k)&&Number.isFinite(targetSet[k]));
+    const backMeasured = hasDuplex && rawSet.byDuplex[dupKey].backMeasured === true && hasBack;
     if (rawSet.byDuplex && !hasDuplex) Object.assign(res, {backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
-    return {set: res, from, key, backMeasured, frontMeasured:rawSet.frontMeasured!==false && ['offsetX','offsetY','scaleX','scaleY','printRotate'].some(k=>Object.hasOwn(rawSet,k)&&Number.isFinite(rawSet[k])), status: from === 'exact' ? 'Measured' : from === 'any' ? 'Legacy' : 'Estimated'};
+    const hasFront = ['offsetX','offsetY','scaleX','scaleY','printRotate'].some(k=>Object.hasOwn(rawSet,k)&&Number.isFinite(rawSet[k]));
+    const frontMeasured = rawSet.frontMeasured === true && hasFront;
+    return {set: res, from, key, hasFront, hasBack, backMeasured, frontMeasured, status: from === 'exact' ? ((frontMeasured || backMeasured) ? 'Measured' : 'Saved') : from === 'any' ? 'Legacy' : 'Estimated'};
   };
 
   if (slots[want]) return applySlot(slots[want], 'exact', want);
@@ -6549,25 +6733,114 @@ function cleanCalibrationState(raw){
 function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, profileId = S.calibrationProfileId) {
   const p=calProfiles().find(profile=>profile.id===profileId && (!profile.printer || profile.printer===printer)),got=p&&calSlotFor(p,s);
   const sideStatus=(side,keys)=>{
-    const back=side==='back',record=d.calibrationState?.[side],same=values=>values && keys.every(k=>Number.isFinite(values[k]??DEFAULTS[k])&&Math.abs((values[k]??DEFAULTS[k])-s[k])<0.00001),neutral=keys.every(k=>s[k]===DEFAULTS[k]);
-    let status='Uncalibrated',source='No recorded measurement';
-    const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
-    if(recordExact){status=record.kind==='none'?'Uncalibrated':record.kind==='manual'?'Manual':'Measured';source=record.kind==='manual'?'Entered alignment':'Recorded alignment';}
-    else if(got?.set && same(got.set) && got.from==='exact' && (back?got.backMeasured:got.frontMeasured)){status='Measured';source=p.name;}
-    else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
-    else if(!neutral){status='Estimated';source=got?.set?p.name:'Carried alignment';}
-    const label={Manual:'Manual alignment applied',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
+    const back=side==='back',record=d?.calibrationState?.[side],same=values=>values && keys.every(k=>Number.isFinite(values[k]??DEFAULTS[k])&&Math.abs((values[k]??DEFAULTS[k])-s[k])<0.00001),neutral=keys.every(k=>Math.abs(s[k]-DEFAULTS[k])<0.00001);
+    const profHasSide=back?(got?.hasBack??false):(got?.hasFront??false),profMeasured=back?got?.backMeasured:got?.frontMeasured;
+    let status='Uncalibrated',source='No correction set';
+    if(neutral){status='Uncalibrated';source='No correction set';}
+    else {
+      const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
+      if(recordExact){status=record.kind==='measured'?'Measured':'Manual';source=record.kind==='measured'?'Recorded measurement':'Entered alignment';}
+      else if(profHasSide && got?.set && same(got.set) && got.from==='exact'){status=profMeasured?'Measured':'Saved';source=p.name;}
+      else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
+      else if(profHasSide && got?.set && same(got.set)){status='Estimated';source=got.from==='turned'?'Turned from other orientation':'Carried alignment';}
+      else {status='Manual';source='Entered alignment';}
+    }
+    const label={Manual:'Manual alignment applied',Saved:'Saved profile',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
     return {status,label,source,values:Object.fromEntries(keys.map(k=>[k,s[k]])),x:s[back?'backOffsetX':'offsetX'],y:s[back?'backOffsetY':'offsetY']};
   };
   const front=sideStatus('front',FRONT_CAL_KEYS),back=sideStatus('back',BACK_CAL_KEYS),hasBacks=buildSlots(d,s).some(slot=>slot.back),sides=hasBacks?[front,back]:[front];
-  const status=sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
+  const status=sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.some(side=>side.status==='Saved')?'Saved':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
   const label='Front: '+front.label+(hasBacks?' · Back: '+back.label:'');
   const values='Front: X '+front.x+' mm, Y '+front.y+' mm, scale '+s.scaleX+' / '+s.scaleY+'%, rotation '+s.printRotate+'°'+(hasBacks?' · Back: extra X '+back.x+' mm, Y '+back.y+' mm, scale '+s.backScaleX+' / '+s.backScaleY+'%, rotation '+s.backRotate+'°':'');
   return {status,label,values,hasBacks,from:got?.from || 'none',front,back};
 }
+function updateInspectorSummary() {
+  const s = S.settings, L = layout();
+  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const hasBacks = buildSlots(deck(), s).some(slot => slot.back);
+
+  const inspPaper = $('#inspPaper');
+  if (inspPaper) inspPaper.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
+
+  const inspLayout = $('#inspLayout');
+  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} per sheet`;
+
+  const inspSides = $('#inspSides');
+  if (inspSides) inspSides.textContent = hasBacks ? (s.duplexMethod === 'auto' ? 'Auto duplex' : 'Manual duplex') : 'Single-sided';
+
+  const inspCut = $('#inspCut');
+  if (inspCut) inspCut.textContent = s.silhouette ? 'Silhouette Cameo' : s.showCuts ? 'Rotary trimmer' : 'No guides';
+
+  const inspCal = $('#inspCal');
+  if (inspCal) {
+    const calStat = getCalibrationStatus(s);
+    inspCal.textContent = calStat.label;
+    inspCal.title = calStat.values;
+    inspCal.style.color = (calStat.status === 'Measured' || calStat.status === 'Saved') ? 'var(--ok)' : calStat.status === 'Estimated' ? 'var(--accent2)' : calStat.status === 'Manual' ? 'var(--accent)' : 'inherit';
+  }
+}
+function refreshAlignmentPage() {
+  const s = S.settings;
+  const p = printerOf(S.printer);
+  const L = layout();
+  const calStat = getCalibrationStatus(s);
+  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  const hasBacks = buildSlots(deck(), s).some(slot => slot.back);
+
+  const printerEl = $('#alignPrinterName');
+  if (printerEl) printerEl.textContent = p.name.replace(/ \(.*\)$/, '');
+  const paperEl = $('#alignPaperFeed');
+  if (paperEl) paperEl.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
+  const dupEl = $('#alignDuplexMode');
+  if (dupEl) dupEl.textContent = !hasBacks ? 'Single-sided job' : `${s.duplexMethod === 'auto' ? 'Automatic duplex' : 'Manual duplex'} · ${s.duplexFlip === 'short' ? 'Short-edge flip' : 'Long-edge flip'}`;
+
+  const frontBadge = $('#alignFrontSourceBadge');
+  if (frontBadge) {
+    frontBadge.textContent = calStat.front.label + (calStat.front.source && calStat.front.source !== 'No correction set' ? ` (${calStat.front.source})` : '');
+    frontBadge.className = 'src-badge ' + (calStat.front.status === 'Measured' ? 'measured' : calStat.front.status === 'Saved' ? 'saved' : calStat.front.status === 'Estimated' ? 'estimated' : calStat.front.status === 'Manual' ? 'manual' : '');
+  }
+  const frontTxt = $('#alignFrontValuesText');
+  if (frontTxt) {
+    frontTxt.textContent = `Offset X: ${calStat.front.x >= 0 ? '+' : ''}${calStat.front.x.toFixed(2)} mm · Offset Y: ${calStat.front.y >= 0 ? '+' : ''}${calStat.front.y.toFixed(2)} mm · Scale: ${s.scaleX.toFixed(1)}% / ${s.scaleY.toFixed(1)}% · Rotation: ${s.printRotate.toFixed(1)}°`;
+  }
+
+  const backBadge = $('#alignBackSourceBadge');
+  if (backBadge) {
+    backBadge.textContent = calStat.back.label + (calStat.back.source && calStat.back.source !== 'No correction set' ? ` (${calStat.back.source})` : '');
+    backBadge.className = 'src-badge ' + (calStat.back.status === 'Measured' ? 'measured' : calStat.back.status === 'Saved' ? 'saved' : calStat.back.status === 'Estimated' ? 'estimated' : calStat.back.status === 'Manual' ? 'manual' : '');
+  }
+  const backTxt = $('#alignBackValuesText');
+  if (backTxt) {
+    backTxt.textContent = `Extra X: ${calStat.back.x >= 0 ? '+' : ''}${calStat.back.x.toFixed(2)} mm · Extra Y: ${calStat.back.y >= 0 ? '+' : ''}${calStat.back.y.toFixed(2)} mm · Scale: ${s.backScaleX.toFixed(1)}% / ${s.backScaleY.toFixed(1)}% · Rotation: ${s.backRotate.toFixed(1)}°`;
+  }
+
+  const inputs = {
+    'input-offsetX': s.offsetX,
+    'input-offsetY': s.offsetY,
+    'input-scaleX': s.scaleX,
+    'input-scaleY': s.scaleY,
+    'input-printRotate': s.printRotate,
+    'input-backOffsetX': s.backOffsetX,
+    'input-backOffsetY': s.backOffsetY,
+    'input-backScaleX': s.backScaleX,
+    'input-backScaleY': s.backScaleY,
+    'input-backRotate': s.backRotate
+  };
+  for (const [id, val] of Object.entries(inputs)) {
+    const el = $('#' + id);
+    if (el) el.value = val;
+  }
+  const err = $('#alignmentInputError');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+  renderCalibrationProfiles();
+  renderAlignmentOverlay();
+}
 function refreshCalibrationStatus(){
   const status=getCalibrationStatus();$('#inspCal').textContent=status.label;$('#inspCal').title=status.values;
+  updateInspectorSummary();
   renderCalibrationProfiles();syncPreviewControls();renderAlignmentOverlay();renderGuideTab();renderPreview();
+  if (document.body.classList.contains('print-settings-active')) refreshAlignmentPage();
 }
 
 function renderAlignmentOverlay() {
@@ -6601,18 +6874,41 @@ function resolveAppliedCalibration() {
   if (!profile) return;
   if (profile.printer && profile.printer !== S.printer) { S.calibrationProfileId = null; for (const key of CALIBRATION_KEYS) S.settings[key] = DEFAULTS[key]; return; }
   const got = calSlotFor(profile, S.settings);
-  if (got.set) S.settings = cleanSettings({...S.settings, ...got.set});
+  if (got.set) {
+    const toApply = {};
+    if (got.hasFront) for (const k of FRONT_CAL_KEYS) if (k in got.set) toApply[k] = got.set[k];
+    if (got.hasBack) {
+      for (const k of BACK_CAL_KEYS) if (k in got.set) toApply[k] = got.set[k];
+    } else {
+      for (const k of BACK_CAL_KEYS) toApply[k] = DEFAULTS[k];
+    }
+    if (got.set.duplexFlip) toApply.duplexFlip = got.set.duplexFlip;
+    if (got.set.duplexMethod) toApply.duplexMethod = got.set.duplexMethod;
+    S.settings = cleanSettings({...S.settings, ...toApply});
+  }
 }
 function applyCalProfile(p) {
-  deck().calibrationState={};
   S.calibrationProfileId = p.id;
   const got = calSlotFor(p, S.settings), here = calSlotName(calSlotKey(S.settings));
   if (!got.set) return toast(`"${p.name}" has nothing saved yet.`);
-  S.settings = cleanSettings({...S.settings, ...got.set});
   if (PRINTERS.some(x => x.id === p.printer)) {
     S.printer = p.printer;
     S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
   }
+  const d = deck();
+  if (!d.calibrationState) d.calibrationState = {};
+  if (got.hasFront) {
+    for (const k of FRONT_CAL_KEYS) if (k in got.set) S.settings[k] = got.set[k];
+    d.calibrationState.front = {kind: got.frontMeasured ? 'measured' : 'manual', scope: calibrationScope(S.settings, S.printer, false), values: Object.fromEntries(FRONT_CAL_KEYS.map(k => [k, S.settings[k]]))};
+  } else if (d.calibrationState?.front?.values) {
+    d.calibrationState.front = {...d.calibrationState.front, scope: calibrationScope(S.settings, S.printer, false)};
+  }
+  if (got.hasBack) {
+    for (const k of BACK_CAL_KEYS) if (k in got.set) S.settings[k] = got.set[k];
+    d.calibrationState.back = {kind: got.backMeasured ? 'measured' : 'manual', scope: calibrationScope(S.settings, S.printer, true), values: Object.fromEntries(BACK_CAL_KEYS.map(k => [k, S.settings[k]]))};
+  }
+  if (got.set.duplexFlip) S.settings.duplexFlip = got.set.duplexFlip;
+  if (got.set.duplexMethod) S.settings.duplexMethod = got.set.duplexMethod;
   S.activePreset = null; save(); renderAll();
   if (got.from === 'exact') return toast(`Loaded the ${calSlotName(got.key)} alignment from "${p.name}".`);
   if (got.from === 'size') return toast(`"${p.name}" has no ${here} set. Used its ${calSlotName(got.key)} numbers: the axes match, the sheet size does not.`, 9000);
@@ -6642,7 +6938,8 @@ function renderCalibrationProfiles(activeId) {
   if (activeId !== undefined) S.calibrationProfileId = activeId;
   const current = S.calibrationProfileId;
   const active=calProfiles().find(p=>p.id===current),scope=calSlotName(calSlotKey(S.settings)),status=getCalibrationStatus();
-  $('#activeCalibrationProfile').innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p><p class="hint">${esc(status.values)}</p>`;
+  const actProfEl = $('#activeCalibrationProfile');
+  if (actProfEl) actProfEl.innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p><p class="hint">${esc(status.values)}</p>`;
   const held = p => {
     const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
     return keys.length ? ` \u00b7 ${keys.map(calSlotName).join(' + ')}` : '';
@@ -6690,7 +6987,7 @@ function renderCalibrationProfiles(activeId) {
 
   const statusEl=$('#calProfileStatus');if(statusEl){const state=getCalibrationStatus();statusEl.textContent=state.label;statusEl.title=state.values;}
 }
-$('#tab-setup').addEventListener('change', async ev => {
+$('#printSettingsView').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
   if (PRESET_IMAGE_KEYS.includes(k)) {
@@ -6712,7 +7009,7 @@ $('#tab-setup').addEventListener('change', async ev => {
     const n = parseFloat(t.value) || 0;
     s[k] = ['backOffsetX', 'backOffsetY'].includes(k) && s.backOffsetUnit === 'in' ? n * 25.4 : n;
   } else s[k] = t.value;
-  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k))noteCalibration(FRONT_CAL_KEYS.includes(k)?'front':'back');
+  if (FRONT_CAL_KEYS.includes(k) || BACK_CAL_KEYS.includes(k)) return;
   if (k === 'orientation') s.cardRotation = 'upright';
   if (['orientation', 'pageSize'].includes(k)) {
     // The alignment numbers belong to the layout that produced them. If the
@@ -6748,10 +7045,10 @@ $('#tab-setup').addEventListener('change', async ev => {
   if (['pageSize','orientation','pageW','pageH','duplexMethod','duplexFlip'].includes(k)) resolveAppliedCalibration();
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
 });
-$('#tab-setup').addEventListener('toggle', ev => {
+$('#printSettingsView').addEventListener('toggle', ev => {
   if (ev.target.id === 'advDrawer') { S.advOpen = ev.target.open; save(); }
 }, true);
-$('#tab-setup').addEventListener('click', ev => {
+$('#printSettingsView').addEventListener('click', ev => {
   const chip = ev.target.closest('[data-color-profile]');
   if (chip) {
     const prof = chip.dataset.colorProfile;
@@ -6805,9 +7102,9 @@ $('#tab-setup').addEventListener('click', ev => {
     return;
   }
 });
-$('#tab-setup').addEventListener('input', ev => {
+$('#printSettingsView').addEventListener('input', ev => {
   const t = ev.target, k = t.dataset.k;
-  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k)){if(!t.checkValidity()||t.value.trim()===''||!Number.isFinite(+t.value))return;S.settings[k]=['backOffsetX','backOffsetY'].includes(k)&&S.settings.backOffsetUnit==='in'?+t.value*25.4:+t.value;noteCalibration(FRONT_CAL_KEYS.includes(k)?'front':'back');S.activePreset=null;save();refreshCalibrationStatus();return;}
+  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k)) return;
   if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
   const n = parseFloat(t.value) || 0;
   S.settings[k] = n;
@@ -6820,7 +7117,7 @@ $('#tab-setup').addEventListener('input', ev => {
   }
   renderPreview();
 });
-$('#tab-setup').addEventListener('keydown', ev => {
+$('#printSettingsView').addEventListener('keydown', ev => {
   if (ev.key === 'Enter' && ev.target.classList.contains('slider-val-input')) {
     ev.preventDefault();
     ev.target.blur();
@@ -6875,7 +7172,7 @@ $('#calProfileSave').onclick = () => {
   // sheet the other way round, save under the same name, and the profile holds
   // both. An old unscoped set is kept as a last-resort fallback rather than
   // being relabelled as a layout it may never have been measured on.
-  const priorStatus=getCalibrationStatus(),frontMeasured=['Manual','Measured'].includes(priorStatus.front.status),backMeasured=['Manual','Measured'].includes(priorStatus.back.status);
+  const priorStatus=getCalibrationStatus(),frontMeasured=priorStatus.front.status==='Measured',backMeasured=priorStatus.back.status==='Measured';
   const key = calSlotKey(S.settings);
   const curSlots = calSlots(target);
   const curSlot = curSlots[key] || {};
@@ -6896,12 +7193,9 @@ $('#calProfileSave').onclick = () => {
   else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
   const targetId = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
   S.calibrationProfileId = targetId;
-  if(frontMeasured)noteCalibration('front','measured');if(backMeasured)noteCalibration('back','measured');
   save();
   renderCalibrationProfiles(targetId);refreshCalibrationStatus();
-  const kept = Object.keys(settings).filter(k => k !== key && k !== 'any');
-  toast(`Saved the ${calSlotName(key)} alignment in "${name}".`
-    + (kept.length ? ` It still holds ${kept.map(calSlotName).join(' and ')}.` : ''));
+  toast(`Saved profile "${name}".`);
 };
 $('#calProfileDelete').onclick = () => {
   const id = $('#calProfileSel').value;
@@ -7534,11 +7828,20 @@ async function runPreflight(options = {}) {
   }
 
   const calStat = options.calibration || getCalibrationStatus(s, d, printer);
-  if (calStat.status === 'Estimated') {
+  if (calStat.front.status === 'Estimated') {
     warnings.push({
-      type: 'cal_estimated',
-      tab: 'setup',
-      message: `Calibration: ${calStat.label}. Measure with alignment & duplex test sheets for best duplex accuracy.`
+      type: 'cal_estimated_front',
+      tab: 'alignment',
+      side: 'front',
+      message: `Front alignment: using ${calStat.front.source.toLowerCase()}. Verify or apply alignment in Print Settings.`
+    });
+  }
+  if (calStat.hasBacks && calStat.back.status === 'Estimated') {
+    warnings.push({
+      type: 'cal_estimated_back',
+      tab: 'alignment',
+      side: 'back',
+      message: `Back alignment: using ${calStat.back.source.toLowerCase()}. Verify or apply alignment in Print Settings.`
     });
   }
 
@@ -8309,7 +8612,7 @@ function openDuplexWizard(state = {}) {
     const [x, y] = reading();
     if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
     s.backOffsetX = +(s.backOffsetX + rsgn * x).toFixed(3); s.backOffsetY = +(s.backOffsetY + rsgn * y).toFixed(3); s.backOffsetRel = true;
-    noteCalibration('back');
+    noteCalibration('back', 'measured');
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
     $('#duplexWizardStatus').textContent = `Saved. Extra back-page offset is now X ${inUnit(s.backOffsetX)}, Y ${inUnit(s.backOffsetY)}. Print the test again to check.`;
@@ -9126,7 +9429,12 @@ function setWorkspaceView(view) {
   if (view === 'proof') { renderPreview(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); }
 }
 function switchTab(name) {
-  if (name === 'presets' || name === 'layout') name = 'setup';
+  if (['setup', 'layout', 'presets', 'cutting', 'alignment', 'printer', 'color'].includes(name)) {
+    if (S.mode === 'order') return switchTab('order');
+    if ($('#overlay').classList.contains('on')) closeModal();
+    openPrintSettings(name === 'setup' || name === 'presets' ? 'layout' : name);
+    return;
+  }
   const review = name === 'guide' || name === 'order';
   if ($('#overlay').classList.contains('on')) {
     if (review && $('#tab-' + name).closest('#modal')) { if (name === 'guide') renderGuideTab(); return; }
@@ -9139,7 +9447,6 @@ function switchTab(name) {
     modalFocusable()[0]?.focus();
     return;
   }
-  if (name === 'setup' || name === 'cutting') { if(S.mode==='order')return switchTab('order');openSetupGroup(name==='cutting'?'cut':'paper');return; }
   setWorkspaceView('cards');
   syncCardSelection();
 }
@@ -9157,7 +9464,6 @@ function toggleInspector(open) {
     document.body.classList.remove('preview-focus');
     if (shouldOpen) {
       document.body.classList.add('inspector-open');
-      const details = $('#workspaceSetupDetails'); if (details) details.open = true;
     } else {
       document.body.classList.remove('inspector-open'); setWorkspaceView('cards');
     }
@@ -9166,27 +9472,203 @@ function toggleInspector(open) {
   if (!shouldOpen) (innerWidth <= 820 ? $('[data-mview=setup]') : $('#toggleInspector'))?.focus();
   if (S.zoomMode === 'fit') $('#zoomFit')?.click();
 }
-let setupOpener=null, setupReturnView='cards';
-function openSetupGroup(group,opener=document.activeElement){
-  if(S.mode!=='print')return;
-  if(!document.body.classList.contains('settings-open')){setupOpener=opener;setupReturnView=document.body.dataset.workspaceView || 'cards';}
-  document.body.classList.remove('preview-focus','inspector-collapsed');document.body.classList.add('inspector-open','settings-open');measureInspector();
-  $('#workspaceSetupDetails').open=true;
-  const details=group==='cut'?$('#workspaceCutDetails'):$('#setupGroup-'+group);details.open=true;
-  if(innerWidth<=820)setWorkspaceView('setup');
-  requestAnimationFrame(()=>{$('summary',details).focus();details.scrollIntoView({block:'start'});syncInspectorAccess();});
+
+let proofRestoreState = null;
+const SETTINGS_PAGE_TITLES = {
+  layout: 'Layout',
+  printer: 'Printer & paper',
+  alignment: 'Alignment & test sheets',
+  color: 'Color & stock',
+  cutting: 'Cutting & registration'
+};
+
+function switchSettingsPage(page) {
+  const pages = ['layout', 'printer', 'alignment', 'color', 'cutting'];
+  const target = pages.includes(page) ? page : 'layout';
+  pages.forEach(p => {
+    const el = $('#settingsPage-' + p);
+    if (el) el.style.display = p === target ? 'flex' : 'none';
+    const tabBtn = $('#tabNav-' + p);
+    if (tabBtn) {
+      const active = p === target;
+      tabBtn.classList.toggle('active', active);
+      tabBtn.setAttribute('aria-selected', String(active));
+    }
+  });
+  const title = $('#settingsViewTitle');
+  if (title) title.textContent = SETTINGS_PAGE_TITLES[target] || 'Print Settings';
+
+  if (target === 'alignment') {
+    refreshAlignmentPage();
+  } else if (target === 'printer') {
+    renderPrinter();
+  } else if (target === 'color') {
+    renderColorSliders();
+  } else if (target === 'cutting') {
+    renderCutStatus();
+  }
 }
-function closeSetupGroup(){
-  document.body.classList.remove('settings-open','inspector-open');
-  if(innerWidth<=820)setWorkspaceView(setupReturnView==='setup'?'proof':setupReturnView);
-  if(setupOpener?.isConnected && setupOpener.getClientRects().length)setupOpener.focus();else (innerWidth<=820?$('[data-mview=setup]'):$('#toggleInspector')).focus();
-  syncInspectorAccess();if(S.zoomMode==='fit'&&$('#stage').getClientRects().length)$('#zoomFit').click();
+
+function openPrintSettings(page = 'layout', opener = document.activeElement) {
+  if (S.mode !== 'print') return;
+  if (!document.body.classList.contains('print-settings-active')) {
+    proofRestoreState = {
+      activeSheet: S.activeSheet,
+      showBacks: S.showBacks,
+      proofSide: S.proofSide,
+      selectedCopies: new Set(selectedCopies),
+      zoom: S.zoom,
+      zoomMode: S.zoomMode,
+      opener: opener?.isConnected ? opener : null,
+      workspaceView: document.body.dataset.workspaceView || 'proof'
+    };
+  }
+  document.body.classList.add('print-settings-active');
+  document.body.classList.remove('preview-focus', 'inspector-collapsed');
+  switchSettingsPage(page);
+  requestAnimationFrame(() => {
+    const activeTab = $(`#tabNav-${page}`);
+    if (activeTab) activeTab.focus();
+    if (page === 'layout' && opener?.id === 'inspSides') {
+      const field = $('#settingsForm [data-k=dfcMode]') || $('#setting-dfcMode');
+      field?.scrollIntoView({ block: 'center' });
+      field?.focus();
+    }
+  });
 }
-for(const [id,group] of [['inspPaper','paper'],['inspLayout','paper'],['inspSides','paper'],['inspCut','cut']])$('#'+id).onclick=ev=>{openSetupGroup(group,ev.currentTarget);if(id==='inspSides')requestAnimationFrame(()=>{const field=$('#settingsForm [data-k=dfcMode]');field?.scrollIntoView({block:'center'});field?.focus();});};
-$$('[data-setup-group]').forEach(button=>button.onclick=()=>openSetupGroup(button.dataset.setupGroup,button));
-$('#btnWorkspaceSetup').onclick=()=>openSetupGroup('paper');
-$('#btnCloseSetup').onclick=()=>document.body.classList.contains('settings-open')?closeSetupGroup():toggleInspector(false);
-addEventListener('keydown',ev=>{if(ev.key==='Escape'&&document.body.classList.contains('settings-open')&&!$('#overlay').classList.contains('on')){ev.preventDefault();closeSetupGroup();}});
+
+function backToProof() {
+  document.body.classList.remove('print-settings-active');
+  if (proofRestoreState) {
+    S.activeSheet = proofRestoreState.activeSheet ?? 0;
+    S.showBacks = !!proofRestoreState.showBacks;
+    S.proofSide = proofRestoreState.proofSide || (S.showBacks ? 'back' : 'front');
+    if ($('#showBacks')) $('#showBacks').checked = S.showBacks;
+    selectedCopies = proofRestoreState.selectedCopies || new Set();
+    S.zoom = proofRestoreState.zoom ?? 100;
+    S.zoomMode = proofRestoreState.zoomMode ?? 'fit';
+    if (proofRestoreState.workspaceView) setWorkspaceView(proofRestoreState.workspaceView === 'setup' ? 'proof' : proofRestoreState.workspaceView);
+    const opener = proofRestoreState.opener;
+    proofRestoreState = null;
+    drawPreview();
+    syncProofViewButtons();
+    renderStats();
+    if (opener && opener.isConnected && opener.getClientRects().length) {
+      opener.focus();
+    } else {
+      $('#toggleInspector')?.focus();
+    }
+  } else {
+    drawPreview();
+    syncProofViewButtons();
+    renderStats();
+    $('#toggleInspector')?.focus();
+  }
+  if (S.zoomMode === 'fit' && $('#stage')?.getClientRects().length) {
+    $('#zoomFit')?.click();
+  }
+}
+
+function openSetupGroup(group, opener = document.activeElement) {
+  openPrintSettings(group === 'cut' ? 'cutting' : group === 'paper' ? 'layout' : group === 'calibration' ? 'alignment' : group, opener);
+}
+function closeSetupGroup() { backToProof(); }
+
+$$('.settings-nav-tabs button').forEach(button => {
+  button.onclick = () => {
+    const page = button.dataset.settingsPage;
+    if (page) switchSettingsPage(page);
+  };
+});
+$('#btnBackToProof').onclick = backToProof;
+$('#btnCloseSetup').onclick = () => {
+  if (document.body.classList.contains('print-settings-active')) {
+    backToProof();
+  } else {
+    toggleInspector(false);
+  }
+};
+addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && !$('#overlay').classList.contains('on')) {
+    if (document.body.classList.contains('print-settings-active')) {
+      ev.preventDefault();
+      backToProof();
+    }
+  }
+});
+
+$$('[data-open-page]').forEach(button => {
+  button.onclick = ev => {
+    openPrintSettings(button.dataset.openPage, ev.currentTarget);
+  };
+});
+$('#btnWorkspaceSetup').onclick = ev => openPrintSettings('layout', ev.currentTarget);
+$('#toggleInspector').onclick = ev => openPrintSettings('layout', ev.currentTarget);
+
+$('#btnApplyAlignment').onclick = () => {
+  const fields = [
+    { id: 'input-offsetX', k: 'offsetX', min: -100, max: 100 },
+    { id: 'input-offsetY', k: 'offsetY', min: -100, max: 100 },
+    { id: 'input-scaleX', k: 'scaleX', min: 50, max: 150 },
+    { id: 'input-scaleY', k: 'scaleY', min: 50, max: 150 },
+    { id: 'input-printRotate', k: 'printRotate', min: -180, max: 180 },
+    { id: 'input-backOffsetX', k: 'backOffsetX', min: -100, max: 100 },
+    { id: 'input-backOffsetY', k: 'backOffsetY', min: -100, max: 100 },
+    { id: 'input-backScaleX', k: 'backScaleX', min: 50, max: 150 },
+    { id: 'input-backScaleY', k: 'backScaleY', min: 50, max: 150 },
+    { id: 'input-backRotate', k: 'backRotate', min: -180, max: 180 },
+  ];
+  const err = $('#alignmentInputError');
+  let invalidField = null;
+  const parsed = {};
+  for (const f of fields) {
+    const el = $('#' + f.id);
+    const val = el ? el.value.trim() : '';
+    const num = Number(val);
+    if (!el || val === '' || !Number.isFinite(num) || (f.min != null && num < f.min) || (f.max != null && num > f.max)) {
+      invalidField = { el, f, val };
+      break;
+    }
+    parsed[f.k] = num;
+  }
+  if (invalidField) {
+    if (err) {
+      err.textContent = `Please enter a valid decimal number for all alignment fields.`;
+      err.style.display = 'block';
+    }
+    invalidField.el?.focus();
+    return;
+  }
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+  for (const [k, v] of Object.entries(parsed)) {
+    S.settings[k] = v;
+  }
+  noteCalibration('front', 'manual');
+  noteCalibration('back', 'manual');
+  S.activePreset = null;
+  save();
+  refreshCalibrationStatus();
+  refreshAlignmentPage();
+  toast('Applied alignment changes.');
+};
+
+$('#btnResetAlignment').onclick = () => {
+  refreshAlignmentPage();
+  toast('Reverted alignment fields to active settings.');
+};
+
+$('#settingsPage-alignment').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && ev.target.matches('input[type=number]')) {
+    ev.preventDefault();
+    $('#btnApplyAlignment').click();
+  }
+});
+
+function downloadCalibrationSheet(type) {
+  if (type === 'duplex') $('#btnDuplexTest')?.click();
+  else $('#btnCal')?.click();
+}
 
 const tabGuideBtnPrint = $('#tabGuideBtnPrint');
 const tabGuideBtnCut = $('#tabGuideBtnCut');
@@ -9211,6 +9693,17 @@ $('#exportReview').addEventListener('click', async ev => {
   const issue = latestPrintReview.issues[+(button.dataset.retryIssue ?? button.dataset.reviewIssue)]; if (!issue) return;
   if (button.dataset.retryIssue !== undefined) {
     retryArtworkIssue(issue); return;
+  }
+  if (issue.tab === 'alignment') {
+    closeModal();
+    openPrintSettings('alignment');
+    requestAnimationFrame(() => {
+      const col = issue.side === 'back' ? $('#alignBackCol') : $('#alignFrontCol');
+      col?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const firstInput = issue.side === 'back' ? $('#input-backOffsetX') : $('#input-offsetX');
+      firstInput?.focus();
+    });
+    return;
   }
   switchTab(issue.tab);
   if (issue.uid && issue.tab === 'cards') {
