@@ -8,7 +8,7 @@
   S.settings=cleanSettings({...DEFAULTS,backs:false});S.showBacks=false;renderAll();await drawPreview();
   setWorkspaceView('cards');
   check('wizard removed',!$('.tabs')&&!$('.wiz-nav'));
-  const opener=innerWidth<=820?$('[data-mview=setup]'):$('#workspaceInspector').getClientRects().length?$('#inspPaper'):$('#toggleInspector');
+  const opener=innerWidth<=820?$('[data-mview=setup]'):$('#toggleInspector');
   check('Setup opener visible',!!opener.getClientRects().length);
   opener.focus();opener.click();await sleep(50);
   const view=$('#printSettingsView'), back=$('#btnBackToProof');

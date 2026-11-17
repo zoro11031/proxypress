@@ -13,7 +13,7 @@ const checks=[
   ['followup','followup-correctness-probe.js'],
   ['navigation','navigation-probe.js',1440,900],
   ['phone','navigation-probe.js',390,844],
-  ...[821,1024,1100,1101].map(width=>['pointer-'+width,'navigation-probe.js',width,768,['--pointer-selector',width>1100?'#inspPaper':'#toggleInspector','--pointer-assert','document.body.classList.contains("settings-open") && !!document.querySelector("#workspaceInspector").getClientRects().length']]),
+  ...[821,1024,1100,1101].map(width=>['pointer-'+width,'navigation-probe.js',width,768,['--pointer-selector','#toggleInspector','--pointer-assert','document.body.classList.contains("print-settings-active") && !!document.querySelector("#printSettingsView").getClientRects().length']]),
   ['narrow-dialog','narrow-dialog-probe.js',320,740],
   ['snapshot','job-snapshot-probe.js'],
   ['readiness','art-readiness-probe.js'],

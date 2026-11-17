@@ -1,29 +1,91 @@
-(async()=>{
- const original=structuredClone(S),printer=printerOf(S.printer),oldName=printer.name,Real=window.jspdf.jsPDF,failed=[],pdfs=[];
- const check=(name,value)=>{if(!value)failed.push(name);};
- try{
-  S.welcomed=true;closeModal(true);S.mode='print';applyMode();const c=document.createElement('canvas');c.width=630;c.height=880;const key=await storeImage(await new Promise(r=>c.toBlob(r)));
-  deck().entries=[{uid:uid(),name:'Inspector fixture',qty:20,faces:[{name:'Front',custom:key},{name:'Back',custom:key}]}];S.settings=cleanSettings({...DEFAULTS,pageSize:'letter',orientation:'landscape',cols:4,rows:2,backs:false});S.activeSheet=1;S.showBacks=true;renderAll();setWorkspaceView('proof');await drawPreview();
-  printer.name='Very long printer model name with duplex tray and cardstock driver settings that must wrap naturally';
-  S.calibrationProfiles=Array.from({length:5},(_,i)=>({id:'inspector-profile-'+i,name:'Saved calibration profile '+i+' with a long printer model, heavy cardstock, manual feed and short edge flip',printer:S.printer,settings:{'letter/landscape':{scaleX:100,scaleY:100,offsetX:1,offsetY:2,byDuplex:{'manual/long':{backOffsetX:2,backOffsetY:3,backScaleX:100,backScaleY:100}}}}}));renderPrinter();renderCalibrationProfiles();
-  const opener=innerWidth<=820?$('[data-mview=setup]'):$('#workspaceInspector').getClientRects().length?$('#inspPaper'):$('#toggleInspector');opener.focus();opener.click();await sleep(100);
-  check('settings opens without changing sheet or side',S.activeSheet===1&&S.showBacks);
-  const panel=$('#workspaceInspector');
-  for(const group of ['paper','printer','color','calibration']){const details=$('#setupGroup-'+group);if(!details.open){$('summary',details).scrollIntoView({block:'center'});$('summary',details).click();}check(group+' group opens',details.open);}
-  $('#workspaceCutDetails').open=true;for(const details of $$('details',panel))details.open=true;await sleep(100);
-  check('expanded inspector has no sideways overflow',panel.scrollWidth<=panel.clientWidth+1);
-  const profile=$('#calProfileCards [data-cal-profile="inspector-profile-0"]');profile.scrollIntoView({block:'center'});profile.click();await sleep(100);
-  check('saved profile uses canonical calibration',S.calibrationProfileId==='inspector-profile-0'&&S.settings.offsetX===1);
-  $('#calProfileName').value='Saved profile edited through the full-width inspector';$('#calProfileSave').click();check('profile saves through existing handler',S.calibrationProfiles.some(p=>p.name==='Saved profile edited through the full-width inspector'));
-  $('#setupGroup-paper').open=true;$('#customPaperDrawer').open=true;const orientation=$('#paperForm [data-k=orientation]');orientation.value='portrait';orientation.dispatchEvent(new Event('change',{bubbles:true}));await sleep(100);check('orientation changes without losing proof identity',S.settings.orientation==='portrait'&&S.activeSheet===1&&S.showBacks);
-  for(const details of $$('details',panel))details.open=true;
-  const bounds=panel.getBoundingClientRect();for(const button of $$('button',panel).filter(el=>el.getClientRects().length)){const r=button.getBoundingClientRect();check('button fits inspector width: '+button.textContent.trim().slice(0,35),r.left>=bounds.left+2&&r.right<=bounds.right-2);}
-  const last=$$('#calForm input,#calForm select').at(-1);last.scrollIntoView({block:'center'});last.focus();check('last field and focus ring reachable',last.getBoundingClientRect().bottom<$('#workspaceBar').getBoundingClientRect().top-2);
-  window.jspdf={...window.jspdf,jsPDF:function(...args){const doc=new Real(...args);doc.save=name=>pdfs.push({name,pages:doc.getNumberOfPages(),pdf:doc.output('datauristring')});return doc;}};
-  await $('#btnCal').onclick();await $('#btnDuplexTest').onclick();check('both calibration test PDFs generated',pdfs.length===2&&pdfs.every(pdf=>pdf.pages>0));
-  check('profile names wrap in one-column rows',getComputedStyle($('#calProfileCards .pick')).gridTemplateColumns.split(' ').length===1);
-  check('test-sheet actions stack',getComputedStyle($('.test-sheets-cluster')).gridTemplateColumns.split(' ').length===1);
-  $('#btnCloseSetup').click();await sleep(50);check('close restores keyboard opener',document.activeElement===opener);check('close retains proof sheet and side',S.activeSheet===1&&S.showBacks);
-  window.__probeArtifacts={pdfs};return failed.length?{failed}:true;
- }catch(err){return {failed:[...failed,err.stack||err.message]};}finally{printer.name=oldName;window.jspdf={...window.jspdf,jsPDF:Real};closeModal(true);Object.assign(S,original);document.body.classList.remove('settings-open');applyMode();renderAll();}
+(async () => {
+  const original = structuredClone(S), failed = [];
+  const classes = ['inspector-collapsed', 'inspector-open', 'preview-focus'];
+  const originalClasses = classes.map(name => document.body.classList.contains(name));
+  const check = (label, pass) => { if (!pass) failed.push(label); };
+  const visible = el => !!el?.getClientRects().length;
+  const settings = $('#printSettingsView'), proof = $('#stage'), popover = $('#quickSetup');
+  const fullWidth = () => visible(settings) && Math.abs(settings.getBoundingClientRect().width - settings.parentElement.clientWidth) <= 1;
+  const change = (selector, value) => {
+    const el = $(selector);
+    if (el.type === 'checkbox') el.checked = value;
+    else el.value = value;
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+  };
+  try {
+    S.welcomed = true; closeModal(true); S.mode = 'print'; applyMode();
+    S.settings = cleanSettings({...DEFAULTS, pageSize:'letter', orientation:'landscape', cols:4, rows:2});
+    const canvas = document.createElement('canvas'); canvas.width = 630; canvas.height = 880;
+    const image = await storeImage(await new Promise(resolve=>canvas.toBlob(resolve)));
+    deck().entries = [{uid:uid(), name:'Print settings fixture', qty:20, faces:[{name:'Front', custom:image}]}];
+    S.activeSheet = 1; S.showBacks = false; S.zoomMode = 'manual';
+    renderAll(); setWorkspaceView('proof'); await drawPreview();
+    const opener = innerWidth <= 820 ? $('[data-mview=setup]') : $('#toggleInspector');
+
+    for (const collapsed of innerWidth <= 820 ? [false] : [true, false]) {
+      if (innerWidth > 820) toggleInspector(!collapsed);
+      opener.focus(); opener.click(); await sleep(220);
+      check('Print settings has its full width with setup ' + (collapsed ? 'hidden' : 'visible'), fullWidth());
+      check('Settings hides the proof and queue', !visible(proof) && !visible($('#workspaceInspector')));
+      check('Settings has no horizontal scroll', settings.scrollWidth <= settings.clientWidth + 1);
+      const preset = $('#presetGrid [data-preset="b-letter"]');
+      check('Layout preset has room for readable words', preset.getBoundingClientRect().width >= 160);
+      $('#btnBackToProof').click();
+      check('Back restores proof and opener', visible(proof) && !visible(settings) && document.activeElement === opener);
+      check('Back preserves sheet and zoom mode', S.activeSheet === 1 && S.zoomMode === 'manual');
+    }
+
+    if (innerWidth > 820) {
+      for (const key of ['paper','layout','sides','cutting','alignment','color']) {
+        const button = $(`[data-quick-setup="${key}"]`);
+        button.scrollIntoView({block:'nearest'}); button.focus(); button.click(); await sleep(220);
+        check(`${key} opens only a quick menu`, popover.matches(':popover-open') && visible(proof) && !visible(settings));
+        check(`${key} announces the open menu`, button.getAttribute('aria-expanded') === 'true');
+        const rect = popover.getBoundingClientRect();
+        check(`${key} menu fits on-screen`, rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight + 1);
+        if (key === 'paper') {
+          change('#quickSetting-pageSize', 'a4');
+          check('Paper edits the real setup', S.settings.pageSize === 'a4' && $('#inspPaper').textContent.includes('A4'));
+        }
+        if (key === 'layout') {
+          change('#quickSetting-cols', 4);
+          check('Layout edits the real grid', S.settings.cols === 4);
+        }
+        if (key === 'sides') {
+          change('#quickSetting-backs', true);
+          check('Sides updates the real setup and exposes duplex controls', S.settings.backs && !!$('#quickSetting-duplexMethod'));
+        }
+        if (key === 'cutting') {
+          change('#quickCutTool', 'cameo');
+          check('Cutting uses the existing Cameo layout', S.settings.silhouette);
+          change('#quickCutTool', 'rotary');
+        }
+        if (key === 'alignment') {
+          check('Quick Alignment offers profiles and a test sheet', !!$('#quickAlignmentProfile') && !!$('[data-quick-action="btnCal"]'));
+          $('#quickSetupMore').click();
+          check('Advanced link opens the matching full page', !popover.matches(':popover-open') && fullWidth() && settings.dataset.page === 'alignment');
+          $('#btnBackToProof').click();
+          check('Backing out returns focus to the Alignment row', document.activeElement === button && !visible(settings) && visible(proof));
+          continue;
+        }
+        if (key === 'color') {
+          change('#quickSetting-brightness', 110);
+          check('Color uses the same brightness as full settings', S.settings.brightness === 110 && $('#num-brightness').value === '110');
+        }
+        $('#quickSetupClose').click();
+        check(`${key} closes and restores focus`, !popover.matches(':popover-open') && document.activeElement === button && button.getAttribute('aria-expanded') === 'false');
+      }
+      $('#btnCloseSetup').click();
+      check('Hidden setup can be reopened', visible($('#btnShowPrintSetup')));
+      $('#btnShowPrintSetup').click();
+      check('Show setup restores the sidebar', visible($('#workspaceInspector')) && !visible(settings));
+    }
+
+    return failed.length ? {failed} : true;
+  } finally {
+    closeQuickSetup();
+    document.body.classList.remove('print-settings-active');
+    classes.forEach((name, i)=>document.body.classList.toggle(name, originalClasses[i]));
+    Object.assign(S, original); applyMode(); renderAll();
+  }
 })();

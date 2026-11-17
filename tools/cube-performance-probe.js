@@ -12,7 +12,7 @@
   check('cube has 45 navigable sheets',$('#sheetJumpSel').options.length===45);
   $('#sheetJumpSel').value='44';$('#sheetJumpSel').dispatchEvent(new Event('change'));await drawPreview();
   check('only the active sheet is rendered',$$('#pages .pg').length===1&&$('#proofSheetLabel').textContent==='Sheet 45 of 45');
-  $('#inspPaper').click();
+  openPrintSettings('color');
   const slider=$('#colorSliders input[type=range][data-k=brightness]');for(let node=slider.parentElement;node;node=node.parentElement)if(node.tagName==='DETAILS'&&!node.open)$('summary',node).click();slider.focus();const samples=[];
   for(let i=0;i<30;i++){const t=performance.now();slider.value=String(95+i);slider.dispatchEvent(new Event('input',{bubbles:true}));await drawPreview();await waitImages();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));samples.push(performance.now()-t);}
   check('color tuning preserves input focus',document.activeElement===slider);

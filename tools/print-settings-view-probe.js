@@ -19,31 +19,9 @@
     // 1. Proof toolbar check: Persistent Estimated alignment badge must not exist
     check('no persistent proofCalBadge on proof toolbar', $('#proofCalBadge') === null);
 
-    // 2. Navigation shortcuts from inspector quick summary
-    const shortcuts = [
-      { id: 'inspPaper', page: 'printer' },
-      { id: 'inspLayout', page: 'layout' },
-      { id: 'inspSides', page: 'layout' },
-      { id: 'inspCut', page: 'cutting' },
-      { id: 'inspCal', page: 'alignment' },
-    ];
-    for (const { id, page } of shortcuts) {
-      backToProof();
-      check(`settings closed before ${id}`, !document.body.classList.contains('print-settings-active'));
-      const btn = $('#' + id);
-      check(`found shortcut ${id}`, !!btn);
-      btn?.click();
-      check(`settings active after clicking ${id}`, document.body.classList.contains('print-settings-active'));
-      check(`shortcut ${id} landed on ${page}`, $(`#settingsPage-${page}`).style.display !== 'none');
-    }
-
-    // Test entrypoints in inspector
+    // 2. All five pages are available in the dedicated settings editor.
+    openPrintSettings('layout');
     const entrypoints = ['layout', 'printer', 'alignment', 'color', 'cutting'];
-    backToProof();
-    const color = $('#inspectorEntrypoints [data-open-page="color"]');
-    check('Color has one extra shortcut beside the summary rows', !!color);
-    color?.click();
-    check('Color shortcut lands on Color', $('#settingsPage-color').style.display !== 'none');
 
     // Test tab navigation inside #printSettingsView
     for (const page of entrypoints) {
