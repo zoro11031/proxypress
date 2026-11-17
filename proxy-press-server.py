@@ -442,13 +442,13 @@ def page_response(host, https, preview_tags_fn):
 
 LOGIN_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Proxy Press · Sign in</title>
-<meta name="theme-color" content="#14161a"><!--head--><style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#14161a;color:#e7e9ee;font:15px/1.4 system-ui,sans-serif}
-form{background:#1c1f25;border:1px solid #2f343d;border-radius:12px;padding:26px;width:min(340px,calc(100vw - 32px));box-sizing:border-box}
-h1{font-size:19px;margin:0 0 4px}h1 span{color:#e0a33a}p{color:#9aa1ad;font-size:13px;margin:0 0 16px}
-label{display:block;margin-bottom:6px;font-size:13px}input:focus-visible,button:focus-visible{outline:2px solid #f2c26b;outline-offset:3px}input{width:100%%;box-sizing:border-box;background:#111317;border:1px solid #2f343d;border-radius:7px;padding:9px 10px;color:inherit;font:inherit}
-button{margin-top:12px;width:100%%;background:#e0a33a;color:#1b1407;border:0;border-radius:7px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
-.err{color:#ff9c95;font-size:13px;margin:10px 0 0}</style></head><body>
+<meta name="theme-color" content="#18232e"><!--head--><style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#121a24;color:#edf5fa;font:15px/1.4 system-ui,sans-serif}
+form{background:#18232e;border:1px solid #364b5e;border-radius:12px;padding:26px;width:min(340px,calc(100vw - 32px));box-sizing:border-box}
+h1{font-size:19px;margin:0 0 4px}h1 span{color:#96e4d5}p{color:#afc0cf;font-size:13px;margin:0 0 16px}
+label{display:block;margin-bottom:6px;font-size:13px}input:focus-visible,button:focus-visible{outline:2px solid #bfc8ff;outline-offset:3px}input{width:100%%;box-sizing:border-box;background:#111a24;border:1px solid #364b5e;border-radius:7px;padding:9px 10px;color:inherit;font:inherit}
+button{margin-top:12px;width:100%%;background:#96e4d5;color:#102b2a;border:0;border-radius:7px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
+.err{color:#ffaaaa;font-size:13px;margin:10px 0 0}</style></head><body>
 <form method="post" action="/login"><h1>Proxy<span>Press</span></h1><p>Enter the password to continue.</p>
 <input type="text" name="username" value="user" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1">
 <label for="password">Password</label>
