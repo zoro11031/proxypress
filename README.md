@@ -37,6 +37,11 @@ docker compose up -d
 
 Then open `http://localhost:8642` on the server. To connect from other devices, copy `.env.example` to `.env`, set `PROXY_PRESS_BIND` to the server's LAN IP, and run `docker compose up -d` again. Open `http://SERVER_LAN_IP:8642` from those devices. You can also set a password in `.env`.
 
+To update a local Compose deployment, run `git pull --ff-only` and
+`docker compose up -d --build` in the checkout. The cache volume and browser
+projects stay in place. The image includes the PDF library and Studio
+templates outside the mounted asset directory.
+
 ---
 
 ## What It Does
@@ -70,6 +75,8 @@ Imports show a review before changing the deck. Unresolved input stays available
 For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across shared decks and the instance art library. Identical images are stored once. Shares and the art library are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other shared deck or library entry uses; copies already saved by recipients remain theirs.
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
+
+For Cameo, choose **Review export → Download matching print and cut files (ZIP)**. Print the PDF at actual size. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet** to load the PDF front page, registration settings, and cut paths together. Each sheet also has a standalone SVG. Align the paper to the top-left of the mat grid for Control Center. Silhouette Studio gets a native file when its template matches, or a DXF with the exact Studio setup and mat placement in `Read me.txt`. Review export names marks that are close to artwork on each sheet.
 
 ### 4. Custom Card Maker
 Design custom cards, commanders, and tokens right in your browser with authentic typography and classic or modern frame packs included.

@@ -106,19 +106,16 @@ def asset_manifest_data():
 
 def asset_path(route):
     rel = urllib.parse.unquote(route[len("/assets/"):])
-    if rel == JSPDF_ASSET:
-        for root in ("runtime-assets", "assets"):
-            bundled = os.path.join(APP_DIR, root, JSPDF_ASSET)
-            if os.path.isfile(bundled):
-                return bundled, ASSET_TYPES[".js"]
-        return None, None
-    full = os.path.realpath(os.path.join(ASSETS, rel))
-    if not full.startswith(ASSETS + os.sep) or not os.path.isfile(full):
-        return None, None
-    ext = os.path.splitext(full)[1].lower()
-    if ext not in ASSET_TYPES or (ext == "" and os.path.basename(full) != "style"):
-        return None, None
-    return full, ASSET_TYPES[ext]
+    bundled = rel == JSPDF_ASSET or re.fullmatch(r"studio3/[^/]+\.(?:json|studio3)", rel)
+    roots = [os.path.join(APP_DIR, root) for root in ("runtime-assets", "assets")] if bundled else [ASSETS]
+    for root in roots:
+        full = os.path.realpath(os.path.join(root, rel))
+        if not full.startswith(os.path.realpath(root) + os.sep) or not os.path.isfile(full):
+            continue
+        ext = os.path.splitext(full)[1].lower()
+        if ext in ASSET_TYPES and (ext or os.path.basename(full) == "style"):
+            return full, ASSET_TYPES[ext]
+    return None, None
 
 symbol_locks, symbols_lock = {}, threading.Lock()
 

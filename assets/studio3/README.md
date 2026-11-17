@@ -25,7 +25,13 @@ as many cards as the sheet does.
 | `a4-standard-v5.studio3` | A4 | 8 | A4 landscape |
 | `a4-bridge-v4.studio3` | A4 | 9 | A4 portrait |
 
-Proxy Press resizes the card outlines to match the sheet. The card count and
-registration settings must match the template. The templates use three marks,
-a 10 mm inset, 20 mm arms, and 1 mm line thickness. For other settings, export
-DXF and match the PDF’s registration settings in Silhouette Studio.
+Proxy Press resizes the card outlines to match the sheet. The stored arms are
+8.0264 mm for Letter landscape, 14.3764 mm for Letter portrait Catan, 9.398 mm
+for A4 landscape and 6.6802 mm for A4 portrait. Letter portrait MTG uses the
+7.4422 mm arm from the Card Maker borderless standard layout. Auto can also
+shorten arms to clear the cut paths. Use the paired DXF or SVG when the arm
+differs from the native template. All four template pages use three marks and a nominal 10 mm inset
+and 1 mm thickness. When the printed inset is smaller, the Studio canvas and
+cut coordinates include padding around the physical sheet. For other mark
+settings or a separate cutter orientation, use DXF and follow the setup
+shown in Review export.

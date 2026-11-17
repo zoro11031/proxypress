@@ -48,14 +48,15 @@
       S.settings = {...DEFAULTS, pageSize: paper, orientation, silhouette: true, guides: 'none',
         ...cameoPaperLayout(orientation)};
       const L = layout(), tag = `${paper}/${orientation}`;
+      const pad = orientation === 'portrait' ? 6.5 : 0;
       const ps = pairs(cutDxf(0));
 
       // Header: units stated, extents are the sheet.
       eq(`${tag} $INSUNITS`, (headerVar(ps, '$INSUNITS') || [])[0]?.[1], '4');
       eq(`${tag} $MEASUREMENT`, (headerVar(ps, '$MEASUREMENT') || [])[0]?.[1], '1');
       const ext = headerVar(ps, '$EXTMAX') || [];
-      near(`${tag} $EXTMAX x`, +(ext[0] || [])[1], L.W);
-      near(`${tag} $EXTMAX y`, +(ext[1] || [])[1], L.H);
+      near(`${tag} $EXTMAX x`, +(ext[0] || [])[1], L.W+2*pad);
+      near(`${tag} $EXTMAX y`, +(ext[1] || [])[1], L.H+2*pad);
 
       // One closed polyline per card, matching the SVG the same call would write.
       const polys = polylines(ps);
@@ -77,9 +78,9 @@
 
         near(`${tag} card ${i} width`, w, sw);
         near(`${tag} card ${i} height`, h, sh);
-        near(`${tag} card ${i} x`, x, sx);
+        near(`${tag} card ${i} x`, x, sx+pad);
         // The Y flip: DXF counts up from the bottom, the SVG down from the top.
-        near(`${tag} card ${i} y flipped`, y, L.H - sy - sh);
+        near(`${tag} card ${i} y flipped`, y, L.H + pad - sy - sh);
 
         // Corners must round INTO the card. A flipped bulge sign still draws
         // four arcs of the right radius, just bulging outward into little ears,
@@ -106,14 +107,18 @@
       });
     }
 
-    // Calibration reaches the DXF, the same way it reaches the SVG.
+    // Fixed registration marks anchor the calibrated artwork and cut paths.
     S.settings = {...DEFAULTS, pageSize: 'letter', orientation: 'landscape', silhouette: true,
       guides: 'none', ...cameoPaperLayout('landscape'), offsetX: 1.5, offsetY: -0.8};
     {
-      const L = layout(), T = makeT(L, false), p = slotPos(L, 0, false);
+      const L = layout(), p = slotPos(L, 0, false);
       const poly = polylines(pairs(cutDxf(0)))[0];
-      near('calibrated x', Math.min(...poly.verts.map(v => v.x)), T.x(p.x + S.settings.bleed));
-      near('calibrated y', Math.max(...poly.verts.map(v => v.y)), L.H - T.y(p.y + S.settings.bleed));
+      near('cut x follows the artwork', Math.min(...poly.verts.map(v => v.x)), p.x + S.settings.bleed + 1.5);
+      near('cut y follows the artwork', Math.max(...poly.verts.map(v => v.y)), L.H - p.y - S.settings.bleed + 0.8);
+      S.settings.regOrientation = 'portrait';
+      const turned = polylines(pairs(cutDxf(0)))[0];
+      near('portrait mat rotates corrected x',Math.min(...turned.verts.map(v=>v.x)),L.H-p.y-S.settings.bleed-L.ch+0.8);
+      near('portrait mat rotates corrected y',Math.max(...turned.verts.map(v=>v.y)),L.W-p.x-S.settings.bleed-1.5);
     }
 
     // A sheet that does not exist is an error, not an empty file.
