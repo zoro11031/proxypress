@@ -1,3 +1,42 @@
+# Proxy Press v0.8.1
+
+Print setup inspector task panels, responsive drawer, side-specific calibration status tracking, order prints gallery, and import correction hardening.
+
+## What's new
+
+- **Print setup inspector redesign:**
+  - Compact sidebar inspector with clear summary rows and direct edit actions for Paper, Layout, Sides, Cutter, and Calibration.
+  - Dedicated task panels for Paper & layout, Printer & driver, Color & stock, Cut & registration, and Calibration & test sheets.
+  - Responsive layouts: dedicated 460px panel on desktop (>=1400px), slide-over drawer up to 520px on laptop/tablet (821px-1399px), and full-width settings view on mobile phones.
+  - Keyboard accessible: smooth Open/Close with Escape support and focus restoration to the opener button.
+- **Calibration layout & provenance tracking:**
+  - Rebuilt calibration section with single-column profile cards, natural name wrapping, and dedicated New, Save, and Delete actions.
+  - Side-specific calibration provenance distinguishing measured setup profiles from manual inputs and carried/estimated defaults.
+  - Unified status visibility across Setup inspector, Live Proof status badge, and Print Review summary.
+  - Full-width stacked test sheet export actions for Alignment sheet, Double-sided test, and Duplex calibration wizard.
+- **Import & proof reliability:**
+  - Bound staged deck corrections to originating project and draft ID to prevent cross-project card pollution.
+  - Repaired foil test sheet sample placement on standard Letter portrait and A4 sheets.
+  - Harmonized face rendering and color adjustments between standard cards and foil simulation.
+- **Order prints enhancements:**
+  - Responsive order prints gallery and format snapshot reviews.
+
+## Downloads
+
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/Proxy-Press-0.8.1.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/Proxy-Press-0.8.1.msi).
+
+**Linux x86_64:**
+
+- [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/Proxy-Press-0.8.1.AppImage) — make executable and launch.
+- [Debian / Ubuntu (.deb)](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/Proxy-Press-0.8.1.deb).
+- [Fedora / openSUSE (.rpm)](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/Proxy-Press-0.8.1.rpm).
+- [Arch / CachyOS / Manjaro (.pacman)](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/Proxy-Press-0.8.1.pacman).
+- [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.8.1/proxypress-bin-aur.tar.gz) — unpack and run `makepkg -si`.
+
+Desktop downloads include fonts and frames and require no login. For a home server, use `docker compose up -d --build` from the updated checkout.
+
+---
+
 # Proxy Press v0.8.0
 
 Workspace redesign, live single-sheet proof, artwork picker comparison view, sequential issue resolution, and ProxyJak foil tone simulation.
