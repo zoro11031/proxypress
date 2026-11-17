@@ -4,12 +4,16 @@ const {spawn}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path');
 const destination=path.resolve(process.argv[2]||'out/overhaul-review/checks');fs.mkdirSync(destination,{recursive:true});
 const checks=[
+  ['calibration-status','calibration-status-probe.js'],
+  ['setup-inspector','setup-inspector-probe.js',1024,768],
+  ['setup-inspector-phone','setup-inspector-probe.js',390,844],
+  ['setup-inspector-zoom','setup-inspector-probe.js',720,450,['--scale','2']],
   ['order-gallery','order-gallery-probe.js',1440,900],
   ['order-gallery-phone','order-gallery-probe.js',390,844],
   ['followup','followup-correctness-probe.js'],
   ['navigation','navigation-probe.js',1440,900],
   ['phone','navigation-probe.js',390,844],
-  ...[821,1024,1100,1101].map(width=>['pointer-'+width,'navigation-probe.js',width,768,['--pointer-selector','#toggleInspector','--pointer-assert','!!document.querySelector("#workspaceInspector").getClientRects().length']]),
+  ...[821,1024,1100,1101].map(width=>['pointer-'+width,'navigation-probe.js',width,768,['--pointer-selector',width>1100?'#inspPaper':'#toggleInspector','--pointer-assert','document.body.classList.contains("settings-open") && !!document.querySelector("#workspaceInspector").getClientRects().length']]),
   ['narrow-dialog','narrow-dialog-probe.js',320,740],
   ['snapshot','job-snapshot-probe.js'],
   ['readiness','art-readiness-probe.js'],

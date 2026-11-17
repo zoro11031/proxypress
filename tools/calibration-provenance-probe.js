@@ -11,7 +11,7 @@
     let status=getCalibrationStatus();check('front and matching duplex have independent measured provenance',status.front.status==='Measured'&&status.back.status==='Measured');
     $('#calProfileSel').value='';check('hidden selector is not status authority',getCalibrationStatus().back.status==='Measured');
     const method=$('#setting-duplexMethod');method.value='auto';method.dispatchEvent(new Event('change',{bubbles:true}));
-    status=getCalibrationStatus();check('different feed keeps front provenance but not back',status.front.status==='Measured'&&status.back.status==='Estimated');
+    status=getCalibrationStatus();check('different feed keeps front measurement and clears unused back correction',status.front.status==='Measured'&&status.back.status==='Uncalibrated');
     check('different feed does not retain drift',S.settings.backOffsetX===0&&S.settings.backOffsetY===0);
     const method2=$('#setting-duplexMethod');method2.value='manual';method2.dispatchEvent(new Event('change',{bubbles:true}));
     check('return to measured duplex resolves its stored values',S.settings.backOffsetX===2&&S.settings.backOffsetY===3);
