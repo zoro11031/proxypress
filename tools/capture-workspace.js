@@ -22,6 +22,7 @@ const arg=(name,fallback)=>{const index=process.argv.indexOf(name);return index<
   if(state==='empty')action="deck().entries=[];renderAll();setWorkspaceView('cards');await drawPreview();";
   else if(state==='blocked')action="deck().entries[0].faces[0].custom='missing-for-visual-review';renderAll();await drawPreview();$('#btnReviewExport').click();await sleep(500);";
   else if(state==='loading')action="previewUrl=()=>new Promise(()=>{});renderPreview();await sleep(150);";
+  else if(state==='order')action="S.mode='order';applyMode();renderAll();setWorkspaceView('proof');await drawPreview();";
   else if(state==='foil')action='await openFoilToneModal();';
   else if(state==='art')action="mpcApi=async()=>({results:[],data:[]});mpcSearch=async()=>new Map();mpcCards=async()=>[];sf=async()=>({data:[]});localIndex.push({file:new File([await store.get('images',faces[1].custom)],'Sol Ring.png',{type:'image/jpeg'}),key:normName('Sol Ring'),words:new Set(['sol','ring'])});await openMpcPicker({e:deck().entries[1],i:0,copies:[{uid:deck().entries[1].uid,copies:[0]}],defaultTab:'local'});await sleep(300);$('#localArt figure')?.click();";
   else if(state!=='proof')throw Error('Unknown capture state');
