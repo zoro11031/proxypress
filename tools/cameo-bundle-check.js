@@ -5,11 +5,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const {inflateSync} = require('node:zlib');
+const DARK_CARD = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC';
 const root = path.join(__dirname,'..');
 const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
 const functions = ['layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
-  'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict',
+  'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
   'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','buildCameoBundle'];
 const code = functions.map(name=>{
@@ -25,7 +26,7 @@ const context = vm.createContext({console, TextEncoder, Blob, calibration,
   serverPath:url=>url, sheetFeedable:()=>true, isPreview:()=>false,
   guideLines:()=>[], inspectPrintArtwork:async()=>({ok:true,width:2400,height:3200}),
   artworkKey:face=>face.name, renderFace:async()=>({toDataURL:()=>
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNYu/ckAAROAjQYMQanAAAAAElFTkSuQmCC'}),
+    'data:image/png;base64,' + DARK_CARD}),
   printJobKey:()=> 'job', reviewKey:()=>`${scope.value}/${state.activeSheet}`,
   imgCache:new Map(), latestPrintReview:null, renderGuideTab:()=>{}, switchTab:()=>{},
   busy:()=>{}, busyProgress:()=>{}, sleep:async()=>{}, showPostExportInstructions:()=>{},
@@ -66,12 +67,15 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     ['letter','landscape',8,correction,true,false],
     ['letter','landscape',8,{regOrientation:'portrait',...correction},false,false],
     ['letter','landscape',8,{offsetY:-11},false,false],
+    ['letter','landscape',8,{offsetX:-1,offsetY:1.1},false,false],
+    ['letter','landscape',8,{offsetX:-1,offsetY:1.1,regLen:8},false,false],
+    ['letter','landscape',8,{regInset:3.5},false,false],
     ['letter','landscape',8,{regInset:0},false,false]
   ];
   for (const [paper,orientation,count,overrides,duplex,current] of cases) {
     Object.assign(context,{paper,orientation,count,overrides,duplex});
     scope.value = current ? 'current' : 'all'; state.activeSheet = current ? 1 : 0;
-    const name = `${paper}-${orientation}-${count}${current ? '-current' : ''}${overrides.regOrientation ? '-turned' : ''}${overrides.printRotate ? '-corrected' : ''}${overrides.offsetY === -11 ? '-11mm-up' : ''}`;
+    const name = `${paper}-${orientation}-${count}${current ? '-current' : ''}${overrides.regOrientation ? '-turned' : ''}${overrides.printRotate ? '-corrected' : ''}${overrides.offsetY === -11 ? '-11mm-up' : ''}${overrides.regInset === 3.5 ? '-3.5mm-inset' : ''}${overrides.offsetY === 1.1 ? '-tight-bleed' : ''}`;
     const job = vm.runInContext(`(() => {
       const settings = {...DEFAULTS,...cameoPaperLayout(orientation),pageSize:paper,silhouette:true,guides:'none',...overrides};
       const L = layout(settings), slots = Array.from({length:count},(_,i)=>({front:{name:'Front '+i,custom:'art'},back:duplex?{name:'Back',custom:'back'}:null}));
@@ -85,9 +89,14 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
       assert.match(notices.at(-1),/registration marks extend off/);
       continue;
     }
+    if (overrides.regLen === 8) {
+      assert.equal(outputs.length,prev,'manual arms touching black bleed must be blocked');
+      assert.match(notices.at(-1),/Sheet 1: bottom-left L/);
+      continue;
+    }
     if (overrides.offsetY === -11) {
       assert.equal(outputs.length,prev);
-      assert.match(notices.at(-1),/Cards overlap Silhouette Cameo registration marks/);
+      assert.match(notices.at(-1),/registration marks on Sheet 1: (top-left square|top-right L|bottom-left L)/);
       continue;
     }
     assert.equal(outputs.length,prev+1,`${name}: ${notices.at(-1)}`);
@@ -96,14 +105,26 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     assert.equal(info.format,'proxypress-cameo');
     assert.equal(info.version,1);
     const pdf = files.get(info.pdf);
+    assert.equal(info.mat.paperOffset,0);
+    assert.equal(info.studioCanvas.paperOffset,Math.max(0,10-info.registration.inset));
+    const readme = files.get('Read me.txt').toString();
+    assert.match(readme,/Silhouette Control Center: align the paper with the top-left/);
+    if (overrides.regInset === 3.5) assert.match(readme,/Silhouette Studio: place the paper 6.5 mm in/);
     const selected = current ? job.sheets.slice(1) : job.sheets;
     const pages = pdfPages(pdf), key = `${paper}-${orientation}`;
-    if (overrides.printRotate) assert.ok(info.registration.armLength < 8.0264);
+    if (overrides.printRotate || overrides.offsetY === 1.1) assert.ok(info.registration.armLength < 8.0264);
     assert.equal(info.sheets.length,selected.length,name);
     assert.equal(Number(pdf.toString('latin1').match(/\/Type \/Pages\b[\s\S]*?\/Count (\d+)/)[1]),selected.length*(duplex?2:1));
     for (const [i,sheet] of selected.entries()) {
-      const row = info.sheets[i], full = sheet.slots.length === job.layout.per && !overrides.printRotate && key !== 'letter-portrait';
-      assert.deepEqual(row,{sheet:sheet.index+1,frontPage:i*(duplex?2:1)+1,backPage:duplex?i*2+2:null,
+      const row = info.sheets[i], full = sheet.slots.length === job.layout.per && !overrides.printRotate && overrides.offsetY !== 1.1 && key !== 'letter-portrait';
+      const {nearMarks,...mapping} = row;
+      assert.ok(Array.isArray(nearMarks));
+      assert.ok(nearMarks.every(mark=>['top-left square','top-right L','bottom-left L'].includes(mark)));
+      if (overrides.printRotate && !overrides.regOrientation) {
+        assert.ok(nearMarks.includes('bottom-left L'),'the corrected dark artwork crowds the bottom-left mark');
+        assert.match(readme,/Artwork close to these marks .*bottom-left L/);
+      }
+      assert.deepEqual(mapping,{sheet:sheet.index+1,frontPage:i*(duplex?2:1)+1,backPage:duplex?i*2+2:null,
         cards:sheet.slots.length,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`,svg:`sheet-${sheet.index+1}.svg`});
       assert.equal(files.get(row.svg).toString(),vm.runInContext('cutSvg',context)(sheet.index,job));
       const cut = files.get(row.cutFile);

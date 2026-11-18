@@ -1085,14 +1085,11 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
         </details>
 
         <details class="adv" id="cameoSpecsDrawer" style="margin-top:10px">
-          <summary>Cameo settings and the sensor trick</summary>
+          <summary>Cameo cutting and registration</summary>
           <p class="hint">Find the force, speed and passes with a small test cut on your cutter and stock. Start with one pass and inspect without unloading the mat before repeating.</p>
           <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> provides Cameo 5 reference settings and explains how to tune them. Your cutter and stock need their own test.</p>
 
-          <div class="callout-box" style="margin-top:10px">
-            <b>Optical sensor masking trick</b>
-            <p class="hint" style="margin:4px 0 0">On Letter landscape, card #5 sits ~1.2 mm inside the sensor search margin. Place a small sticky note (Post-It) over the bottom-left card artwork during registration scanning. Peel it off once marks are read, then cut!</p>
-          </div>
+          <p class="hint">Review export identifies which marks are close to printed artwork on each sheet. Keep the marks visible when loading the mat.</p>
 
           <ol class="tips hint" style="padding-left:18px;margin-top:8px">
             <li><b>Cut guides:</b> Automatically set to <b>None</b> so rotary lines aren't printed.</li>
@@ -2496,7 +2493,7 @@ function squarenessMarks(L) {
 //   - the three-mark pattern has NOTHING in the bottom-right corner. Four
 //     marks means an L in all four corners and no square (Cameo 5 Alpha);
 //     on a Cameo 5 Alpha, selecting "Cameo 5" in Studio uses three.
-const REG_MIN_LEN = 5, REG_MAX_LEN = 20, REG_SAFETY = 1.25;
+const REG_MIN_LEN = 5, REG_MAX_LEN = 20, REG_INK_CLEARANCE = 0.15, REG_NEAR_CLEARANCE = 1.5;
 const STUDIO3_INSET = 10;
 // Active length from the page setup record of each bundled Studio file.
 const STUDIO3_ARMS = {'letter-landscape':8.0264, 'letter-portrait':14.3764, 'a4-landscape':9.398, 'a4-portrait':6.6802};
@@ -2525,28 +2522,33 @@ function regArm(L, s = S.settings) {
 // clearance perpendicular to it can bring it into the grid.
 function regArmCap(L, s = S.settings) {
   const frame = registrationFrame(L, s);
-  const T = makeT(L,false,s), x1 = L.x0+s.bleed, y1 = L.y0+s.bleed;
-  const x2 = L.x0+L.gw-s.bleed, y2 = L.y0+L.gh-s.bleed;
-  const corners = [[x1,y1],[x2,y1],[x2,y2],[x1,y2]].map(([x,y])=>{
-    const p = turnPt(L,{x:T.x(x),y:T.y(y)},false,s);
-    return frame.toMat(p.x,p.y);
-  });
-  // Control Center reserves the whole square at each mark. Check the
-  // calibrated trim bounds in the cutter's frame before choosing an arm.
-  const inset = s.regInset, xs = corners.map(p=>p[0]), ys = corners.map(p=>p[1]);
-  const west = Math.min(...xs)-inset, east = frame.W-inset-Math.max(...xs);
-  const north = Math.min(...ys)-inset, south = frame.H-inset-Math.max(...ys);
+  const T = makeT(L,false,s), inset = s.regInset;
+  const gaps = (bleed) => {
+    const left = L.x0+bleed, top = L.y0+bleed, right = L.x0+L.gw-bleed, bottom = L.y0+L.gh-bleed;
+    const corners = [[left,top],[right,top],[right,bottom],[left,bottom]].map(([x,y])=>{
+      const p = turnPt(L,{x:T.x(x),y:T.y(y)},false,s);
+      return frame.toMat(p.x,p.y);
+    });
+    const xs = corners.map(p=>p[0]), ys = corners.map(p=>p[1]);
+    return [Math.min(...xs)-inset, frame.W-inset-Math.max(...xs),
+      Math.min(...ys)-inset, frame.H-inset-Math.max(...ys)];
+  };
+  // Control Center reserves a square at each mark for the cut paths.
+  const [west,east,north,south] = gaps(s.bleed);
+  const four = +s.regPattern === 4;
   const caps = [Math.max(west,north)-0.01,Math.max(east,north)-0.01,Math.max(west,south)-0.01];
-  if (+s.regPattern === 4) caps.push(Math.max(east,south)-0.01);
-  if (frame.turned) L = {...L, W:L.H, H:L.W, x0:L.y0, y0:L.x0, gw:L.gh, gh:L.gw};
-  const i = s.regInset, t = Math.max(0.5, Math.min(s.regThickness, 1)) / 2;
-  const gx0 = L.x0, gx1 = L.x0 + L.gw, gy0 = L.y0, gy1 = L.y0 + L.gh;
-  // Horizontal arms sit at y = i and y = H - i, and run inward from a corner.
-  if ((gy0 - t < i && i < gy1 + t) || (gy0 - t < L.H - i && L.H - i < gy1 + t))
-    caps.push(gx0 - i - REG_SAFETY, L.W - i - gx1 - REG_SAFETY);
-  // Vertical arms sit at x = i and x = W - i.
-  if ((gx0 - t < i && i < gx1 + t) || (gx0 - t < L.W - i && L.W - i < gx1 + t))
-    caps.push(gy0 - i - REG_SAFETY, L.H - i - gy1 - REG_SAFETY);
+  if (four) caps.push(Math.max(east,south)-0.01);
+  // Account for calibrated printed bleed as well as trim. A bleed edge
+  // near the fixed stroke across one axis limits the arm on the other.
+  const [inkWest,inkEast,inkNorth,inkSouth] = gaps(0);
+  const reach = Math.max(0.5,Math.min(s.regThickness,1))/2 + REG_INK_CLEARANCE;
+  const capCorner = (side, end) => {
+    if (side < reach) caps.push(end-REG_INK_CLEARANCE);
+    if (end < reach) caps.push(side-REG_INK_CLEARANCE);
+  };
+  capCorner(inkEast,inkNorth);
+  capCorner(inkWest,inkSouth);
+  if (four) { capCorner(inkWest,inkNorth); capCorner(inkEast,inkSouth); }
   return Math.min(...caps);
 }
 function regMarks(L, s = S.settings) {
@@ -2579,26 +2581,37 @@ function regMarksClipped(L, s) {
     x < -0.05 || x+w > L.W+0.05 || y < -0.05 || y+h > L.H+0.05);
 }
 function regConflict(L, s = S.settings, occupied = null, clearance = 0) {
-  if (!s.silhouette) return false;
-  const boxes = regInkBoxes(regMarks(L,s));
+  return regContacts(L,s,occupied,clearance).length > 0;
+}
+
+function regContacts(L, s, occupied, clearance = 0) {
+  if (!s.silhouette) return [];
+  const marks = regMarks(L,s), boxes = regInkBoxes(marks);
+  const cornersOnMat = +s.regPattern === 4
+    ? ['top-left L','top-left L','top-right L','top-right L','bottom-left L','bottom-left L','bottom-right L','bottom-right L']
+    : ['top-left square','top-right L','top-right L','bottom-left L','bottom-left L'];
   const T = makeT(L,false,s), a = s.printRotate*Math.PI/180;
   const axes = [[1,0],[0,1],[Math.cos(a),Math.sin(a)],[-Math.sin(a),Math.cos(a)]];
   const corners = (x,y,w,h) => [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
-  const marks = boxes.map(([x,y,w,h])=>corners(x-clearance,y-clearance,w+2*clearance,h+2*clearance));
-  const covers = (left, top, width, height) => {
+  const ink = boxes.map(([x,y,w,h])=>corners(x-clearance,y-clearance,w+2*clearance,h+2*clearance));
+  const contacts = new Set();
+  const check = (left, top, width, height) => {
     const artwork = corners(T.x(left),T.y(top),T.w(width),T.h(height)).map(p=>turnPt(L,p,false,s));
     // The artwork can rotate, so check both sets of edge normals for overlap.
-    return marks.some(mark=>axes.every(([u,v])=>{
-      const art = artwork.map(({x,y})=>x*u+y*v), ink = mark.map(({x,y})=>x*u+y*v);
-      return Math.min(...art) < Math.max(...ink) && Math.min(...ink) < Math.max(...art);
-    }));
+    ink.forEach((mark,index)=>{
+      if (axes.every(([u,v])=>{
+        const art = artwork.map(({x,y})=>x*u+y*v), rect = mark.map(({x,y})=>x*u+y*v);
+        return Math.min(...art) < Math.max(...rect) && Math.min(...rect) < Math.max(...art);
+      })) contacts.add(cornersOnMat[index]);
+    });
   };
-  if (!occupied) return covers(L.x0,L.y0,L.gw,L.gh);
-  return occupied.some((slot,index)=>{
-    if (!slot.front) return false;
+  if (!occupied) check(L.x0,L.y0,L.gw,L.gh);
+  else occupied.forEach((slot,index)=>{
+    if (!slot.front) return;
     const p = slotPos(L,index,false,s);
-    return covers(p.x,p.y,L.sw,L.sh);
+    check(p.x,p.y,L.sw,L.sh);
   });
+  return [...new Set(cornersOnMat)].filter(name=>contacts.has(name));
 }
 
 /* ---------- slots ---------- */
@@ -8030,11 +8043,14 @@ async function runPreflight(options = {}) {
     for (let index=0; index<totalSheets; index++) {
       const sheet = sheetIndex(index)+1;
       const occupied = slots.slice(index*L.per,(index+1)*L.per);
-      if (regConflict(L, s, occupied)) {
-        errors.push({ type:'reg_conflict', tab:'cutting', sheet, side:'front', message:`Cards overlap Silhouette Cameo registration marks on Sheet ${sheet}. Check front alignment, bleed or paper size.` });
-      } else if (regConflict(L, s, occupied, 1.5)) {
+      const conflicts = regContacts(L,s,occupied,REG_INK_CLEARANCE);
+      const close = regContacts(L,s,occupied,REG_NEAR_CLEARANCE);
+      if (conflicts.length) {
+        errors.push({type:'reg_conflict', tab:'cutting', sheet, side:'front',
+          message:`Printed artwork overlaps or nearly touches these registration marks on Sheet ${sheet}: ${conflicts.join(', ')} (mat view). Adjust front alignment or bleed.`});
+      } else if (close.length) {
         warnings.push({type:'reg_clearance', tab:'cutting', sheet, side:'front',
-          message:`Artwork is within 1.5 mm of a registration mark on Sheet ${sheet}. Test registration before cutting stock.`});
+          message:`Artwork is close to these registration marks on Sheet ${sheet}: ${close.join(', ')} (mat view). Test registration on plain paper.`});
       }
     }
     if (s.guides !== 'none') {
@@ -8369,10 +8385,10 @@ function renderGuideTab() {
         <b>Silhouette Studio setup</b>
         <p class="hint" style="margin:4px 0 8px">The cut file uses the current sheet layout and ${s.cornerRadius} mm corner radius.</p>
         <p class="hint">Download the cut file from Print files above.</p>
-        <p class="hint">On Linux, open the matching ZIP under Sheet in Silhouette Control Center.</p>
+        <p class="hint">In Silhouette Control Center, open the ZIP under Sheet and align the paper with the top-left of the mat grid.</p>
       </div>
       <ol class="steps" style="margin-top:12px">
-        <li><b>Load the mat:</b> Place the printed sheet <b>${frame.orientation}</b>, with ${pad ? `its top and left edges <b>${pad.toFixed(1)} mm</b> in from the mat grid` : 'its top-left corner aligned with the top-left of the mat grid'}. ${s.regPattern === 3 ? 'Keep the black square at the upper left.' : ''}</li>
+        <li><b>Load the mat for Studio:</b> Place the printed sheet <b>${frame.orientation}</b>, with ${pad ? `its top and left edges <b>${pad.toFixed(1)} mm</b> in from the mat grid` : 'its top-left corner aligned with the top-left of the mat grid'}. ${s.regPattern === 3 ? 'Keep the black square at the upper left.' : ''}</li>
         <li><b>Find your cutting settings:</b> Make a small test shape first. Start with one pass, inspect the cut without unloading the mat, and repeat as needed.
           <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> reports depth 7, force 35, speed 25 and 4 passes for the author's Cameo 5, AutoBlade, cardstock and laminate. These are Cameo 5 reference settings. For your cutter, use values supported by Silhouette Studio and determine force, speed and passes with a test cut on your ProxyJak stock.</p>
         </li>
@@ -9249,23 +9265,24 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
     const svg = `sheet-${number}.svg`;
     files.push({name:cutFile,data});
     files.push({name:svg,data:enc.encode(cutSvg(sheet.index,job))});
-    rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile,svg});
+    rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile,svg,
+      nearMarks:regContacts(L,s,sheet.slots,REG_NEAR_CLEARANCE)});
   }
   const info = {
     format:'proxypress-cameo', version:1, pdf:pdfName, units:'mm', origin:'top left',
     pdfPage:{width:L.W,height:L.H,orientation:s.orientation,frontMarkInk:ink},
-    mat:{width:frame.W,height:frame.H,orientation:frame.orientation,paperOffset:pad},
+    mat:{width:frame.W,height:frame.H,orientation:frame.orientation,paperOffset:0},
     registration:{pattern:s.regPattern,inset:s.regInset,armLength:arm,thickness:marks.width},
-    studioCanvas:{width:frame.W+2*pad,height:frame.H+2*pad,inset:s.regInset+pad},
+    studioCanvas:{width:frame.W+2*pad,height:frame.H+2*pad,inset:s.regInset+pad,paperOffset:pad},
     sheets:rows
   };
-  const sheetList = rows.map(row=>`Sheet ${row.sheet}: PDF page ${row.frontPage} (front)${row.backPage ? `, ${row.backPage} (back)` : ''} → ${row.cutFile} (${row.cards} cards)`).join('\n');
+  const sheetList = rows.map(row=>`Sheet ${row.sheet}: PDF page ${row.frontPage} (front)${row.backPage ? `, ${row.backPage} (back)` : ''} → ${row.cutFile} (${row.cards} cards)${row.nearMarks.length ? `\n  Artwork close to these marks (mat view): ${row.nearMarks.join(', ')}.` : ''}`).join('\n');
   const dxf = rows.some(row=>row.cutFile.endsWith('.dxf')) ?
     `\nDXF setup in Studio: ${dxfNum(info.studioCanvas.width)} × ${dxfNum(info.studioCanvas.height)} mm canvas, ${s.regPattern} marks, ${dxfNum(info.studioCanvas.inset)} mm inset, ${dxfNum(arm)} mm arms, ${marks.width} mm thickness.${s.regPattern === 4 ? ' Select Cameo 5 Alpha for four marks.' : ''}\n` : '';
   const readme = `Print ${pdfName} at Actual size / 100% on ${dxfNum(L.W)} × ${dxfNum(L.H)} mm paper.\n` +
-    `Load the sheet ${frame.orientation} on the mat with its top and left edges ${pad ? `${dxfNum(pad)} mm in from the grid edges` : 'at the top-left grid corner'}. ${s.regPattern === 3 ? 'The black square goes at the upper left.\n' : '\n'}` +
-    `\n${sheetList}\n\nOpen the matching .studio3 file directly in Silhouette Studio when supplied. Its page and marks are already set.\n${dxf}` +
-    '\nOn Linux, open this ZIP in Silhouette Control Center under Sheet. In the terminal, use check-sheet or cut --from with the ZIP and --bundle-sheet for multi-sheet files. Use --dry-run to verify a cut without sending it.\n';
+    `Load the printed front face-up in ${frame.orientation}. ${s.regPattern === 3 ? 'The black square goes at the upper left. ' : ''}Keep all marks uncovered.\n\n` +
+    `${sheetList}\n\nSilhouette Studio: ${pad ? `place the paper ${dxfNum(pad)} mm in from the top and left grid edges` : 'align the paper with the top-left of the mat grid'}. Open the matching .studio3 file directly when supplied.\n${dxf}` +
+    '\nSilhouette Control Center: align the paper with the top-left of the mat grid. Open this ZIP under Sheet. In the terminal, use check-sheet or cut --from with the ZIP and --bundle-sheet for multi-sheet files. Use --dry-run to verify a cut without sending it.\n';
   files.push({name:'Read me.txt',data:enc.encode(readme)},{name:'registration.json',data:enc.encode(JSON.stringify(info,null,2))});
   return files;
 }
