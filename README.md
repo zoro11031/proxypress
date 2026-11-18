@@ -1,132 +1,57 @@
 # Proxy Press
 
-A free, easy MTG proxy maker. Paste your decklist, choose your favorite art, and get a print-ready PDF with proper cut lines—or an order file ready for MakePlayingCards.
+Make Magic: The Gathering proxies from a decklist. Choose artwork, lay out sheets for your printer, or prepare an order for MakePlayingCards.
 
-No accounts, no tracking, and no subscriptions. Everything runs directly on your machine.
+![Example card list and print sheet in Proxy Press](screenshots/print-preview.png)
 
-![Proxy Press sheet preview](screenshots/print-preview.png)
+## Install
 
----
+Open the [latest release](https://github.com/zoro11031/proxypress/releases/latest) and expand **Assets**.
 
-## Which download is best for you?
+- **Windows x64:** Run the `.exe` installer or the `.msi` package.
+- **Linux x86-64:** Use the AppImage, or choose `.deb` for Debian and Ubuntu, `.rpm` for Fedora and openSUSE, or `.pacman` for Arch. Mark the AppImage executable before launching it.
 
-### 💻 For Normal Users (Easiest & Recommended)
+### Docker
 
-Download the desktop app from **[Releases](https://github.com/zoro11031/proxypress/releases)**:
+Clone the repository and run `docker compose up -d`. Open `http://localhost:8642` on the server. To reach it from another device, set the server’s LAN address in `PROXY_PRESS_BIND` in `.env`. See [`.env.example`](.env.example) for the password and sharing settings.
 
-- **Windows:** Download and run `Proxy-Press-0.8.0.exe` (or `Proxy-Press-0.8.0.msi`).
-- **Linux:** Download `Proxy-Press-0.8.0.AppImage`, make it executable (`chmod +x Proxy-Press-0.8.0.AppImage`), and double-click to launch.
-
-*No setup required. All authentic MTG fonts, card frames, and high-res art search tools are built in with no login or password needed.*
-
-#### Other Linux packages (optional)
-If you prefer installing via your distribution's package manager:
-- **Debian / Ubuntu (.deb):** `sudo apt install ./Proxy-Press-0.8.0.deb`
-- **Fedora / openSUSE / RHEL (.rpm):** `sudo dnf install ./Proxy-Press-0.8.0.rpm` (or `sudo zypper install ./Proxy-Press-0.8.0.rpm`)
-- **Arch / CachyOS / Manjaro (.pacman):** `sudo pacman -U Proxy-Press-0.8.0.pacman` (or unpack `proxypress-bin-aur.tar.gz` and run `makepkg -si`)
-
----
-
-### 🐳 For Home Servers & NAS (Docker)
-
-If you have a home server (Unraid, TrueNAS, Synology, or Raspberry Pi) and want Proxy Press running 24/7 so anyone on your home Wi-Fi can open it in their browser:
+To update a local checkout, run:
 
 ```sh
-docker compose up -d
+git pull --ff-only
+docker compose up -d --build
 ```
 
-Then open `http://localhost:8642` on the server. To connect from other devices, copy `.env.example` to `.env`, set `PROXY_PRESS_BIND` to the server's LAN IP, and run `docker compose up -d` again. Open `http://SERVER_LAN_IP:8642` from those devices. You can also set a password in `.env`.
+## Add cards
 
-To update a local Compose deployment, run `git pull --ff-only` and
-`docker compose up -d --build` in the checkout. The cache volume and browser
-projects stay in place. The image includes the PDF library and Studio
-templates outside the mounted asset directory.
+Paste a decklist, import a Moxfield or Archidekt link, or upload images. Choose **Change art** from a card’s menu to browse printings or community artwork. **Create a card** lets you add your own artwork to a card frame.
 
----
+## Print at home
 
-## What It Does
+Choose your paper and card layout in **Print Settings**. Check both sides in the sheet preview, then open **Review export** to download all sheets or pick one to reprint. Print at **Actual size / 100%**. If the backs sit off-center, use **Alignment → Align front and back**.
 
-### 1. Import Any Deck
-Paste a decklist or paste a link directly from Moxfield or Archidekt. Proxy Press imports your cards and can automatically add all required tokens and emblems with one click.
+### Silhouette cutters
 
-### 2. Pick Your Favorite Art
-Choose **Change art…** from a card’s menu to search Scryfall printings, high-DPI community renders, and uploads shared on this server. Results show their source, and each source loads independently. Chosen Scryfall images are saved locally and kept when you use Auto fill art. DPI and file-size filters apply to community art.
+In **Print Settings → Cutting**, select **Silhouette cutter** and choose your paper size. **Silhouette Card Maker** matches the stock template for the selected paper and card size, including Letter and A4 for standard Magic cards. Borderless is available where a matching template exists. With these templates, use long-edge flip for double-sided printing.
 
-Uploading an image offers an optional card match. Matching keeps your image and adds it to this server's art search for everyone using the instance. Skip one image or the remaining batch to keep them unmatched in your deck. Images uploaded to an already-matched card are shared automatically. Shared artwork appears as **Uploaded here** in the art picker; selecting it saves a separate local copy. **Remove upload** removes it from search without changing anyone's saved decks. This library is available on the Python server; the desktop app keeps uploads local.
+Download the **print & cut ZIP** from **Review export**. It includes the PDF and matching cut files for each sheet. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet**. In Silhouette Studio, open the Studio file when available or use DXF with the settings under **Cut instructions**.
 
-Right-click a card and choose **Change card match…** to correct its Scryfall match or printing. The Suggestions box recommends cards based on the ones in your deck; use **+** to add one or **Explore suggestions** to browse them.
+### Foil colors
 
-On a home server, **Create share link** shares a copy with original artwork and layout. Anyone with the link can choose **Save to my decks** to copy the deck and its artwork onto their device without signing in. Shared paper and layout settings are optional and off by default. Remove links under **Settings → Manage shared decks**. **Offline deck file** exports a smaller JSON file with compact artwork at up to 600 DPI; importing it restores the original artwork when this server is reachable. The desktop app also supports compact offline deck files.
+In **Print Settings → Color**, choose **Foil colors** and print a test sheet on your foil paper. If the result looks dark or muted, adjust brightness, saturation, or contrast. Choose **Save as foil default** to reuse those colors across decks when you select a foil preset.
 
-For tokens, choose **Choose token faces…** to use either face by itself or browse released two-sided token pairings. The selected printing's artwork is saved with your deck.
+## Order prints
 
-![Choosing high-resolution card artwork](screenshots/art-picker.png)
+Choose **Order prints → Review order**. Pick cardstock and a shared cardback, then download the order ZIP. Open **How to place the order** for the desktop tool and upload steps.
 
-### 3. Print at Home or Order Online
-- **Print at Home:** Generates standard Letter or A4 PDFs with cut guides and automatic bleed edges so cards never have white borders after cutting. Supports front-to-back printer calibration and Silhouette Cameo cutter registration marks.
-- **Order Online:** One-click bundle ready for MakePlayingCards with formatted order files and card images.
+## Backups and sharing
 
-Open **Setup** to change paper, layout, sides, color or cutting settings. The proof shows one sheet at a time; use its sheet selector, Front / Back and zoom controls to inspect the job. On phones, switch between **Cards / Proof / Setup**.
+Decks save in your browser. Use **Project files** to save a backup or **Share or save a deck copy** in review to export a single deck with artwork.
 
-Choose **Review export** to check warnings and download. Select **Current sheet** to reprint that sheet with its original number and matching cut file. **Review order** provides the order bundle and XML options.
+On a self-hosted instance, you can create a share link. Anyone with the link can open the shared copy. Match an uploaded image to a card if you want to make that artwork searchable by others on the same server.
 
-Imports show a review before changing the deck. Unresolved input stays available through **Resume import**. Use **Settings & backup** for full backups; the top bar reports when changes have been saved to this device. See the [overhaul verification record](FOLLOW-UP-VERIFICATION.md) for the feature map, migration notes, tests and before/after views.
+## Credits and license
 
-For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using the domain and subdomain served by your reverse proxy. If unset, links use the address open in the browser. `SHARE_DECK_MB=1024` allows 1 GB of original artwork per shared deck; `SHARE_STORAGE_MB=20480` allows 20 GB across shared decks and the instance art library. Identical images are stored once. Shares and the art library are kept in `cache/shares.sqlite3` in the persistent Docker volume. Revoking a link removes artwork that no other shared deck or library entry uses; copies already saved by recipients remain theirs.
+Thanks to [MPC Autofill](https://mpcfill.com), [Scryfall](https://scryfall.com), [EDHREC](https://edhrec.com), and [Silhouette Card Maker](https://github.com/Alan-Cha/silhouette-card-maker). You can [support MPC Autofill on Patreon](https://www.patreon.com/mpcfill).
 
-![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
-
-**Use a Silhouette Card Maker template.** Choose **Cut → Silhouette Cameo**
-for stock paper and card sizes. ProxyPress includes the 190 regular and
-borderless layouts that have a published stock template. It automatically
-uses the SCM grid, registration marks, and 0.625 mm bleed, and names the matching
-`.studio3` file on the PDF and in **Review export**. Use long-edge flip for
-double-sided sheets. For **Borderless**, follow SCM’s instructions for placing
-the sheet 6.5 mm in from the Studio mat grid. On partial sheets, turn off the
-unused cuts in the stock template or use the paired cut file from the ZIP.
-[Silhouette Card Maker templates](https://github.com/Alan-Cha/silhouette-card-maker/tree/0da09b729814aa5aafde024b5a6059624fa87951/cutting_templates)
-
-Choose **Borderless** or **Custom · Export matching cut files** under
-**Advanced cutting options**. Custom lets you change the grid, registration
-settings or front alignment. Use the cut file from the same export for that layout.
-
-For stock SCM templates, **Advanced cutting options** also lets you skip card
-positions, choose how front and back images fit, crop their edges, and add a
-printed label. Skipping a position moves that card to the next open spot and
-leaves the matching cut out of the ZIP.
-
-For Cameo, choose **Review export → Download matching print and cut files (ZIP)**. Print the PDF at actual size. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet** to load the PDF front page, registration settings, and cut paths together. Each sheet includes SVG and DXF. Matching four-card Letter landscape sheets also include a native Studio document with the page setup, marks and four trim paths. Align the paper to the top-left of the mat grid for Control Center. Silhouette Studio gets a native file when its template matches, or a DXF with the exact Studio setup and mat placement in `Read me.txt`. Review export names marks that are close to artwork on each sheet.
-
-### 4. Custom Card Maker
-Design custom cards, commanders, and tokens right in your browser with authentic typography and classic or modern frame packs included.
-
----
-
-## Simple Printing Tips
-
-- **The #1 Rule:** Always set your printer scaling to **100% / Actual Size** (never "Fit to page" or "Shrink to fit", or cards will be slightly smaller than real Magic cards).
-- **Paper choices:** Heavy cardstock (300 gsm / 110 lb) works great for sleeves. For foil peels or sticker proxies, matte vinyl sticker paper on real basic lands gives a great feel.
-- **Alignment:** If double-sided printing drifts slightly on your printer, open Setup → Calibration to adjust horizontal and vertical alignment.
-
----
-
-## Supporting MPC Autofill & Credits
-
-Huge thanks to **[MPC Autofill / MPCFill](https://mpcfill.com)** above all. None of this would exist without their database, community drives, and the artists creating and sharing high-DPI card renders. If you use the autofill tool or community drives, please consider **[supporting their server and maintenance costs on Patreon](https://www.patreon.com/mpcfill)**.
-
-Special thanks also to:
-- **[ProxyJak](https://proxyjak.com)** — Quality proxy cardstock.
-- **[Cry Cry](https://www.youtube.com/@crycryproxy)** — Essential YouTube tutorials on paper choices, foiling, and cutter setup.
-- **[Scryfall](https://scryfall.com)** — The card data API powering the MTG community.
-- **[EDHREC](https://edhrec.com)** — Similar-card and shared-deck data for card suggestions.
-- **[Proxxied](https://proxxied.com)** — Inspiration for in-browser sheet previewing.
-- **[Magic Set Editor](https://magicseteditor.boards.net)** & **Card Conjurer / MTG.Design** — Card framing and typography foundations.
-- **r/mpcproxies & r/magicproxies** — Helpful tips on printing and paper stocks.
-
----
-
-## License & Fair Use Notice
-
-Proxy Press is free software licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-or-later).
-
-**Typography & Card Assets:** Card frames, symbol vectors, and fonts bundled in `assets/` (Beleren, Plantin, Magic Medieval, etc.) are proprietary trademarks and copyrights of their respective owners (such as Wizards of the Coast and Monotype). They are not covered under the GNU General Public License v3.0 and are bundled in accordance with fair use for non-commercial, personal card crafting and proxy printing.
+Proxy Press is licensed under [GPL-3.0-or-later](LICENSE). Card art, fonts, frames, and trademarks belong to their respective owners and are subject to their own rights.
