@@ -1039,56 +1039,58 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 
       <!-- SILHOUETTE CAMEO SECTION -->
       <div id="cameoSection">
-        <div class="field full">
-          <label for="scmTemplate">Cutting template</label>
-          <select id="scmTemplate">
-            <option value="standard">Silhouette Card Maker</option>
-            <option value="borderless">Silhouette Card Maker · Borderless</option>
-            <option value="custom">Custom · Export matching cut files</option>
-          </select>
-          <p id="scmTemplateHint" class="hint"></p>
-        </div>
         <div id="cameoStatus"></div>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
-          <summary>Advanced registration settings</summary>
-          <div class="field full" style="margin-top:8px">
-            <label for="cameoRegPattern">Registration mark pattern</label>
-            <select id="cameoRegPattern">
-              <option value="3">3 marks — standard (Cameo 4, Cameo 5, Portrait)</option>
-              <option value="4">4 marks — Cameo 5 Alpha only</option>
+          <summary>Advanced cutting options</summary>
+          <div class="field full">
+            <label for="scmTemplate">Cutting template</label>
+            <select id="scmTemplate">
+              <option value="standard">Silhouette Card Maker</option>
+              <option value="borderless">Silhouette Card Maker · Borderless</option>
+              <option value="custom">Custom · Export matching cut files</option>
             </select>
+            <p id="scmTemplateHint" class="hint"></p>
           </div>
-          <div class="grid2" style="margin-top:8px">
-            <div class="field full">
-              <label for="cameoRegOrientation">Sheet orientation on the cutter mat</label>
-              <select id="cameoRegOrientation">
-                <option value="auto">Match the printed page</option>
-                <option value="portrait">Portrait on the mat</option>
-                <option value="landscape">Landscape on the mat</option>
+          <div id="cameoCustomRegistration">
+            <div class="field full" style="margin-top:8px">
+              <label for="cameoRegPattern">Registration mark pattern</label>
+              <select id="cameoRegPattern">
+                <option value="3">3 marks — standard (Cameo 4, Cameo 5, Portrait)</option>
+                <option value="4">4 marks — Cameo 5 Alpha only</option>
               </select>
             </div>
-            <div class="field">
-              <label for="cameoRegInset">Mark inset (mm)</label>
-              <input type="number" id="cameoRegInset" step="0.5" min="3.5" max="25" value="10">
-              <span class="hint" style="font-size:11px">10 mm standard · 3.5 mm borderless</span>
+            <div class="grid2" style="margin-top:8px">
+              <div class="field full">
+                <label for="cameoRegOrientation">Sheet orientation on the cutter mat</label>
+                <select id="cameoRegOrientation">
+                  <option value="auto">Match the printed page</option>
+                  <option value="portrait">Portrait on the mat</option>
+                  <option value="landscape">Landscape on the mat</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cameoRegInset">Mark inset (mm)</label>
+                <input type="number" id="cameoRegInset" step="0.5" min="3.5" max="25" value="10">
+                <span class="hint" style="font-size:11px">10 mm standard · 3.5 mm borderless</span>
+              </div>
+              <div class="field">
+                <label for="cameoRegThickness">Line thickness (mm)</label>
+                <input type="number" id="cameoRegThickness" step="0.1" min="0.5" max="1" value="1">
+                <span class="hint" style="font-size:11px">1.0 mm for dark cardstock</span>
+              </div>
             </div>
-            <div class="field">
-              <label for="cameoRegThickness">Line thickness (mm)</label>
-              <input type="number" id="cameoRegThickness" step="0.1" min="0.5" max="1" value="1">
-              <span class="hint" style="font-size:11px">1.0 mm for dark cardstock</span>
-            </div>
-          </div>
-          <div class="grid2" style="margin-top:8px">
-            <div class="field">
-              <label for="cameoRegLen">Mark arm length (mm)</label>
-              <input type="number" id="cameoRegLen" step="0.01" min="0" max="20" value="0">
-              <span class="hint" style="font-size:11px">0 = match the Studio template where available</span>
-            </div>
-            <div class="field">
-              <label for="cameoCornerRadius">Cut corner radius (mm)</label>
-              <input type="number" id="cameoCornerRadius" step="0.1" min="0" max="10" value="3.2">
-              <span class="hint" style="font-size:11px">3.2 mm MTG · 3.0 mm Kadomaru</span>
+            <div class="grid2" style="margin-top:8px">
+              <div class="field">
+                <label for="cameoRegLen">Mark arm length (mm)</label>
+                <input type="number" id="cameoRegLen" step="0.01" min="0" max="20" value="0">
+                <span class="hint" style="font-size:11px">0 = match the Studio template where available</span>
+              </div>
+              <div class="field">
+                <label for="cameoCornerRadius">Cut corner radius (mm)</label>
+                <input type="number" id="cameoCornerRadius" step="0.1" min="0" max="10" value="3.2">
+                <span class="hint" style="font-size:11px">3.2 mm MTG · 3.0 mm Kadomaru</span>
+              </div>
             </div>
           </div>
         </details>
@@ -1102,7 +1104,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 
           <ol class="tips hint" style="padding-left:18px;margin-top:8px">
             <li><b>Cut guides:</b> Automatically set to <b>None</b> so rotary lines aren't printed.</li>
-            <li><b>Bleed:</b> Landscape uses 0.625 mm bleed. Portrait uses 0.5 mm bleed to fit 9 standard cards. Both use 0 mm gap.</li>
+            <li><b>Bleed:</b> SCM templates use 0.625 mm bleed. Custom layouts can use their own bleed and spacing.</li>
             <li><b>Silhouette Studio:</b> Match the page and registration settings listed in Review export.</li>
           </ol>
         </details>
@@ -10563,7 +10565,7 @@ function renderCutStatus() {
   for (const option of templateSelect.options) {
     option.disabled = option.value !== 'custom' && !scmTemplateFor(s, option.value);
   }
-  $('#cameoAdvDrawer').hidden = !!L.scm;
+  $('#cameoCustomRegistration').hidden = !!L.scm;
   $('#scmTemplateHint').textContent = L.scm
     ? `${L.scm.split('/').at(-1)}. Front artwork uses the template positions. Custom layouts can apply front alignment.`
     : scmTemplateFor(s, 'standard') ? 'Use the cut files from the same export.'
@@ -10586,7 +10588,7 @@ function renderCutStatus() {
     const cameoOk = s.silhouette && L.fits && noConflict && marksFit && s.guides === 'none' && s.bleed <= 1;
     if (cameoOk) {
       const frame = registrationFrame(L,s);
-      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Cameo layout fits</b> · ${L.cols}×${L.rows} · ${frame.orientation} on the mat<br>${s.regPattern} marks · ${s.regInset} mm printed inset · ${regArm(L,s).toFixed(2)} mm arms</div>`;
+      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Cameo layout fits</b> · ${L.cols}×${L.rows} · ${frame.orientation} on the mat<br>${s.regPattern} marks · ${s.regInset} mm printed inset · ${regArm(L,s).toFixed(2)} mm arms${L.scm ? ` · ${esc(L.scm.split('/').at(-1))}` : ''}</div>`;
     } else {
       const why = [];
       if (!s.silhouette) why.push('registration marks are off');

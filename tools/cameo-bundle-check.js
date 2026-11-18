@@ -12,7 +12,8 @@ const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
 const functions = ['scmTemplateFor','scmSettings','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
-  'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle'];
+  'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle',
+  'applyCameoLayout','applyRotaryLayout','bestCutBleed'];
 const code = functions.map(name=>{
   const start = new RegExp(`^(?:async )?function ${name}\\(`,'m').exec(html).index;
   return html.slice(start,html.indexOf('\n}',start)+2);
@@ -31,6 +32,7 @@ const context = vm.createContext({console, TextEncoder, Blob, calibration,
   printJobKey:()=> 'job', reviewKey:()=>`${scope.value}/${state.activeSheet}`,
   imgCache:new Map(), latestPrintReview:null, renderGuideTab:()=>{}, switchTab:()=>{},
   busy:()=>{}, busyProgress:()=>{}, sleep:async()=>{}, showPostExportInstructions:()=>{},
+  resolveAppliedCalibration:()=>{}, setShowCuts:()=>{}, save:()=>{}, renderAll:()=>{}, printerOf:()=>({kind:'Laser'}),
   toast:message=>notices.push(message), download:(blob,name)=>outputs.push({blob,name})});
 vm.runInContext(code + '\n' + slice('const PAGE_SIZES =','const BUILTIN_PRESETS =') + '\n'
   + slice('const SCM_TEMPLATES =','function scmTemplateFor') + '\n'
@@ -228,6 +230,17 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   console.log('PASS a missing native asset leaves a usable matched ZIP');
   console.log('PASS clipped registration marks block the matched download');
   console.log('PASS front artwork moved over fixed registration marks blocks export');
+
+  state.settings = {...vm.runInContext('DEFAULTS',context)};
+  const switchMode = name => vm.runInContext(`${name}(); layout()`,context);
+  assert.equal(switchMode('applyCameoLayout').scm,'letter-standard-v6.studio3');
+  assert.equal(state.settings.guides,'none');
+  assert.equal(switchMode('applyRotaryLayout').scm,undefined);
+  assert.equal(state.settings.silhouette,false);
+  assert.equal(state.settings.guides,'both');
+  assert.equal(switchMode('applyCameoLayout').scm,'letter-standard-v6.studio3');
+  assert.equal(state.settings.guides,'none');
+  console.log('PASS mode changes automatically switch between rotary and stock SCM PDFs');
 
   const templates = vm.runInContext('Object.keys(SCM_TEMPLATES)',context);
   assert.equal(templates.length,36);
