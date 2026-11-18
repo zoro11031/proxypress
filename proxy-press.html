@@ -3333,9 +3333,8 @@ async function importMpcXml(text, fileName, {review = false} = {}) {
   const stock = val(order, 'details > stock');
   if (MPC_STOCKS.includes(stock)) { S.mpc.stock = stock; S.mpc.foil = stock !== '(P10) Plastic' && val(order, 'details > foil').toLowerCase() === 'true'; }
   if (cb) { const old = S.settings.backImage; S.settings.backImage = null; await removeImageIfUnused(old); }
-  if (cb && !S.settings.backs) { S.settings.backs = true; S.activePreset = null; }
   save(); renderAll();
-  toast(`Imported ${entries.reduce((a, e) => a + e.qty, 0)} cards from ${fileName}${cb ? ' (card back included, so back pages are on)' : ''}.`, 6000);
+  toast(`Imported ${entries.reduce((a, e) => a + e.qty, 0)} cards from ${fileName}.`, 6000);
   return true;
 }
 async function attachMpcImages(files) {
@@ -3852,9 +3851,9 @@ async function openMpcPicker(target) {
       if (isBack) {
         const old = S.settings.backImage;
         deck().cardback = {name:'Card back', ...mpcArt(card)};
-        S.settings.backs = true; S.settings.backImage = null; S.activePreset = null;
+        S.settings.backImage = null;
         await removeImageIfUnused(old);
-        toast('Cardback set. Back pages are on.');
+        toast('Cardback set.');
       } else {
         await applyArtChoice(target, faceIdx, async f => {
           const old = f.custom;
