@@ -76,6 +76,8 @@ For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using 
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
 
+For Cameo, choose **Review export → Download matching print and cut files (ZIP)**. Print the PDF at actual size and open the cut file for the corresponding sheet. Full Letter and A4 layouts with Card Maker registration settings include native Studio files. Partial sheets and custom registration layouts include DXF with the exact setup and mat placement in `Read me.txt`.
+
 ### 4. Custom Card Maker
 Design custom cards, commanders, and tokens right in your browser with authentic typography and classic or modern frame packs included.
 
