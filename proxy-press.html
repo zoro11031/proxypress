@@ -612,6 +612,7 @@ body[data-mode=order] #workspaceInspector,body[data-mode=order] [data-mview=setu
 #workspaceBar{position:relative;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);height:auto;min-height:52px;gap:12px}
 body{padding-bottom:0!important}
 #workspaceBar .bar-status{min-width:0;white-space:normal}
+#workspaceBar button{flex-shrink:0}
 #tab-cards>.step-hdr,.deck-manage>h3,body.has-cards #deckSelectHint{display:none}
 body:not(.has-cards) .queue-hd{display:none}
 .tabs{margin:8px;min-width:0}
@@ -723,7 +724,8 @@ body[data-mode=print] #workspaceInspector{min-width:0;overflow:auto;scrollbar-gu
 /* Dedicated Print Settings view */
 #printSettingsView{display:none;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;background:radial-gradient(ellipse at 50% 0,rgb(var(--accent-rgb) / .075),transparent 68%),var(--bg);padding:0 clamp(12px,4vw,48px) 36px}
 body.print-settings-active main{display:flex}
-body.print-settings-active #stage,body.print-settings-active main>aside,body.print-settings-active #workspaceInspector,body.print-settings-active #workspaceBar,body.print-settings-active #mbar{display:none!important}
+body.print-settings-active #stage,body.print-settings-active main>aside,body.print-settings-active #workspaceInspector,body.print-settings-active #mbar{display:none!important}
+body.print-settings-active #workspaceBar{margin-bottom:0}
 body.print-settings-active #printSettingsView{display:flex!important}
 
 .settings-view-nav{position:sticky;top:0;z-index:5;flex-shrink:0;background:color-mix(in srgb,var(--bg) 96%,var(--accent));border-bottom:1px solid var(--line);margin-bottom:20px;padding-top:12px}
@@ -860,6 +862,10 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 .review-scope select{width:auto;max-width:100%}
 #workspaceBar{box-shadow:0 -4px 16px #07111b38;padding-inline:clamp(12px,2.5vw,30px);background:var(--panel)}
 #workspaceBar .bar-status{color:var(--muted);line-height:1.25}
+#toast button{margin-inline-start:12px}
+.review-issues{display:grid;gap:10px;margin:8px 0 0;padding-left:18px;overflow-wrap:anywhere}
+.review-issues .row{margin-top:5px}
+.review-scope select{min-width:0}
 #printSettingsView{scroll-padding-top:125px}
 #printSettingsView input,#printSettingsView select{max-width:100%}
 @media(max-width:700px){
@@ -968,7 +974,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             <b>Cards</b><span id="queueCopyCount" class="queue-copies">0 copies</span>
           </div>
           <div class="queue-actions">
-            <button type="button" id="btnAddCards">Add cards</button><button type="button" id="btnMultiSelect">Select</button><button type="button" id="btnResumeImport" hidden>Resume import</button>
+            <button type="button" id="btnAddCards" aria-controls="importDrawer" aria-expanded="false">Add cards</button><button type="button" id="btnMultiSelect" aria-pressed="false">Select</button><button type="button" id="btnResumeImport" hidden>Resume import</button>
             <button type="button" id="btnMpcAuto" title="Pick high-resolution artwork for cards that need it">Fill missing art</button>
           </div>
           <div class="queue-sub-row">
@@ -1258,7 +1264,8 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <h3>Print job</h3>
           <div class="review-scope">
             <label for="exportScope">Sheets</label>
-            <select id="exportScope"><option value="all">All sheets</option><option value="current">Current sheet</option></select>
+            <select id="exportScope"><option value="all">All sheets</option><option value="current">One sheet</option></select>
+            <select id="exportSheet" aria-label="Sheet to export" hidden></select>
           </div>
           <div class="hero-card-summary" id="guideJobSummary"></div>
           <div id="exportReview" aria-live="polite"></div>
@@ -1666,7 +1673,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 <div id="workspaceParking" hidden></div>
 <div id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div id="busy"><div id="busyText" role="status" aria-live="polite">Working…</div><div class="bar"><i id="busyBar"></i></div></div>
-<div id="toast" role="status" aria-live="polite" title="Click to dismiss"></div>
+<div id="toast"><span id="toastMessage" role="status" aria-live="polite"></span><button type="button" id="toastAction" hidden></button></div>
 <div id="drop">Drop a shared deck, card images, or a decklist here</div>
 <div id="ctx" role="menu"></div>
 <nav id="mbar" aria-label="View"><button data-mview="cards" class="on">Cards</button><button data-mview="proof">Proof <span id="mbarCount"></span></button><button data-mview="setup">Setup</button></nav>
@@ -3182,12 +3189,16 @@ function showUnresolvedImport(staged) {
   const line = m => `${m.qty} ${m.name}${m.set ? ` (${m.set.toUpperCase()})${m.cn ? ' ' + m.cn : ''}` : ''}`;
   const unres = staged?.unresolved || [];
   if (unres.length && $('#listIn')) {
+    if ($('#modal #linkIn')) closeModal();
+    openDeckImport();
     $('#listIn').value = unres.map(line).join('\n');
   }
   const note = $('#importNote');
   if (note) {
     if (staged?.error && !unres.length) {
-      note.innerHTML = `<div class="warn">${esc(staged.error)}</div>`;
+      const linkError = $('#modal #importLinkError');
+      if (linkError) linkError.textContent = staged.error;
+      else { openDeckImport(); note.innerHTML = `<div class="warn">${esc(staged.error)}</div>`; }
     } else if (unres.length) {
       note.innerHTML = `<div class="warn">Couldn't find ${unres.length} card${unres.length === 1 ? '' : 's'}. Left in the box above to correct. Original deck was left unchanged.</div>`;
     }
@@ -3329,6 +3340,7 @@ function makeImportDraft(text,replace=false,id=uid()) {
   return {version:2,id,text,replace,rows};
 }
 async function importList(text, replace, correction = null) {
+  if (!String(text || '').trim()) { openDeckImport(); toast('Paste a decklist to start.'); return; }
   const target = captureDeckRevision(deck()), command = uid(), intended = deck();
   intended.importDraft = makeImportDraft(String(correction?.sourceText ?? text ?? ''),!!replace,command);
   $('#importNote').innerHTML = ''; save(); renderCards();
@@ -3352,7 +3364,10 @@ async function importList(text, replace, correction = null) {
   if (correction) { const lines=correction.sourceText.split('\n'); lines.splice(correction.lineIndex,1,...(remaining ? remaining.split('\n') : [])); remaining=lines.join('\n'); }
   current.importDraft = remaining ? makeImportDraft(remaining) : null;
   $('#listIn').value = remaining;
+  if (remaining) openDeckImport();
+  else $('#importDrawer').open = false;
   save(); renderAll();
+  if (!remaining) focusNavigationTarget($('#btnAddCards'));
   if (!replace) { toast(`Added ${staged.resolved.reduce((n,e)=>n+e.qty,0)} copies.`); mpcAutofill({auto:true}); }
   if (unresolved.length) suggestMissingCards(unresolved, true); else { activeMissingSuggestions = []; suggestMissingRun++; }
 }
@@ -3944,10 +3959,20 @@ function findIssueTarget(issue, currentPrintJob) {
   const entryId = issue.uid || issue.entryId || issue.e?.uid;
   const faceIdx = issue.faceIdx ?? (issue.side === 'back' ? 1 : 0);
   let side = issue.side || (faceIdx === 1 ? 'back' : 'front');
-  let slotIdx = issue.cardback ? -1 : slots.findIndex(sl=>sl.e.uid === entryId && (issue.copy === undefined || sl.copy === issue.copy) && sl.fi === faceIdx);
-  if (slotIdx >= 0) side = 'front';
-  else { slotIdx = slots.findIndex(sl=>sl.e.uid === entryId && (issue.copy === undefined || sl.copy === issue.copy) && sl.bi === faceIdx); if (slotIdx >= 0) side = 'back'; }
-  if (slotIdx < 0 && issue.copy === undefined) slotIdx = slots.findIndex(sl=>sl.e.uid === entryId);
+  const matchesCopy = sl => sl.e.uid === entryId && (issue.copy === undefined || sl.copy === issue.copy);
+  let slotIdx;
+  if (issue.cardback) {
+    slotIdx = slots.findIndex(sl=>matchesCopy(sl) && sl.bi === undefined);
+    side = 'back';
+  } else {
+    slotIdx = slots.findIndex(sl=>matchesCopy(sl) && sl.fi === faceIdx);
+    if (slotIdx >= 0) side = 'front';
+    else {
+      slotIdx = slots.findIndex(sl=>matchesCopy(sl) && sl.bi === faceIdx);
+      if (slotIdx >= 0) side = 'back';
+    }
+    if (slotIdx < 0 && issue.copy === undefined) slotIdx = slots.findIndex(matchesCopy);
+  }
   if (slotIdx < 0) return null;
   const slot = slots[slotIdx], sheetIndex = Math.floor(slotIdx / L.per);
   const copyIndex = slot ? slot.copy : 0;
@@ -3994,7 +4019,7 @@ async function openMpcPicker(target) {
   const e = target.e, isBack = !!target.cardback;
   if(S.mode==='order' && !isBack && faceIdx===1 && target.copies)target={...target,copies:target.copies.filter(item=>deck().entries.find(entry=>entry.uid===item.uid)?.faces.length>1)};
   if (!isBack && target.side === 'back' && e?.faces.length > 1) faceIdx = 1;
-  const face = () => isBack ? deck().cardback : e?.faces[faceIdx];
+  const face = () => isBack ? orderSharedBack() : e?.faces[faceIdx];
   const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
   const current = () => isBack ? deck().cardback?.drive : face()?.drive;
   let activeTab = target.defaultTab || (isBack ? 'community' : 'printings');
@@ -4004,7 +4029,7 @@ async function openMpcPicker(target) {
   let curIssueIdx = target.issue ? allIssues.findIndex(x => x.uid === target.e?.uid && (x.faceIdx ?? (x.side === 'back' ? 1 : 0)) === faceIdx) : -1;
   const curIssue = curIssueIdx >= 0 ? allIssues[curIssueIdx] : (target.issue || null);
 
-  const applyBtnLabel = (copyCount === 1 || (target.copies?.length === 1 && target.copies[0].copies.length === 1))
+  const applyBtnLabel = isBack ? 'Use as shared cardback' : (copyCount === 1 || (target.copies?.length === 1 && target.copies[0].copies.length === 1))
     ? 'Apply to this copy'
     : copyCount > 1
       ? `Apply to ${copyCount} copies`
@@ -4019,17 +4044,21 @@ async function openMpcPicker(target) {
       : `${esc(e.name)} · choose art`;
 
   const curFace = face();
-  const curDpiText = curFace?.mpcDpi ? `${curFace.mpcDpi} DPI` : curFace && isPreview(curFace) ? '<span style="color:#ff9c95">Low-res placeholder</span>' : '~300 DPI';
-  const curSourceText = curFace?.scryArt ? 'Scryfall printing' : curFace?.drive ? `Community art (${curFace.mpcSource || ''})` : curFace?.custom ? 'Local upload' : 'Default';
+  const currentArtworkInfo = image => {
+    if (!image) return 'No artwork selected';
+    const source = image.scryArt ? 'Scryfall printing' : image.drive ? 'Community art' : image.custom ? 'Local upload' : 'Preview image';
+    const quality = image.mpcDpi ? `${image.mpcDpi} DPI` : isPreview(image) ? 'Low-resolution placeholder' : '';
+    return `<b>${esc(image.name)}</b><span>${source}</span>${quality ? `<span>${esc(quality)}</span>` : ''}`;
+  };
 
   openModal(`<div class="hd"><b>${modalTitle}</b><button data-close>Close</button></div>
     <div class="bd">
       ${curIssue ? `
       <div class="issue-nav-bar" id="pickerIssueBar">
-        <span id="pickerIssueLabel">Issue ${curIssueIdx >= 0 ? curIssueIdx + 1 : 1} of ${allIssues.length}: ${esc(face()?.name || e.name)} · ${esc(curIssue.label)}</span>
+        <span id="pickerIssueLabel">${curIssueIdx >= 0 ? `Issue ${curIssueIdx + 1} of ${allIssues.length} · ` : ''}${esc(face()?.name || e?.name || 'Shared cardback')} · ${esc(curIssue.label || curIssue.message || 'Choose artwork')}</span>
         <div class="row" style="gap:6px">
           <button type="button" id="btnPickerRetryImg" style="display:none">Retry image</button>
-          <button type="button" id="btnPickerNextIssue">Next issue</button>
+          <button type="button" id="btnPickerNextIssue" ${allIssues.length > 1?'':'hidden'}>Next issue</button>
         </div>
       </div>` : ''}
 
@@ -4045,11 +4074,7 @@ async function openMpcPicker(target) {
               <img id="cmpCurrentImg" src="${esc(thumbSrcSync(curFace))}" alt="">
               <div class="card-trim-overlay"></div>
             </div>
-            <div class="col-meta" id="cmpCurrentMeta">
-              <b>${esc(curFace?.name || '')}</b>
-              <span>${esc(curSourceText)}</span>
-              <span>${curDpiText}</span>
-            </div>
+            <div class="col-meta" id="cmpCurrentMeta">${currentArtworkInfo(curFace)}</div>
           </div>
           <div class="comparison-col candidate-col">
             <div class="col-hdr">
@@ -4070,10 +4095,11 @@ async function openMpcPicker(target) {
       ${!isBack && e.faces.length > 1 ? `<div class="row" style="margin-bottom:8px">${e.faces.map((f, i) => `<button class="icon ${i === faceIdx ? 'primary' : ''}" data-face="${i}">${i === 0 ? 'Front' : 'Back'}: ${esc(f.name)}</button>`).join('')}</div>` : ''}
 
       ${!isBack && face()?.custom && e.scryId && instanceArtAvailable() ? '<button type="button" id="shareCurrentArt">Share current artwork to this server</button>' : ''}
+      ${isBack ? '<button type="button" id="pickerCardbackUpload">Upload cardback…</button><input type="file" id="pickerCardbackFile" accept="image/*" hidden>' : ''}
       <div class="source-nav-tabs">
-        <button type="button" class="tab-btn ${activeTab === 'printings' ? 'active' : ''}" data-src-tab="printings">Printings (<span id="countSf">0</span>)</button>
+        <button type="button" class="tab-btn ${activeTab === 'printings' ? 'active' : ''}" data-src-tab="printings" ${isBack?'hidden':''}>Printings (<span id="countSf">0</span>)</button>
         <button type="button" class="tab-btn ${activeTab === 'community' ? 'active' : ''}" data-src-tab="community">Community art (<span id="countMpc">0</span>)</button>
-        <button type="button" class="tab-btn ${activeTab === 'local' ? 'active' : ''}" data-src-tab="local">Local images (<span id="countLocal">0</span>)</button>
+        <button type="button" class="tab-btn ${activeTab === 'local' ? 'active' : ''}" data-src-tab="local" ${isBack?'hidden':''}>Local images (<span id="countLocal">0</span>)</button>
       </div>
 
       ${isBack ? '' : `<div class="row" style="margin-bottom:8px">
@@ -4120,7 +4146,29 @@ async function openMpcPicker(target) {
   let revision = 0, artMessage = false;
   const status = t => find('#mpcStatus').innerHTML = t;
   const retry = find('#btnPickerRetryImg');
-  if (retry && curIssue?.retryable) { retry.style.display = ''; retry.onclick = () => retryArtworkIssue(curIssue); }
+  if (retry && curIssue?.retryable) {
+    retry.style.display = '';
+    retry.onclick = async () => {
+      retry.disabled = true;
+      artMessage = true;
+      status('Checking artwork…');
+      try {
+        await retryArtworkIssue(curIssue);
+        const result = await inspectPrintArtwork(face(), S.settings);
+        if (pickerActive()) status(result?.ok ? 'Artwork is available.' : 'Artwork is still unavailable. Choose a different image or try again.');
+      } finally { retry.disabled = false; }
+    };
+  }
+  if (isBack) {
+    const input = find('#pickerCardbackFile');
+    find('#pickerCardbackUpload').onclick = () => input.click();
+    input.onchange = async () => {
+      const file = input.files[0]; input.value = '';
+      if (!file) return;
+      try { if (await uploadSharedCardback(file) && pickerActive()) closeModal(); }
+      catch (err) { if (pickerActive()) status(esc(err.message)); }
+    };
+  }
 
   function selectCandidate(cand) {
     selectedCandidate = cand;
@@ -4136,6 +4184,7 @@ async function openMpcPicker(target) {
     meta.innerHTML = `<b>${esc(cand.name)}</b><span>${esc(cand.sourceName)}</span><span id="cmpCandidateDpi">Calculating effective DPI…</span>`;
     const img = new Image();
     img.onload = () => {
+      if (!pickerActive() || selectedCandidate !== cand) return;
       const w = img.naturalWidth, h = img.naturalHeight;
       const s = S.settings;
       const isMpcRatio = Math.abs((w / h) - (2.75 / 3.75)) < 0.012;
@@ -4149,6 +4198,7 @@ async function openMpcPicker(target) {
       }
     };
     img.onerror = () => {
+      if (!pickerActive() || selectedCandidate !== cand) return;
       const dpiEl = find('#cmpCandidateDpi');
       if (dpiEl) dpiEl.textContent = 'Resolution unknown';
     };
@@ -4240,21 +4290,25 @@ async function openMpcPicker(target) {
     const cnt = find('#countMpc'); if (cnt) cnt.textContent = ids.length;
   }
 
-  let moreScryfall = () => {};
+  let moreScryfall = () => {}, communityStatus = () => {};
   async function runCommunity() {
     const runId = revision, active = () => runId === revision && pickerActive();
     const query = isBack ? '' : find('#mpcQ').value.trim(), kind = isBack ? 'CARD' : find('#mpcType').value;
     find('#mpcErrorBox').style.display = 'none';
+    communityStatus('Searching community art…');
     try {
       const q = {query:mpcQuery(query), cardType:kind};
       const found = isBack ? (await mpcApi('2/cardbacks/', {searchSettings:await mpcSettings()})).cardbacks || [] : (await mpcSearch([q])).get(q.query + '|' + q.cardType) || [];
       if (!active()) return;
       await mpcCards(found); if (!active()) return;
       ids = mpcRank(found);
+      shown = 0;
+      find('#communityArt').replaceChildren();
       const cnt = find('#countMpc'); if (cnt) cnt.textContent = ids.length;
       if (ids.length) await page();
+      if (active()) communityStatus(ids.length ? `${ids.length} community images found.` : 'No community images found.');
     } catch {
-      if (active()) { find('#mpcErrorBox').style.display = 'flex'; }
+      if (active()) { find('#mpcErrorBox').style.display = 'flex'; communityStatus('Community art is unavailable.'); }
     }
   }
 
@@ -4264,6 +4318,18 @@ async function openMpcPicker(target) {
     const parts = {local:'', shared:'', community:'Searching community art…', scryfall:isBack?'':'Searching Scryfall…'};
     artMessage = false;
     const update = (source, text) => { if (active()) { parts[source] = text; if (!artMessage) status(Object.values(parts).filter(Boolean).join(' ')); } };
+    communityStatus = text => update('community', text);
+    selectedCandidate = null;
+    find('#btnApplyCandidate').disabled = true;
+    find('#cmpCandidateEmpty').style.display = '';
+    find('#cmpCandidateImg').style.display = 'none';
+    find('#cmpCandidateCrop .card-trim-overlay').style.display = 'none';
+    find('#cmpCandidateMeta').replaceChildren();
+    const currentImage = find('#cmpCurrentImg');
+    const currentFace = face();
+    currentImage.removeAttribute('src');
+    find('#cmpCurrentMeta').innerHTML = currentArtworkInfo(currentFace);
+    if (currentFace) thumbSrc(currentFace).then(url=>{ if (active() && url) currentImage.src = url; });
     thumbs.forEach(u => URL.revokeObjectURL(u)); thumbs = [];
     localHits = !isBack && localIndex.length ? localSearch(query).slice(0, 30) : [];
     const localGrid = find('#localArt');
@@ -4310,7 +4376,13 @@ async function openMpcPicker(target) {
           const cnt = find('#countSf'); if (cnt) cnt.textContent = sfHits.length;
           update('scryfall', sfHits.length ? `${sfHits.length}${sfNext ? '+' : ''} Scryfall printing${sfHits.length === 1 ? '' : 's'}.` : query ? 'No Scryfall printings found.' : 'Enter a card name to search Scryfall.');
         } catch(err) {
-          if (active()) { if (err.status === 404) sfNext = null; find('#sfArtMore').style.display = 'none'; find('#sfErrorBox').style.display = 'flex'; update('scryfall', err.status === 404 ? 'No Scryfall printings found.' : 'Scryfall is unavailable.'); }
+          if (active()) {
+            const noResults = err.status === 404;
+            if (noResults) sfNext = null;
+            find('#sfArtMore').style.display = 'none';
+            find('#sfErrorBox').style.display = noResults ? 'none' : 'flex';
+            update('scryfall', noResults ? (sfHits.length ? 'No more Scryfall printings.' : 'No Scryfall printings found.') : 'Scryfall is unavailable.');
+          }
         } finally {
           if (active()) { sfBusy = false; find('#sfArtMore').disabled = false; }
         }
@@ -4362,14 +4434,6 @@ async function openMpcPicker(target) {
         showSheet(nextTarget.sheetIndex, nextTarget.side);
         selectCardCopy(nextTarget.entryId, nextTarget.copyIndex, nextTarget.i);
         openMpcPicker(nextTarget);
-      }
-      return;
-    }
-    if (ev.target.id === 'btnPickerRetryImg') {
-      if (face()?.custom) {
-        closeModal();
-        faceTarget = { e, i: faceIdx };
-        $('#fileFace').click();
       }
       return;
     }
@@ -4781,7 +4845,9 @@ function renderOrder() {
     </dl>
     ${missing.length ? `<div class="warn">${missing.length} card${missing.length === 1 ? ' needs' : 's need'} high-res art and will be left out: ${esc([...new Set(missing)].slice(0, 4).join(', '))}${missing.length > 4 ? '…' : ''}.</div><div class="row"><button id="oFix">Review missing art</button><button id="oAuto">${fillable ? 'Auto fill art' : 'Attach images…'}</button></div>` : ''}
     ${!order.cardback && dfc < order.slot ? '<div class="warn">Choose a cardback for your single-faced cards.</div>' : ''}
-    ${!d.entries.length ? '<p class="hint">Add a decklist, upload images or create a custom card in the Cards tab to start.</p>' : ''}`;
+    ${!d.entries.length ? '<p class="hint">Add cards to start an order.</p><button type="button" id="oAddCards">Add cards</button>' : ''}`;
+  const addCards = $('#oAddCards');
+  if (addCards) addCards.onclick = () => { closeModal(); openDeckImport(); };
   const fix = $('#oFix'); if (fix) fix.onclick = () => {
     const e = d.entries.find(entry=>entry.qty && entry.faces.some(face=>face && (!face.custom && !face.drive || face.lowRes)));
     if (!e) return;
@@ -4801,10 +4867,21 @@ $('#oStock').onchange = e => { S.mpc.stock = e.target.value; if (S.mpc.stock ===
 $('#oFoil').onchange = e => { S.mpc.foil = e.target.checked; save(); renderOrder(); };
 $('#oBackBrowse').onclick = () => openMpcPicker({cardback:true, backLabel:'Back to order review'});
 $('#oBackUpload').onclick = () => $('#fileOrderBack').click();
+async function uploadSharedCardback(file) {
+  const deckId = S.deckId, key = await storeImage(file);
+  if (deckId !== S.deckId) { await removeImageIfUnused(key); return false; }
+  const old = S.settings.backImage;
+  S.settings.backImage = key;
+  S.activePreset = null;
+  await removeImageIfUnused(old);
+  save(); renderAll();
+  toast('Cardback updated.');
+  return true;
+}
 $('#fileOrderBack').onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
-  const old = S.settings.backImage; S.settings.backImage = await storeImage(f); S.activePreset = null;
-  await removeImageIfUnused(old); save(); renderAll();
+  try { await uploadSharedCardback(f); }
+  catch (err) { toast('Couldn’t save the cardback: ' + err.message); }
 };
 $('#oBackClear').onclick = async () => {
   const old = [S.settings.backImage, deck().cardback?.custom]; S.settings.backImage = null; deck().cardback = null;
@@ -4837,6 +4914,11 @@ function activateDeck(id, settings) {
   Object.assign(S.mpc, cleanOrderSettings(deck().orderSettings || S.mpc));
   S.activeSheet = 0; S.activePreset = null;
   $('#listIn').value = deck().importDraft?.text || '';
+  $('#importNote').replaceChildren();
+  $('#deckFilter').value = '';
+  S.filterNeedsArt = false;
+  $('#exportScope').value = 'all';
+  $('#importDrawer').open = !deck().entries.length || !!deck().importDraft?.text;
 }
 
 /* ---------- UI: deck header ---------- */
@@ -4849,17 +4931,19 @@ $('#deckSel').onchange = e => {
   activateDeck(e.target.value); save(); renderAll();
 };
 $('#deckNew').onclick = () => {
-  const name = prompt('Deck name', 'New deck'); if (!name) return;
+  const name = prompt('Deck name', 'New deck')?.trim(); if (!name || !abandonPrintSettings()) return;
   const d = {id:uid(), name, entries:[], updated:Date.now()}; S.decks.push(d); activateDeck(d.id); save(); renderAll();
 };
-$('#deckRename').onclick = () => { const d = deck(); const n = prompt('Rename deck', d.name); if (n) { d.name = n; save(); renderDeckSel(); } };
+$('#deckRename').onclick = () => { const d = deck(); const n = prompt('Rename deck', d.name)?.trim(); if (n) { d.name = n; save(); renderDeckSel(); schedulePrintReview(); } };
 $('#deckDup').onclick = () => {
+  if (!abandonPrintSettings()) return;
   rememberProjectSetup();
   const d = deck(); const c = JSON.parse(JSON.stringify(d)); c.id = uid(); c.name = d.name + ' (copy)';
   c.entries.forEach(e => e.uid = uid()); S.decks.push(c); activateDeck(c.id); save(); renderAll();
 };
 $('#deckDel').onclick = async () => {
   const d = deck(); if (!confirm(`Delete deck "${d.name}"? This cannot be undone.`)) return;
+  if (!abandonPrintSettings()) return;
   S.decks = S.decks.filter(x => x !== d);
   for (const e of d.entries) for (const f of e.faces) await removeImageIfUnused(f.custom);
   if (!S.decks.length) S.decks.push({id:uid(), name:'My deck', entries:[], updated:Date.now()});
@@ -4987,11 +5071,12 @@ async function renderCards() {
   $('#deckCount').textContent = tokens ? `(${total} · ${total - tokens} cards, ${tokens} token${tokens === 1 ? '' : 's'})` : `(${total})`;
   $('#listIn').classList.toggle('compact', d.entries.length > 0);
   document.body.classList.toggle('has-cards', d.entries.length > 0);
-  $('#btnResumeImport').hidden = !d.importDraft?.text;
   const drawer = $('#importDrawer');
   if (drawer && d.entries.length > 0 && drawer.dataset.project !== d.id && !$('#listIn').value.trim()) drawer.open = false;
   if (drawer && d.entries.length > 0) drawer.dataset.project = d.id;
   const any = d.entries.length > 0;
+  if (!any) drawer.open = true;
+  syncImportDrawer();
   $('#deckSelectHint').hidden = !any;
   $('#suggestionDrawer').hidden = !any;
   $('#deckFilter').hidden = !any;
@@ -5046,17 +5131,31 @@ function applyDeckFilter() {
   $('#deckFilterEmpty').hidden = !q && !S.filterNeedsArt ? true : rows.some(r => !r.hidden);
 }
 $('#deckFilter').oninput = applyDeckFilter;
-$('#btnResumeImport').onclick = () => { const draft = deck().importDraft; if (draft) { if (draft.format === 'order-xml') return importMpcXml(draft.text,draft.fileName || 'Imported order',{review:true}); $('#importDrawer').open = true; $('#listIn').value = draft.text; $('#listIn').focus(); } };
-$('#listIn').addEventListener('input', () => { deck().importDraft = $('#listIn').value.trim() ? makeImportDraft($('#listIn').value) : null; save(); });
-$('#btnAddCards').onclick = () => { $('#importDrawer').open = !$('#importDrawer').open; if ($('#importDrawer').open) $('#listIn').focus(); };
-$('#btnMultiSelect').onclick = () => { S.multiSelect = !S.multiSelect; if (!S.multiSelect) selectedCopies.clear(); $('#btnMultiSelect').textContent = S.multiSelect ? 'Done' : 'Select'; syncCardSelection(); };
+$('#btnResumeImport').onclick = () => { const draft = deck().importDraft; if (draft) { if (draft.format === 'order-xml') return importMpcXml(draft.text,draft.fileName || 'Imported order',{review:true}); $('#listIn').value = draft.text; openDeckImport(); } };
+function syncImportDrawer() {
+  const open = $('#importDrawer').open, draft = deck()?.importDraft;
+  const button = $('#btnAddCards');
+  button.textContent = open ? 'Hide import' : 'Add cards';
+  button.setAttribute('aria-expanded', String(open));
+  $('#btnResumeImport').hidden = !draft?.text || (open && draft.format !== 'order-xml');
+}
+function openDeckImport() {
+  if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
+  setWorkspaceView('cards');
+  $('#importDrawer').open = true;
+  syncImportDrawer();
+  $('#listIn').focus();
+}
+$('#listIn').addEventListener('input', () => { deck().importDraft = $('#listIn').value.trim() ? makeImportDraft($('#listIn').value) : null; syncImportDrawer(); save(); });
+$('#btnAddCards').onclick = () => { if ($('#importDrawer').open) $('#importDrawer').open = false; else openDeckImport(); syncImportDrawer(); };
+$('#btnMultiSelect').onclick = () => { S.multiSelect = !S.multiSelect; if (!S.multiSelect) selectedCopies.clear(); $('#btnMultiSelect').textContent = S.multiSelect ? 'Done' : 'Select'; $('#btnMultiSelect').setAttribute('aria-pressed', String(S.multiSelect)); syncCardSelection(); };
 $('#btnFilterNeedsArt').onclick = () => {
   const issues=getPrintJobIssues(),slots=buildSlots(deck(),queueSettings());
   if(issues.length===1 && issues[0].cardback)return openMpcPicker({cardback:true});
   S.filterNeedsArt = !S.filterNeedsArt;
   renderQueueStatus(issues,slots);applyDeckFilter();
 };
-if ($('#importDrawer')) $('#importDrawer').addEventListener('toggle', () => { $('#importDrawer').dataset.userToggled = '1'; });
+$('#importDrawer').addEventListener('toggle', syncImportDrawer);
 $('#cardList').addEventListener('keydown', ev=>{if(ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)){ev.preventDefault();ev.target.click();}});
 $('#cardList').addEventListener('click', async ev => {
   const row = ev.target.closest('.card'); if (!row) return;
@@ -5147,12 +5246,21 @@ $('#importNote').addEventListener('click', async ev => {
 $('#btnLink').onclick = () => {
   openModal(`<div class="hd"><b>Import deck</b><button data-close>Close</button></div><div class="bd">
     <label for="linkIn">Moxfield or Archidekt link</label><div class="row" style="margin-top:6px"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0" placeholder="https://moxfield.com/decks/…"><button id="importLinkSubmit" class="primary">Import link</button></div>
+    <div id="importLinkError" role="status" class="hint"></div>
     <h3>From your computer</h3><button id="importLocal">Choose file…</button><p class="hint">Shared deck or backup JSON, text decklist, or order XML.</p></div>`);
-  $('#importLinkSubmit').onclick = () => {
+  $('#importLinkSubmit').onclick = async ev => {
+    const button = ev.currentTarget, error = $('#importLinkError');
     let v = $('#linkIn').value.trim();
     if (/^(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) v = 'https://' + v;
-    if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) return toast('Paste a Moxfield or Archidekt deck link.');
-    importList(v, false);
+    if (!/^https?:\/\/(www\.)?(moxfield|archidekt)\.com\/decks\/\S+$/i.test(v)) {
+      error.textContent = 'Paste a Moxfield or Archidekt deck link.';
+      $('#linkIn').focus();
+      return;
+    }
+    error.textContent = '';
+    button.disabled = true;
+    try { await importList(v, false); }
+    finally { button.disabled = false; }
   };
   $('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#importLinkSubmit').click(); });
   $('#importLocal').onclick = () => $('#filePrintDeck').click();
@@ -7177,10 +7285,6 @@ function renderColorSliders() {
             <p class="slider-desc">${sl.desc}</p>
           </div>`;
       }).join('')}
-      <div class="row" style="gap:6px;margin-top:10px">
-        <button type="button" id="btnInspFoilPreview" class="primary" style="flex:1">Foil tone preview…</button>
-        <button type="button" id="btnInspFoilTestSheet" style="flex:1">Print foil test sheet</button>
-      </div>
     </div>`;
 
   const el = $('#colorSliders');
@@ -8074,7 +8178,10 @@ $$('.paper-direction button').forEach(button=>button.onclick=()=>{
 });
 function syncProofViewButtons() {
   const f = $('#btnProofFront'), b = $('#btnProofBack'), g = $('#btnProofGuides');
-  for (const [button,on] of [[f,!S.showBacks],[b,!!S.showBacks],[g,!!S.showCuts]]) {
+  const showGuides = !S.settings.silhouette && !S.showBacks;
+  g.disabled = !showGuides;
+  g.title = S.settings.silhouette ? 'Cameo uses registration marks and a separate cut file.' : S.showBacks ? 'Guides are available on the front.' : 'Show the trim and bleed guides on the proof.';
+  for (const [button,on] of [[f,!S.showBacks],[b,!!S.showBacks],[g,showGuides && !!S.showCuts]]) {
     if (!button) continue;
     button.classList.toggle('on',on);
     button.setAttribute('aria-pressed',String(on));
@@ -8092,6 +8199,14 @@ function emptyWorkspaceHtml(order = false) {
 async function drawPreview() {
   clearTimeout(previewTimer);
   const gen = ++previewGen, job = buildPrintJob(), s = job.settings, L = job.layout, z = S.zoom;
+  const backButton = $('#btnProofBack');
+  backButton.disabled = !job.hasBacks;
+  backButton.title = job.hasBacks ? 'Show the back page' : 'This job prints front faces only.';
+  if (S.mode === 'print' && S.showBacks && !job.hasBacks) {
+    S.showBacks = false;
+    S.proofSide = 'front';
+    $('#showBacks').checked = false;
+  }
   syncPreviewControls();
   syncProofViewButtons();
   const on = !s.silhouette && !!S.showCuts;
@@ -8113,6 +8228,7 @@ async function drawPreview() {
   const jumpSel = $('#sheetJumpSel');
   if (jumpSel) {
     jumpSel.innerHTML = pages.map((_, i) => `<option value="${i}" ${i === S.activeSheet ? 'selected' : ''}>Sheet ${i + 1} of ${pages.length}</option>`).join('');
+    jumpSel.disabled = pages.length < 2;
   }
   const btnPrev = $('#btnSheetPrev'); if (btnPrev) btnPrev.disabled = S.activeSheet <= 0;
   const btnNext = $('#btnSheetNext'); if (btnNext) btnNext.disabled = S.activeSheet >= pages.length - 1;
@@ -8131,8 +8247,6 @@ async function drawPreview() {
     wrap.innerHTML = emptyWorkspaceHtml();
     return;
   }
-  if (S.mode === 'order') return drawGallery(gen, wrap, z);
-  if (S.showBacks && !hasBacks) { wrap.innerHTML = '<div class="empty"><h2>No back pages</h2><p class="hint">This job prints front faces only. Choose Front to see the sheet.</p></div>'; return; }
   const frag = document.createDocumentFragment(), jobs = [];
   const page = pages[S.activeSheet] || pages[0];
   const back = !!S.showBacks && hasBacks;
@@ -8220,7 +8334,8 @@ async function drawGallery(gen, wrap, z) {
   const d=deck(), cb=orderSharedBack(d), count=d.entries.reduce((n,e)=>n+e.qty,0), sharedCount=d.entries.filter(e=>e.faces.length===1).reduce((n,e)=>n+e.qty,0);
   const previews=new Map(),thumbnail=face=>{const key=artworkKey(face);if(!previews.has(key))previews.set(key,thumbSrc(face));return previews.get(key);};
   const root=document.createElement('div');root.className='order-gallery';
-  root.innerHTML=`<div class="order-gallery-tools"><div class="order-gallery-name"><b>Order gallery</b><span>${count} ${count===1?'copy':'copies'}</span></div><div class="seg" role="group" aria-label="Gallery side"><button data-order-side="front" aria-pressed="${!S.orderShowBacks}" class="${!S.orderShowBacks?'on':''}">Front</button><button data-order-side="back" aria-pressed="${!!S.orderShowBacks}" class="${S.orderShowBacks?'on':''}">Back</button></div><label>Card size <select id="orderDensity" aria-label="Gallery density"><option value="120">Compact</option><option value="180">Comfortable</option><option value="240">Large</option></select></label><button id="orderQueueToggle" aria-pressed="${document.body.classList.contains('preview-focus')}">${innerWidth<=820 || document.body.classList.contains('preview-focus')?'Show queue':'Hide queue'}</button></div>`;
+  const queueHidden = innerWidth <= 820 || document.body.classList.contains('preview-focus');
+  root.innerHTML=`<div class="order-gallery-tools"><div class="order-gallery-name"><b>Order gallery</b><span>${count} ${count===1?'copy':'copies'}</span></div><div class="seg" role="group" aria-label="Gallery side" ${count?'':'hidden'}><button data-order-side="front" aria-pressed="${!S.orderShowBacks}" class="${!S.orderShowBacks?'on':''}">Front</button><button data-order-side="back" aria-pressed="${!!S.orderShowBacks}" class="${S.orderShowBacks?'on':''}">Back</button></div><label ${count?'':'hidden'}>Card size <select id="orderDensity" aria-label="Gallery density"><option value="120">Compact</option><option value="180">Comfortable</option><option value="240">Large</option></select></label><button id="orderQueueToggle" aria-expanded="${!queueHidden}" aria-controls="tab-cards">${queueHidden?'Show queue':'Hide queue'}</button></div>`;
   if(sharedCount){const prompt=document.createElement('div');prompt.className='order-back-prompt';prompt.innerHTML=cb?'<img alt="Shared cardback"><b>Shared cardback</b><button class="gal-cb">Change cardback</button><button class="order-back-clear">Clear cardback</button>':`<span>${sharedCount} ${sharedCount===1?'copy needs':'copies need'} a shared back.</span><button class="gal-cb">Choose a cardback</button>`;if(cb)thumbnail(cb).then(u=>{if(gen===previewGen&&u)$('img',prompt).src=u;});root.appendChild(prompt);}
   const grid=document.createElement('div');grid.className='gal';
   for(const e of d.entries){if(!e.qty||!e.faces.length)continue;for(let copy=0;copy<e.qty;copy++){
@@ -8230,11 +8345,20 @@ async function drawGallery(gen, wrap, z) {
     tile.insertAdjacentHTML('beforeend',`<span class="tile-name" title="${esc(e.name)}">${esc(e.name)}</span>${e.qty>1?`<span class="qty">${copy+1} / ${e.qty}</span>`:''}`);grid.appendChild(tile);
   }}
   if (!count) {
-    $('.order-gallery-tools',root).hidden = true;
     root.insertAdjacentHTML('beforeend',emptyWorkspaceHtml(true));
   }
   root.appendChild(grid);wrap.replaceChildren(root);$('#orderDensity').value=String(S.orderDensity || 180);sizeOrderGallery();syncCardSelection();
-  root.addEventListener('click',async ev=>{const side=ev.target.closest('[data-order-side]');if(side){S.orderShowBacks=side.dataset.orderSide==='back';save();await drawPreview();$('[data-order-side="'+side.dataset.orderSide+'"]')?.focus();}if(ev.target.id==='orderQueueToggle'){if(innerWidth<=820)setWorkspaceView('cards');else{setPreviewFocus(!document.body.classList.contains('preview-focus'));drawPreview();}}if(ev.target.closest('.order-back-clear'))$('#oBackClear').click();const issue=ev.target.closest('[data-order-issue]:not(.gal-cb)');if(issue){const e=deck().entries.find(e=>e.uid===issue.dataset.orderIssue);selectCardCopy(e.uid,+issue.dataset.orderCopy,+issue.dataset.orderFace);openMpcPicker({e,i:+issue.dataset.orderFace,deckId:S.deckId,copies:[{uid:e.uid,copies:[+issue.dataset.orderCopy]}]});}});
+  $('#orderQueueToggle').onclick = async () => {
+    if (innerWidth <= 820) {
+      setWorkspaceView('cards');
+      focusNavigationTarget($('#btnAddCards'), $('#listIn'), $('[data-mview=cards]'));
+      return;
+    }
+    setPreviewFocus(!document.body.classList.contains('preview-focus'));
+    await drawPreview();
+    focusNavigationTarget($('#orderQueueToggle'));
+  };
+  root.addEventListener('click',async ev=>{const side=ev.target.closest('[data-order-side]');if(side){S.orderShowBacks=side.dataset.orderSide==='back';save();await drawPreview();$('[data-order-side="'+side.dataset.orderSide+'"]')?.focus();}if(ev.target.closest('.order-back-clear'))$('#oBackClear').click();const issue=ev.target.closest('[data-order-issue]:not(.gal-cb)');if(issue){const e=deck().entries.find(e=>e.uid===issue.dataset.orderIssue);selectCardCopy(e.uid,+issue.dataset.orderCopy,+issue.dataset.orderFace);openMpcPicker({e,i:+issue.dataset.orderFace,deckId:S.deckId,copies:[{uid:e.uid,copies:[+issue.dataset.orderCopy]}]});}});
   $('#orderDensity').onchange=ev=>{S.orderDensity=+ev.target.value;sizeOrderGallery();save();};
 }
 
@@ -8256,10 +8380,9 @@ $$('#mbar button').forEach(b => b.onclick = () => b.dataset.mview === 'setup' ? 
 addEventListener('resize', () => { syncCardSelection(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); });
 $('#zoom').oninput = e => { S.zoomMode = 'manual'; S.zoom = +e.target.value; save(); renderPreview(); };
 $('#zoomFit').onclick = () => {
-  if (!$('#stage').getClientRects().length) return;
+  if (S.mode === 'order' || !$('#stage').getClientRects().length) return;
   S.zoomMode = 'fit';
   const stage = $('#stage'), L = layout(), css = getComputedStyle(stage);
-  const width = S.mode === 'order' ? 63*0.75*1.6*4+90 : L.W;
   const availableWidth = stage.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight) - 16;
   const controls=$('.stage-controls'), controlStyle=getComputedStyle(controls);
   const controlsBottom = parseFloat(css.paddingTop)+controls.offsetHeight+parseFloat(controlStyle.marginBottom);
@@ -8269,7 +8392,7 @@ $('#zoomFit').onclick = () => {
   const height = stage.clientHeight - controlsBottom - parseFloat(css.paddingBottom) - reserved - selectionHeight - 28;
   const widthOnly = height < 240;
   $('#zoomFit').textContent = widthOnly ? 'Fit width' : 'Fit';
-  const fit = S.mode === 'order' || widthOnly ? availableWidth/width : Math.min(availableWidth/width,Math.max(1,height)/L.H);
+  const fit = widthOnly ? availableWidth/L.W : Math.min(availableWidth/L.W,Math.max(1,height)/L.H);
   S.zoom = Math.max(0.3,Math.min(5,Math.floor(fit*100)/100)); $('#zoom').min = '0.3'; $('#zoom').value = S.zoom; renderPreview();
 };
 $('#orderShowBacks').onchange = ev => { S.orderShowBacks = ev.target.checked; save(); renderPreview(); };
@@ -8509,7 +8632,7 @@ async function exportPrintJob(job, withCut = false) {
   const sheets = current ? job.sheets.filter(sheet=>sheet.index === (S.activeSheet || 0)) : job.sheets;
   if (!sheets.length) return toast('Choose a sheet with cards before downloading.');
   const slots = sheets.flatMap(sheet=>sheet.slots);
-  const reviewedIssues = latestPrintReview?.key === job.key ? latestPrintReview.issues : [];
+  const reviewedIssues = latestPrintReview?.scopeKey === scopeKey ? latestPrintReview.issues : [];
   const warningKey = issue => `${issue.type}|${issue.uid}|${issue.faceIdx}`;
   const reviewedWarnings = new Set(reviewedIssues.map(warningKey));
   const wasReviewOpen = !!$('#tab-guide').closest('#modal');
@@ -8646,22 +8769,43 @@ function applyServerShare() {
 
 let guideGeneration = 0, reviewTimer, requestedReviewKey = '', latestPrintReview = null;
 function reviewKey() { return printJobKey() + '|' + $('#exportScope').value + '|' + ($('#exportScope').value === 'current' ? S.activeSheet || 0 : ''); }
+function setReviewPending() {
+  $('#barStatus').textContent = 'Checking print files…';
+  $('#exportReview').textContent = 'Checking print files…';
+  for (const id of ['btnExportPdfTab','btnExportCameoJob','btnExportSvgTab','btnExportDxfTab','btnExportStudio3Tab']) $('#' + id).disabled = true;
+}
 function schedulePrintReview() {
   if (S.mode === 'order') return;
   const key = reviewKey(); if (key === requestedReviewKey) return;
   requestedReviewKey = key; clearTimeout(reviewTimer); guideGeneration++;
-  $('#barStatus').textContent = 'Checking print files…'; $('#btnExportPdfTab').disabled = true;
+  setReviewPending();
   reviewTimer = setTimeout(renderGuideTab, 180);
 }
+function reviewIssueActions(issue, index) {
+  const labels = {alignment:'Review alignment', setup:'Review print setup', cutting:'Review cutting', cards:'Review artwork'};
+  const label = issue.type === 'empty' ? 'Add cards' : issue.cardback || issue.type === 'back_image' ? 'Choose cardback' : labels[issue.tab];
+  return `<li>${esc(issue.message)}<div class="row">${label ? `<button type="button" data-review-issue="${index}">${label}</button>` : ''}${issue.retryable ? `<button type="button" data-retry-issue="${index}">Retry image</button>` : ''}</div></li>`;
+}
 function renderGuideTab() {
-  clearTimeout(reviewTimer); requestedReviewKey = reviewKey();
+  clearTimeout(reviewTimer);
   const generation = ++guideGeneration;
   if (S.mode === 'order') {
     const order = buildMpcOrder(true), backs = [...order.backs.values()].reduce((n,item)=>n+item.slots.length,0);
     const warnings = order.skipped.length || order.noBack.length || !order.cardback && backs < order.slot || order.slot > 612;
-    $('#barStatus').textContent = `${!order.slot ? 'Blocked' : warnings ? 'Review warnings' : 'Ready'} · ${order.slot} cards in order`; return;
+    $('#barStatus').textContent = !deck().entries.length ? 'Add cards to start an order.'
+      : `${!order.slot ? 'Fix artwork issues' : warnings ? 'Review warnings' : 'Ready to export'} · ${order.slot} card${order.slot === 1 ? '' : 's'} in order`;
+    return;
   }
   const job = buildPrintJob(), s = job.settings, L = job.layout;
+  S.activeSheet = Math.max(0, Math.min(S.activeSheet || 0, job.sheets.length - 1));
+  const scope = $('#exportScope'), sheetSelect = $('#exportSheet');
+  scope.disabled = job.sheets.length <= 1;
+  if (scope.disabled) scope.value = 'all';
+  sheetSelect.hidden = scope.value !== 'current';
+  sheetSelect.disabled = scope.disabled;
+  sheetSelect.innerHTML = job.sheets.map(sheet=>`<option value="${sheet.index}">Sheet ${sheet.index + 1} of ${job.sheets.length}</option>`).join('');
+  sheetSelect.value = String(S.activeSheet);
+  const scopeKey = requestedReviewKey = reviewKey();
   const scopedSheets = $('#exportScope').value === 'current' ? job.sheets.filter(sheet=>sheet.index === (S.activeSheet || 0)) : job.sheets;
   const slots = scopedSheets.flatMap(sheet=>sheet.slots), pages = scopedSheets.map(sheet=>sheet.slots), sheets = pages.length;
   const isSingleSided = !job.hasBacks;
@@ -8692,22 +8836,21 @@ function renderGuideTab() {
 
   jobSum?.insertAdjacentHTML('beforeend',`<br><span>${esc(job.calibration.label)}</span><br><span>${esc(job.calibration.values)}</span>`);
   const review = $('#exportReview');
-  $('#barStatus').textContent = 'Checking print files…';
-  $('#btnExportPdfTab').disabled = true;
-  for(const id of ['#btnExportSvgTab','#btnExportDxfTab','#btnExportStudio3Tab']) $(id).disabled=true;
+  setReviewPending();
   runPreflight({settings:s, deck:job.project, layout:L, slots, printer:job.printer, calibration:job.calibration, sheetIndices:scopedSheets.map(sheet=>sheet.index), hasBacks:job.hasBacks, isCurrent:()=>generation === guideGeneration}).then(pre => {
-    if (pre.cancelled || !review || generation !== guideGeneration || printJobKey() !== job.key) return;
-    latestPrintReview = {key:job.key, issues:[...pre.errors,...pre.warnings]};
+    if (pre.cancelled || generation !== guideGeneration || reviewKey() !== scopeKey) return;
+    latestPrintReview = {key:job.key, scopeKey, issues:[...pre.errors,...pre.warnings]};
     refreshArtworkIssues();
-    $('#barStatus').textContent = `${pre.errors.length ? 'Blocked' : pre.warnings.length ? 'Review warnings' : 'Ready'} · ${pre.stats.sheets} sheets · ${pre.stats.pages} PDF pages`;
+    const sheetStatus = scope.value === 'current' ? `Sheet ${S.activeSheet + 1} of ${job.sheets.length}` : `${pre.stats.sheets} sheet${pre.stats.sheets === 1 ? '' : 's'}`;
+    $('#barStatus').textContent = !job.sheets.length ? 'Add cards to start printing.' : `${pre.errors.length ? 'Fix print issues' : pre.warnings.length ? 'Review warnings' : 'Ready to export'} · ${sheetStatus}`;
     if (pre.errors.length) {
-      review.innerHTML = `<div class="warn" style="border-color:var(--danger)"><b>Export blocked</b><p class="hint" style="margin:2px 0 6px">Fix these issues before downloading print files:</p><ul>${pre.errors.map((err,index) => `<li>${esc(err.message)} <button class="icon" data-review-tab="${err.tab}" data-review-issue="${index}">Review ${err.tab === 'setup' ? 'print setup' : err.tab === 'cutting' ? 'cutting' : 'cards'}</button>${err.retryable ? ` <button data-retry-issue="${index}">Retry image</button>` : ''}</li>`).join('')}</ul></div>`;
+      review.innerHTML = `<div class="warn" style="border-color:var(--danger)"><b>Fix before downloading</b><ul class="review-issues">${pre.errors.map(reviewIssueActions).join('')}</ul></div>`;
       $('#btnExportPdfTab').disabled = true;
       if ($('#btnPdf')) $('#btnPdf').disabled = false;
       return;
     }
     if (pre.warnings.length) {
-      review.innerHTML = `<div class="warn"><b>Check before printing</b><ul>${pre.warnings.map((warn,index) => `<li>${esc(warn.message)} <button class="icon" data-review-tab="${warn.tab}" data-review-issue="${pre.errors.length+index}">Review ${warn.tab === 'setup' ? 'print setup' : warn.tab === 'cutting' ? 'cutting' : 'cards'}</button></li>`).join('')}</ul></div>`;
+      review.innerHTML = `<div class="warn"><b>Check before printing</b><ul class="review-issues">${pre.warnings.map(reviewIssueActions).join('')}</ul></div>`;
     } else {
       review.innerHTML = '';
     }
@@ -8717,6 +8860,11 @@ function renderGuideTab() {
     $('#btnExportStudio3Tab').disabled = !studio3MarksMatch(L,s)
       || !scopedSheets.some(sheet=>studio3SheetSpec(studio3Key(s),sheet.slots.length));
     if ($('#btnPdf')) $('#btnPdf').disabled = false;
+  }).catch(err => {
+    if (generation !== guideGeneration || reviewKey() !== scopeKey) return;
+    console.error('Print file check failed:', err);
+    $('#barStatus').textContent = 'Print file check failed';
+    review.innerHTML = '<div class="warn">Couldn’t check print files. <button type="button" data-retry-preflight>Try again</button></div>';
   });
   $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
   applyServerShare();
@@ -10287,7 +10435,7 @@ function renderQuickSetup() {
   body.replaceChildren();
   for (const key of menu.keys || []) {
     const source = quickSettingControl(key);
-    if (!source) continue;
+    if (!source || source.disabled || FIELDS.find(field=>field.k === key)?.show?.(S.settings) === false) continue;
     const control = source.cloneNode(true);
     control.id = `quickSetting-${key}`;
     control.dataset.quickSetting = key;
@@ -10319,6 +10467,7 @@ function renderQuickSetup() {
   } else if (menu.page === 'color') {
     body.insertAdjacentHTML('beforeend', `<div class="row">${action('standardColor','Standard paper')}${action('foilColor','Foil stock')}${action('btnInspFoilPreview','Foil tone preview…')}</div>`);
   }
+  if (!body.childElementCount) body.textContent = 'Open settings to see the available options.';
   const next = focused?.id ? document.getElementById(focused.id)
     : focused?.dataset.quickAction ? $(`[data-quick-action="${focused.dataset.quickAction}"]`,body) : null;
   next?.focus({preventScroll:true});
@@ -10651,33 +10800,49 @@ if (tabGuideBtnPrint && tabGuideBtnCut) {
 }
 
 $('#exportReview').addEventListener('click', async ev => {
+  if (ev.target.closest('[data-retry-preflight]')) { renderGuideTab(); return; }
   const button = ev.target.closest('[data-review-issue],[data-retry-issue]');
-  if (!button || latestPrintReview?.key !== printJobKey()) return;
+  if (!button || latestPrintReview?.scopeKey !== reviewKey()) return;
   const issue = latestPrintReview.issues[+(button.dataset.retryIssue ?? button.dataset.reviewIssue)]; if (!issue) return;
   if (button.dataset.retryIssue !== undefined) {
     retryArtworkIssue(issue); return;
   }
-  if (issue.tab === 'alignment') {
-    const review = suspendModal();
-    $('#overlay').classList.remove('on');
-    openPrintSettings('alignment', null, review);
-    requestAnimationFrame(() => {
+  if (issue.type === 'empty') {
+    if (!abandonPrintSettings()) return;
+    closeModal();
+    openDeckImport();
+  } else if (issue.type === 'back_image' || issue.cardback) {
+    openMpcPicker({cardback:true, issue, backLabel:'Back to export review'});
+  } else if (['alignment','setup','cutting'].includes(issue.tab)) {
+    const page = issue.tab === 'setup' ? 'layout' : issue.tab;
+    if (document.body.classList.contains('print-settings-active')) {
+      closeModal();
+      openPrintSettings(page);
+    } else {
+      const review = suspendModal();
+      $('#overlay').classList.remove('on');
+      openPrintSettings(page, null, review);
+    }
+    if (page === 'alignment') requestAnimationFrame(() => {
       const col = issue.side === 'back' ? $('#alignBackCol') : $('#alignFrontCol');
       col?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const firstInput = issue.side === 'back' ? $('#input-backOffsetX') : $('#input-offsetX');
       firstInput?.focus();
     });
-    return;
-  }
-  if (issue.uid && issue.tab === 'cards') {
+  } else if (issue.uid && issue.tab === 'cards') {
     const target = findIssueTarget({...issue,side:issue.face}); if (!target) return;
     showSheet(target.sheetIndex,target.side); selectCardCopy(target.entryId,issue.copy ?? target.copyIndex,target.i); setWorkspaceView('proof');
     openMpcPicker({...target,backLabel:'Back to export review',copies:[{uid:target.entryId,copies:[issue.copy ?? target.copyIndex]}]});
-  } else switchTab(issue.tab);
+  }
 });
 $('#tab-guide').addEventListener('click', e => { if (e.target.closest('[data-duplex-wizard]')) openDuplexWizard({},'Back to export review'); });
 
 $('#exportScope').onchange = () => renderGuideTab();
+$('#exportSheet').onchange = ev => {
+  S.activeSheet = +ev.target.value;
+  renderGuideTab();
+  drawPreview();
+};
 $('#btnExportCameoJob').onclick = () => exportPDF(true, true);
 $('#btnCardMakerMarks').onclick = () => applyCameoLayout('standard');
 $('#scmTemplate').onchange = event => applyCameoLayout(event.target.value);
@@ -10687,7 +10852,7 @@ if ($('#btnExportDxfTab')) $('#btnExportDxfTab').onclick = () => downloadCutFile
 if ($('#btnExportSvgTab')) $('#btnExportSvgTab').onclick = () => downloadCutFile('svg');
 if ($('#btnProofFront')) $('#btnProofFront').onclick = () => { S.showBacks = false; S.proofSide = 'front'; if ($('#showBacks')) $('#showBacks').checked = false; syncProofViewButtons(); drawPreview(); };
 if ($('#btnProofBack')) $('#btnProofBack').onclick = () => { S.showBacks = true; S.proofSide = 'back'; if ($('#showBacks')) $('#showBacks').checked = true; syncProofViewButtons(); drawPreview(); };
-if ($('#btnProofGuides')) $('#btnProofGuides').onclick = () => { S.showCuts = !S.showCuts; if ($('#showCuts')) $('#showCuts').checked = S.showCuts; syncProofViewButtons(); drawPreview(); };
+if ($('#btnProofGuides')) $('#btnProofGuides').onclick = () => { setShowCuts(!S.showCuts); save(); syncProofViewButtons(); renderPreview(); };
 if ($('#btnSheetPrev')) $('#btnSheetPrev').onclick = () => { if (S.activeSheet > 0) { S.activeSheet--; schedulePrintReview(); drawPreview(); } };
 if ($('#btnSheetNext')) $('#btnSheetNext').onclick = () => { const pages = paginate(buildSlots(), layout().per); if (S.activeSheet < pages.length - 1) { S.activeSheet++; schedulePrintReview(); drawPreview(); } };
 if ($('#sheetJumpSel')) $('#sheetJumpSel').onchange = e => { S.activeSheet = +e.target.value; schedulePrintReview(); drawPreview(); };
@@ -10699,7 +10864,16 @@ if ($('#btnInspSetup')) $('#btnInspSetup').onclick = () => switchTab('setup');
 if ($('#btnInspAdv')) $('#btnInspAdv').onclick = () => switchTab('cutting');
 if ($('#btnReviewExport')) $('#btnReviewExport').onclick = () => S.mode === 'order' ? switchTab('order') : exportPDF(false);
 let toastT;
-function toast(msg, ms = 3000) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', ms); }
+function toast(msg, ms = 3000, action = null) {
+  const t = $('#toast'), button = $('#toastAction');
+  $('#toastMessage').textContent = msg;
+  button.hidden = !action;
+  button.textContent = action?.label || '';
+  button.onclick = action ? ev => { ev.stopPropagation(); t.style.display = 'none'; action.fn(); } : null;
+  t.style.display = 'block';
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.style.display = 'none', ms);
+}
 function busy(on, text) { $('#busy').classList.toggle('on', on); if (text) $('#busyText').textContent = text; $('#busyBar').style.width = '0'; }
 function busyProgress(f, text) { $('#busyBar').style.width = (f*100).toFixed(1) + '%'; if (text) $('#busyText').textContent = text; }
 
@@ -10943,12 +11117,8 @@ $('#rotarySection').addEventListener('click', ev => {
 });
 $('#pages').addEventListener('click', ev => {
   const start = ev.target.closest('[data-start]'); if (!start) return;
-  if (start.dataset.start === 'paste') {
-    if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
-    setWorkspaceView('cards');
-    $('#importDrawer').open = true;
-    $('#listIn').focus();
-  } else if (start.dataset.start === 'upload') $('#btnUpload').click();
+  if (start.dataset.start === 'paste') openDeckImport();
+  else if (start.dataset.start === 'upload') $('#btnUpload').click();
   else $('#btnLink').click();
 });
 function applyMode() {
