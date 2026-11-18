@@ -2554,7 +2554,7 @@ function regInkBoxes(marks) {
   // Use filled rectangles so the proof, PDF and collision checks see exactly
   // the same footprint.
   const t = marks.width / 2;
-  return [...marks.rects.map(([x,y,w,h])=>[x-t,y-t,w+2*t,h+2*t]),
+  return [...marks.rects,
     ...marks.lines.map(([x,y,u,v])=>[Math.min(x,u)-t,Math.min(y,v)-t,Math.abs(x-u)+2*t,Math.abs(y-v)+2*t])];
 }
 
