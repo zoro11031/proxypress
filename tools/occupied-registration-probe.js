@@ -22,7 +22,7 @@
     const result=await runPreflight({settings:s,deck:d,slots,sheetIndices:[7]});
     check('actual overlap identifies original sheet',result.errors.some(e=>e.type==='reg_conflict'&&e.sheet===8));
     const shifted = cleanSettings({...DEFAULTS, ...cameoPaperLayout('landscape'), pageSize:'letter',
-      silhouette:true, guides:'none', backs:false, offsetY:-11});
+      silhouette:true, guides:'none', backs:false, regInset:0});
     const clipped = await runPreflight({settings:shifted,deck:d,sheetIndices:[3]});
     check('clipped marks block export even though the card fits', !clipped.valid
       && clipped.errors.some(e=>e.type==='reg_clip'&&e.sheet===4)

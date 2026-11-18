@@ -2552,26 +2552,31 @@ function regInkBoxes(marks) {
   if (!marks.width) return [];
   // Card Maker strokes the square and uses projecting caps on the L arms.
   // Use filled rectangles so the proof, PDF and collision checks see exactly
-  // the same footprint, even when the printer scale differs on the two axes.
+  // the same footprint.
   const t = marks.width / 2;
   return [...marks.rects.map(([x,y,w,h])=>[x-t,y-t,w+2*t,h+2*t]),
     ...marks.lines.map(([x,y,u,v])=>[Math.min(x,u)-t,Math.min(y,v)-t,Math.abs(x-u)+2*t,Math.abs(y-v)+2*t])];
 }
 
 function regMarksClipped(L, s) {
-  if (!s.silhouette) return false;
-  const T = makeT(L, false, s);
-  const boxes = regInkBoxes(regMarks(L,s)).map(([x,y,w,h])=>[T.x(x),T.y(y),T.x(x+w),T.y(y+h)]);
-  return boxes.some(([x0, y0, x1, y1]) => [[x0,y0], [x0,y1], [x1,y0], [x1,y1]].some(([x, y]) => {
-    const p = turnPt(L, {x,y}, false, s);
-    return p.x < -0.05 || p.x > L.W + 0.05 || p.y < -0.05 || p.y > L.H + 0.05;
-  }));
+  return regInkBoxes(regMarks(L,s)).some(([x,y,w,h])=>
+    x < -0.05 || x+w > L.W+0.05 || y < -0.05 || y+h > L.H+0.05);
 }
 function regConflict(L, s = S.settings, occupied = null, clearance = 0) {
   if (!s.silhouette) return false;
   const boxes = regInkBoxes(regMarks(L,s));
-  const covers = (left, top, width, height) => boxes.some(([x,y,w,h])=>
-    x-clearance < left+width && x+w+clearance > left && y-clearance < top+height && y+h+clearance > top);
+  const T = makeT(L,false,s), a = s.printRotate*Math.PI/180;
+  const axes = [[1,0],[0,1],[Math.cos(a),Math.sin(a)],[-Math.sin(a),Math.cos(a)]];
+  const corners = (x,y,w,h) => [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
+  const marks = boxes.map(([x,y,w,h])=>corners(x-clearance,y-clearance,w+2*clearance,h+2*clearance));
+  const covers = (left, top, width, height) => {
+    const artwork = corners(T.x(left),T.y(top),T.w(width),T.h(height)).map(p=>turnPt(L,p,false,s));
+    // The artwork can rotate, so check both sets of edge normals for overlap.
+    return marks.some(mark=>axes.every(([u,v])=>{
+      const art = artwork.map(({x,y})=>x*u+y*v), ink = mark.map(({x,y})=>x*u+y*v);
+      return Math.min(...art) < Math.max(...ink) && Math.min(...ink) < Math.max(...art);
+    }));
+  };
   if (!occupied) return covers(L.x0,L.y0,L.gw,L.gh);
   return occupied.some((slot,index)=>{
     if (!slot.front) return false;
@@ -7784,7 +7789,12 @@ async function drawPreview() {
   let oSvg = `<svg class="pg-over" width="${L.W*z}" height="${L.H*z}">`;
   if (s.guideHalo) for (const [a, b, c, d, , lineCol] of overLines) oSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${guideHaloColor(lineCol || s.cornerGuideColor || '#00bfff')}" stroke-width="${sw*3}"/>`;
   for (const [a, b, c, d, dash, lineCol] of overLines) oSvg += `<line x1="${T.x(a)*z}" y1="${T.y(b)*z}" x2="${T.x(c)*z}" y2="${T.y(d)*z}" stroke="${lineCol || s.cornerGuideColor || '#00bfff'}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${3*z} ${1.5*z}"` : ''}/>`;
-  for (const [x, y, w, h] of regInkBoxes(reg)) oSvg += `<rect x="${T.x(x)*z}" y="${T.y(y)*z}" width="${T.w(w)*z}" height="${T.h(h)*z}" fill="#000"/>`;
+  const ink = regInkBoxes(reg);
+  if (ink.length) {
+    oSvg += `<g transform="rotate(${-pRot} ${L.W*z/2} ${L.H*z/2})">`;
+    for (const [x,y,w,h] of ink) oSvg += `<rect x="${x*z}" y="${y*z}" width="${w*z}" height="${h*z}" fill="#000"/>`;
+    oSvg += '</g>';
+  }
   if (!s.silhouette && S.showCuts && !back) page.forEach((_, i) => {
     const p = slotPos(L, i, false, s);
     if (s.bleed > 0) oSvg += `<rect x="${T.x(p.x)*z}" y="${T.y(p.y)*z}" width="${T.w(L.sw)*z}" height="${T.h(L.sh)*z}" fill="none" stroke="#738194" stroke-width="0.7" stroke-dasharray="2 3"/>`;
@@ -7999,13 +8009,13 @@ async function runPreflight(options = {}) {
   if (s.silhouette) {
     if (totalSheets && regMarksClipped(L, s)) {
       errors.push({type:'reg_clip', tab:'cutting', sheet:sheetIndex(0)+1, side:'front',
-        message:'Silhouette registration marks extend off the PDF page. Increase the mark inset or check front alignment.'});
+        message:'Silhouette registration marks extend off the PDF page. Increase the mark inset.'});
     }
     for (let index=0; index<totalSheets; index++) {
       const sheet = sheetIndex(index)+1;
       const occupied = slots.slice(index*L.per,(index+1)*L.per);
       if (regConflict(L, s, occupied)) {
-        errors.push({ type:'reg_conflict', tab:'cutting', sheet, side:'front', message:`Cards overlap Silhouette Cameo registration marks on Sheet ${sheet}. Adjust the Cameo layout or paper size.` });
+        errors.push({ type:'reg_conflict', tab:'cutting', sheet, side:'front', message:`Cards overlap Silhouette Cameo registration marks on Sheet ${sheet}. Check front alignment, bleed or paper size.` });
       } else if (regConflict(L, s, occupied, 1.5)) {
         warnings.push({type:'reg_clearance', tab:'cutting', sheet, side:'front',
           message:`Artwork is within 1.5 mm of a registration mark on Sheet ${sheet}. Test registration before cutting stock.`});
@@ -8164,10 +8174,12 @@ async function exportPrintJob(job, withCut = false) {
             if (s.guideHalo) pdfLines(doc, T, overLines, 'halo', s.guideWidth * 3);
             pdfLines(doc, T, overLines, null, s.guideWidth);
           }
-          doc.setFillColor('#000000');
-          for (const [x,y,w,h] of regInk) doc.rect(T.x(x),T.y(y),T.w(w),T.h(h),'F');
         }
         if (turned) backTurn(doc, L, false, back, s);
+        if (!back && regInk.length) {
+          doc.setFillColor('#000000');
+          for (const [x,y,w,h] of regInk) doc.rect(x,y,w,h,'F');
+        }
       }
     }
     busyProgress(1, withCut ? 'Packing matched files…' : 'Saving PDF…'); await sleep(30);
@@ -8374,7 +8386,7 @@ function renderGuideTab() {
     if (isCameo && ['letter', 'a4'].includes(s.pageSize)) {
       const calibrated = s.scaleX !== 100 || s.scaleY !== 100 || s.offsetX !== 0 || s.offsetY !== 0 || s.printRotate !== 0;
       cutPane.innerHTML += calibrated
-        ? '<p class="hint">The PDF applies printer compensation to both the artwork and the registration marks. The cut files use nominal coordinates. The matched download records the exact PDF mark positions in registration.json for inspection.</p>'
+        ? '<p class="hint">Printer compensation moves the artwork and matching cut paths. Registration marks stay fixed on the PDF. Use the PDF and cut file from the same export.</p>'
         : `<details><summary>Cut with Silhouette Control Center</summary><p class="hint">Export the matching sheet’s cut SVG. Replace cut-lines.svg with that filename. This builds and verifies without cutting:</p><pre>silhouette-control-center cut --from cut-lines.svg --sheet ${s.pageSize === 'a4' ? 'A4' : 'Letter'} --${frame.orientation} --pattern ${s.regPattern === 4 ? 'four' : 'three'} --mark-inset ${s.regInset} --mark-length ${regArm(L, s)} --mark-thickness ${s.regThickness} --dry-run</pre><p class="hint">Choose your blade preset separately. Inspect the overlay and test on plain paper with a pen before cutting stock. PDF inspection cannot measure physical printer scaling.</p></details>`;
     }
   }
@@ -9026,16 +9038,19 @@ function studioCanvasPad(s) {
 
 function cutterCardRect(L, s, index, frame, pad = 0) {
   const p = slotPos(L,index,false,s), left = p.x+s.bleed, top = p.y+s.bleed;
-  const radius = s.cornerRadius ?? 3.2;
-  if (!s.silhouette) {
-    const T = makeT(L,false,s);
-    return {x:T.x(left), y:T.y(top), w:T.w(L.cw), h:T.h(L.ch), rx:T.w(radius), ry:T.h(radius)};
-  }
-  // The cutter registers against marks printed with the same printer
-  // correction as the artwork. Cut coordinates stay in the nominal frame.
-  const [x0,y0] = frame.toMat(left,top), [x1,y1] = frame.toMat(left+L.cw,top+L.ch);
+  const radius = Math.max(0,Math.min(s.cornerRadius ?? 3.2,L.cw/2,L.ch/2)), T = makeT(L,false,s);
+  // Registration stays in sheet coordinates. Apply the artwork's correction
+  // to the outline, then express it in the rotated and padded cutter canvas.
+  const [x0,y0] = frame.toMat(T.x(left),T.y(top)), [x1,y1] = frame.toMat(T.x(left+L.cw),T.y(top+L.ch));
   return {x:Math.min(x0,x1)+pad, y:Math.min(y0,y1)+pad,
-    w:frame.turned ? L.ch : L.cw, h:frame.turned ? L.cw : L.ch, rx:radius, ry:radius};
+    w:Math.abs(x1-x0),h:Math.abs(y1-y0),rx:frame.turned?T.h(radius):T.w(radius),ry:frame.turned?T.w(radius):T.h(radius),
+    angle:s.silhouette ? s.printRotate : 0,cx:frame.W/2+pad,cy:frame.H/2+pad};
+}
+
+function cutterTurn({angle,cx,cy},x,y) {
+  if (!angle) return [x,y];
+  const a = angle*Math.PI/180, u = x-cx, v = y-cy;
+  return [cx+u*Math.cos(a)-v*Math.sin(a),cy+u*Math.sin(a)+v*Math.cos(a)];
 }
 
 function cutSvg(sheet = 0, job = buildPrintJob()) {
@@ -9044,8 +9059,9 @@ function cutSvg(sheet = 0, job = buildPrintJob()) {
   // The SVG is in physical sheet coordinates for direct cutter workflows.
   let svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${frame.W}mm" height="${frame.H}mm" viewBox="0 0 ${frame.W} ${frame.H}">\n`;
   for (let i = 0; i < n; i++) {
-    const {x,y,w,h,rx,ry} = cutterCardRect(L,s,i,frame);
-    svg += `<rect x="${x.toFixed(3)}" y="${y.toFixed(3)}" width="${w.toFixed(3)}" height="${h.toFixed(3)}" rx="${rx.toFixed(3)}" ry="${ry.toFixed(3)}" fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
+    const {x,y,w,h,rx,ry,angle,cx,cy} = cutterCardRect(L,s,i,frame);
+    const turn = angle ? ` transform="rotate(${angle} ${cx} ${cy})"` : '';
+    svg += `<rect x="${x.toFixed(3)}" y="${y.toFixed(3)}" width="${w.toFixed(3)}" height="${h.toFixed(3)}" rx="${rx.toFixed(3)}" ry="${ry.toFixed(3)}"${turn} fill="none" stroke="#ff0000" stroke-width="0.1"/>\n`;
   }
   svg += '</svg>\n';
   return svg;
@@ -9062,18 +9078,28 @@ const DXF_BULGE_90 = Math.tan(Math.PI / 8);   // tan(22.5 deg) = a 90 deg arc
 const dxfPair = (code, value) => `${String(code).padStart(3)}\n${value}\n`;
 const dxfNum = v => { const t = v.toFixed(4).replace(/0+$/, '').replace(/\.$/, ''); return !t || t === '-0' ? '0' : t; };
 
-function dxfCard(x, yTop, w, h, radius) {
-  const r = Math.max(0, Math.min(radius, Math.min(w, h) / 2)), y = yTop - h, b = DXF_BULGE_90;
+function dxfCard(rect, H) {
+  const {x,y:top,w,h,rx:r,ry} = rect, y = H-top-h, b = DXF_BULGE_90;
   // Counter-clockwise in DXF space, each arc-start vertex carrying the bulge.
   // Reverse the order and the corners bulge outward into little ears instead.
-  const verts = r === 0
+  let verts = r === 0
     ? [[x, y, 0], [x + w, y, 0], [x + w, y + h, 0], [x, y + h, 0]]
     : [[x + w - r, y, b], [x + w, y + r, 0], [x + w, y + h - r, b], [x + w - r, y + h, 0],
        [x + r, y + h, b], [x, y + h - r, 0], [x, y + r, b], [x + r, y, 0]];
+  if (r && Math.abs(r-ry) > 1e-7) {
+    // R12 bulges are circular. Sample the calibrated elliptical corners
+    // and keep one continuous closed polyline for Studio Basic.
+    verts = [[x+w-r,y+ry],[x+w-r,y+h-ry],[x+r,y+h-ry],[x+r,y+ry]].flatMap(([cx,cy],i)=>
+      Array.from({length:13},(_,j)=>{
+        const a = (i-1+j/12)*Math.PI/2;
+        return [cx+r*Math.cos(a),cy+ry*Math.sin(a),0];
+      }));
+  }
   let s = dxfPair(0, 'POLYLINE') + dxfPair(8, 'CUT') + dxfPair(66, 1) + dxfPair(70, 1)
     + dxfPair(10, '0.0') + dxfPair(20, '0.0') + dxfPair(30, '0.0');
   for (const [vx, vy, bulge] of verts) {
-    s += dxfPair(0, 'VERTEX') + dxfPair(8, 'CUT') + dxfPair(10, dxfNum(vx)) + dxfPair(20, dxfNum(vy)) + dxfPair(30, '0.0');
+    const [px,py] = cutterTurn(rect,vx,H-vy);
+    s += dxfPair(0, 'VERTEX') + dxfPair(8, 'CUT') + dxfPair(10, dxfNum(px)) + dxfPair(20, dxfNum(H-py)) + dxfPair(30, '0.0');
     if (bulge) s += dxfPair(42, bulge.toFixed(6));
   }
   return s + dxfPair(0, 'SEQEND') + dxfPair(8, 'CUT');
@@ -9118,12 +9144,12 @@ function studio3Key(s = S.settings) {
 // The twelve points of one rounded-rectangle outline, in the order the format
 // stores them: four corners of three, starting at the top right.
 const S3_K = 1 - Math.SQRT1_2;   // where a 3-point arc's middle point sits
-function s3Points(x, y, w, h, r) {
-  const x1 = x + w, y1 = y + h, k = r * S3_K;
-  return [[x1 - r, y1], [x1 - k, y1 - k], [x1, y1 - r],
-          [x1, y + r], [x1 - k, y + k], [x1 - r, y],
-          [x + r, y], [x + k, y + k], [x, y + r],
-          [x, y1 - r], [x + k, y1 - k], [x + r, y1]];
+function s3Points(x, y, w, h, rx, ry) {
+  const x1 = x+w, y1 = y+h, kx = rx*S3_K, ky = ry*S3_K;
+  return [[x1-rx,y1],[x1-kx,y1-ky],[x1,y1-ry],
+          [x1,y+ry],[x1-kx,y+ky],[x1-rx,y],
+          [x+rx,y],[x+kx,y+ky],[x,y+ry],
+          [x,y1-ry],[x+kx,y1-ky],[x+rx,y1]];
 }
 
 async function cutStudio3(sheet = 0, job = buildPrintJob()) {
@@ -9152,12 +9178,13 @@ async function cutStudio3(sheet = 0, job = buildPrintJob()) {
   // Every slot is written, including any the last sheet leaves empty: the
   // count is fixed, so an unused slot cuts a blank card rather than vanishing.
   for (let i = 0; i < L.per; i++) {
-    const {x,y,w,h,rx:r} = cutterCardRect(L,s,i,frame,pad);
+    const rect = cutterCardRect(L,s,i,frame,pad), {x,y,w,h,rx,ry} = rect;
     for (const o of spec.outlines[i]) {
       // Each stored copy keeps its own winding, sign and sub-millimetre offset.
       const oy = y + o.dy, span = 2 * oy + h;
-      let pts = s3Points(x + o.dx, oy, w, h, r);
+      let pts = s3Points(x + o.dx, oy, w, h, rx, ry);
       if (o.r) pts = pts.map(([px, py]) => [px, span - py]);
+      pts = pts.map(([px,py])=>cutterTurn(rect,px,py));
       if (o.f) pts = pts.map(([px, py]) => [px, -py]);
       o.o.forEach((off, k) => { dv.setFloat32(off, pts[k][0], true); dv.setFloat32(off + 4, pts[k][1], true); });
     }
@@ -9170,11 +9197,10 @@ function cutDxf(sheet = 0, job = buildPrintJob()) {
   const frame = registrationFrame(L,s), pad = studioCanvasPad(s);
   const W = frame.W+2*pad, H = frame.H+2*pad;
   // DXF counts up from a bottom-left origin and everything else here counts
-  // down from the top-left, so Y flips. No print rotation, for cutSvg's reason.
+  // down from the top-left, so Y flips.
   let body = '';
   for (let i = 0; i < n; i++) {
-    const {x,y,w,h,rx} = cutterCardRect(L,s,i,frame,pad);
-    body += dxfCard(x,H-y,w,h,rx);
+    body += dxfCard(cutterCardRect(L,s,i,frame,pad),H);
   }
   return dxfPair(0, 'SECTION') + dxfPair(2, 'HEADER')
     + dxfPair(9, '$ACADVER') + dxfPair(1, 'AC1009')
@@ -9189,9 +9215,9 @@ function cutDxf(sheet = 0, job = buildPrintJob()) {
 
 async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
   const s = job.settings, L = job.layout, frame = registrationFrame(L,s), pad = studioCanvasPad(s);
-  const arm = regArm(L,s), marks = regMarks(L,s), T = makeT(L,false,s);
+  const arm = regArm(L,s), marks = regMarks(L,s);
   const ink = regInkBoxes(marks).map(([x,y,w,h])=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]]
-    .map(([u,v])=>turnPt(L,{x:T.x(u),y:T.y(v)},false,s)));
+    .map(([x,y])=>({x,y})));
   const files = [{name:pdfName,data:pdfBytes}], rows = [], sides = job.hasBacks ? 2 : 1;
   const studio = (studio3MarksMatch(L,s) && sheets.some(sheet=>sheet.slots.length === L.per))
     ? (await loadStudio3Manifest())[studio3Key(s)] : null;

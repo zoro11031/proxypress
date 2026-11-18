@@ -66,7 +66,7 @@
     eq('arm clamped low', regArm(layout()), 5);
 
     const s = {...S.settings, regInset:3.5, offsetY:-4, regLen:20}, L = layout(s);
-    eq('front offset can clip the registration marks', regMarksClipped(L, s), true);
+    eq('front offset leaves registration marks within the sheet', regMarksClipped(L, s), false);
     eq('extra back offset does not move the front registration marks',
       regMarksClipped(L, {...s, offsetY:0, backOffsetY:-4}), false);
 

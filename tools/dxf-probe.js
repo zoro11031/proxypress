@@ -107,18 +107,18 @@
       });
     }
 
-    // Registration resolves printed offsets, scale and rotation together.
+    // Fixed registration marks anchor the calibrated artwork and cut paths.
     S.settings = {...DEFAULTS, pageSize: 'letter', orientation: 'landscape', silhouette: true,
       guides: 'none', ...cameoPaperLayout('landscape'), offsetX: 1.5, offsetY: -0.8};
     {
       const L = layout(), p = slotPos(L, 0, false);
       const poly = polylines(pairs(cutDxf(0)))[0];
-      near('cut x remains nominal', Math.min(...poly.verts.map(v => v.x)), p.x + S.settings.bleed);
-      near('cut y remains nominal', Math.max(...poly.verts.map(v => v.y)), L.H - p.y - S.settings.bleed);
+      near('cut x follows the artwork', Math.min(...poly.verts.map(v => v.x)), p.x + S.settings.bleed + 1.5);
+      near('cut y follows the artwork', Math.max(...poly.verts.map(v => v.y)), L.H - p.y - S.settings.bleed + 0.8);
       S.settings.regOrientation = 'portrait';
       const turned = polylines(pairs(cutDxf(0)))[0];
-      near('portrait mat rotates x with the marks',Math.min(...turned.verts.map(v=>v.x)),L.H-p.y-S.settings.bleed-L.ch);
-      near('portrait mat rotates y with the marks',Math.max(...turned.verts.map(v=>v.y)),L.W-p.x-S.settings.bleed);
+      near('portrait mat rotates corrected x',Math.min(...turned.verts.map(v=>v.x)),L.H-p.y-S.settings.bleed-L.ch+0.8);
+      near('portrait mat rotates corrected y',Math.max(...turned.verts.map(v=>v.y)),L.W-p.x-S.settings.bleed-1.5);
     }
 
     // A sheet that does not exist is an error, not an empty file.
