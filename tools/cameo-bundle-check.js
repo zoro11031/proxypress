@@ -9,10 +9,11 @@ const DARK_CARD = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgY
 const root = path.join(__dirname,'..');
 const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
-const functions = ['layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
+const functions = ['printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
-  'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle'];
+  'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle',
+  'applyCameoLayout','applyRotaryLayout','bestCutBleed'];
 const code = functions.map(name=>{
   const start = new RegExp(`^(?:async )?function ${name}\\(`,'m').exec(html).index;
   return html.slice(start,html.indexOf('\n}',start)+2);
@@ -20,19 +21,24 @@ const code = functions.map(name=>{
 const calibration = {front:{status:'Manual'},hasBacks:false};
 const outputs = [], notices = [], scope = {value:'all'}, state = {activeSheet:0};
 const unavailable = new Set();
+const renderedFaces = [];
 const context = vm.createContext({console, TextEncoder, Blob, calibration,
   $:sel=>sel==='#exportScope' ? scope : {closest:()=>null,classList:{contains:()=>true}}, S:state,
   window:{jspdf:require('../assets/vendor/jspdf.umd.min.js')},
   fetch:async url=>unavailable.has(url) ? new Response('',{status:404}) : new Response(fs.readFileSync(path.join(root,url))),
   serverPath:url=>url, sheetFeedable:()=>true, isPreview:()=>false,
   guideLines:()=>[], inspectPrintArtwork:async()=>({ok:true,width:2400,height:3200}),
-  artworkKey:face=>face.name, renderFace:async()=>({toDataURL:()=>
-    'data:image/png;base64,' + DARK_CARD}),
+  artworkKey:face=>face.name, renderFace:async(face,dpi,hi,rotation,settings,back)=>{
+    renderedFaces.push({rotation,back});
+    return {toDataURL:()=> 'data:image/png;base64,' + DARK_CARD};
+  },
   printJobKey:()=> 'job', reviewKey:()=>`${scope.value}/${state.activeSheet}`,
   imgCache:new Map(), latestPrintReview:null, renderGuideTab:()=>{}, switchTab:()=>{},
   busy:()=>{}, busyProgress:()=>{}, sleep:async()=>{}, showPostExportInstructions:()=>{},
+  resolveAppliedCalibration:()=>{}, setShowCuts:()=>{}, save:()=>{}, renderAll:()=>{}, printerOf:()=>({kind:'Laser'}),
   toast:message=>notices.push(message), download:(blob,name)=>outputs.push({blob,name})});
 vm.runInContext(code + '\n' + slice('const PAGE_SIZES =','const BUILTIN_PRESETS =') + '\n'
+  + slice('const SCM_TEMPLATES =','function scmTemplateFor') + '\n'
   + slice('const REG_MIN_LEN','function registrationFrame') + '\n'
   + slice('const CRC_TABLE','async function exportMpcZip') + '\n'
   + slice('const DXF_BULGE_90','function cutDxf'),context);
@@ -227,4 +233,140 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   console.log('PASS a missing native asset leaves a usable matched ZIP');
   console.log('PASS clipped registration marks block the matched download');
   console.log('PASS front artwork moved over fixed registration marks blocks export');
+
+  state.settings = {...vm.runInContext('DEFAULTS',context)};
+  const switchMode = name => vm.runInContext(`${name}(); layout()`,context);
+  assert.equal(switchMode('applyCameoLayout').scm,'letter-standard-v6.studio3');
+  assert.equal(state.settings.guides,'none');
+  assert.equal(switchMode('applyRotaryLayout').scm,undefined);
+  assert.equal(state.settings.silhouette,false);
+  assert.equal(state.settings.guides,'both');
+  assert.equal(switchMode('applyCameoLayout').scm,'letter-standard-v6.studio3');
+  assert.equal(state.settings.guides,'none');
+  console.log('PASS mode changes automatically switch between rotary and stock SCM PDFs');
+
+  const templates = vm.runInContext('Object.keys(SCM_TEMPLATES)',context);
+  assert.equal(templates.length,190);
+  for (const key of templates) {
+    const [pageSize,cardPreset,variant] = key.split('/');
+    const s = {...vm.runInContext('DEFAULTS',context),pageSize,cardPreset};
+    Object.assign(s,vm.runInContext('scmSettings',context)(s,variant));
+    const L = vm.runInContext('layout',context)(s);
+    const slots = Array.from({length:L.per},(_,i)=>({front:{name:'Card '+i,custom:'art'}}));
+    const report = await vm.runInContext('runPreflight',context)({settings:s,layout:L,slots,
+      deck:{},calibration,printer:'test',hasBacks:false});
+    assert.ok(report.valid,`${key}: ${report.errors.map(issue=>issue.message)}`);
+  }
+  console.log(`PASS all ${templates.length} stock grids clear preflight with a full sheet`);
+
+  // Independent anchors from SCM's shipped templates and its 300 ppi output.
+  const stock = [
+    ['letter','standard','letter-standard-v6.studio3',3300,2550,140,228,744,1039,8,10,8.04,0,180],
+    ['a4','standard','a4-standard-v5.studio3',3507,2480,244,194,744,1039,8,10,9.4,0,180],
+    ['letter','borderless','borderless/letter-standard-borderless-v2.studio3',3300,2550,76,1662,1039,744,9,3.5,7.45,-90,-90],
+    ['a4','borderless','borderless/a4-standard-borderless-v2.studio3',3507,2480,180,1627,1039,744,9,3.5,10.5,-90,-90],
+    ['arch_b','standard','arch_b-standard-v4.studio3',5400,3600,430,226,744,1039,18,10,20,0,180],
+  ];
+  const size = 25.4/300, pt = 72/25.4;
+  const jsPDF = context.window.jspdf.jsPDF, pdfDownloads = [];
+  context.window.jspdf = {jsPDF: function (...args) {
+    const doc = new jsPDF(...args);
+    doc.save = () => pdfDownloads.push(Buffer.from(doc.output('arraybuffer')));
+    return doc;
+  }};
+  for (const [paper,variant,file,W,H,x,y,cw,ch,per,inset,arm,frontRotation,backRotation] of stock) {
+    const settings = vm.runInContext('DEFAULTS',context);
+    const s = {...settings,pageSize:paper,...correction};
+    Object.assign(s,vm.runInContext('scmSettings',context)(s,variant));
+    const L = vm.runInContext('layout',context)(s);
+    assert.equal(L.scm,file);
+    assert.equal(L.per,per);
+    assert.equal(s.guides,'none');
+    near(s.bleed,0.625);
+    near(L.W,W*size);
+    near(L.H,H*size);
+    near(s.regLen,arm);
+    near(s.regInset,inset);
+    const slots = Array.from({length:per},(_,i)=>({front:{name:'Front '+i,custom:'art'},back:{name:'Back '+i,custom:'back'}}));
+    const job = {key:'job',settings:s,layout:L,slots,sheets:[{index:0,slots}],hasBacks:true,calibration,project:{name:'SCM test'}};
+    const prev = outputs.length;
+    renderedFaces.length = 0;
+    await vm.runInContext('exportPrintJob',context)(job,true);
+    assert.equal(outputs.length,prev+1,`${file}: ${notices.at(-1)}`);
+    for (const [back, rotation] of [[false,frontRotation],[true,backRotation]]) {
+      const side = renderedFaces.filter(face=>face.back === back);
+      assert.equal(side.length,per,`${file}: rendered face count`);
+      assert.ok(side.every(face=>face.rotation === rotation),`${file}: ${back ? 'back' : 'front'} artwork must render at ${rotation}°`);
+    }
+    const data = Buffer.from(await outputs.at(-1).blob.arrayBuffer()), files = readZip(data);
+    const info = JSON.parse(files.get('registration.json'));
+    const pdf = files.get(info.pdf), [front,back] = pdfPages(pdf);
+    const pdfSizes = [...pdf.toString('latin1').matchAll(/\/MediaBox\s+\[0 0 (\S+) (\S+)\]/g)];
+    assert.equal(pdfSizes.length,2);
+    for (const [,width,height] of pdfSizes) assert.deepEqual([+width,+height],[W*72/300,H*72/300]);
+    await vm.runInContext('exportPrintJob',context)(job,false);
+    assert.deepEqual(pdfPages(pdfDownloads.pop()),[front,back]);
+    const image = page => page.match(/^(.+) cm$/m)[1].split(' ').map(Number);
+    const [w,,,h,left,bottom] = image(front);
+    const [,,,backH,,backBottom] = image(back);
+    near(w/pt,cw*size+1.25);
+    near(h/pt,ch*size+1.25);
+    near(left/pt+0.625,x*size);
+    near(L.H-(bottom+h)/pt+0.625,y*size);
+    assert.equal((front.match(/ re\n/g)||[]).length,5);
+    assert.equal((back.match(/ re\n/g)||[]).length,5);
+    assert.match(front,new RegExp(file.split('/').at(-1).replaceAll('.','\\.')));
+    assert.ok(Math.abs(backBottom-bottom)>backH/2,'the first back belongs to the mirrored row');
+    if (process.argv[2]) {
+      fs.writeFileSync(path.join(process.argv[2],`scm-${paper}-${variant}.zip`),data);
+      fs.writeFileSync(path.join(process.argv[2],`scm-${paper}-${variant}.pdf`),pdf);
+    }
+    console.log('PASS stock SCM PDF and duplex:',file);
+  }
+
+  const skipSettings = {...vm.runInContext('DEFAULTS',context),scmSkip:'5, 1, 5',scmLabel:'Registration trial'};
+  Object.assign(skipSettings,vm.runInContext('scmSettings',context)(skipSettings,'standard'));
+  const layout = vm.runInContext('layout',context), slotPos = vm.runInContext('slotPos',context);
+  const original = layout({...skipSettings,scmSkip:''}), L = layout(skipSettings);
+  assert.equal(L.per,6);
+  for (const back of [false,true]) assert.deepEqual(slotPos(L,0,back,skipSettings),slotPos(original,1,back,skipSettings));
+  const slots = Array.from({length:7},(_,i)=>({front:{name:'Front '+i,custom:'art'},back:{name:'Back '+i,custom:'back'}}));
+  const pages = [{index:0,slots:slots.slice(0,6)}, {index:1,slots:slots.slice(6)}];
+  const skippedJob = {key:'job',settings:skipSettings,layout:L,slots,sheets:pages,hasBacks:true,calibration,project:{name:'SCM skipped spots'}};
+  const before = outputs.length;
+  await vm.runInContext('exportPrintJob',context)(skippedJob,true);
+  assert.equal(outputs.length,before+1);
+  const skipZip = Buffer.from(await outputs.at(-1).blob.arrayBuffer());
+  const files = readZip(skipZip), info = JSON.parse(files.get('registration.json'));
+  assert.deepEqual(info.sheets.map(row=>row.cards),[6,1]);
+  assert.equal((files.get('sheet-1.svg').toString().match(/<rect /g)||[]).length,6);
+  assert.equal((files.get('sheet-2.svg').toString().match(/<rect /g)||[]).length,1);
+  const printed = pdfPages(files.get(info.pdf));
+  assert.equal(printed.length,4);
+  assert.match(printed[0],/Registration trial/);
+  assert.match(printed[2],/Sheet 2/);
+  const firstSvg = files.get('sheet-1.svg').toString().match(/<rect x="([\d.]+)"/);
+  near(+firstSvg[1],slotPos(original,1,false,skipSettings).x+0.625);
+  const allSkipped = {...skipSettings,scmSkip:'1,2,3,4,5,6,7,8'};
+  const report = await vm.runInContext('runPreflight',context)({settings:allSkipped,
+    layout:layout(allSkipped),slots,deck:{},calibration,printer:'test',hasBacks:true});
+  assert.ok(report.errors.some(issue=>issue.type === 'scm_skip_all'));
+  if (process.argv[2]) {
+    fs.writeFileSync(path.join(process.argv[2],'scm-skipped.zip'),skipZip);
+    fs.writeFileSync(path.join(process.argv[2],'scm-skipped.pdf'),files.get(info.pdf));
+  }
+  console.log('PASS skipped positions match PDF fronts, backs, and cut lines across sheets');
+
+  const fit = vm.runInContext('scmArtworkPlacement',context);
+  const fitSettings = {...skipSettings,scmFitBack:'crop'};
+  const sourceBleed = vm.runInContext('printSourceBleed',context);
+  near(sourceBleed({custom:'art'},fitSettings,true),0);
+  near(sourceBleed({custom:'art',srcBleed:3},fitSettings),3);
+  const stretch = fit(1000,1000,fitSettings,0,false), crop = fit(1000,1000,fitSettings,0,true);
+  near(stretch.ex,0); near(stretch.ey,0);
+  near(crop.ex,0.625); near(crop.ey,0);
+  near(crop.src[2]/crop.src[3],crop.dst[2]/crop.dst[3]);
+  const frontCrop = fit(1000,1000,{...fitSettings,scmCrop:2},0,false);
+  assert.ok(frontCrop.src[2]<stretch.src[2] && frontCrop.src[3]<stretch.src[3]);
+  console.log('PASS independent front/back crop and real bleed per axis');
 })().catch(error=>{console.error(error);process.exitCode=1;});
