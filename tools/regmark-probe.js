@@ -3,14 +3,13 @@
 //
 // The registration marks have to match what Silhouette Studio draws from a
 // Card Maker cutting template, because that is what the cutter was taught to
-// find. Each expected arm comes from the active setup record of its own
-// bundled .studio3 template.
+// find. Letter portrait MTG uses the Card Maker borderless standard arm.
 (() => {
   const fails = [];
   const eq = (name, got, want) => { if (got !== want) fails.push(`${name}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`); };
   const near = (name, got, want, tol = 0.01) => { if (!(Math.abs(got - want) <= tol)) fails.push(`${name}: got ${got} want ${want} +-${tol}`); };
   const saved = JSON.parse(JSON.stringify(S.settings));
-  const templateArm = {'letter/landscape':8.0264,'letter/portrait':14.3764,'a4/landscape':9.398,'a4/portrait':6.6802};
+  const templateArm = {'letter/landscape':8.0264,'letter/portrait':7.4422,'a4/landscape':9.398,'a4/portrait':6.6802};
 
   try {
     for (const paper of ['letter', 'a4']) for (const orientation of ['landscape', 'portrait']) {

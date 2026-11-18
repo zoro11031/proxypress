@@ -2512,7 +2512,11 @@ function registrationFrame(L, s) {
 }
 function regArm(L, s = S.settings) {
   if (s.regLen > 0) return Math.max(REG_MIN_LEN, Math.min(s.regLen, REG_MAX_LEN));
-  const templateArm = STUDIO3_ARMS[studio3Key(s)] ?? REG_MIN_LEN;
+  const key = studio3Key(s);
+  // The bundled Letter portrait Studio base is Catan. MTG's borderless
+  // template uses the shorter arm recorded in letter-standard-borderless-v2.
+  const templateArm = key === 'letter-portrait' && L.cw === 63 && L.ch === 88
+    ? 7.4422 : STUDIO3_ARMS[key] ?? REG_MIN_LEN;
   const cap = regArmCap(L, s);
   return Math.max(REG_MIN_LEN, Math.min(Math.floor(cap * 4) / 4, templateArm));
 }
@@ -2521,17 +2525,29 @@ function regArm(L, s = S.settings) {
 // clearance perpendicular to it can bring it into the grid.
 function regArmCap(L, s = S.settings) {
   const frame = registrationFrame(L, s);
+  const T = makeT(L,false,s), x1 = L.x0+s.bleed, y1 = L.y0+s.bleed;
+  const x2 = L.x0+L.gw-s.bleed, y2 = L.y0+L.gh-s.bleed;
+  const corners = [[x1,y1],[x2,y1],[x2,y2],[x1,y2]].map(([x,y])=>{
+    const p = turnPt(L,{x:T.x(x),y:T.y(y)},false,s);
+    return frame.toMat(p.x,p.y);
+  });
+  // Control Center reserves the whole square at each mark. Check the
+  // calibrated trim bounds in the cutter's frame before choosing an arm.
+  const inset = s.regInset, xs = corners.map(p=>p[0]), ys = corners.map(p=>p[1]);
+  const west = Math.min(...xs)-inset, east = frame.W-inset-Math.max(...xs);
+  const north = Math.min(...ys)-inset, south = frame.H-inset-Math.max(...ys);
+  const caps = [Math.max(west,north)-0.01,Math.max(east,north)-0.01,Math.max(west,south)-0.01];
+  if (+s.regPattern === 4) caps.push(Math.max(east,south)-0.01);
   if (frame.turned) L = {...L, W:L.H, H:L.W, x0:L.y0, y0:L.x0, gw:L.gh, gh:L.gw};
   const i = s.regInset, t = Math.max(0.5, Math.min(s.regThickness, 1)) / 2;
   const gx0 = L.x0, gx1 = L.x0 + L.gw, gy0 = L.y0, gy1 = L.y0 + L.gh;
-  const caps = [];
   // Horizontal arms sit at y = i and y = H - i, and run inward from a corner.
   if ((gy0 - t < i && i < gy1 + t) || (gy0 - t < L.H - i && L.H - i < gy1 + t))
     caps.push(gx0 - i - REG_SAFETY, L.W - i - gx1 - REG_SAFETY);
   // Vertical arms sit at x = i and x = W - i.
   if ((gx0 - t < i && i < gx1 + t) || (gx0 - t < L.W - i && L.W - i < gx1 + t))
     caps.push(gy0 - i - REG_SAFETY, L.H - i - gy1 - REG_SAFETY);
-  return caps.length ? Math.min(...caps) : Infinity;
+  return Math.min(...caps);
 }
 function regMarks(L, s = S.settings) {
   if (!s.silhouette) return {rects:[], lines:[]};
@@ -8353,6 +8369,7 @@ function renderGuideTab() {
         <b>Silhouette Studio setup</b>
         <p class="hint" style="margin:4px 0 8px">The cut file uses the current sheet layout and ${s.cornerRadius} mm corner radius.</p>
         <p class="hint">Download the cut file from Print files above.</p>
+        <p class="hint">On Linux, open the matching ZIP under Sheet in Silhouette Control Center.</p>
       </div>
       <ol class="steps" style="margin-top:12px">
         <li><b>Load the mat:</b> Place the printed sheet <b>${frame.orientation}</b>, with ${pad ? `its top and left edges <b>${pad.toFixed(1)} mm</b> in from the mat grid` : 'its top-left corner aligned with the top-left of the mat grid'}. ${s.regPattern === 3 ? 'Keep the black square at the upper left.' : ''}</li>
@@ -9219,6 +9236,7 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
   const ink = regInkBoxes(marks).map(([x,y,w,h])=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]]
     .map(([x,y])=>({x,y})));
   const files = [{name:pdfName,data:pdfBytes}], rows = [], sides = job.hasBacks ? 2 : 1;
+  const enc = new TextEncoder();
   const studio = (studio3MarksMatch(L,s) && sheets.some(sheet=>sheet.slots.length === L.per))
     ? (await loadStudio3Manifest())[studio3Key(s)] : null;
   for (const [i,sheet] of sheets.entries()) {
@@ -9227,12 +9245,14 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
     // sheets need a format that can describe just the occupied positions.
     const useStudio = studio?.cards === L.per && sheet.slots.length === L.per;
     const cutFile = `sheet-${number}.${useStudio ? 'studio3' : 'dxf'}`;
-    const data = useStudio ? await cutStudio3(sheet.index,job) : new TextEncoder().encode(cutDxf(sheet.index,job));
+    const data = useStudio ? await cutStudio3(sheet.index,job) : enc.encode(cutDxf(sheet.index,job));
+    const svg = `sheet-${number}.svg`;
     files.push({name:cutFile,data});
-    rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile});
+    files.push({name:svg,data:enc.encode(cutSvg(sheet.index,job))});
+    rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile,svg});
   }
   const info = {
-    pdf:pdfName, units:'mm', origin:'top left',
+    format:'proxypress-cameo', version:1, pdf:pdfName, units:'mm', origin:'top left',
     pdfPage:{width:L.W,height:L.H,orientation:s.orientation,frontMarkInk:ink},
     mat:{width:frame.W,height:frame.H,orientation:frame.orientation,paperOffset:pad},
     registration:{pattern:s.regPattern,inset:s.regInset,armLength:arm,thickness:marks.width},
@@ -9244,8 +9264,8 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
     `\nDXF setup in Studio: ${dxfNum(info.studioCanvas.width)} × ${dxfNum(info.studioCanvas.height)} mm canvas, ${s.regPattern} marks, ${dxfNum(info.studioCanvas.inset)} mm inset, ${dxfNum(arm)} mm arms, ${marks.width} mm thickness.${s.regPattern === 4 ? ' Select Cameo 5 Alpha for four marks.' : ''}\n` : '';
   const readme = `Print ${pdfName} at Actual size / 100% on ${dxfNum(L.W)} × ${dxfNum(L.H)} mm paper.\n` +
     `Load the sheet ${frame.orientation} on the mat with its top and left edges ${pad ? `${dxfNum(pad)} mm in from the grid edges` : 'at the top-left grid corner'}. ${s.regPattern === 3 ? 'The black square goes at the upper left.\n' : '\n'}` +
-    `\n${sheetList}\n\nOpen the matching .studio3 file directly in Silhouette Studio when supplied. Its page and marks are already set.\n${dxf}`;
-  const enc = new TextEncoder();
+    `\n${sheetList}\n\nOpen the matching .studio3 file directly in Silhouette Studio when supplied. Its page and marks are already set.\n${dxf}` +
+    '\nOn Linux, open this ZIP in Silhouette Control Center under Sheet. In the terminal, use check-sheet or cut --from with the ZIP and --bundle-sheet for multi-sheet files. Use --dry-run to verify a cut without sending it.\n';
   files.push({name:'Read me.txt',data:enc.encode(readme)},{name:'registration.json',data:enc.encode(JSON.stringify(info,null,2))});
   return files;
 }

@@ -55,7 +55,6 @@ function pdfPages(bytes) {
 }
 
 const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} differs from ${b}`);
-const markInk = new Map();
 
 (async()=>{
   const manifest = require('../assets/studio3/manifest.json');
@@ -94,17 +93,19 @@ const markInk = new Map();
     assert.equal(outputs.length,prev+1,`${name}: ${notices.at(-1)}`);
     const data = Buffer.from(await outputs.at(-1).blob.arrayBuffer()), files = readZip(data);
     const info = JSON.parse(files.get('registration.json'));
+    assert.equal(info.format,'proxypress-cameo');
+    assert.equal(info.version,1);
     const pdf = files.get(info.pdf);
     const selected = current ? job.sheets.slice(1) : job.sheets;
     const pages = pdfPages(pdf), key = `${paper}-${orientation}`;
-    if (!Object.keys(overrides).length) markInk.set(key,info.pdfPage.frontMarkInk);
-    if (!overrides.regOrientation) assert.deepEqual(info.pdfPage.frontMarkInk,markInk.get(key));
+    if (overrides.printRotate) assert.ok(info.registration.armLength < 8.0264);
     assert.equal(info.sheets.length,selected.length,name);
     assert.equal(Number(pdf.toString('latin1').match(/\/Type \/Pages\b[\s\S]*?\/Count (\d+)/)[1]),selected.length*(duplex?2:1));
     for (const [i,sheet] of selected.entries()) {
-      const row = info.sheets[i], full = sheet.slots.length === job.layout.per && !overrides.regOrientation;
+      const row = info.sheets[i], full = sheet.slots.length === job.layout.per && !overrides.printRotate && key !== 'letter-portrait';
       assert.deepEqual(row,{sheet:sheet.index+1,frontPage:i*(duplex?2:1)+1,backPage:duplex?i*2+2:null,
-        cards:sheet.slots.length,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`});
+        cards:sheet.slots.length,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`,svg:`sheet-${sheet.index+1}.svg`});
+      assert.equal(files.get(row.svg).toString(),vm.runInContext('cutSvg',context)(sheet.index,job));
       const cut = files.get(row.cutFile);
       const pt = 72/25.4, marks = [], stack = [];
       for (const line of pages[row.frontPage-1].split('\n')) {
@@ -151,7 +152,8 @@ const markInk = new Map();
           near(cut.readFloatLE(outline.o[0]+4)*(outline.f?-1:1),y,0.05);
         } else {
           const pairs = [...cut.toString('ascii').matchAll(/\n\s*0\nVERTEX\n\s*8\nCUT\n\s*10\n([^\n]+)\n\s*20\n([^\n]+)/g)];
-          assert.ok(pairs.slice(0,52).some(([,u,v])=>Math.hypot(+u-(L.H-y),+v-(L.W-x))<0.001));
+          const [dx,dy] = overrides.regOrientation ? [L.H-y,L.W-x] : [x,L.H-y];
+          assert.ok(pairs.slice(0,52).some(([,u,v])=>Math.hypot(+u-dx,+v-dy)<0.001));
         }
       }
     }

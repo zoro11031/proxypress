@@ -32,6 +32,8 @@
       eq(`${tag} base card count`, spec.cards, L.per);
 
       const baseBuf = new Uint8Array(await (await fetch(`assets/studio3/${spec.file}`)).arrayBuffer());
+      // The archived Catan base is still tested with its explicit arm length.
+      if (key === 'letter-portrait') S.settings.regLen = STUDIO3_ARMS[key];
       const out = await cutStudio3(0);
       eq(`${tag} length unchanged`, out.length, baseBuf.length);
       eq(`${tag} length matches manifest`, out.length, spec.bytes);
@@ -90,7 +92,7 @@
       eq(`${JSON.stringify(change)} rejects a mismatched Studio template`, mismatch, STUDIO3_MARKS_MISMATCH);
     }
     {
-      const {regOrientation, ...legacy} = {...matching,...cameoPaperLayout('portrait'),regInset:5.5};
+      const {regOrientation, ...legacy} = {...matching,...cameoPaperLayout('portrait'),regInset:5.5,regLen:14.3764};
       S.settings = cleanSettings(legacy);
       const oldPortrait = new DataView((await cutStudio3(0)).buffer);
       const [width,height] = man['letter-portrait'].pageOffsets;
