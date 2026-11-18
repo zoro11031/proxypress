@@ -76,6 +76,18 @@ For server sharing, set `PUBLIC_URL=https://proxy.example.com` in `.env`, using 
 
 ![Choosing cutting tools and registration options](screenshots/cutting-workflow.png)
 
+**Use a Silhouette Card Maker template.** Under **Cut → Silhouette Cameo**, keep
+**Silhouette Card Maker** selected for stock paper and card sizes. ProxyPress
+uses the SCM grid, registration marks, and 0.625 mm bleed, and names the matching
+`.studio3` file on the PDF and in **Review export**. Use long-edge flip for
+double-sided sheets. For **Borderless**, follow SCM’s instructions for placing
+the sheet 6.5 mm in from the Studio mat grid. On partial sheets, turn off the
+unused cuts in the stock template or use the paired cut file from the ZIP.
+[Silhouette Card Maker templates](https://github.com/Alan-Cha/silhouette-card-maker/tree/0da09b729814aa5aafde024b5a6059624fa87951/cutting_templates)
+
+Choose **Custom · Export matching cut files** to change the grid, registration
+settings or front alignment. Use the cut file from the same export for that layout.
+
 For Cameo, choose **Review export → Download matching print and cut files (ZIP)**. Print the PDF at actual size. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet** to load the PDF front page, registration settings, and cut paths together. Each sheet includes SVG and DXF. Matching four-card Letter landscape sheets also include a native Studio document with the page setup, marks and four trim paths. Align the paper to the top-left of the mat grid for Control Center. Silhouette Studio gets a native file when its template matches, or a DXF with the exact Studio setup and mat placement in `Read me.txt`. Review export names marks that are close to artwork on each sheet.
 
 ### 4. Custom Card Maker

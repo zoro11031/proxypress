@@ -9,7 +9,7 @@ const DARK_CARD = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgY
 const root = path.join(__dirname,'..');
 const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
-const functions = ['layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
+const functions = ['scmTemplateFor','scmSettings','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
   'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle'];
@@ -33,6 +33,7 @@ const context = vm.createContext({console, TextEncoder, Blob, calibration,
   busy:()=>{}, busyProgress:()=>{}, sleep:async()=>{}, showPostExportInstructions:()=>{},
   toast:message=>notices.push(message), download:(blob,name)=>outputs.push({blob,name})});
 vm.runInContext(code + '\n' + slice('const PAGE_SIZES =','const BUILTIN_PRESETS =') + '\n'
+  + slice('const SCM_TEMPLATES =','function scmTemplateFor') + '\n'
   + slice('const REG_MIN_LEN','function registrationFrame') + '\n'
   + slice('const CRC_TABLE','async function exportMpcZip') + '\n'
   + slice('const DXF_BULGE_90','function cutDxf'),context);
@@ -227,4 +228,73 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   console.log('PASS a missing native asset leaves a usable matched ZIP');
   console.log('PASS clipped registration marks block the matched download');
   console.log('PASS front artwork moved over fixed registration marks blocks export');
+
+  const templates = vm.runInContext('Object.keys(SCM_TEMPLATES)',context);
+  assert.equal(templates.length,36);
+  for (const key of templates) {
+    const [pageSize,cardPreset,variant] = key.split('/');
+    const s = {...vm.runInContext('DEFAULTS',context),pageSize,cardPreset};
+    Object.assign(s,vm.runInContext('scmSettings',context)(s,variant));
+    const L = vm.runInContext('layout',context)(s);
+    const slots = Array.from({length:L.per},(_,i)=>({front:{name:'Card '+i,custom:'art'}}));
+    const report = await vm.runInContext('runPreflight',context)({settings:s,layout:L,slots,
+      deck:{},calibration,printer:'test',hasBacks:false});
+    assert.ok(report.valid,`${key}: ${report.errors.map(issue=>issue.message)}`);
+  }
+  console.log('PASS all 36 stock grids clear preflight with a full sheet');
+
+  // Independent anchors from SCM's shipped templates and its 300 ppi output.
+  const stock = [
+    ['letter','standard','letter-standard-v6.studio3',3300,2550,140,228,744,1039,8,10,8.04],
+    ['a4','standard','a4-standard-v5.studio3',3507,2480,244,194,744,1039,8,10,9.4],
+    ['letter','borderless','borderless/letter-standard-borderless-v2.studio3',3300,2550,76,1662,1039,744,9,3.5,7.45],
+    ['a4','borderless','borderless/a4-standard-borderless-v2.studio3',3507,2480,180,1627,1039,744,9,3.5,10.5],
+  ];
+  const size = 25.4/300, pt = 72/25.4;
+  const jsPDF = context.window.jspdf.jsPDF, pdfDownloads = [];
+  context.window.jspdf = {jsPDF: function (...args) {
+    const doc = new jsPDF(...args);
+    doc.save = () => pdfDownloads.push(Buffer.from(doc.output('arraybuffer')));
+    return doc;
+  }};
+  for (const [paper,variant,file,W,H,x,y,cw,ch,per,inset,arm] of stock) {
+    const settings = vm.runInContext('DEFAULTS',context);
+    const s = {...settings,pageSize:paper,...correction};
+    Object.assign(s,vm.runInContext('scmSettings',context)(s,variant));
+    const L = vm.runInContext('layout',context)(s);
+    assert.equal(L.scm,file);
+    assert.equal(L.per,per);
+    assert.equal(s.guides,'none');
+    near(s.bleed,0.625);
+    near(L.W,W*size);
+    near(L.H,H*size);
+    near(s.regLen,arm);
+    near(s.regInset,inset);
+    const slots = Array.from({length:per},(_,i)=>({front:{name:'Front '+i,custom:'art'},back:{name:'Back '+i,custom:'back'}}));
+    const job = {key:'job',settings:s,layout:L,slots,sheets:[{index:0,slots}],hasBacks:true,calibration,project:{name:'SCM test'}};
+    const prev = outputs.length;
+    await vm.runInContext('exportPrintJob',context)(job,true);
+    assert.equal(outputs.length,prev+1,`${file}: ${notices.at(-1)}`);
+    const data = Buffer.from(await outputs.at(-1).blob.arrayBuffer()), files = readZip(data);
+    const info = JSON.parse(files.get('registration.json'));
+    const pdf = files.get(info.pdf), [front,back] = pdfPages(pdf);
+    await vm.runInContext('exportPrintJob',context)(job,false);
+    assert.deepEqual(pdfPages(pdfDownloads.pop()),[front,back]);
+    const image = page => page.match(/^(.+) cm$/m)[1].split(' ').map(Number);
+    const [w,,,h,left,bottom] = image(front);
+    const [,,,backH,,backBottom] = image(back);
+    near(w/pt,cw*size+1.25);
+    near(h/pt,ch*size+1.25);
+    near(left/pt+0.625,x*size);
+    near(L.H-(bottom+h)/pt+0.625,y*size);
+    assert.equal((front.match(/ re\n/g)||[]).length,5);
+    assert.equal((back.match(/ re\n/g)||[]).length,5);
+    assert.match(front,new RegExp(file.split('/').at(-1).replaceAll('.','\\.')));
+    assert.ok(Math.abs(backBottom-bottom)>backH/2,'the first back belongs to the mirrored row');
+    if (process.argv[2]) {
+      fs.writeFileSync(path.join(process.argv[2],`scm-${paper}-${variant}.zip`),data);
+      fs.writeFileSync(path.join(process.argv[2],`scm-${paper}-${variant}.pdf`),pdf);
+    }
+    console.log('PASS stock SCM PDF and duplex:',file);
+  }
 })().catch(error=>{console.error(error);process.exitCode=1;});
