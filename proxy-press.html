@@ -1052,6 +1052,33 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             </select>
             <p id="scmTemplateHint" class="hint"></p>
           </div>
+          <div id="scmExportOptions" class="grid2">
+            <div class="field full">
+              <label for="scmSkip">Skip card positions</label>
+              <input id="scmSkip" type="text" inputmode="numeric" maxlength="120" pattern="[0-9, ]*" placeholder="e.g. 1, 5">
+              <p class="hint">Count from 1, across the rows as the sheet sits on the mat. Skipped spots stay empty on every sheet.</p>
+            </div>
+            <div class="field">
+              <label for="scmFit">Front image fit</label>
+              <select id="scmFit"><option value="stretch">Stretch to fit</option><option value="crop">Center crop</option></select>
+            </div>
+            <div class="field">
+              <label for="scmFitBack">Back image fit</label>
+              <select id="scmFitBack"><option value="same">Same as front</option><option value="stretch">Stretch to fit</option><option value="crop">Center crop</option></select>
+            </div>
+            <div class="field">
+              <label for="scmCrop">Crop fronts (mm per edge)</label>
+              <input id="scmCrop" type="number" min="0" max="10" step="0.1">
+            </div>
+            <div class="field">
+              <label for="scmCropBack">Crop backs (mm per edge)</label>
+              <input id="scmCropBack" type="number" min="0" max="10" step="0.1">
+            </div>
+            <div class="field full">
+              <label for="scmLabel">Printed sheet label</label>
+              <input id="scmLabel" type="text" maxlength="48" placeholder="Optional">
+            </div>
+          </div>
           <div id="cameoCustomRegistration">
             <div class="field full" style="margin-top:8px">
               <label for="cameoRegPattern">Registration mark pattern</label>
@@ -1662,8 +1689,21 @@ const serverPath = path => (SHARE_TOKEN ? '/share/' + SHARE_TOKEN : '') + path;
 const isDesktop = () => !SHARE_TOKEN && (location.search.includes('desktop=1') || /Electron\//i.test(navigator.userAgent) || /ProxyPress/i.test(navigator.userAgent) || !location.protocol.startsWith('http'));
 const serverAvailable = () => !isDesktop() && !SHARE_TOKEN && location.protocol.startsWith('http');
 
-const PAGE_SIZES = {letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], a4:[210,297], a3:[297,420], a5:[148,210], a6:[105,148]};
-const CARD_SIZES = {mtg:[63,88], poker:[63.5,88.9], japanese:[59,86], tarot:[70,120]};
+const PAGE_SIZES = {letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], a4:[210,297], a3:[297,420], arch_b:[304.8,457.2], a5:[148,210], a6:[105,148]};
+const CARD_SIZES = {
+  'mtg':[63,88], 'poker':[63.5,88.9], 'japanese':[59,86], 'tarot':[70,120],
+  '70mm_square':[70,70], 'american_mini':[41,63], 'bridge':[57.15,88.9], 'bridge_square':[57.15,57.15],
+  'business':[88.9,50.8], 'catan':[54,80], 'credit':[85.725,53.975], 'domino':[44.45,88.9],
+  'domino_square':[44.45,44.45], 'euro_business':[85,55], 'euro_mini':[44,68], 'jumbo':[88.9,139.7],
+  'micro':[31.75,44.45], 'mini':[44.45,63.5], 'standard_double':[88,126],
+};
+const SCM_CARD_LABELS = {
+  '70mm_square':'70 mm square', 'american_mini':'American mini', 'bridge':'Bridge',
+  'bridge_square':'Bridge square', 'business':'Business card', 'catan':'Catan',
+  'credit':'Credit card', 'domino':'Domino', 'domino_square':'Domino square',
+  'euro_business':'Euro business / photo', 'euro_mini':'Euro mini', 'jumbo':'Jumbo',
+  'micro':'Micro', 'mini':'Mini', 'standard_double':'Oversized MTG',
+};
 
 const DEFAULTS = {
   pageSize:'letter', pageW:215.9, pageH:279.4, orientation:'portrait',
@@ -1673,7 +1713,8 @@ const DEFAULTS = {
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
   dpi:1200, jpeg:92, brightness:100, saturation:100, contrast:100, foilTint:0, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
-  silhouette:false, scmTemplate:'custom', regPattern:3, regOrientation:'auto', regInset:10, regLen:0, regThickness:1, showCuts:false
+  silhouette:false, scmTemplate:'custom', scmSkip:'', scmFit:'stretch', scmFitBack:'same', scmCrop:0, scmCropBack:0, scmLabel:'',
+  regPattern:3, regOrientation:'auto', regInset:10, regLen:0, regThickness:1, showCuts:false
 };
 
 const BUILTIN_PRESETS = [
@@ -2048,7 +2089,26 @@ function filterFor(s) {
   if (s.contrast && s.contrast !== 100) f.push(`contrast(${s.contrast}%)`);
   return f.join(' ');
 }
-async function renderFace(face, dpi, hi, rot = 0, settings = S.settings) {
+function printSourceBleed(face, s, assumedRatio = false) {
+  if (face.srcBleed != null) return face.srcBleed;
+  const scm = s.silhouette && s.scmTemplate && s.scmTemplate !== 'custom';
+  if (face.drive || (assumedRatio && !scm)) return MPC_BLEED;
+  return !scm && face.custom ? s.customSrcBleed : 0;
+}
+
+function scmArtworkPlacement(iw, ih, s, sourceBleed, back) {
+  const crop = (back ? s.scmCropBack : s.scmCrop) || 0;
+  const fit = back && s.scmFitBack !== 'same' ? s.scmFitBack : s.scmFit;
+  const cw = s.cardW, ch = s.cardH, bleed = s.bleed;
+  let sx = iw / (cw + 2*sourceBleed) * (1 - 2*crop/cw);
+  let sy = ih / (ch + 2*sourceBleed) * (1 - 2*crop/ch);
+  if (fit === 'crop') sx = sy = Math.min(sx, sy);
+  const ex = Math.min(bleed, Math.max(0, (iw/sx - cw)/2));
+  const ey = Math.min(bleed, Math.max(0, (ih/sy - ch)/2));
+  const w = Math.min(iw, (cw+2*ex)*sx), h = Math.min(ih, (ch+2*ey)*sy);
+  return {src:[(iw-w)/2,(ih-h)/2,w,h], dst:[bleed-ex,bleed-ey,cw+2*ex,ch+2*ey], ex, ey};
+}
+async function renderFace(face, dpi, hi, rot = 0, settings = S.settings, back = false) {
   const s = {...settings};
   const url = await faceSrc(face, hi, s);
   if (!url) throw new Error(`No image for "${face.name}"`);
@@ -2065,19 +2125,39 @@ async function renderFace(face, dpi, hi, rot = 0, settings = S.settings) {
   x.fillStyle = s.bleedMode === 'black' ? '#000000' : borderCache.get(img); x.fillRect(0, 0, W, H);
   const iw = img.naturalWidth, ih = img.naturalHeight;
   const isMpcRatio = Math.abs((iw / ih) - (2.75 / 3.75)) < 0.012;
-  const sb = face.srcBleed ?? (face.drive || isMpcRatio ? MPC_BLEED : (face.custom ? s.customSrcBleed : 0));
-  const sx = iw / (s.cardW + 2*sb), sy = ih / (s.cardH + 2*sb);
-  const e = Math.min(b, sb);
-  const src = [(sb-e)*sx, (sb-e)*sy, (s.cardW+2*e)*sx, (s.cardH+2*e)*sy];
-  const dst = [(b-e)*k, (b-e)*k, (s.cardW+2*e)*k, (s.cardH+2*e)*k];
-  x.drawImage(img, ...src, ...dst);
-  if (b > e && s.bleedMode === 'extend') {
-    const ext = (b - e) * k, inset = Math.max(1, iw * 0.004), strip = Math.max(1, iw * 0.003);
-    const [s0, t0, sw, sh] = src, [d0, u0, dw, dh] = dst;
-    x.drawImage(img, s0 + inset, t0, strip, sh, 0, u0, ext, dh);
-    x.drawImage(img, s0 + sw - inset - strip, t0, strip, sh, d0 + dw, u0, ext, dh);
-    x.drawImage(img, s0, t0 + inset, sw, strip, d0, 0, dw, ext);
-    x.drawImage(img, s0, t0 + sh - inset - strip, sw, strip, d0, u0 + dh, dw, ext);
+  const sb = printSourceBleed(face, s, isMpcRatio);
+  if (s.silhouette && s.scmTemplate && s.scmTemplate !== 'custom') {
+    const {src, dst} = scmArtworkPlacement(iw, ih, s, sb, back);
+    x.drawImage(img, ...src, ...dst.map(mm=>mm*k));
+    if (s.bleedMode === 'extend') {
+      const [left,top,w,h] = src;
+      const [dx,dy,dw,dh] = dst.map(mm=>mm*k);
+      // Extend each edge and corner independently. A centered crop can
+      // provide genuine bleed on one axis and need an extension on the other.
+      const bands = (start, span, pixelStart, pixelSpan) => {
+        const edge = Math.min(1,span);
+        return [[start,edge,0,pixelStart], [start,span,pixelStart,pixelSpan],
+          [start+span-edge,edge,pixelStart+pixelSpan,pixelStart]];
+      };
+      const xs = bands(left,w,dx,dw), ys = bands(top,h,dy,dh);
+      for (const [i,[a,bw,p,pw]] of xs.entries()) for (const [j,[b,bh,q,qh]] of ys.entries()) {
+        if ((i !== 1 || j !== 1) && pw > 0.001 && qh > 0.001) x.drawImage(img,a,b,bw,bh,p,q,pw,qh);
+      }
+    }
+  } else {
+    const sx = iw / (s.cardW + 2*sb), sy = ih / (s.cardH + 2*sb);
+    const e = Math.min(b, sb);
+    const src = [(sb-e)*sx, (sb-e)*sy, (s.cardW+2*e)*sx, (s.cardH+2*e)*sy];
+    const dst = [(b-e)*k, (b-e)*k, (s.cardW+2*e)*k, (s.cardH+2*e)*k];
+    x.drawImage(img, ...src, ...dst);
+    if (b > e && s.bleedMode === 'extend') {
+      const ext = (b - e) * k, inset = Math.max(1, iw * 0.004), strip = Math.max(1, iw * 0.003);
+      const [s0, t0, sw, sh] = src, [d0, u0, dw, dh] = dst;
+      x.drawImage(img, s0 + inset, t0, strip, sh, 0, u0, ext, dh);
+      x.drawImage(img, s0 + sw - inset - strip, t0, strip, sh, d0 + dw, u0, ext, dh);
+      x.drawImage(img, s0, t0 + inset, sw, strip, d0, 0, dw, ext);
+      x.drawImage(img, s0, t0 + sh - inset - strip, sw, strip, d0, u0 + dh, dw, ext);
+    }
   }
   if (s.foilTint > 0) {
     x.save();
@@ -2099,10 +2179,11 @@ async function renderFace(face, dpi, hi, rot = 0, settings = S.settings) {
 
 const previewCache = new Map();
 function settingsSig(s = S.settings) {
-  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.contrast, s.foilTint, s.customSrcBleed, s.duplexFlip].join(',');
+  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.contrast, s.foilTint,
+    s.customSrcBleed, s.duplexFlip, s.silhouette, s.scmTemplate, s.scmFit, s.scmFitBack, s.scmCrop, s.scmCropBack].join(',');
 }
-async function previewUrl(face, rot = 0, settings = S.settings) {
-  const key = (face.custom || face.drive || face.normal || face.png || face.scryArt || face.name) + '|' + settingsSig(settings) + '|' + rot + '|' + (face.srcBleed ?? '');
+async function previewUrl(face, rot = 0, settings = S.settings, back = false) {
+  const key = (face.custom || face.drive || face.normal || face.png || face.scryArt || face.name) + '|' + settingsSig(settings) + '|' + rot + '|' + back + '|' + (face.srcBleed ?? '');
   if (previewCache.has(key)) return previewCache.get(key);
   try {
     const sess = sessionStorage.getItem('pp_p_' + key);
@@ -2110,7 +2191,7 @@ async function previewUrl(face, rot = 0, settings = S.settings) {
   } catch {}
   const p = (async () => {
     try {
-      const u = (await renderFace(face, 110, false, rot, settings)).toDataURL('image/jpeg', 0.85);
+      const u = (await renderFace(face, 110, false, rot, settings, back)).toDataURL('image/jpeg', 0.85);
       try { sessionStorage.setItem('pp_p_' + key, u); const keys = Object.keys(sessionStorage).filter(key=>key.startsWith('pp_p_')); for (const old of keys.slice(0,Math.max(0,keys.length-24))) sessionStorage.removeItem(old); } catch { try { for (const cachedKey of Object.keys(sessionStorage)) if (cachedKey.startsWith('pp_p_')) sessionStorage.removeItem(cachedKey); sessionStorage.setItem('pp_p_' + key, u); } catch {} }
       return u;
     } catch { const u = await faceSrc(face, false, settings); return u ? 'raw:' + u : null; }
@@ -2127,42 +2208,196 @@ async function previewUrl(face, rot = 0, settings = S.settings) {
 // first native slot, grid dimensions, portrait flag and mark/radius settings.
 // Sizes and positions through the grid dimensions are in SCM's 300 ppi pixels.
 const SCM_TEMPLATES = {
-  'letter/mtg/standard': ["letter-standard-v6.studio3", "landscape", 3300, 2550, 744, 1039, 140, 228, 4, 2, 0, 10.0, 8.04, 1.0, 3.0],
-  'letter/mtg/borderless': ["borderless/letter-standard-borderless-v2.studio3", "portrait", 3300, 2550, 744, 1039, 144, 76, 3, 3, 1, 3.5, 7.45, 1.0, 3.0],
-  'letter/poker/standard': ["letter-poker-v4.studio3", "landscape", 3300, 2550, 750, 1050, 128, 218, 4, 2, 0, 10.0, 7.2, 1.0, 3.0],
-  'letter/poker/borderless': ["borderless/letter-poker-borderless-v2.studio3", "portrait", 3300, 2550, 750, 1050, 135, 60, 3, 3, 1, 3.5, 6.69, 1.0, 3.0],
+  'letter/american_mini/standard': ["letter-american_mini-v2.studio3", "portrait", 3300, 2550, 484, 744, 284, 140, 4, 4, 1, 10.0, 12.78, 1.0, 3.0],
+  'letter/american_mini/borderless': ["borderless/letter-american_mini-borderless-v2.studio3", "landscape", 3300, 2550, 484, 744, 160, 144, 6, 3, 0, 3.5, 8.81, 1.0, 3.0],
+  'letter/bridge/standard': ["letter-bridge-v4.studio3", "landscape", 3300, 2550, 675, 1050, 278, 218, 4, 2, 0, 10.0, 12.28, 1.0, 3.0],
+  'letter/bridge/borderless': ["borderless/letter-bridge-borderless-v2.studio3", "portrait", 3300, 2550, 675, 1050, 248, 60, 3, 3, 1, 3.5, 16.26, 1.0, 3.0],
+  'letter/bridge_square/standard': ["letter-bridge_square-v4.studio3", "landscape", 3300, 2550, 675, 675, 278, 248, 4, 3, 0, 10.0, 12.28, 1.0, 3.0],
+  'letter/bridge_square/borderless': ["borderless/letter-bridge_square-borderless-v2.studio3", "landscape", 3300, 2550, 675, 675, 278, 248, 4, 3, 0, 3.5, 18.8, 1.0, 3.0],
+  'letter/catan/standard': ["letter-catan-v2.studio3", "portrait", 3300, 2550, 638, 945, 303, 218, 3, 3, 1, 10.0, 14.39, 1.0, 3.0],
+  'letter/catan/borderless': ["borderless/letter-catan-borderless-v2.studio3", "portrait", 3300, 2550, 638, 945, 303, 218, 3, 3, 1, 3.5, 20.91, 1.0, 3.0],
+  'letter/business/standard': ["letter-business-v2.studio3", "portrait", 3300, 2550, 1050, 600, 218, 120, 2, 5, 1, 10.0, 7.2, 1.0, 3.0],
+  'letter/business/borderless': ["borderless/letter-business-borderless-v2.studio3", "portrait", 3300, 2550, 1050, 600, 218, 120, 2, 5, 1, 3.5, 13.72, 1.0, 3.0],
+  'letter/credit/standard': ["letter-credit-v2.studio3", "portrait", 3300, 2550, 1012, 638, 256, 352, 2, 4, 1, 10.0, 18.54, 1.0, 3.175],
+  'letter/credit/borderless': ["borderless/letter-credit-borderless-v2.studio3", "landscape", 3300, 2550, 1012, 638, 117, 303, 3, 3, 0, 3.5, 20.91, 1.0, 3.175],
+  'letter/domino/standard': ["letter-domino-v3.studio3", "landscape", 3300, 2550, 525, 1050, 308, 218, 5, 2, 0, 10.0, 14.82, 1.0, 3.0],
+  'letter/domino/borderless': ["borderless/letter-domino-borderless-v2.studio3", "portrait", 3300, 2550, 525, 1050, 202, 60, 4, 3, 1, 3.5, 12.36, 1.0, 3.0],
+  'letter/domino_square/standard': ["letter-domino_square-v4.studio3", "landscape", 3300, 2550, 525, 525, 308, 202, 5, 4, 0, 10.0, 14.82, 1.0, 3.0],
+  'letter/domino_square/borderless': ["borderless/letter-domino_square-borderless-v2.studio3", "landscape", 3300, 2550, 525, 525, 308, 202, 5, 4, 0, 3.5, 21.34, 1.0, 3.0],
+  'letter/euro_business/standard': ["letter-euro_business-v2.studio3", "landscape", 3300, 2550, 1004, 650, 129, 285, 3, 3, 0, 10.0, 12.87, 1.0, 3.0],
+  'letter/euro_business/borderless': ["borderless/letter-euro_business-borderless-v2.studio3", "landscape", 3300, 2550, 1004, 650, 129, 285, 3, 3, 0, 3.5, 19.39, 1.0, 3.0],
+  'letter/euro_mini/standard': ["letter-euro_mini-v2.studio3", "portrait", 3300, 2550, 520, 803, 212, 430, 4, 3, 1, 10.0, 25.15, 1.0, 3.0],
+  'letter/euro_mini/borderless': ["borderless/letter-euro_mini-borderless-v2.studio3", "landscape", 3300, 2550, 520, 803, 320, 56, 5, 3, 0, 3.5, 22.35, 1.0, 3.0],
   'letter/japanese/standard': ["letter-japanese-v3.studio3", "landscape", 3300, 2550, 697, 1016, 234, 252, 4, 2, 0, 10.0, 10.08, 1.0, 1.0],
   'letter/japanese/borderless': ["borderless/letter-japanese-borderless-v2.studio3", "portrait", 3300, 2550, 697, 1016, 214, 111, 3, 3, 1, 3.5, 13.38, 1.0, 1.0],
+  'letter/jumbo/standard': ["letter-jumbo-v2.studio3", "landscape", 3300, 2550, 1050, 1650, 592, 450, 2, 1, 0, 10.0, 38.86, 1.0, 3.0],
+  'letter/jumbo/borderless': ["borderless/letter-jumbo-borderless-v2.studio3", "landscape", 3300, 2550, 1050, 1650, 60, 450, 3, 1, 0, 3.5, 33.36, 1.0, 3.0],
+  'letter/micro/standard': ["letter-micro-v2.studio3", "landscape", 3300, 2550, 375, 525, 292, 202, 7, 4, 0, 10.0, 13.46, 1.0, 3.0],
+  'letter/micro/borderless': ["borderless/letter-micro-borderless-v2.studio3", "landscape", 3300, 2550, 375, 525, 98, 202, 8, 4, 0, 3.5, 12.36, 1.0, 3.0],
+  'letter/mini/standard': ["letter-mini-v2.studio3", "landscape", 3300, 2550, 525, 750, 308, 135, 5, 3, 0, 10.0, 14.82, 1.0, 3.0],
+  'letter/mini/borderless': ["borderless/letter-mini-borderless-v2.studio3", "portrait", 3300, 2550, 525, 750, 202, 128, 4, 4, 1, 3.5, 12.36, 1.0, 3.0],
+  'letter/poker/standard': ["letter-poker-v4.studio3", "landscape", 3300, 2550, 750, 1050, 128, 218, 4, 2, 0, 10.0, 7.2, 1.0, 3.0],
+  'letter/poker/borderless': ["borderless/letter-poker-borderless-v2.studio3", "portrait", 3300, 2550, 750, 1050, 135, 60, 3, 3, 1, 3.5, 6.69, 1.0, 3.0],
+  'letter/mtg/standard': ["letter-standard-v6.studio3", "landscape", 3300, 2550, 744, 1039, 140, 228, 4, 2, 0, 10.0, 8.04, 1.0, 3.0],
+  'letter/mtg/borderless': ["borderless/letter-standard-borderless-v2.studio3", "portrait", 3300, 2550, 744, 1039, 144, 76, 3, 3, 1, 3.5, 7.45, 1.0, 3.0],
+  'letter/standard_double/standard': ["letter-standard_double-v3.studio3", "portrait", 3300, 2550, 1039, 1488, 228, 154, 2, 2, 1, 10.0, 8.04, 1.0, 3.0],
+  'letter/standard_double/borderless': ["borderless/letter-standard_double-borderless-v2.studio3", "portrait", 3300, 2550, 1039, 1488, 228, 154, 2, 2, 1, 3.5, 14.56, 1.0, 3.0],
   'letter/tarot/standard': ["letter-tarot-v3.studio3", "portrait", 3300, 2550, 825, 1425, 442, 218, 2, 2, 1, 10.0, 26.16, 1.0, 3.0],
   'letter/tarot/borderless': ["borderless/letter-tarot-borderless-v2.studio3", "portrait", 3300, 2550, 825, 1425, 442, 218, 2, 2, 1, 3.5, 32.68, 1.0, 3.0],
-  'legal/mtg/standard': ["legal-standard-v1.studio3", "landscape", 4200, 2550, 744, 1039, 210, 228, 5, 2, 0, 10.0, 8.04, 1.0, 3.0],
-  'legal/mtg/borderless': ["borderless/legal-standard-borderless-v1.studio3", "landscape", 4200, 2550, 744, 1039, 210, 228, 5, 2, 0, 3.5, 14.56, 1.0, 3.0],
-  'legal/poker/standard': ["legal-poker-v1.studio3", "landscape", 4200, 2550, 750, 1050, 195, 218, 5, 2, 0, 10.0, 7.2, 1.0, 3.0],
-  'legal/poker/borderless': ["borderless/legal-poker-borderless-v1.studio3", "landscape", 4200, 2550, 750, 1050, 195, 218, 5, 2, 0, 3.5, 13.72, 1.0, 3.0],
+  'letter/70mm_square/standard': ["letter-70mm_square-v2.studio3", "landscape", 3300, 2550, 827, 827, 394, 440, 3, 2, 0, 10.0, 25.99, 1.0, 3.0],
+  'letter/70mm_square/borderless': ["borderless/letter-70mm_square-borderless-v2.studio3", "landscape", 3300, 2550, 827, 827, 394, 440, 3, 2, 0, 3.5, 32.51, 1.0, 3.0],
+  'legal/american_mini/standard': ["legal-american_mini-v1.studio3", "landscape", 4200, 2550, 484, 744, 361, 144, 7, 3, 0, 10.0, 19.3, 1.0, 3.0],
+  'legal/american_mini/borderless': ["borderless/legal-american_mini-borderless-v1.studio3", "landscape", 4200, 2550, 484, 744, 112, 144, 8, 3, 0, 3.5, 7.45, 1.0, 3.0],
+  'legal/bridge/standard': ["legal-bridge-v1.studio3", "landscape", 4200, 2550, 675, 1050, 382, 218, 5, 2, 0, 10.0, 21.08, 1.0, 3.0],
+  'legal/bridge/borderless': ["borderless/legal-bridge-borderless-v1.studio3", "landscape", 4200, 2550, 675, 1050, 382, 218, 5, 2, 0, 3.5, 27.6, 1.0, 3.0],
+  'legal/bridge_square/standard': ["legal-bridge_square-v1.studio3", "landscape", 4200, 2550, 675, 675, 382, 248, 5, 3, 0, 10.0, 21.08, 1.0, 3.0],
+  'legal/bridge_square/borderless': ["borderless/legal-bridge_square-borderless-v1.studio3", "landscape", 4200, 2550, 675, 675, 382, 248, 5, 3, 0, 3.5, 27.6, 1.0, 3.0],
+  'legal/catan/standard': ["legal-catan-v1.studio3", "landscape", 4200, 2550, 638, 945, 148, 322, 6, 2, 0, 10.0, 16.0, 1.0, 3.0],
+  'legal/catan/borderless': ["borderless/legal-catan-borderless-v1.studio3", "landscape", 4200, 2550, 638, 945, 148, 322, 6, 2, 0, 3.5, 22.52, 1.0, 3.0],
+  'legal/business/standard': ["legal-business-v1.studio3", "portrait", 4200, 2550, 1050, 600, 218, 262, 2, 6, 1, 10.0, 10.92, 1.0, 3.0],
+  'legal/business/borderless': ["borderless/legal-business-borderless-v1.studio3", "landscape", 4200, 2550, 1050, 600, 510, 52, 3, 4, 0, 3.5, 38.44, 1.0, 3.0],
+  'legal/credit/standard': ["legal-credit-v1.studio3", "portrait", 4200, 2550, 1012, 638, 256, 148, 2, 6, 1, 10.0, 10.41, 1.0, 3.175],
+  'legal/credit/borderless': ["borderless/legal-credit-borderless-v1.studio3", "landscape", 4200, 2550, 1012, 638, 54, 303, 4, 3, 0, 3.5, 20.91, 1.0, 3.175],
+  'legal/domino/standard': ["legal-domino-v1.studio3", "landscape", 4200, 2550, 525, 1050, 218, 218, 7, 2, 0, 10.0, 7.2, 1.0, 3.0],
+  'legal/domino/borderless': ["borderless/legal-domino-borderless-v1.studio3", "landscape", 4200, 2550, 525, 1050, 218, 218, 7, 2, 0, 3.5, 13.72, 1.0, 3.0],
+  'legal/domino_square/standard': ["legal-domino_square-v1.studio3", "landscape", 4200, 2550, 525, 525, 218, 202, 7, 4, 0, 10.0, 7.2, 1.0, 3.0],
+  'legal/domino_square/borderless': ["borderless/legal-domino_square-borderless-v1.studio3", "landscape", 4200, 2550, 525, 525, 218, 202, 7, 4, 0, 3.5, 13.72, 1.0, 3.0],
+  'legal/euro_business/standard': ["legal-euro_business-v1.studio3", "portrait", 4200, 2550, 1004, 650, 264, 445, 2, 5, 1, 10.0, 26.42, 1.0, 3.0],
+  'legal/euro_business/borderless': ["borderless/legal-euro_business-borderless-v1.studio3", "landscape", 4200, 2550, 1004, 650, 70, 285, 4, 3, 0, 3.5, 19.39, 1.0, 3.0],
+  'legal/euro_mini/standard': ["legal-euro_mini-v1.studio3", "portrait", 4200, 2550, 520, 803, 212, 472, 4, 4, 1, 10.0, 28.7, 1.0, 3.0],
+  'legal/euro_mini/borderless': ["borderless/legal-euro_mini-borderless-v1.studio3", "landscape", 4200, 2550, 520, 803, 235, 56, 7, 3, 0, 3.5, 15.16, 1.0, 3.0],
   'legal/japanese/standard': ["legal-japanese-v1.studio3", "landscape", 4200, 2550, 697, 1016, 328, 252, 5, 2, 0, 10.0, 16.51, 1.0, 1.0],
   'legal/japanese/borderless': ["borderless/legal-japanese-borderless-v1.studio3", "portrait", 4200, 2550, 697, 1016, 214, 46, 3, 4, 1, 3.5, 13.38, 1.0, 1.0],
+  'legal/jumbo/standard': ["legal-jumbo-v1.studio3", "portrait", 4200, 2550, 1050, 1650, 218, 442, 2, 2, 1, 10.0, 26.16, 1.0, 3.0],
+  'legal/jumbo/borderless': ["borderless/legal-jumbo-borderless-v1.studio3", "portrait", 4200, 2550, 1050, 1650, 218, 442, 2, 2, 1, 3.5, 32.68, 1.0, 3.0],
+  'legal/micro/standard': ["legal-micro-v1.studio3", "landscape", 4200, 2550, 375, 525, 352, 202, 9, 4, 0, 10.0, 18.54, 1.0, 3.0],
+  'legal/micro/borderless': ["borderless/legal-micro-borderless-v1.studio3", "portrait", 4200, 2550, 375, 525, 112, 218, 6, 7, 1, 3.5, 13.72, 1.0, 3.0],
+  'legal/mini/standard': ["legal-mini-v1.studio3", "landscape", 4200, 2550, 525, 750, 218, 135, 7, 3, 0, 10.0, 7.2, 1.0, 3.0],
+  'legal/mini/borderless': ["borderless/legal-mini-borderless-v1.studio3", "landscape", 4200, 2550, 525, 750, 218, 135, 7, 3, 0, 3.5, 13.72, 1.0, 3.0],
+  'legal/poker/standard': ["legal-poker-v1.studio3", "landscape", 4200, 2550, 750, 1050, 195, 218, 5, 2, 0, 10.0, 7.2, 1.0, 3.0],
+  'legal/poker/borderless': ["borderless/legal-poker-borderless-v1.studio3", "landscape", 4200, 2550, 750, 1050, 195, 218, 5, 2, 0, 3.5, 13.72, 1.0, 3.0],
+  'legal/mtg/standard': ["legal-standard-v1.studio3", "landscape", 4200, 2550, 744, 1039, 210, 228, 5, 2, 0, 10.0, 8.04, 1.0, 3.0],
+  'legal/mtg/borderless': ["borderless/legal-standard-borderless-v1.studio3", "landscape", 4200, 2550, 744, 1039, 210, 228, 5, 2, 0, 3.5, 14.56, 1.0, 3.0],
+  'legal/standard_double/standard': ["legal-standard_double-v1.studio3", "portrait", 4200, 2550, 1039, 1488, 228, 604, 2, 2, 1, 10.0, 39.88, 1.0, 3.0],
+  'legal/standard_double/borderless': ["borderless/legal-standard_double-borderless-v1.studio3", "portrait", 4200, 2550, 1039, 1488, 228, 604, 2, 2, 1, 3.5, 46.4, 1.0, 3.0],
   'legal/tarot/standard': ["legal-tarot-v1.studio3", "landscape", 4200, 2550, 825, 1425, 428, 562, 4, 1, 0, 10.0, 36.32, 1.0, 3.0],
   'legal/tarot/borderless': ["borderless/legal-tarot-borderless-v1.studio3", "landscape", 4200, 2550, 825, 1425, 428, 562, 4, 1, 0, 3.5, 42.84, 1.0, 3.0],
-  'tabloid/mtg/standard': ["tabloid-standard-v5.studio3", "portrait", 5100, 3300, 744, 1039, 140, 450, 4, 4, 1, 10.0, 26.84, 1.0, 3.0],
-  'tabloid/mtg/borderless': ["borderless/tabloid-standard-borderless-v2.studio3", "landscape", 5100, 3300, 744, 1039, 280, 76, 6, 3, 0, 3.5, 18.97, 1.0, 3.0],
-  'tabloid/poker/standard': ["tabloid-poker-v3.studio3", "portrait", 5100, 3300, 750, 1050, 128, 428, 4, 4, 1, 10.0, 24.98, 1.0, 3.0],
-  'tabloid/poker/borderless': ["borderless/tabloid-poker-borderless-v2.studio3", "landscape", 5100, 3300, 750, 1050, 262, 60, 6, 3, 0, 3.5, 17.44, 1.0, 3.0],
+  'legal/70mm_square/standard': ["legal-70mm_square-v1.studio3", "landscape", 4200, 2550, 827, 827, 424, 440, 4, 2, 0, 10.0, 25.99, 1.0, 3.0],
+  'legal/70mm_square/borderless': ["borderless/legal-70mm_square-borderless-v1.studio3", "landscape", 4200, 2550, 827, 827, 424, 440, 4, 2, 0, 3.5, 32.51, 1.0, 3.0],
+  'tabloid/american_mini/standard': ["tabloid-american_mini-v2.studio3", "landscape", 5100, 3300, 484, 744, 312, 140, 9, 4, 0, 10.0, 15.16, 1.0, 3.0],
+  'tabloid/american_mini/borderless': ["borderless/tabloid-american_mini-borderless-v2.studio3", "landscape", 5100, 3300, 484, 744, 62, 140, 10, 4, 0, 3.5, 7.11, 1.0, 3.0],
+  'tabloid/bridge/standard': ["tabloid-bridge-v3.studio3", "portrait", 5100, 3300, 675, 1050, 278, 428, 4, 4, 1, 10.0, 24.98, 1.0, 3.0],
+  'tabloid/bridge/borderless': ["borderless/tabloid-bridge-borderless-v2.studio3", "landscape", 5100, 3300, 675, 1050, 142, 60, 7, 3, 0, 3.5, 7.28, 1.0, 3.0],
+  'tabloid/bridge_square/standard': ["tabloid-bridge_square-v3.studio3", "landscape", 5100, 3300, 675, 675, 142, 278, 7, 4, 0, 10.0, 12.28, 1.0, 3.0],
+  'tabloid/bridge_square/borderless': ["borderless/tabloid-bridge_square-borderless-v2.studio3", "landscape", 5100, 3300, 675, 675, 142, 278, 7, 4, 0, 3.5, 18.8, 1.0, 3.0],
+  'tabloid/catan/standard': ["tabloid-catan-v2.studio3", "landscape", 5100, 3300, 638, 945, 272, 218, 7, 3, 0, 10.0, 11.77, 1.0, 3.0],
+  'tabloid/catan/borderless': ["borderless/tabloid-catan-borderless-v2.studio3", "landscape", 5100, 3300, 638, 945, 272, 218, 7, 3, 0, 3.5, 18.29, 1.0, 3.0],
+  'tabloid/business/standard': ["tabloid-business-v2.studio3", "landscape", 5100, 3300, 1050, 600, 428, 120, 4, 5, 0, 10.0, 24.98, 1.0, 3.0],
+  'tabloid/business/borderless': ["borderless/tabloid-business-borderless-v2.studio3", "portrait", 5100, 3300, 1050, 600, 60, 405, 3, 7, 1, 3.5, 29.55, 1.0, 3.0],
+  'tabloid/credit/standard': ["tabloid-credit-v2.studio3", "landscape", 5100, 3300, 1012, 638, 504, 352, 4, 4, 0, 10.0, 31.41, 1.0, 3.175],
+  'tabloid/credit/borderless': ["borderless/tabloid-credit-borderless-v2.studio3", "portrait", 5100, 3300, 1012, 638, 117, 272, 3, 7, 1, 3.5, 18.29, 1.0, 3.175],
+  'tabloid/domino/standard': ["tabloid-domino-v2.studio3", "portrait", 5100, 3300, 525, 1050, 308, 428, 5, 4, 1, 10.0, 24.98, 1.0, 3.0],
+  'tabloid/domino/borderless': ["borderless/tabloid-domino-borderless-v2.studio3", "landscape", 5100, 3300, 525, 1050, 398, 60, 8, 3, 0, 3.5, 28.96, 1.0, 3.0],
+  'tabloid/domino_square/standard': ["tabloid-domino_square-v4.studio3", "landscape", 5100, 3300, 525, 525, 128, 308, 9, 5, 0, 10.0, 14.82, 1.0, 3.0],
+  'tabloid/domino_square/borderless': ["borderless/tabloid-domino_square-borderless-v2.studio3", "landscape", 5100, 3300, 525, 525, 128, 308, 9, 5, 0, 3.5, 21.34, 1.0, 3.0],
+  'tabloid/euro_business/standard': ["tabloid-euro_business-v2.studio3", "portrait", 5100, 3300, 1004, 650, 129, 230, 3, 7, 1, 10.0, 8.21, 1.0, 3.0],
+  'tabloid/euro_business/borderless': ["borderless/tabloid-euro_business-borderless-v2.studio3", "portrait", 5100, 3300, 1004, 650, 129, 230, 3, 7, 1, 3.5, 14.73, 1.0, 3.0],
+  'tabloid/euro_mini/standard': ["tabloid-euro_mini-v2.studio3", "landscape", 5100, 3300, 520, 803, 150, 430, 9, 3, 0, 10.0, 25.15, 1.0, 3.0],
+  'tabloid/euro_mini/borderless': ["borderless/tabloid-euro_mini-borderless-v2.studio3", "portrait", 5100, 3300, 520, 803, 320, 104, 5, 6, 1, 3.5, 22.35, 1.0, 3.0],
   'tabloid/japanese/standard': ["tabloid-japanese-v2.studio3", "portrait", 5100, 3300, 697, 1016, 234, 496, 4, 4, 1, 10.0, 30.73, 1.0, 1.0],
   'tabloid/japanese/borderless': ["borderless/tabloid-japanese-borderless-v2.studio3", "landscape", 5100, 3300, 697, 1016, 422, 111, 6, 3, 0, 3.5, 30.99, 1.0, 1.0],
+  'tabloid/jumbo/standard': ["tabloid-jumbo-v2.studio3", "landscape", 5100, 3300, 1050, 1650, 428, 825, 4, 1, 0, 10.0, 58.59, 1.0, 3.0],
+  'tabloid/jumbo/borderless': ["borderless/tabloid-jumbo-borderless-v2.studio3", "portrait", 5100, 3300, 1050, 1650, 592, 60, 2, 3, 1, 3.5, 45.38, 1.0, 3.0],
+  'tabloid/micro/standard': ["tabloid-micro-v2.studio3", "portrait", 5100, 3300, 375, 525, 292, 128, 7, 9, 1, 10.0, 13.46, 1.0, 3.0],
+  'tabloid/micro/borderless': ["borderless/tabloid-micro-borderless-v2.studio3", "portrait", 5100, 3300, 375, 525, 98, 398, 8, 8, 1, 3.5, 28.96, 1.0, 3.0],
+  'tabloid/mini/standard': ["tabloid-mini-v2.studio3", "landscape", 5100, 3300, 525, 750, 398, 128, 8, 4, 0, 10.0, 22.44, 1.0, 3.0],
+  'tabloid/mini/borderless': ["borderless/tabloid-mini-borderless-v2.studio3", "landscape", 5100, 3300, 525, 750, 398, 128, 8, 4, 0, 3.5, 28.96, 1.0, 3.0],
+  'tabloid/poker/standard': ["tabloid-poker-v3.studio3", "portrait", 5100, 3300, 750, 1050, 128, 428, 4, 4, 1, 10.0, 24.98, 1.0, 3.0],
+  'tabloid/poker/borderless': ["borderless/tabloid-poker-borderless-v2.studio3", "landscape", 5100, 3300, 750, 1050, 262, 60, 6, 3, 0, 3.5, 17.44, 1.0, 3.0],
+  'tabloid/mtg/standard': ["tabloid-standard-v5.studio3", "portrait", 5100, 3300, 744, 1039, 140, 450, 4, 4, 1, 10.0, 26.84, 1.0, 3.0],
+  'tabloid/mtg/borderless': ["borderless/tabloid-standard-borderless-v2.studio3", "landscape", 5100, 3300, 744, 1039, 280, 76, 6, 3, 0, 3.5, 18.97, 1.0, 3.0],
+  'tabloid/standard_double/standard': ["tabloid-standard_double-v2.studio3", "landscape", 5100, 3300, 1039, 1488, 450, 154, 4, 2, 0, 10.0, 26.84, 1.0, 3.0],
+  'tabloid/standard_double/borderless': ["borderless/tabloid-standard_double-borderless-v2.studio3", "portrait", 5100, 3300, 1039, 1488, 76, 303, 3, 3, 1, 3.5, 20.91, 1.0, 3.0],
   'tabloid/tarot/standard': ["tabloid-tarot-v3.studio3", "landscape", 5100, 3300, 825, 1425, 458, 218, 5, 2, 0, 10.0, 27.52, 1.0, 3.0],
   'tabloid/tarot/borderless': ["borderless/tabloid-tarot-borderless-v2.studio3", "landscape", 5100, 3300, 825, 1425, 458, 218, 5, 2, 0, 3.5, 34.04, 1.0, 3.0],
-  'a4/mtg/standard': ["a4-standard-v5.studio3", "landscape", 3507, 2480, 744, 1039, 244, 194, 4, 2, 0, 10.0, 9.4, 1.0, 3.0],
-  'a4/mtg/borderless': ["borderless/a4-standard-borderless-v2.studio3", "portrait", 3507, 2480, 744, 1039, 109, 180, 3, 3, 1, 3.5, 10.5, 1.0, 3.0],
-  'a4/poker/standard': ["a4-poker-v3.studio3", "landscape", 3507, 2480, 750, 1050, 232, 182, 4, 2, 0, 10.0, 8.38, 1.0, 3.0],
-  'a4/poker/borderless': ["borderless/a4-poker-borderless-v2.studio3", "portrait", 3507, 2480, 750, 1050, 100, 164, 3, 3, 1, 3.5, 9.14, 1.0, 3.0],
+  'tabloid/70mm_square/standard': ["tabloid-70mm_square-v2.studio3", "landscape", 5100, 3300, 827, 827, 452, 394, 5, 3, 0, 10.0, 27.01, 1.0, 3.0],
+  'tabloid/70mm_square/borderless': ["borderless/tabloid-70mm_square-borderless-v2.studio3", "landscape", 5100, 3300, 827, 827, 452, 394, 5, 3, 0, 3.5, 33.53, 1.0, 3.0],
+  'a4/american_mini/standard': ["a4-american_mini-v2.studio3", "portrait", 3507, 2480, 484, 744, 250, 244, 4, 4, 1, 10.0, 9.91, 1.0, 3.0],
+  'a4/american_mini/borderless': ["borderless/a4-american_mini-borderless-v2.studio3", "landscape", 3507, 2480, 484, 744, 264, 109, 6, 3, 0, 3.5, 17.61, 1.0, 3.0],
+  'a4/bridge/standard': ["a4-bridge-v4.studio3", "portrait", 3507, 2480, 675, 1050, 212, 164, 3, 3, 1, 10.0, 6.69, 1.0, 3.0],
+  'a4/bridge/borderless': ["borderless/a4-bridge-borderless-v2.studio3", "portrait", 3507, 2480, 675, 1050, 212, 164, 3, 3, 1, 3.5, 13.21, 1.0, 3.0],
+  'a4/bridge_square/standard': ["a4-bridge_square-v3.studio3", "landscape", 3507, 2480, 675, 675, 382, 212, 4, 3, 0, 10.0, 21.08, 1.0, 3.0],
+  'a4/bridge_square/borderless': ["borderless/a4-bridge_square-borderless-v2.studio3", "landscape", 3507, 2480, 675, 675, 382, 212, 4, 3, 0, 3.5, 27.6, 1.0, 3.0],
+  'a4/catan/standard': ["a4-catan-v2.studio3", "landscape", 3507, 2480, 638, 945, 129, 288, 5, 2, 0, 10.0, 13.12, 1.0, 3.0],
+  'a4/catan/borderless': ["borderless/a4-catan-borderless-v2.studio3", "landscape", 3507, 2480, 638, 945, 129, 288, 5, 2, 0, 3.5, 19.64, 1.0, 3.0],
+  'a4/business/standard': ["a4-business-v2.studio3", "portrait", 3507, 2480, 1050, 600, 182, 224, 2, 5, 1, 10.0, 7.7, 1.0, 3.0],
+  'a4/business/borderless': ["borderless/a4-business-borderless-v2.studio3", "portrait", 3507, 2480, 1050, 600, 182, 224, 2, 5, 1, 3.5, 14.22, 1.0, 3.0],
+  'a4/credit/standard': ["a4-credit-v2.studio3", "portrait", 3507, 2480, 1012, 638, 220, 129, 2, 5, 1, 10.0, 7.37, 1.0, 3.175],
+  'a4/credit/borderless': ["borderless/a4-credit-borderless-v2.studio3", "portrait", 3507, 2480, 1012, 638, 220, 129, 2, 5, 1, 3.5, 13.89, 1.0, 3.175],
+  'a4/domino/standard': ["a4-domino-v2.studio3", "landscape", 3507, 2480, 525, 1050, 412, 182, 5, 2, 0, 10.0, 23.62, 1.0, 3.0],
+  'a4/domino/borderless': ["borderless/a4-domino-borderless-v2.studio3", "landscape", 3507, 2480, 525, 1050, 142, 182, 6, 2, 0, 3.5, 10.67, 1.0, 3.0],
+  'a4/domino_square/standard': ["a4-domino_square-v3.studio3", "landscape", 3507, 2480, 525, 525, 412, 168, 5, 4, 0, 10.0, 23.62, 1.0, 3.0],
+  'a4/domino_square/borderless': ["borderless/a4-domino_square-borderless-v2.studio3", "landscape", 3507, 2480, 525, 525, 142, 168, 6, 4, 0, 3.5, 9.48, 1.0, 3.0],
+  'a4/euro_business/standard': ["a4-euro_business-v2.studio3", "landscape", 3507, 2480, 1004, 650, 233, 250, 3, 3, 0, 10.0, 9.91, 1.0, 3.0],
+  'a4/euro_business/borderless': ["borderless/a4-euro_business-borderless-v2.studio3", "portrait", 3507, 2480, 1004, 650, 228, 99, 2, 5, 1, 3.5, 14.56, 1.0, 3.0],
+  'a4/euro_mini/standard': ["a4-euro_mini-v2.studio3", "landscape", 3507, 2480, 520, 803, 156, 430, 6, 2, 0, 10.0, 25.15, 1.0, 3.0],
+  'a4/euro_mini/borderless': ["borderless/a4-euro_mini-borderless-v2.studio3", "portrait", 3507, 2480, 520, 803, 178, 126, 4, 4, 1, 3.5, 10.33, 1.0, 3.0],
   'a4/japanese/standard': ["a4-japanese-v4.studio3", "portrait", 3507, 2480, 697, 1016, 180, 215, 3, 3, 1, 10.0, 6.94, 1.0, 1.0],
   'a4/japanese/borderless': ["borderless/a4-japanese-borderless-v2.studio3", "portrait", 3507, 2480, 697, 1016, 180, 215, 3, 3, 1, 3.5, 13.46, 1.0, 1.0],
+  'a4/jumbo/standard': ["a4-jumbo-v2.studio3", "landscape", 3507, 2480, 1050, 1650, 164, 415, 3, 1, 0, 10.0, 23.88, 1.0, 3.0],
+  'a4/jumbo/borderless': ["borderless/a4-jumbo-borderless-v2.studio3", "portrait", 3507, 2480, 1050, 1650, 182, 96, 2, 2, 1, 3.5, 10.67, 1.0, 3.0],
+  'a4/micro/standard': ["a4-micro-v2.studio3", "portrait", 3507, 2480, 375, 525, 272, 142, 5, 6, 1, 10.0, 11.77, 1.0, 3.0],
+  'a4/micro/borderless': ["borderless/a4-micro-borderless-v2.studio3", "portrait", 3507, 2480, 375, 525, 78, 142, 6, 6, 1, 3.5, 7.28, 1.0, 3.0],
+  'a4/mini/standard': ["a4-mini-v2.studio3", "portrait", 3507, 2480, 525, 750, 168, 232, 4, 4, 1, 10.0, 8.38, 1.0, 3.0],
+  'a4/mini/borderless': ["borderless/a4-mini-borderless-v2.studio3", "landscape", 3507, 2480, 525, 750, 142, 100, 6, 3, 0, 3.5, 7.28, 1.0, 3.0],
+  'a4/poker/standard': ["a4-poker-v3.studio3", "landscape", 3507, 2480, 750, 1050, 232, 182, 4, 2, 0, 10.0, 8.38, 1.0, 3.0],
+  'a4/poker/borderless': ["borderless/a4-poker-borderless-v2.studio3", "portrait", 3507, 2480, 750, 1050, 100, 164, 3, 3, 1, 3.5, 9.14, 1.0, 3.0],
+  'a4/mtg/standard': ["a4-standard-v5.studio3", "landscape", 3507, 2480, 744, 1039, 244, 194, 4, 2, 0, 10.0, 9.4, 1.0, 3.0],
+  'a4/mtg/borderless': ["borderless/a4-standard-borderless-v2.studio3", "portrait", 3507, 2480, 744, 1039, 109, 180, 3, 3, 1, 3.5, 10.5, 1.0, 3.0],
+  'a4/standard_double/standard': ["a4-standard_double-v3.studio3", "portrait", 3507, 2480, 1039, 1488, 194, 258, 2, 2, 1, 10.0, 10.58, 1.0, 3.0],
+  'a4/standard_double/borderless': ["borderless/a4-standard_double-borderless-v2.studio3", "portrait", 3507, 2480, 1039, 1488, 194, 258, 2, 2, 1, 3.5, 17.1, 1.0, 3.0],
   'a4/tarot/standard': ["a4-tarot-v3.studio3", "portrait", 3507, 2480, 825, 1425, 408, 322, 2, 2, 1, 10.0, 23.28, 1.0, 3.0],
   'a4/tarot/borderless': ["borderless/a4-tarot-borderless-v2.studio3", "landscape", 3507, 2480, 825, 1425, 82, 528, 4, 1, 0, 3.5, 39.96, 1.0, 3.0],
-  'a3/mtg/standard': ["a3-standard-v5.studio3", "landscape", 4960, 3507, 744, 1039, 211, 180, 6, 3, 0, 10.0, 6.6, 1.0, 3.0],
-  'a3/poker/standard': ["a3-poker-v2.studio3", "portrait", 4960, 3507, 750, 1050, 232, 358, 4, 4, 1, 10.0, 19.05, 1.0, 3.0],
+  'a4/70mm_square/standard': ["a4-70mm_square-v2.studio3", "landscape", 3507, 2480, 827, 827, 498, 406, 3, 2, 0, 10.0, 30.9, 1.0, 3.0],
+  'a4/70mm_square/borderless': ["borderless/a4-70mm_square-borderless-v2.studio3", "landscape", 3507, 2480, 827, 827, 78, 406, 4, 2, 0, 3.5, 29.63, 1.0, 3.0],
+  'a3/american_mini/standard': ["a3-american_mini-v2.studio3", "landscape", 4960, 3507, 484, 744, 242, 244, 9, 4, 0, 10.0, 9.4, 1.0, 3.0],
+  'a3/bridge/standard': ["a3-bridge-v2.studio3", "landscape", 4960, 3507, 675, 1050, 418, 164, 6, 3, 0, 10.0, 24.13, 1.0, 3.0],
+  'a3/bridge_square/standard': ["a3-bridge_square-v3.studio3", "landscape", 4960, 3507, 675, 675, 418, 382, 6, 4, 0, 10.0, 24.13, 1.0, 3.0],
+  'a3/catan/standard': ["a3-catan-v2.studio3", "landscape", 4960, 3507, 638, 945, 202, 322, 7, 3, 0, 10.0, 16.0, 1.0, 3.0],
+  'a3/business/standard': ["a3-business-v2.studio3", "portrait", 4960, 3507, 1050, 600, 164, 336, 3, 7, 1, 10.0, 17.19, 1.0, 3.0],
+  'a3/credit/standard': ["a3-credit-v2.studio3", "portrait", 4960, 3507, 1012, 638, 221, 202, 3, 7, 1, 10.0, 7.45, 1.0, 3.175],
+  'a3/domino/standard': ["a3-domino-v2.studio3", "landscape", 4960, 3507, 525, 1050, 328, 164, 8, 3, 0, 10.0, 16.51, 1.0, 3.0],
+  'a3/domino_square/standard': ["a3-domino_square-v3.studio3", "landscape", 4960, 3507, 525, 525, 328, 142, 8, 6, 0, 10.0, 16.51, 1.0, 3.0],
+  'a3/euro_business/standard': ["a3-euro_business-v2.studio3", "portrait", 4960, 3507, 1004, 650, 233, 160, 3, 7, 1, 10.0, 8.47, 1.0, 3.0],
+  'a3/euro_mini/standard': ["a3-euro_mini-v2.studio3", "landscape", 4960, 3507, 520, 803, 348, 126, 8, 4, 0, 10.0, 18.2, 1.0, 3.0],
   'a3/japanese/standard': ["a3-japanese-v2.studio3", "landscape", 4960, 3507, 697, 1016, 352, 215, 6, 3, 0, 10.0, 18.54, 1.0, 1.0],
+  'a3/jumbo/standard': ["a3-jumbo-v2.studio3", "portrait", 4960, 3507, 1050, 1650, 164, 823, 3, 2, 1, 10.0, 58.42, 1.0, 3.0],
+  'a3/micro/standard': ["a3-micro-v2.studio3", "landscape", 4960, 3507, 375, 525, 343, 142, 11, 6, 0, 10.0, 17.78, 1.0, 3.0],
+  'a3/mini/standard': ["a3-mini-v2.studio3", "landscape", 4960, 3507, 525, 750, 328, 232, 8, 4, 0, 10.0, 16.51, 1.0, 3.0],
+  'a3/poker/standard': ["a3-poker-v2.studio3", "portrait", 4960, 3507, 750, 1050, 232, 358, 4, 4, 1, 10.0, 19.05, 1.0, 3.0],
+  'a3/mtg/standard': ["a3-standard-v5.studio3", "landscape", 4960, 3507, 744, 1039, 211, 180, 6, 3, 0, 10.0, 6.6, 1.0, 3.0],
+  'a3/standard_double/standard': ["a3-standard_double-v2.studio3", "portrait", 4960, 3507, 1039, 1488, 180, 234, 3, 3, 1, 10.0, 8.55, 1.0, 3.0],
   'a3/tarot/standard': ["a3-tarot-v2.studio3", "landscape", 4960, 3507, 825, 1425, 388, 322, 5, 2, 0, 10.0, 21.59, 1.0, 3.0],
+  'a3/70mm_square/standard': ["a3-70mm_square-v2.studio3", "landscape", 4960, 3507, 827, 827, 383, 498, 5, 3, 0, 10.0, 30.9, 1.0, 3.0],
+  'arch_b/american_mini/standard': ["arch_b-american_mini-v2.studio3", "landscape", 5400, 3600, 484, 744, 212, 290, 10, 4, 0, 10.0, 13.29, 1.0, 3.0],
+  'arch_b/bridge/standard': ["arch_b-bridge-v2.studio3", "landscape", 5400, 3600, 675, 1050, 292, 210, 7, 3, 0, 10.0, 13.46, 1.0, 3.0],
+  'arch_b/bridge_square/standard': ["arch_b-bridge_square-v3.studio3", "landscape", 5400, 3600, 675, 675, 292, 428, 7, 4, 0, 10.0, 24.98, 1.0, 3.0],
+  'arch_b/catan/standard': ["arch_b-catan-v2.studio3", "portrait", 5400, 3600, 638, 945, 175, 308, 5, 5, 1, 10.0, 14.82, 1.0, 3.0],
+  'arch_b/business/standard': ["arch_b-business-v2.studio3", "portrait", 5400, 3600, 1050, 600, 210, 248, 3, 8, 1, 10.0, 9.74, 1.0, 3.0],
+  'arch_b/credit/standard': ["arch_b-credit-v2.studio3", "portrait", 5400, 3600, 1012, 638, 267, 422, 3, 7, 1, 10.0, 24.47, 1.0, 3.175],
+  'arch_b/domino/standard': ["arch_b-domino-v2.studio3", "landscape", 5400, 3600, 525, 1050, 278, 210, 9, 3, 0, 10.0, 12.28, 1.0, 3.0],
+  'arch_b/domino_square/standard': ["arch_b-domino_square-v3.studio3", "landscape", 5400, 3600, 525, 525, 278, 188, 9, 6, 0, 10.0, 12.28, 1.0, 3.0],
+  'arch_b/euro_business/standard': ["arch_b-euro_business-v2.studio3", "portrait", 5400, 3600, 1004, 650, 279, 380, 3, 7, 1, 10.0, 20.91, 1.0, 3.0],
+  'arch_b/euro_mini/standard': ["arch_b-euro_mini-v2.studio3", "landscape", 5400, 3600, 520, 803, 300, 172, 9, 4, 0, 10.0, 14.14, 1.0, 3.0],
+  'arch_b/japanese/standard': ["arch_b-japanese-v2.studio3", "landscape", 5400, 3600, 697, 1016, 216, 261, 7, 3, 0, 10.0, 10.84, 1.0, 1.0],
+  'arch_b/jumbo/standard': ["arch_b-jumbo-v3.studio3", "portrait", 5400, 3600, 1050, 1650, 210, 210, 3, 3, 1, 10.0, 6.52, 1.0, 3.0],
+  'arch_b/micro/standard': ["arch_b-micro-v2.studio3", "landscape", 5400, 3600, 375, 525, 368, 188, 12, 6, 0, 10.0, 19.9, 1.0, 3.0],
+  'arch_b/mini/standard': ["arch_b-mini-v2.studio3", "landscape", 5400, 3600, 525, 750, 278, 278, 9, 4, 0, 10.0, 12.28, 1.0, 3.0],
+  'arch_b/poker/standard': ["arch_b-poker-v2.studio3", "landscape", 5400, 3600, 750, 1050, 412, 210, 6, 3, 0, 10.0, 23.62, 1.0, 3.0],
+  'arch_b/mtg/standard': ["arch_b-standard-v4.studio3", "landscape", 5400, 3600, 744, 1039, 430, 226, 6, 3, 0, 10.0, 25.15, 1.0, 3.0],
+  'arch_b/standard_double/standard': ["arch_b-standard_double-v2.studio3", "portrait", 5400, 3600, 1039, 1488, 226, 453, 3, 3, 1, 10.0, 27.09, 1.0, 3.0],
+  'arch_b/tarot/standard': ["arch_b-tarot-v3.studio3", "landscape", 5400, 3600, 825, 1425, 188, 368, 6, 2, 0, 10.0, 19.9, 1.0, 3.0],
+  'arch_b/70mm_square/standard': ["arch_b-70mm_square-v2.studio3", "landscape", 5400, 3600, 827, 827, 602, 124, 5, 4, 0, 10.0, 39.71, 1.0, 3.0],
 };
 const SCM_MM_PER_PIXEL = 25.4 / 300;
 const SCM_BLEED = 0.625;
@@ -2186,6 +2421,11 @@ function scmSettings(s, variant) {
     regOrientation:spec.mat, regPattern:3, duplexFlip:'long'};
 }
 
+function scmSkipPositions(value) {
+  return [...new Set(String(value || '').trim().split(/[ ,]+/).map(Number)
+    .filter(n=>Number.isSafeInteger(n) && n > 0))].sort((a,b)=>a-b);
+}
+
 function scmLayout(s) {
   const spec = scmTemplateFor(s);
   const {W, H, cw, ch, x, y, cols, rows, portrait} = spec;
@@ -2196,8 +2436,13 @@ function scmLayout(s) {
   const stepX = width+pitch*SCM_MM_PER_PIXEL, stepY = height+pitch*SCM_MM_PER_PIXEL;
   const gridCols = portrait ? rows : cols, gridRows = portrait ? cols : rows;
   const sw = width+2*bleed, sh = height+2*bleed;
+  const skipped = new Set(scmSkipPositions(s.scmSkip));
+  const positions = Array.from({length:cols*rows},(_,i)=>i);
+  const occupied = positions.filter(i=>!skipped.has(i+1));
+  const slotOrder = occupied.length ? occupied : positions;
   return {scm:spec.file, scmPortrait:portrait, W:W*SCM_MM_PER_PIXEL, H:H*SCM_MM_PER_PIXEL,
-    cw:width, ch:height, sw, sh, cols:gridCols, rows:gridRows, per:cols*rows,
+    cw:width, ch:height, sw, sh, cols:gridCols, rows:gridRows, per:slotOrder.length, slotOrder,
+    invalidSkip:!occupied.length,
     gw:sw+(gridCols-1)*stepX, gh:sh+(gridRows-1)*stepY,
     x0:x0*SCM_MM_PER_PIXEL-bleed, y0:y0*SCM_MM_PER_PIXEL-bleed,
     stepX, stepY, fits:true, rot:portrait ? -90 : 0, mirrorX:false};
@@ -2220,6 +2465,7 @@ function layout(s = S.settings) {
   return {...g, W, H, rot: useSide ? 90 : 0, x0:(W-g.gw)/2, y0:(H-g.gh)/2, mirrorX};
 }
 function slotPos(L, i, back, s = S.settings) {
+  if (L.scm) i = L.slotOrder[i];
   let c = L.scmPortrait ? Math.floor(i / L.rows) : i % L.cols;
   let r = L.scmPortrait ? L.rows - 1 - i % L.rows : Math.floor(i / L.cols);
   if (L.scm) {
@@ -2694,7 +2940,7 @@ function regContacts(L, s, occupied, clearance = 0) {
   const cornersOnMat = +s.regPattern === 4
     ? ['top-left L','top-left L','top-right L','top-right L','bottom-left L','bottom-left L','bottom-right L','bottom-right L']
     : ['top-left square','top-right L','top-right L','bottom-left L','bottom-left L'];
-  const T = makeT(L,false,s), a = s.printRotate*Math.PI/180;
+  const T = makeT(L,false,s), a = turnAngle(false,s)*Math.PI/180;
   const axes = [[1,0],[0,1],[Math.cos(a),Math.sin(a)],[-Math.sin(a),Math.cos(a)]];
   const corners = (x,y,w,h) => [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
   const ink = boxes.map(([x,y,w,h])=>corners(x-clearance,y-clearance,w+2*clearance,h+2*clearance));
@@ -2709,11 +2955,15 @@ function regContacts(L, s, occupied, clearance = 0) {
       })) contacts.add(cornersOnMat[index]);
     });
   };
-  if (!occupied) check(L.x0,L.y0,L.gw,L.gh);
-  else occupied.forEach((slot,index)=>{
-    if (!slot.front) return;
+  const checkSlot = index => {
     const p = slotPos(L,index,false,s);
     check(p.x,p.y,L.sw,L.sh);
+  };
+  if (!occupied && L.scm) L.slotOrder.forEach((_,index)=>checkSlot(index));
+  else if (!occupied) check(L.x0,L.y0,L.gw,L.gh);
+  else occupied.forEach((slot,index)=>{
+    if (!slot.front) return;
+    checkSlot(index);
   });
   return [...new Set(cornersOnMat)].filter(name=>contacts.has(name));
 }
@@ -3363,7 +3613,7 @@ async function uploadImages(files) {
     try {
       srcBleed = await uploadedBleed(f);
     } catch {}
-    const e={uid:uid(), qty:1, name, custom:true, faces:[{name, custom:key, ...(srcBleed ? {srcBleed} : {}) }], tokens:[]};
+    const e={uid:uid(), qty:1, name, custom:true, faces:[{name, custom:key, ...(srcBleed != null ? {srcBleed} : {}) }], tokens:[]};
     d.entries.push(e); added.push(e);
     n++;
   }
@@ -6390,11 +6640,11 @@ addEventListener('blur', closeCtx);
 /* ---------- settings form ---------- */
 const FIELDS = [
   {sec:'Card size & dimensions'},
-  {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4 (210×297 mm)'],['a3','A3'],['a5','A5'],['a6','A6 (about one card)'],['custom','Custom']]},
+  {k:'pageSize', label:'Paper size', type:'select', opts:[['letter','Letter (8.5×11 in)'],['legal','Legal (8.5×14 in)'],['tabloid','Tabloid (11×17 in)'],['a4','A4 (210×297 mm)'],['a3','A3'],['arch_b','Arch B (12×18 in)'],['a5','A5'],['a6','A6 (about one card)'],['custom','Custom']]},
   {k:'orientation', label:'Orientation', type:'select', opts:[['portrait','Portrait'],['landscape','Landscape']]},
   {k:'pageW', label:'Page width (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
   {k:'pageH', label:'Page height (mm)', type:'num', step:0.1, show:s => s.pageSize === 'custom'},
-  {k:'cardPreset', label:'Card size', type:'select', full:true, opts:[['mtg','MTG / Pokémon 63×88'],['poker','Poker 2.5×3.5 in'],['japanese','Japanese 59×86'],['tarot','Tarot 70×120'],['custom','Custom']]},
+  {k:'cardPreset', label:'Card size', type:'select', full:true, opts:[['mtg','MTG / Pokémon 63×88'],['poker','Poker 2.5×3.5 in'],['japanese','Japanese 59×86'],['tarot','Tarot'],...Object.entries(SCM_CARD_LABELS),['custom','Custom']]},
   {k:'cardRotation', adv:true, label:'Card direction', type:'select', opts:[['auto','Auto (most cards per page)'],['upright','Always upright'],['rotated','Always sideways']]},
   {k:'cardW', label:'Card width (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
   {k:'cardH', label:'Card height (mm)', type:'num', step:0.1, show:s => s.cardPreset === 'custom'},
@@ -6404,7 +6654,8 @@ const FIELDS = [
   {k:'cols', adv:true, label:'Columns (0 = auto)', type:'num', step:1, min:0},
   {k:'rows', adv:true, label:'Rows (0 = auto)', type:'num', step:1, min:0},
   {k:'bleedMode', adv:true, label:'Bleed fill', type:'select', opts:[['extend','Extend edges'],['solid','Solid card border color'],['black','Solid black (contrast edges)']]},
-  {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true, hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
+  {k:'customSrcBleed', adv:true, label:'Bleed already in uploaded images (mm)', type:'num', step:0.01, min:0, full:true,
+    show:s=>!s.silhouette || s.scmTemplate === 'custom', hint:'Print-shop images usually include about 3.05 mm (0.12 in).'},
   {sec:'Double-faced cards & backs'},
   {k:'dfcMode', label:'Double-faced cards', type:'select', full:true, show:() => deck().entries.some(e => e.qty > 0 && e.kind!=='TOKEN' && e.faces.length > 1), opts:[['duplex','Back face on the back of the card (recommended)'],['separate','Both faces as separate cards'],['front','Front face only']]},
   {k:'duplexMethod', label:'How the backs get printed', type:'select', full:true, show:s => s.backs || (s.dfcMode === 'duplex' && deck().entries.some(e => e.qty > 0 && e.faces.length > 1)), opts:[['manual','I re-feed the paper by hand (recommended for 330gsm ProxyJak)'],['auto','My printer prints double-sided automatically']],
@@ -6441,6 +6692,7 @@ const SELECT_OPTS = {
   regPattern: ['3', '4'],
   regOrientation: ['auto', 'portrait', 'landscape'],
   scmTemplate: ['standard', 'borderless', 'custom'],
+  scmFit: ['stretch', 'crop'], scmFitBack: ['same', 'stretch', 'crop'],
   guides: ['all', 'both', 'lines', 'corners', 'outline', 'lines,outline', 'corners,outline', 'margin', 'none'],
   guideShape: ['brackets', 'ticks'], guidePlacement: ['outside', 'inside'], guideStyle: ['solid', 'dashed'],
 };
@@ -6452,6 +6704,8 @@ function cleanSettings(raw) {
     if (typeof def === 'number') { const n = Number(v); if (v !== null && v !== '' && typeof v !== 'boolean' && Number.isFinite(n) && (!SELECT_OPTS[k] || SELECT_OPTS[k].includes(String(n)))) out[k] = n; }
     else if (typeof def === 'boolean') { if (typeof v === 'boolean') out[k] = v; else if (v === 'true' || v === 'false') out[k] = v === 'true'; }
     else if (k === 'backImage') out[k] = typeof v === 'string' ? v : null;
+    else if (k === 'scmSkip') out[k] = scmSkipPositions(String(v).slice(0,120)).join(', ');
+    else if (k === 'scmLabel') out[k] = String(v ?? '').replace(/[\r\n\t]/g,' ').trim().slice(0,48);
     else if (k === 'guideColor' || k === 'cornerGuideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
     else if (k === 'guides') { const norm = normalizeGuides(v); if (norm) out[k] = norm; }
     else if (SELECT_OPTS[k]?.includes(String(v))) out[k] = String(v);
@@ -6493,6 +6747,7 @@ function cleanSettings(raw) {
   out.guidePlacementSet = true;
   out.guideWidth = Math.max(0.05, Math.min(1, out.guideWidth));
   out.guideLen = Math.max(0.5, Math.min(10, out.guideLen));
+  for (const key of ['scmCrop','scmCropBack']) out[key] = Math.max(0,Math.min(10,out[key]));
   if (out.silhouette && out.scmTemplate !== 'custom') {
     Object.assign(out, scmSettings(out, out.scmTemplate) || {scmTemplate:'custom'});
   }
@@ -6981,7 +7236,7 @@ function renderSettings() {
     : (s.brightness !== 100 || s.saturation !== 100 || s.contrast !== 100)
       ? ` · <span style="color:var(--accent);font-weight:600">Color tuned (Bri ${s.brightness}% · Sat ${s.saturation}% · Con ${s.contrast}%)</span>`
       : '';
-  const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.cols}×${L.rows} = ${L.per} cards per sheet</b>
+  const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.per} cards per sheet</b>
     <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
   const sumEl = $('#setupSummary');
   if (sumEl) sumEl.innerHTML = sumHtml + (!s.silhouette && s.orientation === 'portrait' && s.bleed < 1.5 ? '<p class="hint">Compact portrait layout uses less bleed. Cut carefully to avoid white edges; landscape leaves more room for cutting drift.</p>' : '');
@@ -7914,7 +8169,7 @@ async function drawPreview() {
     el.appendChild(placeholder);
     im.onload = () => { if (gen === previewGen) placeholder.remove(); };
     im.onerror = () => { if (gen === previewGen) { placeholder.textContent = 'Artwork unavailable'; im.setAttribute('aria-label',`Artwork unavailable: ${slot.e.name}, copy ${slot.copy+1}`); } };
-    el.appendChild(im); jobs.push(previewUrl(face, rot, s).then(u => {
+    el.appendChild(im); jobs.push(previewUrl(face, rot, s, back).then(u => {
       if (gen !== previewGen) return;
       if (!u) { placeholder.textContent = 'Missing artwork'; im.setAttribute('aria-label',`Missing artwork: ${slot.e.name}, copy ${slot.copy+1}`); return; }
       if (u.startsWith('raw:')) {
@@ -8032,7 +8287,9 @@ $('#showCuts').onchange = e => {
 /* ---------- PDF export ---------- */
 function newDoc(L) {
   const {jsPDF} = window.jspdf;
-  return new jsPDF({unit:'mm', format:[L.W, L.H], orientation:L.W > L.H ? 'l' : 'p', compress:true});
+  // Avoid a floating-point remainder in MediaBox adding a raster row at 300 dpi.
+  return new jsPDF({unit:'mm', format:[L.W, L.H], orientation:L.W > L.H ? 'l' : 'p', compress:true,
+    ...(L.scm ? {floatPrecision:12} : {})});
 }
 function pdfLines(doc, T, lines, color, width) {
   doc.setLineWidth(width);
@@ -8149,6 +8406,9 @@ async function runPreflight(options = {}) {
   }
 
   if (s.silhouette) {
+    if (L.invalidSkip) {
+      errors.push({type:'scm_skip_all',tab:'cutting',message:'Leave at least one card position available on each sheet.'});
+    }
     if (totalSheets && regMarksClipped(L, s)) {
       errors.push({type:'reg_clip', tab:'cutting', sheet:sheetIndex(0)+1, side:'front',
         message:'Silhouette registration marks extend off the PDF page. Increase the mark inset.'});
@@ -8190,7 +8450,7 @@ async function runPreflight(options = {}) {
     const {slot,face,back,sheet} = item, result = results[index];
     const target = {tab:'cards',uid:slot.e?.uid,copy:slot.copy,faceIdx:back ? slot.bi ?? 1 : slot.fi ?? 0,cardback:back && slot.bi === undefined,card:face.name,face:back ? 'back' : 'front',sheet,cacheKey:result.key,url:result.url};
     if (!result.ok) { errors.push({...target,type:result.type,retryable:result.type==='remote_art',message:`${result.message}: "${face.name}" (${target.face}, Sheet ${sheet}).`}); continue; }
-    const bleed = face.srcBleed ?? (face.drive ? MPC_BLEED : face.custom ? s.customSrcBleed : 0);
+    const bleed = printSourceBleed(face, s);
     const measuredDpi = Math.min(result.width/(s.cardW+2*bleed),result.height/(s.cardH+2*bleed))*25.4;
     const dpi = !face.custom && !result.fullResolution && face.mpcDpi ? face.mpcDpi : measuredDpi;
     if (dpi < 200 || face.lowRes || isPreview(face)) warnings.push({...target,type:'low_dpi',message:`Low-resolution artwork for "${face.name}" (${target.face}, Sheet ${sheet}, ~${Math.round(dpi)} DPI). Prints soft.`});
@@ -8280,13 +8540,13 @@ async function exportPrintJob(job, withCut = false) {
   try {
     const doc = newDoc(L), cache = new Map(); let rendered = 0, first = true;
     const regInk = regInkBoxes(regMarks(L,s));
-    const renderedFace = async (face, rot) => {
-      const key = artworkKey(face) + '|' + rot;
-      if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot, s)).toDataURL('image/jpeg', s.jpeg/100)});
+    const renderedFace = async (face, rot, back) => {
+      const key = artworkKey(face) + '|' + rot + '|' + back;
+      if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot, s, back)).toDataURL('image/jpeg', s.jpeg/100)});
       return cache.get(key);
     };
-    const addFace = async (face, x, y, w, h, rot) => {
-      const c = await renderedFace(face, rot);
+    const addFace = async (face, x, y, w, h, rot, back) => {
+      const c = await renderedFace(face, rot, back);
       doc.addImage(c.data, 'JPEG', x, y, w, h, c.alias, 'NONE');
     };
     for (const [pageIdx, page] of pages.entries()) {
@@ -8296,7 +8556,7 @@ async function exportPrintJob(job, withCut = false) {
         first = false;
         const T = makeT(L, back, s);
         const turned = backTurn(doc, L, true, back, s);
-        for (const slot of page) { const face = back ? slot.back : slot.front; if (face) await renderedFace(face, faceRot(L, back)); }
+        for (const slot of page) { const face = back ? slot.back : slot.front; if (face) await renderedFace(face, faceRot(L, back), back); }
         const glines = back ? [] : guideLines(L, page, s);
         const underLines = glines.filter(l => !l[6]), overLines = glines.filter(l => l[6]);
         if (!back && underLines.length) {
@@ -8311,7 +8571,7 @@ async function exportPrintJob(job, withCut = false) {
           const side = hasBacks ? (back ? ' (back)' : ' (front)') : '';
           busyProgress(rendered / (totalFaces || 1), `Rendering card ${cardNum} of ${totalCards}${side}…`);
           const p = slotPos(L, i, back, s);
-          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back));
+          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back), back);
           await sleep(0);
         }
         if (!back) {
@@ -8327,7 +8587,9 @@ async function exportPrintJob(job, withCut = false) {
         }
         if (!back && L.scm) {
           doc.setFontSize(9.6);
-          const label = `Sheet ${sheets[pageIdx].index + 1} · ${L.scm.split('/').at(-1)}`;
+          const title = s.scmLabel ? `${s.scmLabel} · ` : '';
+          const label = `${title}Sheet ${sheets[pageIdx].index + 1} · ${L.scm.split('/').at(-1)}`;
+          doc.setFontSize(Math.min(9.6, 9.6*(L.H-10)/doc.getTextWidth(label)));
           doc.text(label, L.W - (s.scmTemplate === 'borderless' ? 2.6 : 7.5),
             L.H/2 + doc.getTextWidth(label)/2, {angle:90});
         }
@@ -9184,6 +9446,7 @@ $('#btnCal').onclick = () => {
 };
 
 function cutSheetCards(L, sheet, slots = buildSlots()) {
+  if (L.invalidSkip) throw new Error('Leave at least one card position available on each sheet.');
   const count = slots.length, pages = Math.max(1, Math.ceil(count / L.per));
   if (!Number.isInteger(sheet) || sheet < 0 || sheet >= pages) throw new Error('Choose an existing sheet.');
   return count ? Math.min(L.per, count - sheet * L.per) : L.per;
@@ -10477,6 +10740,8 @@ function bestCutBleed() {
 // the cutting tab's inputs, id -> settings key. Drives both the fill and the
 // change wiring below, so the two directions cannot drift apart.
 const CUT_INPUTS = {cameoRegPattern:'regPattern', cameoRegOrientation:'regOrientation', cameoRegInset:'regInset', cameoRegThickness:'regThickness', cameoRegLen:'regLen', cameoCornerRadius:'cornerRadius', rotaryGuides:'guides', rotaryGuideLen:'guideLen', rotaryGuideWidth:'guideWidth', rotaryGuideColor:'guideColor', rotaryCornerColor:'cornerGuideColor', rotaryBleed:'bleed', rotaryGuideShape:'guideShape', rotaryGuidePlacement:'guidePlacement', rotaryGuideStyle:'guideStyle', rotaryGuideHalo:'guideHalo'};
+const SCM_PDF_INPUTS = Object.fromEntries(['scmSkip','scmFit','scmFitBack','scmCrop','scmCropBack','scmLabel']
+  .map(key=>[key,key]));
 
 // set those inputs from state, never clobbering the control the user is in.
 // cleanSettings starts from a full DEFAULTS spread, so every key has a value.
@@ -10560,12 +10825,14 @@ function renderCutStatus() {
   }
 
   fillInputs(CUT_INPUTS);
+  fillInputs(SCM_PDF_INPUTS);
   const templateSelect = $('#scmTemplate');
   templateSelect.value = s.scmTemplate;
   for (const option of templateSelect.options) {
     option.disabled = option.value !== 'custom' && !scmTemplateFor(s, option.value);
   }
   $('#cameoCustomRegistration').hidden = !!L.scm;
+  $('#scmExportOptions').hidden = !L.scm;
   $('#scmTemplateHint').textContent = L.scm
     ? `${L.scm.split('/').at(-1)}. Front artwork uses the template positions. Custom layouts can apply front alignment.`
     : scmTemplateFor(s, 'standard') ? 'Use the cut files from the same export.'
@@ -10588,7 +10855,7 @@ function renderCutStatus() {
     const cameoOk = s.silhouette && L.fits && noConflict && marksFit && s.guides === 'none' && s.bleed <= 1;
     if (cameoOk) {
       const frame = registrationFrame(L,s);
-      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Cameo layout fits</b> · ${L.cols}×${L.rows} · ${frame.orientation} on the mat<br>${s.regPattern} marks · ${s.regInset} mm printed inset · ${regArm(L,s).toFixed(2)} mm arms${L.scm ? ` · ${esc(L.scm.split('/').at(-1))}` : ''}</div>`;
+      cEl.innerHTML = `<div class="cutter-status-pill">✓ <b>Cameo layout fits</b> · ${L.per} cards per sheet · ${frame.orientation} on the mat<br>${s.regPattern} marks · ${s.regInset} mm printed inset · ${regArm(L,s).toFixed(2)} mm arms${L.scm ? ` · ${esc(L.scm.split('/').at(-1))}` : ''}</div>`;
     } else {
       const why = [];
       if (!s.silhouette) why.push('registration marks are off');
@@ -10630,11 +10897,19 @@ function renderCutStatus() {
   if (b) b.onclick = () => applyRotaryLayout('Layout set up for rotary cutting: registration marks turned off, margin lines + corner marks enabled.');
 }
 
-for (const [id, key] of Object.entries(CUT_INPUTS)) {
+for (const [id, key] of Object.entries({...CUT_INPUTS,...SCM_PDF_INPUTS})) {
   const input = $('#' + id); if (!input) continue;
   input.onchange = () => {
     if (!input.checkValidity() || (input.type === 'number' && !Number.isFinite(input.valueAsNumber))) {
       input.reportValidity(); input.value = S.settings[key]; return;
+    }
+    if (key === 'scmSkip') {
+      const positions = scmSkipPositions(input.value), L = layout(), total = L.cols*L.rows;
+      if (positions.length >= total || positions.some(n=>n > total) || /(^|[ ,])0+([ ,]|$)/.test(input.value)) {
+        toast(`Use positions 1–${total} and leave at least one available.`);
+        input.value = S.settings[key]; return;
+      }
+      input.value = positions.join(', ');
     }
     S.settings[key] = input.type === 'checkbox' ? input.checked : input.type === 'number' || key === 'regPattern' ? Number(input.value) : input.value;
     if (key === 'guidePlacement') S.settings.guidePlacementSet = true;
