@@ -8,6 +8,8 @@ A redesigned workspace with clearer navigation through print settings, artwork, 
 - The card queue has readable, actionable issue rows. The sheet proof and Order gallery give artwork more space, with a single shared-cardback prompt for an order.
 - Print and order downloads sit next to the relevant review details. Instructions and sharing stay available below the primary workflow.
 
+- Letter landscape four-card sheets now include a native Silhouette Studio document with matching page setup, registration marks and trim paths. Each sheet also includes SVG and DXF.
+
 ## Downloads
 
 **Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.8.3/Proxy-Press-0.8.3.msi).

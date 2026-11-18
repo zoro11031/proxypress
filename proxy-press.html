@@ -8342,7 +8342,7 @@ function renderGuideTab() {
   if (isCameo) {
     const key = studio3Key(s);
     const matchesMarks = studio3MarksMatch(L, s);
-    const s3Support = matchesMarks && key && studio3Manifest?.[key]?.cards === L.per;
+    const s3Support = matchesMarks && key && scopedSheets.some(sheet => studio3SheetSpec(key,sheet.slots.length));
     if (!studio3Manifest) loadStudio3Manifest().then(() => { if (generation === guideGeneration) renderGuideTab(); }).catch(() => {});
     const paperName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
     if (s3) s3.style.display = s3Support ? 'block' : 'none';
@@ -8352,7 +8352,7 @@ function renderGuideTab() {
       if (key && !matchesMarks) {
         hint.textContent = STUDIO3_MARKS_MISMATCH;
       } else if (!s3Support) {
-        hint.innerHTML = `Silhouette Studio (.studio3) templates support matching Letter and A4 eight-card landscape and nine-card portrait layouts. For ${esc(paperName)} (${L.cols}×${L.rows} = ${L.per} per sheet), use the DXF cut file.`;
+        hint.innerHTML = `Silhouette Studio (.studio3) templates support matching Letter four- and eight-card landscape, A4 eight-card landscape, and nine-card portrait layouts. For ${esc(paperName)} (${L.cols}×${L.rows} = ${L.per} per sheet), use the DXF cut file.`;
       } else {
         hint.textContent = 'The Studio file carries the matching canvas and registration settings. DXF carries the cut lines. SVG uses the physical sheet size for direct cutter apps.';
       }
@@ -9185,18 +9185,20 @@ function s3Points(x, y, w, h, rx, ry) {
           [x,y1-ry],[x+kx,y1-ky],[x+rx,y1]];
 }
 
+function studio3SheetSpec(key, cards) {
+  const base = studio3Manifest?.[key];
+  return base?.cards === cards ? base : studio3Manifest?.[`${key}-${cards}`];
+}
+
 async function cutStudio3(sheet = 0, job = buildPrintJob()) {
   const s = job.settings, L = job.layout, frame = registrationFrame(L, s), pad = studioCanvasPad(s);
-  cutSheetCards(L, sheet, job.slots);                       // same sheet-range check as the others
+  const count = cutSheetCards(L, sheet, job.slots);
   const key = studio3Key(s);
   if (!key) throw new Error('Silhouette Studio export covers Letter and A4 only.');
   if (!studio3MarksMatch(L, s)) throw new Error(STUDIO3_MARKS_MISMATCH);
   await loadStudio3Manifest();
-  const spec = studio3Manifest[key];
-  if (!spec) throw new Error('Studio templates are not installed on this server.');
-  if (spec.cards !== L.per) throw new Error(
-    `This layout puts ${L.per} cards on a sheet and the Studio template holds ${spec.cards}. ` +
-    'Use the DXF instead, or restore the Cameo paper defaults.');
+  const spec = studio3SheetSpec(key, count);
+  if (!spec) throw new Error(`No matching Studio template for ${count} cards on this sheet. Use DXF.`);
   const res = await fetch(serverPath(`/assets/studio3/${spec.file}`));
   if (!res.ok) throw new Error('Studio template could not be read.');
   const buf = new Uint8Array(await res.arrayBuffer());
@@ -9206,11 +9208,11 @@ async function cutStudio3(sheet = 0, job = buildPrintJob()) {
   const sameInset = [1113,1117,1121,1125].every(offset=>Math.abs(dv.getFloat32(offset,true)-STUDIO3_INSET) < 0.02);
   if (!(Math.abs(realArm-STUDIO3_ARMS[key]) < 0.005) || !sameInset || !(Math.abs(dv.getFloat32(1141,true)-1) < 0.02))
     throw new Error('The installed Studio template has different registration settings. Download DXF for this sheet.');
-  dv.setFloat32(spec.pageOffsets[0], frame.W+2*pad, true);
-  dv.setFloat32(spec.pageOffsets[1], frame.H+2*pad, true);
-  // Every slot is written, including any the last sheet leaves empty: the
-  // count is fixed, so an unused slot cuts a blank card rather than vanishing.
-  for (let i = 0; i < L.per; i++) {
+  for (const offsets of [spec.pageOffsets, spec.storedPageOffsets].filter(Boolean)) {
+    dv.setFloat32(offsets[0], frame.W+2*pad, true);
+    dv.setFloat32(offsets[1], frame.H+2*pad, true);
+  }
+  for (let i = 0; i < count; i++) {
     const rect = cutterCardRect(L,s,i,frame,pad), {x,y,w,h,rx,ry} = rect;
     for (const o of spec.outlines[i]) {
       // Each stored copy keeps its own winding, sign and sub-millimetre offset.
@@ -9253,19 +9255,19 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
     .map(([x,y])=>({x,y})));
   const files = [{name:pdfName,data:pdfBytes}], rows = [], sides = job.hasBacks ? 2 : 1;
   const enc = new TextEncoder();
-  const studio = (studio3MarksMatch(L,s) && sheets.some(sheet=>sheet.slots.length === L.per))
-    ? (await loadStudio3Manifest())[studio3Key(s)] : null;
+  const nativeMarks = studio3MarksMatch(L,s);
+  if (nativeMarks) await loadStudio3Manifest();
   for (const [i,sheet] of sheets.entries()) {
     const number = sheet.index + 1, frontPage = i*sides + 1;
     // The native template always cuts every position it contains. Short
     // sheets need a format that can describe just the occupied positions.
-    const useStudio = studio?.cards === L.per && sheet.slots.length === L.per;
+    const useStudio = nativeMarks && studio3SheetSpec(studio3Key(s),sheet.slots.length);
     const cutFile = `sheet-${number}.${useStudio ? 'studio3' : 'dxf'}`;
-    const data = useStudio ? await cutStudio3(sheet.index,job) : enc.encode(cutDxf(sheet.index,job));
-    const svg = `sheet-${number}.svg`;
-    files.push({name:cutFile,data});
-    files.push({name:svg,data:enc.encode(cutSvg(sheet.index,job))});
-    rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile,svg,
+    const svg = `sheet-${number}.svg`, dxf = `sheet-${number}.dxf`;
+    files.push({name:svg,data:enc.encode(cutSvg(sheet.index,job))},
+      {name:dxf,data:enc.encode(cutDxf(sheet.index,job))});
+    if (useStudio) files.push({name:cutFile,data:await cutStudio3(sheet.index,job)});
+    rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile,svg,dxf,
       nearMarks:regContacts(L,s,sheet.slots,REG_NEAR_CLEARANCE)});
   }
   const info = {

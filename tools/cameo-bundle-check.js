@@ -61,7 +61,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   const manifest = require('../assets/studio3/manifest.json');
   const correction = {offsetX:-0.47,offsetY:1.18,printRotate:-0.28,scaleX:100.15,scaleY:99.85};
   const cases = [
-    ['letter','landscape',8,{},false,false], ['letter','portrait',9,{},false,false],
+    ['letter','landscape',8,{},false,false], ['letter','landscape',4,{cols:2,rows:2},false,false], ['letter','portrait',9,{},false,false],
     ['a4','landscape',8,{},false,false], ['a4','portrait',9,{},false,false],
     ['letter','landscape',10,{},true,false], ['letter','landscape',10,{},true,true],
     ['letter','landscape',8,correction,true,false],
@@ -125,8 +125,10 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
         assert.match(readme,/Artwork close to these marks .*bottom-left L/);
       }
       assert.deepEqual(mapping,{sheet:sheet.index+1,frontPage:i*(duplex?2:1)+1,backPage:duplex?i*2+2:null,
-        cards:sheet.slots.length,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`,svg:`sheet-${sheet.index+1}.svg`});
+        cards:sheet.slots.length,dxf:`sheet-${sheet.index+1}.dxf`,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`,svg:`sheet-${sheet.index+1}.svg`});
       assert.equal(files.get(row.svg).toString(),vm.runInContext('cutSvg',context)(sheet.index,job));
+      assert.equal((files.get(row.svg).toString().match(/<rect /g)||[]).length,row.cards);
+      assert.equal((files.get(row.dxf).toString().match(/\nPOLYLINE\n/g)||[]).length,row.cards);
       const cut = files.get(row.cutFile);
       const pt = 72/25.4, marks = [], stack = [];
       for (const line of pages[row.frontPage-1].split('\n')) {
@@ -145,7 +147,23 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
       });
       if (row.backPage) assert.doesNotMatch(pages[row.backPage-1],/ re\n/);
       if (full) {
-        const spec = manifest[`${paper}-${orientation}`];
+        const spec = manifest[count === 4 ? `${key}-4` : key];
+        if (count === 4) {
+          for (const offsets of [spec.pageOffsets,spec.storedPageOffsets]) {
+            near(cut.readFloatLE(offsets[0]),279.4);
+            near(cut.readFloatLE(offsets[1]),215.9);
+          }
+          for (const [n,group] of spec.outlines.entries()) {
+            const outline = group.find(o=>o.f);
+            const xs = outline.o.map(off=>cut.readFloatLE(off));
+            const ys = outline.o.map(off=>-cut.readFloatLE(off+4));
+            near(Math.min(...xs)-outline.dx,[76.075,140.325][n%2]);
+            near(Math.min(...ys)-outline.dy,[19.325,108.575][Math.floor(n/2)]);
+            near(Math.max(...xs)-Math.min(...xs),63);
+            near(Math.max(...ys)-Math.min(...ys),88);
+          }
+          for (const off of [3493,4726,5959,7192]) near(cut.readFloatLE(off),215.8733);
+        }
         assert.equal(cut.length,spec.bytes);
         assert.ok(Math.abs(cut.readFloatLE(1137)-info.registration.armLength) < 0.001);
         assert.ok(Math.abs(cut.readFloatLE(1113)-info.studioCanvas.inset) < 0.02);
