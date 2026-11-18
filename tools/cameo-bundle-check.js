@@ -12,17 +12,18 @@ const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
 const functions = ['layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
-  'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','buildCameoBundle'];
+  'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle'];
 const code = functions.map(name=>{
   const start = new RegExp(`^(?:async )?function ${name}\\(`,'m').exec(html).index;
   return html.slice(start,html.indexOf('\n}',start)+2);
 }).join('\n');
 const calibration = {front:{status:'Manual'},hasBacks:false};
 const outputs = [], notices = [], scope = {value:'all'}, state = {activeSheet:0};
+const unavailable = new Set();
 const context = vm.createContext({console, TextEncoder, Blob, calibration,
   $:sel=>sel==='#exportScope' ? scope : {closest:()=>null,classList:{contains:()=>true}}, S:state,
   window:{jspdf:require('../assets/vendor/jspdf.umd.min.js')},
-  fetch:async url=>new Response(fs.readFileSync(path.join(root,url))),
+  fetch:async url=>unavailable.has(url) ? new Response('',{status:404}) : new Response(fs.readFileSync(path.join(root,url))),
   serverPath:url=>url, sheetFeedable:()=>true, isPreview:()=>false,
   guideLines:()=>[], inspectPrintArtwork:async()=>({ok:true,width:2400,height:3200}),
   artworkKey:face=>face.name, renderFace:async()=>({toDataURL:()=>
@@ -61,7 +62,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   const manifest = require('../assets/studio3/manifest.json');
   const correction = {offsetX:-0.47,offsetY:1.18,printRotate:-0.28,scaleX:100.15,scaleY:99.85};
   const cases = [
-    ['letter','landscape',8,{},false,false], ['letter','portrait',9,{},false,false],
+    ['letter','landscape',8,{},false,false], ['letter','landscape',4,{cols:2,rows:2},false,false], ['letter','portrait',9,{},false,false],
     ['a4','landscape',8,{},false,false], ['a4','portrait',9,{},false,false],
     ['letter','landscape',10,{},true,false], ['letter','landscape',10,{},true,true],
     ['letter','landscape',8,correction,true,false],
@@ -72,6 +73,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     ['letter','landscape',8,{regInset:3.5},false,false],
     ['letter','landscape',8,{regInset:0},false,false]
   ];
+  let fourCardJob;
   for (const [paper,orientation,count,overrides,duplex,current] of cases) {
     Object.assign(context,{paper,orientation,count,overrides,duplex});
     scope.value = current ? 'current' : 'all'; state.activeSheet = current ? 1 : 0;
@@ -82,6 +84,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
       const sheets = []; for (let i=0; i<slots.length; i+=L.per) sheets.push({index:sheets.length,slots:slots.slice(i,i+L.per)});
       return {key:'job',settings,layout:L,slots,sheets,hasBacks:duplex,calibration,project:{name:'Test cards'}};
     })()`,context);
+    if (paper==='letter' && orientation==='landscape' && count===4) fourCardJob = job;
     const prev = outputs.length;
     await vm.runInContext('exportPrintJob',context)(job,true);
     if (overrides.regInset === 0) {
@@ -109,6 +112,9 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     assert.equal(info.studioCanvas.paperOffset,Math.max(0,10-info.registration.inset));
     const readme = files.get('Read me.txt').toString();
     assert.match(readme,/Silhouette Control Center: align the paper with the top-left/);
+    assert.match(readme,/DXF Open to As-is/);
+    assert.match(readme,new RegExp(`Page Setup set media to ${info.mat.orientation}`));
+    assert.equal(info.studioCanvas.orientation,info.mat.orientation);
     if (overrides.regInset === 3.5) assert.match(readme,/Silhouette Studio: place the paper 6.5 mm in/);
     const selected = current ? job.sheets.slice(1) : job.sheets;
     const pages = pdfPages(pdf), key = `${paper}-${orientation}`;
@@ -117,7 +123,13 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     assert.equal(Number(pdf.toString('latin1').match(/\/Type \/Pages\b[\s\S]*?\/Count (\d+)/)[1]),selected.length*(duplex?2:1));
     for (const [i,sheet] of selected.entries()) {
       const row = info.sheets[i], full = sheet.slots.length === job.layout.per && !overrides.printRotate && overrides.offsetY !== 1.1 && key !== 'letter-portrait';
-      const {nearMarks,...mapping} = row;
+      const {nearMarks,studioBounds,...mapping} = row;
+      assert.ok(studioBounds.width>0 && studioBounds.height>0);
+      assert.match(readme,/DXF placement: .* top-left X/);
+      if (count === 4) {
+        near(studioBounds.width,127.25);
+        near(studioBounds.height,177.25);
+      }
       assert.ok(Array.isArray(nearMarks));
       assert.ok(nearMarks.every(mark=>['top-left square','top-right L','bottom-left L'].includes(mark)));
       if (overrides.printRotate && !overrides.regOrientation) {
@@ -125,8 +137,10 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
         assert.match(readme,/Artwork close to these marks .*bottom-left L/);
       }
       assert.deepEqual(mapping,{sheet:sheet.index+1,frontPage:i*(duplex?2:1)+1,backPage:duplex?i*2+2:null,
-        cards:sheet.slots.length,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`,svg:`sheet-${sheet.index+1}.svg`});
+        cards:sheet.slots.length,dxf:`sheet-${sheet.index+1}.dxf`,cutFile:`sheet-${sheet.index+1}.${full ? 'studio3' : 'dxf'}`,svg:`sheet-${sheet.index+1}.svg`});
       assert.equal(files.get(row.svg).toString(),vm.runInContext('cutSvg',context)(sheet.index,job));
+      assert.equal((files.get(row.svg).toString().match(/<rect /g)||[]).length,row.cards);
+      assert.equal((files.get(row.dxf).toString().match(/\nPOLYLINE\n/g)||[]).length,row.cards);
       const cut = files.get(row.cutFile);
       const pt = 72/25.4, marks = [], stack = [];
       for (const line of pages[row.frontPage-1].split('\n')) {
@@ -145,7 +159,23 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
       });
       if (row.backPage) assert.doesNotMatch(pages[row.backPage-1],/ re\n/);
       if (full) {
-        const spec = manifest[`${paper}-${orientation}`];
+        const spec = manifest[count === 4 ? `${key}-4` : key];
+        if (count === 4) {
+          for (const offsets of [spec.pageOffsets,spec.storedPageOffsets]) {
+            near(cut.readFloatLE(offsets[0]),279.4);
+            near(cut.readFloatLE(offsets[1]),215.9);
+          }
+          for (const [n,group] of spec.outlines.entries()) {
+            const outline = group.find(o=>o.f);
+            const xs = outline.o.map(off=>cut.readFloatLE(off));
+            const ys = outline.o.map(off=>-cut.readFloatLE(off+4));
+            near(Math.min(...xs)-outline.dx,[76.075,140.325][n%2]);
+            near(Math.min(...ys)-outline.dy,[19.325,108.575][Math.floor(n/2)]);
+            near(Math.max(...xs)-Math.min(...xs),63);
+            near(Math.max(...ys)-Math.min(...ys),88);
+          }
+          for (const off of [3493,4726,5959,7192]) near(cut.readFloatLE(off),215.8733);
+        }
         assert.equal(cut.length,spec.bytes);
         assert.ok(Math.abs(cut.readFloatLE(1137)-info.registration.armLength) < 0.001);
         assert.ok(Math.abs(cut.readFloatLE(1113)-info.studioCanvas.inset) < 0.02);
@@ -186,6 +216,15 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     }
     console.log('PASS',name);
   }
+  assert.ok(fourCardJob);
+  scope.value = 'all';
+  unavailable.add('/assets/studio3/letter-standard_double-v3.studio3');
+  await vm.runInContext('exportPrintJob',context)(fourCardJob,true);
+  const fallback = readZip(Buffer.from(await outputs.at(-1).blob.arrayBuffer()));
+  const row = JSON.parse(fallback.get('registration.json')).sheets[0];
+  assert.equal(row.cutFile,'sheet-1.dxf');
+  assert.ok(fallback.has('sheet-1.dxf') && fallback.has('sheet-1.svg') && !fallback.has('sheet-1.studio3'));
+  console.log('PASS a missing native asset leaves a usable matched ZIP');
   console.log('PASS clipped registration marks block the matched download');
   console.log('PASS front artwork moved over fixed registration marks blocks export');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,9 +1,8 @@
 # Silhouette Studio base templates
 
-These four `.studio3` files come from
+These five `.studio3` files come from
 [silhouette-card-maker](https://github.com/Alan-Cha/silhouette-card-maker)
-(`cutting_templates/`), which is MIT licensed. They are redistributed here
-unchanged, as base documents for Proxy Press's `.studio3` export.
+(`cutting_templates/`), which is MIT licensed. They are used as base documents for Proxy Press's `.studio3` export.
 
 They are here because Silhouette Studio's free Basic edition cannot import
 SVG — it answers "The file type you are attempting to access is not
@@ -20,6 +19,7 @@ as many cards as the sheet does.
 
 | File | Paper | Cards | Used for |
 |---|---|---|---|
+| `letter-standard_double-v3.studio3` | Letter | 4 | Letter landscape, two by two or four occupied positions |
 | `letter-standard-v6.studio3` | Letter | 8 | Letter landscape |
 | `letter-catan-v2.studio3` | Letter | 9 | Letter portrait |
 | `a4-standard-v5.studio3` | A4 | 8 | A4 landscape |
@@ -35,3 +35,5 @@ and 1 mm thickness. When the printed inset is smaller, the Studio canvas and
 cut coordinates include padding around the physical sheet. For other mark
 settings or a separate cutter orientation, use DXF and follow the setup
 shown in Review export.
+
+The four-card base adapts Card Maker’s standard_double file. Both copies of the page setup use the Letter landscape values from letter-standard-v6. Each shape also stores a vertical translation tied to the original page height. The four translations use the landscape values. Leaving the portrait translations in place moved the trim down 63.5 mm in Windows Studio. The operator confirmed the corrected four-card job cut successfully on November 17, 2026.
