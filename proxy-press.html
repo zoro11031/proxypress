@@ -2618,7 +2618,8 @@ function atext(doc, txt, x, y, align, angle) {
 }
 // Rotation of a card image so its back reads the right way up after the sheet is turned over.
 function faceRot(L, back) {
-  if (L.scm) return L.rot;
+  // SCM turns landscape backs before printing. Portrait layouts rotate both full pages instead.
+  if (L.scm) return back && !L.scmPortrait ? 180 : L.rot;
   if (!back) return L.rot ? 90 : 0;
   return L.mirrorX ? (L.rot ? -90 : 0) : (L.rot ? 90 : 180);
 }

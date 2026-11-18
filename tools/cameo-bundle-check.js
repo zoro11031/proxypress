@@ -21,14 +21,17 @@ const code = functions.map(name=>{
 const calibration = {front:{status:'Manual'},hasBacks:false};
 const outputs = [], notices = [], scope = {value:'all'}, state = {activeSheet:0};
 const unavailable = new Set();
+const renderedFaces = [];
 const context = vm.createContext({console, TextEncoder, Blob, calibration,
   $:sel=>sel==='#exportScope' ? scope : {closest:()=>null,classList:{contains:()=>true}}, S:state,
   window:{jspdf:require('../assets/vendor/jspdf.umd.min.js')},
   fetch:async url=>unavailable.has(url) ? new Response('',{status:404}) : new Response(fs.readFileSync(path.join(root,url))),
   serverPath:url=>url, sheetFeedable:()=>true, isPreview:()=>false,
   guideLines:()=>[], inspectPrintArtwork:async()=>({ok:true,width:2400,height:3200}),
-  artworkKey:face=>face.name, renderFace:async()=>({toDataURL:()=>
-    'data:image/png;base64,' + DARK_CARD}),
+  artworkKey:face=>face.name, renderFace:async(face,dpi,hi,rotation,settings,back)=>{
+    renderedFaces.push({rotation,back});
+    return {toDataURL:()=> 'data:image/png;base64,' + DARK_CARD};
+  },
   printJobKey:()=> 'job', reviewKey:()=>`${scope.value}/${state.activeSheet}`,
   imgCache:new Map(), latestPrintReview:null, renderGuideTab:()=>{}, switchTab:()=>{},
   busy:()=>{}, busyProgress:()=>{}, sleep:async()=>{}, showPostExportInstructions:()=>{},
@@ -258,11 +261,11 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
 
   // Independent anchors from SCM's shipped templates and its 300 ppi output.
   const stock = [
-    ['letter','standard','letter-standard-v6.studio3',3300,2550,140,228,744,1039,8,10,8.04],
-    ['a4','standard','a4-standard-v5.studio3',3507,2480,244,194,744,1039,8,10,9.4],
-    ['letter','borderless','borderless/letter-standard-borderless-v2.studio3',3300,2550,76,1662,1039,744,9,3.5,7.45],
-    ['a4','borderless','borderless/a4-standard-borderless-v2.studio3',3507,2480,180,1627,1039,744,9,3.5,10.5],
-    ['arch_b','standard','arch_b-standard-v4.studio3',5400,3600,430,226,744,1039,18,10,20],
+    ['letter','standard','letter-standard-v6.studio3',3300,2550,140,228,744,1039,8,10,8.04,0,180],
+    ['a4','standard','a4-standard-v5.studio3',3507,2480,244,194,744,1039,8,10,9.4,0,180],
+    ['letter','borderless','borderless/letter-standard-borderless-v2.studio3',3300,2550,76,1662,1039,744,9,3.5,7.45,-90,-90],
+    ['a4','borderless','borderless/a4-standard-borderless-v2.studio3',3507,2480,180,1627,1039,744,9,3.5,10.5,-90,-90],
+    ['arch_b','standard','arch_b-standard-v4.studio3',5400,3600,430,226,744,1039,18,10,20,0,180],
   ];
   const size = 25.4/300, pt = 72/25.4;
   const jsPDF = context.window.jspdf.jsPDF, pdfDownloads = [];
@@ -271,7 +274,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     doc.save = () => pdfDownloads.push(Buffer.from(doc.output('arraybuffer')));
     return doc;
   }};
-  for (const [paper,variant,file,W,H,x,y,cw,ch,per,inset,arm] of stock) {
+  for (const [paper,variant,file,W,H,x,y,cw,ch,per,inset,arm,frontRotation,backRotation] of stock) {
     const settings = vm.runInContext('DEFAULTS',context);
     const s = {...settings,pageSize:paper,...correction};
     Object.assign(s,vm.runInContext('scmSettings',context)(s,variant));
@@ -287,8 +290,14 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     const slots = Array.from({length:per},(_,i)=>({front:{name:'Front '+i,custom:'art'},back:{name:'Back '+i,custom:'back'}}));
     const job = {key:'job',settings:s,layout:L,slots,sheets:[{index:0,slots}],hasBacks:true,calibration,project:{name:'SCM test'}};
     const prev = outputs.length;
+    renderedFaces.length = 0;
     await vm.runInContext('exportPrintJob',context)(job,true);
     assert.equal(outputs.length,prev+1,`${file}: ${notices.at(-1)}`);
+    for (const [back, rotation] of [[false,frontRotation],[true,backRotation]]) {
+      const side = renderedFaces.filter(face=>face.back === back);
+      assert.equal(side.length,per,`${file}: rendered face count`);
+      assert.ok(side.every(face=>face.rotation === rotation),`${file}: ${back ? 'back' : 'front'} artwork must render at ${rotation}°`);
+    }
     const data = Buffer.from(await outputs.at(-1).blob.arrayBuffer()), files = readZip(data);
     const info = JSON.parse(files.get('registration.json'));
     const pdf = files.get(info.pdf), [front,back] = pdfPages(pdf);
