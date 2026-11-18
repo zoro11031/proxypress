@@ -8329,7 +8329,9 @@ function renderGuideTab() {
     }
     $('#btnExportPdfTab').disabled = !slots.length;
     bundle.disabled = !slots.length;
-    for(const id of ['#btnExportSvgTab','#btnExportDxfTab','#btnExportStudio3Tab']) $(id).disabled=!slots.length;
+    for(const id of ['#btnExportSvgTab','#btnExportDxfTab']) $(id).disabled=!slots.length;
+    $('#btnExportStudio3Tab').disabled = !studio3MarksMatch(L,s)
+      || !scopedSheets.some(sheet=>studio3SheetSpec(studio3Key(s),sheet.slots.length));
     if ($('#btnPdf')) $('#btnPdf').disabled = false;
   });
   $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
@@ -8337,22 +8339,24 @@ function renderGuideTab() {
   ['#btnExportStudio3Tab', '#btnExportDxfTab', '#btnExportSvgTab', '#cutFileHint'].forEach(sel => {
     const el = $(sel); if (el) el.style.display = isCameo ? 'block' : 'none';
   });
-  const s3 = $('#btnExportStudio3Tab'), dxf = $('#btnExportDxfTab'), hint = $('#cutFileHint');
+  const dxf = $('#btnExportDxfTab'), hint = $('#cutFileHint');
   $('#btnCardMakerMarks').hidden = !isCameo || !studio3Key(s) || studio3MarksMatch(L,s);
   if (isCameo) {
     const key = studio3Key(s);
     const matchesMarks = studio3MarksMatch(L, s);
     const s3Support = matchesMarks && key && scopedSheets.some(sheet => studio3SheetSpec(key,sheet.slots.length));
-    if (!studio3Manifest) loadStudio3Manifest().then(() => { if (generation === guideGeneration) renderGuideTab(); }).catch(() => {});
-    const paperName = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-    if (s3) s3.style.display = s3Support ? 'block' : 'none';
+    if (!studio3Manifest) loadStudio3Manifest().then(() => { if (generation === guideGeneration) renderGuideTab(); }).catch(() => {
+      if (generation === guideGeneration && hint) hint.textContent = 'Native Studio templates could not load. The ZIP still includes PDF, DXF and SVG.';
+    });
     if (dxf) dxf.style.display = 'block';
     if (hint) {
       hint.style.display = 'block';
       if (key && !matchesMarks) {
         hint.textContent = STUDIO3_MARKS_MISMATCH;
       } else if (!s3Support) {
-        hint.innerHTML = `Silhouette Studio (.studio3) templates support matching Letter four- and eight-card landscape, A4 eight-card landscape, and nine-card portrait layouts. For ${esc(paperName)} (${L.cols}×${L.rows} = ${L.per} per sheet), use the DXF cut file.`;
+        hint.textContent = studio3Manifest
+          ? 'The selected sheets require DXF or SVG. No matching native template is available.'
+          : 'Loading native Studio templates…';
       } else {
         hint.textContent = 'The Studio file carries the matching canvas and registration settings. DXF carries the cut lines. SVG uses the physical sheet size for direct cutter apps.';
       }
@@ -8378,7 +8382,7 @@ function renderGuideTab() {
     }
   }
 
-  const cutPane = $('#tabGuidePaneCut');
+  const cutPane = $('#tabGuidePaneCut'), activeCutSheet = scopedSheets.find(sheet=>sheet.index === S.activeSheet) || scopedSheets[0];
   if (cutPane) {
     cutPane.innerHTML = isCameo ? `
       <div class="callout-box" style="margin-top:0">
@@ -8392,7 +8396,9 @@ function renderGuideTab() {
         <li><b>Find your cutting settings:</b> Make a small test shape first. Start with one pass, inspect the cut without unloading the mat, and repeat as needed.
           <p class="hint">The <a href="https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/#cutting-settings" target="_blank" rel="noopener">Silhouette Card Maker guide</a> reports depth 7, force 35, speed 25 and 4 passes for the author's Cameo 5, AutoBlade, cardstock and laminate. These are Cameo 5 reference settings. For your cutter, use values supported by Silhouette Studio and determine force, speed and passes with a test cut on your ProxyJak stock.</p>
         </li>
-        <li><b>Open the same sheet’s cut file:</b> Open a <b>.studio3</b> file directly for its preset page and marks. If you’re using <b>DXF</b>, set up a <b>${(frame.W+2*pad).toFixed(1)} × ${(frame.H+2*pad).toFixed(1)} mm</b> Studio canvas with <b>${s.regPattern} marks</b>, <b>${(s.regInset+pad).toFixed(1)} mm inset</b>, <b>${regArm(L,s).toFixed(2)} mm arms</b> and <b>${s.regThickness} mm thickness</b>. ${s.regPattern === 4 ? 'Select Cameo 5 Alpha for four marks.' : ''}
+        <li><b>Open the same sheet’s .studio3 file</b> when available. The page and registration marks are set in the file.</li>
+        <li><b>For DXF:</b> Set <b>Edit → Preferences → Import → DXF Open → As-is</b>, then open the file. In Page Setup select <b>${frame.orientation}</b> and set the media to <b>${(frame.W+2*pad).toFixed(1)} × ${(frame.H+2*pad).toFixed(1)} mm</b> (width × height). Set <b>${s.regPattern} marks</b> with <b>${(s.regInset+pad).toFixed(1)} mm inset</b>, <b>${regArm(L,s).toFixed(2)} mm arms</b> and <b>${regMarks(L,s).width} mm thickness</b>. ${s.regPattern === 4 ? 'Select Cameo 5 Alpha for four marks.' : ''}
+          ${activeCutSheet ? `<p class="hint">Group the outlines and verify the dimensions and position in Transform using the top-left anchor. Sheet ${activeCutSheet.index+1} should be ${esc(studioBoundsText(studioCutBounds(L,s,activeCutSheet.slots.length)))}.</p>` : ''}
         </li>
       </ol>
     ` : `
@@ -9056,7 +9062,6 @@ $('#btnCal').onclick = () => {
   doc.save('alignment-sheet.pdf');
 };
 
-function cutSheets(job = buildPrintJob()) { return Math.max(1, job.sheets.length); }
 function cutSheetCards(L, sheet, slots = buildSlots()) {
   const count = slots.length, pages = Math.max(1, Math.ceil(count / L.per));
   if (!Number.isInteger(sheet) || sheet < 0 || sheet >= pages) throw new Error('Choose an existing sheet.');
@@ -9248,6 +9253,24 @@ function cutDxf(sheet = 0, job = buildPrintJob()) {
     + dxfPair(0, 'EOF');
 }
 
+function studioCutBounds(L,s,count) {
+  const frame = registrationFrame(L,s), pad = studioCanvasPad(s);
+  const boxes = [];
+  for (let i = 0; i < count; i++) {
+    const rect = cutterCardRect(L,s,i,frame,pad), {x,y,w,h,rx,ry,angle} = rect;
+    const [cx,cy] = cutterTurn(rect,x+w/2,y+h/2);
+    const radians = angle*Math.PI/180, c = Math.abs(Math.cos(radians)), sin = Math.abs(Math.sin(radians));
+    const u = (w/2-rx)*c + (h/2-ry)*sin + Math.hypot(rx*c,ry*sin);
+    const v = (w/2-rx)*sin + (h/2-ry)*c + Math.hypot(rx*sin,ry*c);
+    boxes.push([cx-u,cy-v,cx+u,cy+v]);
+  }
+  const x = Math.min(...boxes.map(box=>box[0])), y = Math.min(...boxes.map(box=>box[1]));
+  return {x,y,width:Math.max(...boxes.map(box=>box[2]))-x,height:Math.max(...boxes.map(box=>box[3]))-y};
+}
+function studioBoundsText({x,y,width,height}) {
+  return `${width.toFixed(2)} × ${height.toFixed(2)} mm group, top-left X ${x.toFixed(2)} mm / Y ${y.toFixed(2)} mm`;
+}
+
 async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
   const s = job.settings, L = job.layout, frame = registrationFrame(L,s), pad = studioCanvasPad(s);
   const arm = regArm(L,s), marks = regMarks(L,s);
@@ -9255,32 +9278,35 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
     .map(([x,y])=>({x,y})));
   const files = [{name:pdfName,data:pdfBytes}], rows = [], sides = job.hasBacks ? 2 : 1;
   const enc = new TextEncoder();
-  const nativeMarks = studio3MarksMatch(L,s);
-  if (nativeMarks) await loadStudio3Manifest();
+  const nativeMarks = studio3MarksMatch(L,s) && await loadStudio3Manifest().catch(()=>null);
   for (const [i,sheet] of sheets.entries()) {
     const number = sheet.index + 1, frontPage = i*sides + 1;
     // The native template always cuts every position it contains. Short
     // sheets need a format that can describe just the occupied positions.
-    const useStudio = nativeMarks && studio3SheetSpec(studio3Key(s),sheet.slots.length);
-    const cutFile = `sheet-${number}.${useStudio ? 'studio3' : 'dxf'}`;
+    const native = nativeMarks && studio3SheetSpec(studio3Key(s),sheet.slots.length)
+      ? await cutStudio3(sheet.index,job).catch(()=>null) : null;
+    const cutFile = `sheet-${number}.${native ? 'studio3' : 'dxf'}`;
     const svg = `sheet-${number}.svg`, dxf = `sheet-${number}.dxf`;
     files.push({name:svg,data:enc.encode(cutSvg(sheet.index,job))},
       {name:dxf,data:enc.encode(cutDxf(sheet.index,job))});
-    if (useStudio) files.push({name:cutFile,data:await cutStudio3(sheet.index,job)});
+    if (native) files.push({name:cutFile,data:native});
     rows.push({sheet:number,frontPage,backPage:job.hasBacks ? frontPage + 1 : null,cards:sheet.slots.length,cutFile,svg,dxf,
-      nearMarks:regContacts(L,s,sheet.slots,REG_NEAR_CLEARANCE)});
+      nearMarks:regContacts(L,s,sheet.slots,REG_NEAR_CLEARANCE),
+      studioBounds:studioCutBounds(L,s,sheet.slots.length)});
   }
   const info = {
     format:'proxypress-cameo', version:1, pdf:pdfName, units:'mm', origin:'top left',
     pdfPage:{width:L.W,height:L.H,orientation:s.orientation,frontMarkInk:ink},
     mat:{width:frame.W,height:frame.H,orientation:frame.orientation,paperOffset:0},
     registration:{pattern:s.regPattern,inset:s.regInset,armLength:arm,thickness:marks.width},
-    studioCanvas:{width:frame.W+2*pad,height:frame.H+2*pad,inset:s.regInset+pad,paperOffset:pad},
+    studioCanvas:{width:frame.W+2*pad,height:frame.H+2*pad,orientation:frame.orientation,inset:s.regInset+pad,paperOffset:pad},
     sheets:rows
   };
-  const sheetList = rows.map(row=>`Sheet ${row.sheet}: PDF page ${row.frontPage} (front)${row.backPage ? `, ${row.backPage} (back)` : ''} → ${row.cutFile} (${row.cards} cards)${row.nearMarks.length ? `\n  Artwork close to these marks (mat view): ${row.nearMarks.join(', ')}.` : ''}`).join('\n');
-  const dxf = rows.some(row=>row.cutFile.endsWith('.dxf')) ?
-    `\nDXF setup in Studio: ${dxfNum(info.studioCanvas.width)} × ${dxfNum(info.studioCanvas.height)} mm canvas, ${s.regPattern} marks, ${dxfNum(info.studioCanvas.inset)} mm inset, ${dxfNum(arm)} mm arms, ${marks.width} mm thickness.${s.regPattern === 4 ? ' Select Cameo 5 Alpha for four marks.' : ''}\n` : '';
+  const sheetList = rows.map(row=>`Sheet ${row.sheet}: PDF page ${row.frontPage} (front)${row.backPage ? `, ${row.backPage} (back)` : ''} → ${row.cutFile} (${row.cards} cards)\n  DXF placement: ${studioBoundsText(row.studioBounds)}.${row.nearMarks.length ? `\n  Artwork close to these marks (mat view): ${row.nearMarks.join(', ')}.` : ''}`).join('\n');
+  const dxf = '\nDXF in Studio:\n1. Set Edit > Preferences > Import > DXF Open to As-is. Open the DXF.\n' +
+    `2. In Page Setup set media to ${frame.orientation}, ${dxfNum(info.studioCanvas.width)} × ${dxfNum(info.studioCanvas.height)} mm (width × height).\n` +
+    '3. Select and group the outlines. In Transform, verify the size and position shown for that sheet above. Use the top-left anchor.\n' +
+    `4. Enable ${s.regPattern} marks at ${dxfNum(info.studioCanvas.inset)} mm inset with ${dxfNum(arm)} mm arms and ${marks.width} mm thickness.${s.regPattern === 4 ? ' Select Cameo 5 Alpha for four marks.' : ''}\n`;
   const readme = `Print ${pdfName} at Actual size / 100% on ${dxfNum(L.W)} × ${dxfNum(L.H)} mm paper.\n` +
     `Load the printed front face-up in ${frame.orientation}. ${s.regPattern === 3 ? 'The black square goes at the upper left. ' : ''}Keep all marks uncovered.\n\n` +
     `${sheetList}\n\nSilhouette Studio: ${pad ? `place the paper ${dxfNum(pad)} mm in from the top and left grid edges` : 'align the paper with the top-left of the mat grid'}. Open the matching .studio3 file directly when supplied.\n${dxf}` +
@@ -9295,12 +9321,15 @@ const CUT_FORMATS = {
   svg: {ext:'svg', mime:'image/svg+xml', build:cutSvg}
 };
 async function downloadCutFile(fmt, sheet) {
-  const f = CUT_FORMATS[fmt] || CUT_FORMATS.dxf, job = buildPrintJob(), pages = cutSheets(job);
+  const f = CUT_FORMATS[fmt] || CUT_FORMATS.dxf, job = buildPrintJob();
   if (sheet === undefined && $('#exportScope').value === 'current') sheet = S.activeSheet || 0;
-  if (sheet === undefined && pages > 1) {
+  const available = fmt === 'studio3' ? job.sheets.filter(item=>
+    studio3SheetSpec(studio3Key(job.settings),item.slots.length)) : job.sheets;
+  if (sheet === undefined && available.length === 1) sheet = available[0].index;
+  if (sheet === undefined && available.length > 1) {
     if (!$('#tab-guide').closest('#modal')) switchTab('guide');
     $('#cutSheetPicker')?.remove();
-    $('#guideJobSummary').insertAdjacentHTML('afterend',`<div id="cutSheetPicker"><label for="cutSheet">Matching cut sheet</label><select id="cutSheet">${Array.from({length:pages},(_,i)=>`<option value="${i}" ${i===(S.activeSheet || 0)?'selected':''}>Sheet ${i+1}</option>`).join('')}</select><button id="cutSheetExport">Download ${f.ext.toUpperCase()}</button></div>`);
+    $('#guideJobSummary').insertAdjacentHTML('afterend',`<div id="cutSheetPicker"><label for="cutSheet">Matching cut sheet</label><select id="cutSheet">${available.map(({index:i})=>`<option value="${i}" ${i===(S.activeSheet || 0)?'selected':''}>Sheet ${i+1}</option>`).join('')}</select><button id="cutSheetExport">Download ${f.ext.toUpperCase()}</button></div>`);
     $('#cutSheetExport').onclick=()=>{if(printJobKey()!==job.key)return toast('The project changed. Review it before exporting cut paths.');downloadCutFile(fmt,+$('#cutSheet').value);};
     $('#cutSheet').focus();
     return;
