@@ -5,7 +5,7 @@
   const check = (condition, message) => { if (!condition) failures.push(message); };
   const waitFor = async predicate => {
     for (let attempt = 0; attempt < 50; attempt++) {
-      if (predicate()) return true;
+      if (await predicate()) return true;
       await sleep(20);
     }
     return false;
@@ -74,6 +74,44 @@
   check($('#modalTitle')?.textContent === 'Review export', 'Returning from Layout should reopen review.');
   closeModal();
 
+  openPrintSettings('color');
+  const customFoil = {brightness:118, saturation:143, contrast:108, foilTint:4};
+  Object.assign(S.settings, customFoil);
+  renderColorSliders();
+  check(visible('#saveFoilColors'), 'Color settings should offer to save a foil default.');
+  check($$('#btnInspFoilPreview').length === 1 && $$('#btnInspFoilTestSheet').length === 1, 'Foil actions should appear once.');
+  click('#saveFoilColors');
+  check(await waitFor(async()=> (await store.get('kv','ui'))?.foilColorDefaults?.brightness === customFoil.brightness), 'The foil default should save with browser settings.');
+  click('[data-color-profile="standard"]');
+  check(matchesPrintColors(DEFAULTS), 'Standard paper should apply neutral colors.');
+  click('[data-color-profile="foil"]');
+  check(matchesPrintColors(customFoil), 'My foil colors should apply the saved values.');
+  click('[data-preset="b-foil-land"]');
+  check(matchesPrintColors(customFoil), 'Foil paper layouts should use the saved colors.');
+  const restored = await prepareBackupRestore({foilColorDefaults:customFoil});
+  check(restored.foilColorDefaults?.foilTint === customFoil.foilTint, 'Backups should restore the foil default.');
+  click('#resetFoilColors');
+  check(matchesPrintColors(customFoil), 'Resetting the default should preserve current deck colors.');
+  click('[data-color-profile="foil"]');
+  check(matchesPrintColors(DEFAULT_FOIL_COLORS), 'Reset should restore the original foil defaults.');
+
+  openPrintSettings('cutting');
+  click('#btnCutModeCameo');
+  check(visible('#cameoPaperSize') && $('#cameoPaperSize').value === 'a4', 'Cutting should show the current paper size.');
+  check(layout().scm === 'a4-standard-v5.studio3', 'A4 should use the A4 stock template.');
+  select('#cameoPaperSize','letter');
+  check(layout().scm === 'letter-standard-v6.studio3' && $('#setting-pageSize').value === 'letter', 'Choosing Letter should change the template and the print paper together.');
+  check($('#scmTemplateHint').hidden, 'Stock templates need no extra description.');
+  openDuplexWizard();
+  check(!$('#duplexWizardChoices [data-flip="short"]'), 'The stock template should offer its supported flip only.');
+  closeModal();
+  click('#btnCutModeRotary');
+  click('[data-guide="margin"]');
+  check(S.settings.guides === 'margin' && $('[data-guide="none"]').getAttribute('aria-pressed') === 'false', 'Margin marks should be selectable from the guide buttons.');
+  click('[data-guide="corners"]');
+  check(S.settings.guides === 'corners', 'Choosing corners should replace margin-only guides.');
+  backToProof();
+
   deck().entries = [];
   click('[data-mode=order]');
   setWorkspaceView('proof');
@@ -90,6 +128,6 @@
   }
 
   if (failures.length) return {failures};
-  console.log('PASS workspace flows: import, settings, sheet scope, review return, and Order queue');
+  console.log('PASS workspace flows: import, review, foil defaults, cutting, and Order queue');
   return true;
 })()
