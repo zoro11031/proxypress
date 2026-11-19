@@ -34,6 +34,8 @@ Choose your paper and card layout in **Print Settings**. Check both sides in the
 
 In **Print Settings → Cutting**, select **Silhouette cutter** and choose your paper size. **Silhouette Card Maker** matches the stock template for the selected paper and card size, including Letter and A4 for standard Magic cards. Borderless is available where a matching template exists. With these templates, use long-edge flip for double-sided printing.
 
+The Silhouette Card Maker layout automatically turns off printed guides, uses 0.625 mm bleed, and takes the registration inset from the selected template (10 mm for standard Letter and A4). The stock template also fixes where each card lands on the page. For a custom layout, use the PDF and cut files from the same export. [Silhouette Card Maker cutting guide](https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/)
+
 Download the **print & cut ZIP** from **Review export**. It includes the PDF and matching cut files for each sheet. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet**. In Silhouette Studio, open the Studio file when available or use DXF with the settings under **Cut instructions**.
 
 ### Foil colors

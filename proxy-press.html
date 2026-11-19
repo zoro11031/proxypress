@@ -1042,7 +1042,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             </select>
           </div>
         </div>
-        <p id="scmTemplateHint" class="hint" hidden></p>
+        <p id="scmTemplateHint" class="hint"></p>
         <div id="cameoStatus"></div>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
@@ -2587,7 +2587,7 @@ function makeT(L, back, s = S.settings) {
 // How far short of the sheet edge the margin guides stop, in mm.
 const GUIDE_EDGE = 1;
 function activeGuides(s) {
-  const g = s.guides || 'both';
+  const g = s.silhouette && scmTemplateFor(s) ? 'none' : (s.guides || 'both');
   if (g === 'none') return {lines:false, corners:false, outline:false, margin:false};
   if (g === 'all') return {lines:true, corners:true, outline:true, margin:false};
   if (g === 'both') return {lines:true, corners:true, outline:false, margin:false};
@@ -8465,7 +8465,7 @@ async function runPreflight(options = {}) {
           message:`Artwork is close to these marks on Sheet ${sheet}: ${close.join(', ')}. Test on plain paper.`});
       }
     }
-    if (s.guides !== 'none') {
+    if (Object.values(activeGuides(s)).some(Boolean)) {
       warnings.push({ type: 'guides_cameo', tab: 'cutting', message: 'Turn off cut guides for Cameo.' });
     }
   }
@@ -8812,13 +8812,14 @@ function renderGuideTab() {
 
   const cutPane = $('#tabGuidePaneCut'), activeCutSheet = scopedSheets.find(sheet=>sheet.index === S.activeSheet) || scopedSheets[0];
   if (cutPane) {
+    const hasStockTemplate = isCameo && !L.scm && (scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless'));
     const placement = pad ? `Leave <b>${pad.toFixed(1)} mm</b> from the top and left grid edges.` : 'Align the top-left corners of the paper and mat grid.';
     cutPane.innerHTML = isCameo ? `
       <ol class="steps">
         <li>Place the sheet <b>${frame.orientation}</b> on the Studio mat. ${placement} ${s.regPattern === 3 ? 'Keep the black square at the upper left.' : ''}</li>
         <li>Open the matching cut file. Make a small test cut before cutting the sheet.</li>
       </ol>
-      ${L.scm ? `<p><a href="https://github.com/Alan-Cha/silhouette-card-maker/blob/0da09b729814aa5aafde024b5a6059624fa87951/cutting_templates/${esc(L.scm)}" target="_blank" rel="noopener">Stock template (${esc(L.scm.split('/').at(-1))})</a>. On partial sheets, use the ZIP cut file or turn off unused cuts.</p>` : ''}
+      ${L.scm ? `<p><a href="https://github.com/Alan-Cha/silhouette-card-maker/blob/0da09b729814aa5aafde024b5a6059624fa87951/cutting_templates/${esc(L.scm)}" target="_blank" rel="noopener">Matching Silhouette Card Maker template</a>. For partial sheets, use the ZIP cut file or turn off unused cuts.</p>` : `<p>Use the PDF and cut files from the same export.${hasStockTemplate ? ' To use a stock template, select it in Print Settings → Cutting before exporting.' : ''}</p>`}
       <details class="adv"><summary>Studio setup for DXF</summary>
         <ol class="steps">
           <li>Set <b>Edit → Preferences → Import → DXF Open → As-is</b>.</li>
@@ -10940,10 +10941,11 @@ function renderCutStatus() {
   $('#cameoCustomRegistration').hidden = !!L.scm;
   $('#scmExportOptions').hidden = !L.scm;
   const templateHint = $('#scmTemplateHint');
-  templateHint.hidden = !!L.scm;
-  templateHint.textContent = scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless')
-    ? 'Use the cut files from your export.'
-    : 'No stock template for this paper and card size.';
+  templateHint.textContent = L.scm
+    ? `Uses the matching stock template’s layout and marks. Printed guides are off, with ${s.bleed} mm bleed and a ${s.regInset} mm registration inset.`
+    : scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless')
+      ? 'Use the PDF and cut files from the same export.'
+      : 'No stock template for this paper and card size. Use the PDF and cut files from the same export.';
   const cur = activeGuides(s);
   const allOn = cur.lines && cur.corners && cur.outline;
   const noneOn = !cur.lines && !cur.corners && !cur.outline && !cur.margin;
@@ -10959,7 +10961,7 @@ function renderCutStatus() {
   if (cEl) {
     const noConflict = !regConflict(L);
     const marksFit = !regMarksClipped(L, s);
-    const cameoOk = s.silhouette && L.fits && noConflict && marksFit && s.guides === 'none' && s.bleed <= 1;
+    const cameoOk = s.silhouette && L.fits && noConflict && marksFit && noneOn && s.bleed <= 1;
     if (cameoOk) {
       const frame = registrationFrame(L,s);
       cEl.innerHTML = `<div class="cutter-status-pill">${L.per} cards per sheet · ${frame.orientation === 'portrait' ? 'Portrait' : 'Landscape'} on mat</div>`;
@@ -10969,7 +10971,7 @@ function renderCutStatus() {
       if (!L.fits) why.push('the card grid does not fit the page');
       if (!noConflict) why.push('cards overlap registration marks');
       if (!marksFit) why.push('registration marks extend off the PDF page');
-      if (s.guides !== 'none') why.push('cut guides are on (should be None)');
+      if (!noneOn) why.push('cut guides are on (should be None)');
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
       cEl.innerHTML = `<div class="warn"><b>Check cutter setup:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
       const cb = $('#cameoApply');
