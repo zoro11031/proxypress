@@ -322,7 +322,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     near(L.H-(bottom+h)/pt+0.625,y*size);
     assert.equal((front.match(/ re\n/g)||[]).length,5);
     assert.equal((back.match(/ re\n/g)||[]).length,5);
-    assert.match(front,new RegExp(file.split('/').at(-1).replaceAll('.','\\.')));
+    for (const page of [front,back]) assert.doesNotMatch(page,/^BT$/m,`${file}: blank labels should print no text`);
     assert.ok(Math.abs(backBottom-bottom)>backH/2,'the first back belongs to the mirrored row');
     if (process.argv[2]) {
       fs.writeFileSync(path.join(process.argv[2],`scm-${paper}-${variant}.zip`),data);
@@ -350,8 +350,10 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   assert.equal((files.get('sheet-2.svg').toString().match(/<rect /g)||[]).length,1);
   const printed = pdfPages(files.get(info.pdf));
   assert.equal(printed.length,4);
-  assert.match(printed[0],/Registration trial/);
-  assert.match(printed[2],/Sheet 2/);
+  for (let i = 0; i < printed.length; i++) {
+    if (i % 2 === 0) assert.deepEqual(printed[i].match(/^.* Tj$/gm),['(Registration trial) Tj']);
+    else assert.doesNotMatch(printed[i],/^BT$/m);
+  }
   const firstSvg = files.get('sheet-1.svg').toString().match(/<rect x="([\d.]+)"/);
   near(+firstSvg[1],slotPos(original,1,false,skipSettings).x+0.625);
   const allSkipped = {...skipSettings,scmSkip:'1,2,3,4,5,6,7,8'};
