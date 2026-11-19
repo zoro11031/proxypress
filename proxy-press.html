@@ -472,6 +472,7 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .slider-reset:hover{color:var(--text);opacity:1;text-decoration:underline}
 .slider-bar{width:100%;height:6px;border-radius:3px;background:var(--panel2);accent-color:var(--accent);cursor:pointer;margin:4px 0}
 .slider-bar:focus{outline:none;box-shadow:0 0 0 2px rgb(var(--accent-rgb) / .3)}
+#colorSliders .slider-bar{height:var(--ctl);margin:0;background:transparent}
 .pane details.adv{margin-top:10px}
 .pane details.adv > :not(summary):first-of-type{margin-top:8px}
 .wiz-bar{display:flex;border-bottom:1px solid var(--line);margin:-14px -18px 14px;background:var(--panel2);border-top-left-radius:8px;border-top-right-radius:8px}
@@ -1390,7 +1391,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
     </div>
     <nav class="settings-nav-tabs" role="tablist" aria-label="Print Settings tabs">
       <button type="button" role="tab" id="tabNav-layout" data-settings-page="layout" class="active" aria-selected="true">Layout</button>
-      <button type="button" role="tab" id="tabNav-printer" data-settings-page="printer" aria-selected="false">Printer &amp; paper</button>
+      <button type="button" role="tab" id="tabNav-printer" data-settings-page="printer" aria-selected="false">Printer</button>
       <button type="button" role="tab" id="tabNav-alignment" data-settings-page="alignment" aria-selected="false">Alignment</button>
       <button type="button" role="tab" id="tabNav-color" data-settings-page="color" aria-selected="false">Color</button>
       <button type="button" role="tab" id="tabNav-cutting" data-settings-page="cutting" aria-selected="false">Cutting</button>
@@ -1407,6 +1408,10 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
         </div>
         <div class="settings-section" id="setupGroup-paper">
           <h3>Paper size &amp; direction</h3>
+          <div class="row" id="layoutTemplateNote" hidden>
+            <span class="hint">Silhouette Card Maker sets the sheet direction and card positions.</span>
+            <button type="button" id="btnChangeLayoutTemplate">Change template</button>
+          </div>
           <div class="grid2" id="paperForm"></div>
         </div>
         <div class="settings-section">
@@ -1536,10 +1541,10 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 
         <div class="alignment-commit-bar">
           <div class="row" style="gap:8px">
-            <button type="button" id="btnApplyAlignment" class="primary">Apply changes</button>
-            <button type="button" id="btnResetAlignment">Revert</button>
+            <button type="button" id="btnApplyAlignment" class="primary" disabled>Apply changes</button>
+            <button type="button" id="btnResetAlignment" disabled>Revert</button>
           </div>
-          <span id="alignmentDraftStatus" class="hint" hidden>Unapplied changes</span>
+          <span id="alignmentDraftStatus" class="hint" role="status" hidden>Apply changes to update the preview and test sheets.</span>
           <div id="alignmentInputError" class="warn-inline" style="display:none" role="alert"></div>
         </div>
 
@@ -7265,54 +7270,62 @@ async function printFoilTestSheet() {
   }
 }
 
-function renderColorSliders() {
-  const s = S.settings;
-  const sliders = [
-    {k:'brightness', label:'Brightness', min:50, max:150, def:100, unit:'%'},
-    {k:'saturation', label:'Saturation', min:50, max:200, def:100, unit:'%'},
-    {k:'contrast', label:'Contrast', min:50, max:200, def:100, unit:'%'},
-    {k:'foilTint', label:'Foil tint', min:0, max:30, def:0, unit:'%'}
-  ];
-  const isFoil = matchesPrintColors(foilColors());
-  const isStandard = !isFoil && matchesPrintColors(DEFAULTS);
-  $('#resetFoilColors').hidden = !S.foilColorDefaults;
-
-  const html = `
+const PRINT_COLOR_CONTROLS = [
+  {k:'brightness', label:'Brightness', min:50, max:150},
+  {k:'saturation', label:'Saturation', min:50, max:200},
+  {k:'contrast', label:'Contrast', min:50, max:200},
+  {k:'foilTint', label:'Foil tint', min:0, max:30}
+];
+function readPrintColor(input) {
+  const {min,max} = PRINT_COLOR_CONTROLS.find(control => control.k === input.dataset.k);
+  const value = Number(input.value);
+  return input.value.trim() && Number.isFinite(value) ? Math.max(min, Math.min(max, Math.round(value))) : null;
+}
+function renderColorSliders(editing = null) {
+  const el = $('#colorSliders');
+  if (!el.firstElementChild) el.innerHTML = `
     <div class="color-sliders">
       <div class="color-sliders-hdr">
         <div class="row" role="group" aria-label="Color presets" style="gap:5px">
-          <button type="button" class="btn-chip ${isStandard ? 'active' : ''}" data-color-profile="standard" aria-pressed="${isStandard}">Standard paper</button>
-          <button type="button" class="btn-chip ${isFoil ? 'active' : ''}" data-color-profile="foil" aria-pressed="${isFoil}">${S.foilColorDefaults ? 'My foil colors' : 'Foil colors'}</button>
+          <button type="button" class="btn-chip" data-color-profile="standard">Standard colors</button>
+          <button type="button" class="btn-chip" data-color-profile="foil">Foil colors</button>
         </div>
       </div>
-      ${sliders.map(sl => {
-        const val = s[sl.k] !== undefined ? s[sl.k] : sl.def;
-        const modified = val !== sl.def;
-        return `
+      ${PRINT_COLOR_CONTROLS.map(({k,label,min,max}) => `
           <div class="slider-row">
             <div class="slider-hdr">
-              <label for="setting-${sl.k}">${sl.label}</label>
+              <label for="setting-${k}">${label}</label>
               <div class="slider-badge-wrap">
-                <label class="slider-val" id="val-${sl.k}" for="num-${sl.k}">
-                  <input type="number" class="slider-val-input" id="num-${sl.k}" data-k="${sl.k}" min="${sl.min}" max="${sl.max}" step="1" value="${val}" aria-label="${sl.label} percentage">
-                  <span class="slider-val-unit">${sl.unit}</span>
+                <label class="slider-val" for="num-${k}">
+                  <input type="number" class="slider-val-input" id="num-${k}" data-k="${k}" min="${min}" max="${max}" step="1" inputmode="numeric" aria-label="${label} percentage">
+                  <span class="slider-val-unit">%</span>
                 </label>
-                ${modified ? `<button type="button" class="slider-reset" data-reset-k="${sl.k}" data-def="${sl.def}" aria-label="Reset ${sl.label} to ${sl.def}${sl.unit}">Reset (${sl.def}${sl.unit})</button>` : ''}
+                <button type="button" class="slider-reset" data-reset-k="${k}" aria-label="Reset ${label} to ${DEFAULTS[k]}%">Reset</button>
               </div>
             </div>
-            <input type="range" class="slider-bar" id="setting-${sl.k}" data-k="${sl.k}" data-num min="${sl.min}" max="${sl.max}" step="1" value="${val}" aria-label="${sl.label}">
-          </div>`;
-      }).join('')}
+            <input type="range" class="slider-bar" id="setting-${k}" data-k="${k}" min="${min}" max="${max}" step="1">
+          </div>`).join('')}
     </div>`;
 
-  const el = $('#colorSliders');
-  if (el) el.innerHTML = html;
-  const inspEl = $('#inspColorSliders');
-  if (inspEl) inspEl.innerHTML = html;
-
-  $$('#btnInspFoilPreview').forEach(b => b.onclick = () => openFoilToneModal());
-  $$('#btnInspFoilTestSheet').forEach(b => b.onclick = () => printFoilTestSheet());
+  const isFoil = matchesPrintColors(foilColors());
+  const isStandard = !isFoil && matchesPrintColors(DEFAULTS);
+  const foil = $('[data-color-profile="foil"]',el), standard = $('[data-color-profile="standard"]',el);
+  for (const [button, selected] of [[standard,isStandard],[foil,isFoil]]) {
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  }
+  foil.textContent = S.foilColorDefaults ? 'My foil colors' : 'Foil colors';
+  $('#resetFoilColors').hidden = !S.foilColorDefaults;
+  for (const {k} of PRINT_COLOR_CONTROLS) {
+    const value = S.settings[k] ?? DEFAULTS[k];
+    for (const input of [$('#setting-' + k,el), $('#num-' + k,el)]) {
+      if (input !== editing) input.value = value;
+    }
+    $(`[data-reset-k="${k}"]`,el).disabled = value === DEFAULTS[k];
+  }
 }
+$('#btnInspFoilPreview').onclick = () => openFoilToneModal();
+$('#btnInspFoilTestSheet').onclick = () => printFoilTestSheet();
 $('#saveFoilColors').onclick = () => {
   S.foilColorDefaults = cleanFoilColors(S.settings);
   save();
@@ -7366,6 +7379,7 @@ function renderSettings() {
     return `<div class="field ${f.full || hint ? 'full' : ''}"><label for="setting-${f.k}">${label}</label>${input}${hint ? `<div class="hint" id="setting-${f.k}-hint">${hint}</div>` : ''}</div>`;
   };
   const paperKeys = ['pageSize', 'orientation', 'pageW', 'pageH'];
+  $('#layoutTemplateNote').hidden = !L.scm;
   $('#paperForm').innerHTML = FIELDS.filter(f => paperKeys.includes(f.k) && (!f.show || f.show(s))).map(fieldHtml).join('');
   const groups = [];
   for (const f of FIELDS) { if (f.sec) groups.push({sec:f.sec, fields:[]}); else groups.at(-1).fields.push(f); }
@@ -7398,7 +7412,8 @@ function renderSettings() {
   if (scrollParent) scrollParent.scrollTop = st;
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
   if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
-  renderCalibrationProfiles();
+  if (document.body.classList.contains('print-settings-active') && $('#printSettingsView').dataset.page === 'alignment') refreshAlignmentPage();
+  else renderCalibrationProfiles();
   renderColorSliders();
   updateInspectorSummary();
   if(focused){$('[data-k="'+CSS.escape(focused)+'"]',panel)?.focus({preventScroll:true});panel.scrollTop=scroll;}
@@ -7592,9 +7607,10 @@ function refreshAlignmentPage() {
   const draft = alignmentDrafts.get(alignmentDraftKey());
   for (const [id, val] of Object.entries(inputs)) {
     const el = $('#' + id);
-    if (el) el.value = draft?.[el.dataset.align] ?? val;
+    el.value = draft?.[el.dataset.align] ?? val;
+    el.removeAttribute('aria-invalid');
   }
-  $('#alignmentDraftStatus').hidden = !draft;
+  syncAlignmentDraftStatus(!!draft);
   const err = $('#alignmentInputError');
   if (err) { err.style.display = 'none'; err.textContent = ''; }
 
@@ -7754,13 +7770,17 @@ function renderCalibrationProfiles(activeId) {
 $('#printSettingsView').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
   const s = S.settings;
+  const hadFocus = document.activeElement === t;
   if (PRESET_IMAGE_KEYS.includes(k)) {
-    const limits = {brightness:[50, 150], saturation:[50, 200], contrast:[50, 200], foilTint:[0, 30]};
-    if (limits[k]) {
-      const [min, max] = limits[k];
-      s[k] = Math.max(min, Math.min(max, Math.round(parseFloat(t.value) || DEFAULTS[k])));
-    }
-    S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
+    const value = readPrintColor(t);
+    if (value !== null) {
+      s[k] = value;
+      S.activePreset = null;
+      save();
+      renderSettings();
+      renderPresets();
+      renderPreview();
+    } else renderColorSliders();
     return;
   }
   if (!t.checkValidity() || (t.type === 'number' && !Number.isFinite(t.valueAsNumber))) {
@@ -7805,14 +7825,17 @@ $('#printSettingsView').addEventListener('change', async ev => {
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
     if (s.silhouette) {
       const stock = preferredScmSettings(s);
-      if (s.scmTemplate !== 'custom' && !stock) toast('No Silhouette Card Maker template for this size. Using a custom layout.');
-      if (!stock && s.scmTemplate !== 'custom') s.regOrientation = 'auto';
-      Object.assign(s, stock || {...cameoPaperLayout(s.orientation), scmTemplate:'custom'});
+      if (stock) Object.assign(s, stock);
+      else if (!s.scmCustomChosen) {
+        if (s.scmTemplate !== 'custom') toast('No Silhouette Card Maker template for this size. Using a custom layout.');
+        Object.assign(s, {...cameoPaperLayout(s.orientation), scmTemplate:'custom', regOrientation:'auto'});
+      }
     }
     else { s.cols = s.rows = 0; if (k === 'orientation' || k === 'pageSize') s.bleed = bestCutBleed(); }
   }
   if (['pageSize','orientation','pageW','pageH','duplexMethod','duplexFlip'].includes(k)) resolveAppliedCalibration();
   S.activePreset = null; save(); renderSettings(); renderPresets(); renderPrinter(); renderCutStatus(); renderPreview(); renderStats();
+  if (hadFocus) focusNavigationTarget(t.id ? $('#' + CSS.escape(t.id)) : $(`[data-k="${k}"]`, ev.currentTarget));
 });
 $('#printSettingsView').addEventListener('toggle', ev => {
   if (ev.target.id === 'advDrawer') { S.advOpen = ev.target.open; save(); }
@@ -7823,20 +7846,19 @@ $('#printSettingsView').addEventListener('click', ev => {
     const prof = chip.dataset.colorProfile;
     if (prof === 'standard') {
       for (const key of PRESET_IMAGE_KEYS) S.settings[key] = DEFAULTS[key];
-      toast('Standard paper colors applied.');
+      toast('Standard colors applied.');
     } else if (prof === 'foil') {
       Object.assign(S.settings, foilColors());
       toast('Foil colors applied.');
     }
-    const hadFocus = document.activeElement === chip;
     S.activePreset = null; save(); renderSettings(); renderPresets(); renderPreview(); renderStats();
-    if (hadFocus) focusNavigationTarget($(`[data-color-profile="${prof}"]`));
     return;
   }
   const resetBtn = ev.target.closest('[data-reset-k]');
   if (resetBtn) {
-    const k = resetBtn.dataset.resetK, def = Number(resetBtn.dataset.def);
-    S.settings[k] = def;
+    const k = resetBtn.dataset.resetK;
+    if (document.activeElement === resetBtn) focusNavigationTarget($('#setting-' + k));
+    S.settings[k] = DEFAULTS[k];
     S.activePreset = null; save(); renderSettings(); renderPresets(); renderPreview(); renderStats(); return;
   }
   if (ev.target.hasAttribute('data-advreset')) {
@@ -7876,17 +7898,11 @@ $('#printSettingsView').addEventListener('click', ev => {
 });
 $('#printSettingsView').addEventListener('input', ev => {
   const t = ev.target, k = t.dataset.k;
-  if(FRONT_CAL_KEYS.includes(k)||BACK_CAL_KEYS.includes(k)) return;
-  if (!k || !PRESET_IMAGE_KEYS.includes(k)) return;
-  const n = parseFloat(t.value) || 0;
-  S.settings[k] = n;
-  if (t.classList.contains('slider-bar')) {
-    const num = $(`#num-${k}`);
-    if (num && num !== t) num.value = n;
-  } else if (t.classList.contains('slider-val-input')) {
-    const bar = $(`#setting-${k}`);
-    if (bar && bar !== t) bar.value = n;
-  }
+  if (!PRESET_IMAGE_KEYS.includes(k)) return;
+  const value = readPrintColor(t);
+  if (value === null) return;
+  S.settings[k] = value;
+  renderColorSliders(t);
   renderPreview();
 });
 $('#printSettingsView').addEventListener('keydown', ev => {
@@ -8000,8 +8016,8 @@ function presetSettings(p) {
   for (const k of PRESET_IMAGE_KEYS) next[k] = colors[k] ?? DEFAULTS[k];
   if (S.settings.silhouette) {
     const stock = preferredScmSettings(next);
-    if (!stock && next.scmTemplate !== 'custom') next.regOrientation = 'auto';
-    Object.assign(next, stock || {...cameoPaperLayout(next.orientation), scmTemplate:'custom'});
+    if (stock) Object.assign(next, stock);
+    else if (!next.scmCustomChosen) Object.assign(next, {...cameoPaperLayout(next.orientation), scmTemplate:'custom', regOrientation:'auto'});
   } else if (!p.kind || FOIL_IDS.includes(p.id)) {
     const laser = (p.kind || printerOf(S.printer).kind) === 'Laser', portrait = next.orientation === 'portrait';
     const bleed = portrait ? (next.pageSize === 'letter' ? (laser ? 0.75 : 1) : (laser ? 1.5 : 2)) : 2;
@@ -8036,13 +8052,13 @@ function presetButton(p) {
 }
 function renderPrinter() {
   const pr = PRINTERS.find(x => x.id === S.printer) || PRINTERS[0];
+  const modelFocused = document.activeElement?.id === 'driverPrinterSel';
   $('#printerSel').innerHTML = ['Inkjet', 'Laser'].map(kind => `<option value="${kind}" ${kind === pr.kind ? 'selected' : ''}>${kind}</option>`).join('');
   const paper = FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === S.settings.pageSize)[1];
   const row = ([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(k === 'Paper size' ? paper : v)}</td></tr>`;
   const driverOpen = !!$('#driverDetails')?.open;
   const rest = [...pr.settings.slice(5), ...(pr.more || [])];
-  $('#printerGuide').innerHTML = `<p class="hint">${esc(pr.name)}</p>
-    <div class="field full" style="margin-top:6px">
+  $('#printerGuide').innerHTML = `<div class="field full" style="margin-top:6px">
       <label for="driverPrinterSel" style="font-weight:600">Printer model</label>
       <select id="driverPrinterSel">${PRINTERS.filter(x => x.kind === pr.kind).map(x => `<option value="${x.id}" ${x === pr ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
     </div>
@@ -8054,6 +8070,7 @@ function renderPrinter() {
       ${rest.length ? `<details class="adv"><summary>More printer settings</summary><table class="drv">${rest.map(row).join('')}</table></details>` : ''}
       <details class="adv"><summary>Printing tips</summary><ul class="tips hint" style="padding-left:18px;margin-top:8px">${[...pr.tips, ...COMMON_TIPS].map(t => `<li>${t}</li>`).join('')}</ul></details>
     </details>`;
+  if (modelFocused) focusNavigationTarget($('#driverPrinterSel'));
 }
 const printerOf = id => PRINTERS.find(x => x.id === id) || PRINTERS[0];
 $('#printerSel').onchange = e => {
@@ -8101,17 +8118,15 @@ function renderPresets() {
     const button = `<button type="button" data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(name)}</b><span>${esc(sub)}</span></button>`;
     return mine ? `<div class="preset-item">${button}<button type="button" class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
-  const stdPresets = ['b-letter', 'b-letter-land', 'b-a4', 'b-a4-land'].map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean);
-  const foilLayouts = FOIL_IDS.map(id => BUILTIN_PRESETS.find(p => p.id === id)).map(p => {
+  const paperPresets = ids => ids.map(id => BUILTIN_PRESETS.find(p => p.id === id)).map(p => {
     const stock = S.settings.silhouette && preferredScmSettings({...S.settings, pageSize:p.settings.pageSize});
     if (!stock) return card(p, false);
-    // Stock templates set the orientation, so both presets would apply the same layout.
-    return p.settings.orientation === 'landscape' ? card(p, false, p.name.split(' · ')[0]) : '';
+    return p.settings.orientation === stock.orientation ? card(p, false, p.name.split(' · ')[0]) : '';
   }).join('');
   $('#presetGrid').innerHTML = `
     <div class="preset-group">
       <div class="preset-group-title">Standard sheet presets</div>
-      <div class="pick presets">${stdPresets.map(p => card(p, false)).join('')}</div>
+      <div class="pick presets">${paperPresets(['b-letter', 'b-letter-land', 'b-a4', 'b-a4-land'])}</div>
     </div>
     <div class="custom-presets-wrap">
       <div class="custom-hdr">
@@ -8126,7 +8141,7 @@ function renderPresets() {
         <div class="custom-presets-empty">No saved presets.</div>
       `}
     </div>`;
-  $('#stockPresetGrid').innerHTML = `<div class="pick presets">${foilLayouts}</div>`;
+  $('#stockPresetGrid').innerHTML = `<div class="pick presets">${paperPresets(FOIL_IDS)}</div>`;
 }
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
 function saveCurrentPreset() {
@@ -8163,6 +8178,7 @@ function onPresetClick(ev) {
   const b = ev.target.closest('[data-preset]'); if (!b) return;
   const p = [...BUILTIN_PRESETS, ...S.presets].find(x => x.id === b.dataset.preset);
   if (!p) return;
+  const hadFocus = document.activeElement === b;
   let note = '';
   if (p.kind && printerOf(S.printer).kind !== p.kind) {
     S.printer = S.printerByKind?.[p.kind] || (p.kind === 'Laser' ? 'mf753' : 'et2800');
@@ -8170,6 +8186,7 @@ function onPresetClick(ev) {
   }
   applyPreset(p, note);
   save(); renderAll();
+  if (hadFocus) focusNavigationTarget($(`[data-preset="${CSS.escape(p.id)}"]`, ev.currentTarget));
 }
 $('#presetGrid').onclick = onPresetClick;$('#stockPresetGrid').onclick=onPresetClick;
 $('#printerGuide').addEventListener('click', onPresetClick);
@@ -9336,6 +9353,7 @@ function duplexReadSvg() {
 }
 function openDuplexWizard(state = {}, backLabel = '') {
   const s = S.settings, L = layout();
+  const draft = alignmentDrafts.get(alignmentDraftKey());
   // On a turn that mirrors top to bottom, page 2 of the test prints turned, so its
   // grid's axes point the other way and a reading must be subtracted, not added.
   const rsgn = backPageRot(L) === 180 ? -1 : 1;
@@ -9374,6 +9392,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
       <div class="field"><label for="duplexWizardY">Y reading (mm)</label><input id="duplexWizardY" type="text" inputmode="decimal" value="${esc(keep(state.y))}"></div>
     </div>
     <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
+    ${draft && ['backOffsetX','backOffsetY'].some(k => Object.hasOwn(draft,k)) ? '<p class="hint">Applying readings replaces your unapplied back offsets.</p>' : ''}
     <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Apply readings</button><button id="duplexWizardZero">Reset back offsets</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
     <p class="hint">Print again. Both readings should be 0.</p>
@@ -9407,6 +9426,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     const [x, y] = reading();
     if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
     s.backOffsetX = +(s.backOffsetX + rsgn * x).toFixed(3); s.backOffsetY = +(s.backOffsetY + rsgn * y).toFixed(3); s.backOffsetRel = true;
+    clearBackOffsetDraft();
     noteCalibration('back', 'measured');
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
@@ -9414,6 +9434,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
   };
   $('#duplexWizardZero').onclick = () => {
     s.backOffsetX = 0; s.backOffsetY = 0; s.backOffsetRel = true;
+    clearBackOffsetDraft();
     noteCalibration('back','none');
     S.activePreset = null; save(); renderAll();
     $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
@@ -10439,9 +10460,20 @@ function toggleInspector(open) {
 let proofRestoreState = null, settingsReviewReturn = null;
 const settingsScroll = new Map(), alignmentDrafts = new Map();
 const alignmentDraftKey = () => JSON.stringify([S.deckId, calibrationScope(S.settings,S.printer,true), frontAlignmentLocked() ? S.settings.scmTemplate : null]);
+function syncAlignmentDraftStatus(dirty) {
+  $('#alignmentDraftStatus').hidden = !dirty;
+  $('#btnApplyAlignment').disabled = $('#btnResetAlignment').disabled = !dirty;
+}
+function clearBackOffsetDraft() {
+  const key = alignmentDraftKey(), draft = alignmentDrafts.get(key);
+  if (!draft) return;
+  delete draft.backOffsetX;
+  delete draft.backOffsetY;
+  if (!Object.keys(draft).length) alignmentDrafts.delete(key);
+}
 const SETTINGS_PAGE_TITLES = {
   layout: 'Layout',
-  printer: 'Printer & paper',
+  printer: 'Printer',
   alignment: 'Alignment & test sheets',
   color: 'Color & stock',
   cutting: 'Cutting & registration'
@@ -10748,6 +10780,10 @@ addEventListener('keydown', ev => {
 $('#btnShowPrintSetup').onclick = () => toggleInspector(true);
 $('#btnWorkspaceSetup').onclick = ev => openPrintSettings('layout', ev.currentTarget);
 $('#toggleInspector').onclick = ev => openPrintSettings('layout', ev.currentTarget);
+$('#btnChangeLayoutTemplate').onclick = ev => {
+  openPrintSettings('cutting', ev.currentTarget);
+  requestAnimationFrame(() => $('#scmTemplate').focus());
+};
 
 $('#btnApplyAlignment').onclick = () => {
   const fields = [
@@ -10772,33 +10808,36 @@ $('#btnApplyAlignment').onclick = () => {
     const val = el ? el.value.trim() : '';
     const num = Number(val);
     if (!el || val === '' || !Number.isFinite(num) || (f.min != null && num < f.min) || (f.max != null && num > f.max)) {
-      invalidField = { el, f, val };
+      invalidField = { el, f };
       break;
     }
     parsed[f.k] = num;
   }
   if (invalidField) {
     if (err) {
-      err.textContent = `Please enter a valid decimal number for all alignment fields.`;
+      const {id,min,max} = invalidField.f;
+      const label = $(`label[for="${id}"]`).textContent.toLowerCase();
+      err.textContent = `Enter a number from ${min} to ${max} for ${label}.`;
       err.style.display = 'block';
     }
+    invalidField.el?.setAttribute('aria-invalid','true');
     invalidField.el?.focus();
     return;
   }
   if (err) { err.style.display = 'none'; err.textContent = ''; }
 
-  const draftKey = alignmentDraftKey(), draft = alignmentDrafts.get(draftKey) || {};
-  const changed = Object.keys(parsed).filter(k => parsed[k] !== S.settings[k] || Object.hasOwn(draft,k));
+  const draftKey = alignmentDraftKey();
+  const changed = Object.keys(parsed).filter(k => parsed[k] !== S.settings[k]);
+  alignmentDrafts.delete(draftKey);
+  if (!changed.length) { refreshAlignmentPage(); return; }
   for (const [k, v] of Object.entries(parsed)) {
     S.settings[k] = v;
   }
   if (changed.some(k => FRONT_CAL_KEYS.includes(k))) noteCalibration('front', 'manual');
   if (changed.some(k => BACK_CAL_KEYS.includes(k))) noteCalibration('back', 'manual');
-  alignmentDrafts.delete(draftKey);
   S.activePreset = null;
   save();
   refreshCalibrationStatus();
-  refreshAlignmentPage();
   toast(frontLocked ? 'Applied back alignment.' : 'Applied alignment changes.');
 };
 
@@ -10813,9 +10852,17 @@ $('#settingsPage-alignment').addEventListener('input', ev => {
   if (!key || (FRONT_CAL_KEYS.includes(key) && frontAlignmentLocked())) return;
   const scope = alignmentDraftKey();
   const draft = alignmentDrafts.get(scope) || {};
-  draft[key] = ev.target.value;
-  alignmentDrafts.set(scope,draft);
-  $('#alignmentDraftStatus').hidden = false;
+  const value = ev.target.value;
+  if (value.trim() && Number(value) === S.settings[key]) delete draft[key];
+  else draft[key] = value;
+  const dirty = Object.keys(draft).length > 0;
+  if (dirty) alignmentDrafts.set(scope,draft);
+  else alignmentDrafts.delete(scope);
+  if (ev.target.hasAttribute('aria-invalid')) {
+    ev.target.removeAttribute('aria-invalid');
+    $('#alignmentInputError').style.display = 'none';
+  }
+  syncAlignmentDraftStatus(dirty);
 });
 
 $('#settingsPage-alignment').addEventListener('keydown', ev => {
@@ -11073,7 +11120,7 @@ function renderCutStatus() {
   $('#scmExportOptions').hidden = !L.scm;
   const templateHint = $('#scmTemplateHint');
   templateHint.textContent = L.scm
-    ? `Uses the matching stock template’s layout and marks. Printed guides are off, with ${s.bleed} mm bleed and a ${s.regInset} mm registration inset.`
+    ? `The template sets card positions and registration marks. ${s.bleed} mm bleed · ${s.regInset} mm registration inset.`
     : scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless')
       ? 'Use the PDF and cut files from the same export.'
       : 'No stock template for this paper and card size. Use the PDF and cut files from the same export.';

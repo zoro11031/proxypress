@@ -21,6 +21,11 @@
     control.value = value;
     control.dispatchEvent(new Event('change', {bubbles:true}));
   };
+  const type = (selector, value) => {
+    const input = $(selector);
+    input.value = value;
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+  };
   const visible = selector => !!$(selector)?.getClientRects().length;
 
   setPreviewFocus(false);
@@ -141,6 +146,15 @@
   renderColorSliders();
   check(visible('#saveFoilColors'), 'Color settings should offer to save a foil default.');
   check($$('#btnInspFoilPreview').length === 1 && $$('#btnInspFoilTestSheet').length === 1, 'Foil actions should appear once.');
+  const brightness = $('#setting-brightness');
+  brightness.focus();
+  select('#setting-brightness','122');
+  check(document.activeElement === brightness && $('#setting-brightness') === brightness && +$('#num-brightness').value === 122, 'Committing a range adjustment should keep the same focused control and update its number.');
+  type('#num-brightness','');
+  check(S.settings.brightness === 122, 'Clearing the number while editing should keep the last valid brightness.');
+  select('#num-brightness','');
+  check(+$('#num-brightness').value === 122, 'Leaving an empty brightness field should restore its last value.');
+  select('#setting-brightness',String(customFoil.brightness));
   click('#saveFoilColors');
   check(await waitFor(async()=> (await store.get('kv','ui'))?.foilColorDefaults?.brightness === customFoil.brightness), 'The foil default should save with browser settings.');
   click('[data-color-profile="standard"]');
@@ -166,6 +180,12 @@
   click('#btnCutModeCameo');
   check(visible('#cameoPaperSize') && $('#cameoPaperSize').value === 'a4', 'Cutting should show the current paper size.');
   check(layout().scm === 'a4-standard-v5.studio3', 'A4 should use the A4 stock template.');
+  openPrintSettings('layout');
+  check($$('#presetGrid .preset-group [data-preset]').length === 2 && !$('#presetGrid [data-preset="b-a4"]'), 'Stock Silhouette should offer one standard preset per paper size.');
+  check(visible('#layoutTemplateNote') && $('#setting-orientation').disabled, 'Layout should explain the stock sheet direction.');
+  click('#btnChangeLayoutTemplate');
+  check($('#printSettingsView').dataset.page === 'cutting', 'Change template should open the Cutting tab.');
+  if ($('#printSettingsView').dataset.page !== 'cutting') openPrintSettings('cutting');
   select('#cameoPaperSize','letter');
   check(layout().scm === 'letter-standard-v6.studio3' && $('#setting-pageSize').value === 'letter', 'Choosing Letter should change the template and the print paper together.');
   check(visible('#scmTemplateHint') && /0\.625 mm bleed.*10 mm/.test($('#scmTemplateHint').textContent), 'Show the standard stock bleed and mark inset.');
@@ -179,6 +199,19 @@
   check(cleanSettings({silhouette:true,scmTemplate:'custom',regPattern:4}).scmTemplate === 'custom', 'Older Cameo projects with custom registration marks should keep their layout.');
   select('#scmTemplate','custom');
   check(cleanSettings(S.settings).scmTemplate === 'custom', 'Explicit custom layouts should survive reload.');
+  Object.assign(S.settings,{regInset:13.5,regLen:7.5});
+  select('#cameoRegPattern','4');
+  select('#cameoPaperSize','a4');
+  check(S.settings.regInset === 13.5 && S.settings.regLen === 7.5 && S.settings.regPattern === 4, 'Changing the paper should preserve the custom registration settings.');
+  openPrintSettings('layout');
+  check($$('#presetGrid .preset-group [data-preset]').length === 4, 'Custom Silhouette layouts should offer each orientation.');
+  check(!visible('#layoutTemplateNote') && !$('#setting-orientation').disabled, 'Custom layouts should let users change sheet direction.');
+  const letterPreset = '#presetGrid [data-preset="b-letter-land"]';
+  $(letterPreset).focus();
+  click(letterPreset);
+  check(S.settings.pageSize === 'letter' && S.settings.regInset === 13.5 && S.settings.regLen === 7.5, 'Applying a paper preset should preserve the custom registration settings.');
+  check(document.activeElement === $(letterPreset), 'Applying a sheet preset should return focus to its replacement button.');
+  openPrintSettings('cutting');
   select('#scmTemplate','standard');
   select('#cameoPaperSize','legal');
   select('#scmTemplate','borderless');
@@ -264,11 +297,19 @@
     printer:review.printer,calibration:review.calibration,hasBacks:review.hasBacks});
   check(!report.warnings.some(issue=>issue.type === 'cal_estimated_front'), 'The stock layout should not warn about an unused front correction.');
   const before = makeT(layout(),false).x(25);
+  check($('#btnApplyAlignment').disabled && $('#btnResetAlignment').disabled, 'Alignment actions should wait for an edit.');
   $('#input-offsetX').value = '1000';
-  $('#input-backOffsetX').value = '1.25';
+  type('#input-backOffsetX','125');
+  click('#btnApplyAlignment');
+  check($('#input-backOffsetX').getAttribute('aria-invalid') === 'true' && $('#alignmentInputError').textContent.includes('extra back offset x'), 'An invalid alignment should identify the field and allowed range.');
+  type('#input-backOffsetX','1.25');
+  check(!$('#alignmentDraftStatus').hidden && !$('#btnApplyAlignment').disabled, 'An edit should show that it needs to be applied.');
   click('#btnApplyAlignment');
   check(S.settings.offsetX === 2 && S.settings.backOffsetX === 1.25, 'Only back inputs should be applied in stock mode.');
   check(makeT(layout(),false).x(25) === before && makeT(layout(),true).x(25) === before + 1.25, 'Back correction should move the backs only.');
+  check($('#btnApplyAlignment').disabled, 'Applying alignment should clear the draft.');
+  type('#input-backOffsetX','3.75');
+  type('#input-backScaleX','101');
   click('#btnDuplexWizard');
   check(!$('#duplexWizardChoices [data-flip="short"]'), 'The stock template should offer its supported flip only.');
   check(!$('#modal .bd').textContent.includes('check the front first'), 'The stock wizard should direct the user to align the backs.');
@@ -278,6 +319,10 @@
   click('#duplexWizardApply');
   check(S.settings.backOffsetX === wizardBackX && S.settings.offsetX === 2, 'Wizard readings should adjust only the back.');
   closeModal();
+  check(+$('#input-backOffsetX').value === wizardBackX && +$('#input-backScaleX').value === 101 && S.settings.backScaleX === 100,
+    'Wizard readings should replace old offset edits while preserving unrelated draft values.');
+  click('#btnResetAlignment');
+  check($('#alignmentDraftStatus').hidden && +$('#input-backScaleX').value === 100, 'Revert should restore the applied values.');
 
   openPrintSettings('cutting');
   click('#btnCutModeRotary');
