@@ -378,14 +378,87 @@
   click('#cardList [data-act="jump"]');
   check(await waitFor(()=>document.activeElement.dataset.uid === entry.uid) && !S.orderShowBacks && S.activeSheet === printSheet, 'A card name in Order should reveal its front in the gallery without changing the print sheet.');
   click('#btnReviewExport');
-  check($('#orderSummary').textContent.includes('Cards with artwork') && $('#oChooseMissingBack'), 'Order review should show a cardback action near downloads.');
+  check($('#orderSummary').textContent.includes('Included in ZIP') && $('#oChooseMissingBack'), 'Order review should show the ZIP count and a cardback action near downloads.');
+  check($('#oXml').disabled && $('#xmlSummary').textContent.includes('Use ZIP to include uploads'), 'XML should explain where to get a deck with uploaded artwork.');
+  const previousStock = S.mpc.stock;
+  S.mpc.foil = true;
+  select('#oStock','(P10) Plastic');
+  check($('#oFoil').disabled && visible('#oFoilHint'), 'Plastic should explain why foil is unavailable.');
+  check(mpcXml(reviewedOrderSnapshots.zip,()=>({id:'test',name:'test',query:'test'})).includes('<foil>false</foil>'), 'Plastic should export without foil even when a foil preference is saved.');
+  select('#oStock',previousStock);
+  check(!$('#oFoil').disabled && $('#oFoil').checked && !visible('#oFoilHint'), 'Switching back to paper should restore the foil choice.');
+  S.mpc.foil = false;
+  renderOrder();
   check(modalFocusable().includes($('#stockGuide summary')), 'Compare cardstock should be included in the review tab sequence.');
   click('#oChooseMissingBack');
   check($('#modal .hd [data-close]').textContent.includes('Back to order review'), 'Choosing a missing back should keep the order review return path.');
   check(!visible('.source-nav-tabs') && visible('#tabPanelCommunity') && visible('#pickerCardbackUpload'), 'A cardback should show community artwork and upload without tabs that go nowhere.');
   closeModal();
   check($('#modalTitle')?.textContent === 'Review order', 'Close cardback picker should restore order review.');
+
+  const missingFront = {uid:'fixture-missing-front',name:'Missing front fixture',qty:2,kind:'CARD',faces:[{name:'Missing front fixture'}]};
+  const missingBack = {uid:'fixture-missing-back',name:'Missing back fixture',qty:1,kind:'CARD',faces:[entry.faces[0],{name:'Missing back art'}]};
+  deck().entries.push(missingFront,missingBack);
+  renderOrder();
+  check($('#orderSummary').textContent.includes('2 copies need print-ready front art') && $('#orderSummary').textContent.includes('1 copy needs print-ready back art'), 'Order review should distinguish missing fronts from missing backs.');
+  check(!$('#oAttach'), 'An ordinary deck should not be sent to the imported-order attachment flow.');
+  const fixBack = '[data-fix-order-art="back"]';
+  if ($(fixBack)) {
+    click(fixBack);
+    check($('#modalTitle')?.textContent.includes('editing Back (Missing back art)'), 'Fix back art should open the correct side of the affected card.');
+    closeModal();
+  } else check(false, 'Order review should offer a direct Fix back art action.');
+  click('#oZip');
+  check($('#modalTitle')?.textContent === 'Review ZIP download' && $('#modal .bd').textContent.includes('3 left out'), 'ZIP review should show how many copies will be left out.');
   closeModal();
+  deck().entries.splice(-2);
+  renderOrder();
+
+  const originalShareRequest = shareRequest, originalImageJsonBlob = imageJsonBlob, downloadDeckFile = download;
+  const uploaded = await store.get('images',entry.faces[0].custom);
+  let shareRequests = 0, packaged;
+  try {
+    shareRequest = async () => { shareRequests++; return {}; };
+    imageJsonBlob = async (key, image) => {
+      check(image.size === uploaded.size && image.type === uploaded.type, 'The deck file should include the original artwork.');
+      return new Blob([JSON.stringify(key) + ':"data:image/png;base64,AA=="']);
+    };
+    download = blob => { packaged = blob; };
+    await $('#printDeckOut').onclick();
+    const data = packaged && JSON.parse(await packaged.text());
+    check(shareRequests === 0 && data?.images?.[entry.faces[0].custom] && !data.originalShare, 'Downloading a deck file should embed artwork without creating a share.');
+  } finally {
+    shareRequest = originalShareRequest;
+    imageJsonBlob = originalImageJsonBlob;
+    download = downloadDeckFile;
+  }
+  closeModal();
+
+  click('#btnSettings');
+  const deckId = S.deckId, originalDeckCount = S.decks.length, originalBrightness = S.settings.brightness;
+  const backupData = {app:'proxy-press',version:1,decks:[{id:deckId,name:'Backup fixture',entries:[]}],settings:{brightness:137},images:{}};
+  const backupBlob = new Blob([JSON.stringify(backupData)],{type:'application/json'});
+  await openPrintDeckFile(backupBlob,{fromBackup:true});
+  check($('#modalTitle')?.textContent === 'Import backup' && $('#modal .bd').textContent.includes('1 deck') && S.decks.length === originalDeckCount, 'Project files should preview the backup before adding decks.');
+  check($('#restoreBackupSettings') && !$('#restoreBackupSettings').checked, 'Backup settings should be opt-in.');
+  closeModal();
+  check($('#modalTitle')?.textContent === 'Project files' && S.decks.length === originalDeckCount, 'Closing the backup preview should return to project files and preserve existing decks.');
+  await openPrintDeckFile(backupBlob,{fromBackup:true});
+  if ($('#confirmBackupRestore')) {
+    await $('#confirmBackupRestore').onclick();
+    check(S.decks.length === originalDeckCount + 1 && S.decks.some(d=>d.id !== deckId && d.name === 'Backup fixture (imported)') && S.deckId === deckId, 'Importing a backup should add a copy and keep the current deck active.');
+    check(S.settings.brightness === originalBrightness, 'Importing decks alone should keep the current print settings.');
+  } else check(false, 'The backup preview should provide an explicit import action.');
+  if ($('#modalTitle')?.textContent !== 'Project files') closeModal();
+  await openPrintDeckFile(new Blob([JSON.stringify({...backupData,decks:[]})],{type:'application/json'}),{fromBackup:true});
+  if ($('#confirmBackupRestore')) {
+    $('#restoreBackupSettings').checked = true;
+    await $('#confirmBackupRestore').onclick();
+    check(S.settings.brightness === 137, 'Selecting the restore option should apply the backup print settings.');
+  }
+  if ($('#modalTitle')?.textContent !== 'Project files') closeModal();
+  closeModal();
+
   deck().entries = [];
   renderAll();
   setWorkspaceView('proof');
@@ -402,6 +475,6 @@
   }
 
   if (failures.length) return {failures};
-  console.log('PASS workspace flows: import, review, foil defaults, cutting, artwork picker, and Order queue');
+  console.log('PASS workspace flows: import, preview, print settings, artwork, order downloads, and project files');
   return true;
 })()
