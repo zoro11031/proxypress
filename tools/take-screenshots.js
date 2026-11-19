@@ -96,7 +96,7 @@ function createProbe(state, cards, mpcLotus) {
         uid: uid(),
         name: c.name,
         set: c.set,
-        cn: c.cn,
+        cn: c.cn.replace(/^#/, ''),
         scryId: c.scryId,
         qty: 1,
         kind: 'CARD',

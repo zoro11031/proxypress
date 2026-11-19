@@ -1,21 +1,14 @@
 # Proxy Press
 
-Make Magic: The Gathering proxies from a decklist. Choose artwork, lay out sheets for your printer, or prepare an order for MakePlayingCards.
+Make Magic: The Gathering proxies from a decklist. Pick artwork, print sheets at home, or prepare an order for MakePlayingCards.
 
-![Example card list and print sheet in Proxy Press](screenshots/print-preview.png)
+![Card list and print sheet preview](screenshots/print-preview.png)
 
 ## Install
 
-Open the [latest release](https://github.com/zoro11031/proxypress/releases/latest) and expand **Assets**.
+**Desktop:** download the Windows (`.exe`, `.msi`) or Linux (AppImage, `.deb`, `.rpm`, `.pacman`) package from the [latest release](https://github.com/zoro11031/proxypress/releases/latest). Mark the AppImage executable before running it.
 
-- **Windows x64:** Run the `.exe` installer or the `.msi` package.
-- **Linux x86-64:** Use the AppImage, or choose `.deb` for Debian and Ubuntu, `.rpm` for Fedora and openSUSE, or `.pacman` for Arch. Mark the AppImage executable before launching it.
-
-### Docker
-
-Clone the repository and run `docker compose up -d`. Open `http://localhost:8642` on the server. To reach it from another device, set the server’s LAN address in `PROXY_PRESS_BIND` in `.env`. See [`.env.example`](.env.example) for the password and sharing settings.
-
-To update a local checkout, run:
+**Docker:** clone the repository and run `docker compose up -d`, then open `http://localhost:8642`. To use it from other devices, set `PROXY_PRESS_BIND` in `.env` to the server's LAN address. [`.env.example`](.env.example) lists the password and sharing options. To update:
 
 ```sh
 git pull --ff-only
@@ -24,42 +17,44 @@ docker compose up -d --build
 
 ## Add cards
 
-Paste a decklist, import a Moxfield or Archidekt link, or upload images. Choose **Change art** from a card’s menu to browse printings or community artwork. **Create a card** lets you add your own artwork to a card frame.
+Choose **Add cards** to paste a decklist, import a Moxfield or Archidekt link, or upload images. To swap artwork, choose **Change art** from a card's menu and pick a printing or community art. **Create a card** puts your own art in a card frame.
 
-![Browsing printings and community artwork in Proxy Press](screenshots/art-picker.png)
+![Choosing artwork for a card](screenshots/art-picker.png)
 
 ## Print at home
 
-Choose your paper and card layout in **Print Settings**. Check both sides in the sheet preview, then open **Review export** to download all sheets or pick one to reprint. Print at **Actual size / 100%**. If the backs sit off-center, use **Alignment → Align front and back**.
+1. Set paper, layout and sides in **Print settings**, and check both sides in the sheet preview.
+2. Choose **Review export** and download the PDF.
+3. Print at **Actual size / 100%**.
+
+If the backs are off-centre, use **Alignment → Align front and back**.
 
 ### Silhouette cutters
 
-In **Print Settings → Cutting**, select **Silhouette cutter** and choose your paper size. **Silhouette Card Maker** matches the stock template for the selected paper and card size, including Letter and A4 for standard Magic cards. Borderless is available where a matching template exists. With these templates, use long-edge flip for double-sided printing.
+In **Print settings → Cutting**, choose **Silhouette cutter** and your paper size. The **Silhouette Card Maker** template matches the stock Letter and A4 templates. It turns printed guides off and sets the bleed and registration marks for you. For double-sided sheets, flip on the long edge.
 
-The Silhouette Card Maker layout automatically turns off printed guides, uses 0.625 mm bleed, and takes the registration inset from the selected template (10 mm for standard Letter and A4). The stock template also fixes where each card lands on the page. For a custom layout, use the PDF and cut files from the same export. [Silhouette Card Maker cutting guide](https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/)
+Download the **print & cut ZIP** from **Review export**. It contains the PDF and matching cut files for each sheet. Always cut with the files from the same export. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet**. In Silhouette Studio, open the Studio file or the DXF; **Cut instructions** has the settings. See also the [Silhouette Card Maker guide](https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/).
 
-![Choosing cutting tools and registration options in Print Settings](screenshots/cutting-workflow.png)
-
-Download the **print & cut ZIP** from **Review export**. It includes the PDF and matching cut files for each sheet. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet**. In Silhouette Studio, open the Studio file when available or use DXF with the settings under **Cut instructions**.
+![Cutting settings](screenshots/cutting-workflow.png)
 
 ### Foil colors
 
-In **Print Settings → Color**, choose **Foil colors** and print a test sheet on your foil paper. If the result looks dark or muted, adjust brightness, saturation, or contrast. Choose **Save as foil default** to reuse those colors across decks when you select a foil preset.
+In **Print settings → Color**, choose **Foil colors** and print a test sheet on your foil paper. If it comes out dark or muted, raise brightness, saturation or contrast. **Save as foil default** reuses those settings for every foil preset.
 
 ## Order prints
 
-Choose **Order prints → Review order**. Pick cardstock and a shared cardback, then download the order ZIP. Open **How to place the order** for the desktop tool and upload steps.
+Switch to **Order prints** and choose **Review order**. Pick a cardstock and a shared cardback, then download the order ZIP. **How to place the order** walks through the upload.
 
-![Preparing card order in the order gallery](screenshots/order-mode.png)
+![Order gallery](screenshots/order-mode.png)
 
 ## Backups and sharing
 
-Decks save in your browser. Use **Project files** to save a backup or **Share or save a deck copy** in review to export a single deck with artwork.
+Decks are saved in your browser. **Project files** saves a backup of everything. **Share or save a deck copy** exports one deck with its artwork.
 
-On a self-hosted instance, you can create a share link. Anyone with the link can open the shared copy. Match an uploaded image to a card if you want to make that artwork searchable by others on the same server.
+On a self-hosted server you can also **Create share link**, and anyone with the link can open that copy. Artwork you upload and match to a card becomes searchable for other users on the same server.
 
 ## Credits and license
 
-Thanks to [MPC Autofill](https://mpcfill.com), [Scryfall](https://scryfall.com), [EDHREC](https://edhrec.com), and [Silhouette Card Maker](https://github.com/Alan-Cha/silhouette-card-maker). You can [support MPC Autofill on Patreon](https://www.patreon.com/mpcfill).
+Thanks to [MPC Autofill](https://mpcfill.com) ([Patreon](https://www.patreon.com/mpcfill)), [Scryfall](https://scryfall.com), [EDHREC](https://edhrec.com) and [Silhouette Card Maker](https://github.com/Alan-Cha/silhouette-card-maker).
 
-Proxy Press is licensed under [GPL-3.0-or-later](LICENSE). Card art, fonts, frames, and trademarks belong to their respective owners and are subject to their own rights.
+Licensed under [GPL-3.0-or-later](LICENSE). Card art, fonts, frames and trademarks belong to their owners.
