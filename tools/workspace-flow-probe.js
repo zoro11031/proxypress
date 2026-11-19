@@ -28,6 +28,15 @@
   deck().entries = [];
   S.settings = {...DEFAULTS,orientation:'landscape',cardRotation:'upright',bleed:0.625};
   renderAll();
+  await drawPreview();
+  check($('#previewSheetNav')?.hidden && $('#previewZoomControls')?.hidden, 'An empty preview should show import actions without sheet or zoom controls.');
+  check($('#proofViewSeg').getAttribute('aria-label') === 'Preview side and guides', 'Screen-reader labels should call this Preview.');
+  if (innerWidth > 820) {
+    click('#toggleSidebar');
+    check($('#toggleSidebar').getAttribute('aria-expanded') === 'false', 'The card list toggle should announce when the list is hidden.');
+    click('#btnShowPrintSetup');
+    check($('#toggleSidebar').textContent === 'Hide card list' && $('#toggleSidebar').getAttribute('aria-expanded') === 'true', 'Showing print shortcuts should update the reopened card list toggle.');
+  }
   await waitFor(()=>$('#barStatus').textContent.includes('Add cards'));
   click('#btnReviewExport');
   await waitFor(()=>$('[data-review-issue]'));
@@ -53,8 +62,55 @@
   deck().entries = [entry];
   renderAll();
   await drawPreview();
+  const nextEntry = {...entry, uid:'workspace-next', qty:1};
+  deck().entries.push(nextEntry);
+  renderCards();
+  click('#cardList [data-uid="workspace-next"] [data-act="jump"]');
+  check(await waitFor(()=>document.activeElement.dataset.uid === nextEntry.uid) && S.activeSheet === 1, 'Clicking a card should focus it on its own preview sheet.');
+  deck().entries.pop();
+  renderCards();
+  await showSheet(0, 'front');
+
+  setWorkspaceView('cards');
+  click('#btnReplace');
+  $('#listIn').value = '2 Fixture';
+  $('#listIn').dispatchEvent(new Event('input', {bubbles:true}));
+  check(deck().importDraft?.replace && $('#btnImport').textContent === 'Review replacement', 'Editing a replacement draft should preserve its intended action.');
+  const savedDraft = await waitFor(async () => (await store.get('kv','decks'))?.find(d=>d.id === deck().id)?.importDraft?.replace);
+  check(savedDraft, 'The replacement action should be saved with the decklist.');
+  $('#listIn').value = '';
+  if (typeof restoreDeckImport === 'function') restoreDeckImport();
+  check($('#listIn').value === '2 Fixture', 'The saved decklist should return to the import box.');
+  click('#btnAddCards');
+  check($('#btnResumeImport').textContent === 'Resume replacement' && visible('#btnResumeImport'), 'A closed replacement draft should have a clearly labeled resume action.');
+  click('#btnResumeImport');
+  const originalResolver = resolveDeckImport;
+  try {
+    resolveDeckImport = async () => ({resolved:[{...entry,qty:2}],unresolved:[],rows:[]});
+    click('#btnImport');
+    check(await waitFor(()=>$('#btnReviewConfirm')) && $('#btnReviewConfirm').textContent === 'Replace deck', 'A resumed draft should open replacement confirmation.');
+    closeModal();
+    check(entry.qty === 10, 'Closing replacement review should preserve the deck.');
+  } finally {
+    resolveDeckImport = originalResolver;
+  }
+  click('#btnAddInstead');
+  check($('#btnImport').textContent === 'Add to deck' && $('#listIn').value === '2 Fixture' && !deck().importDraft?.replace, 'Add instead should retain the list and exit replacement mode.');
+  const clipboardProperty = Object.getOwnPropertyDescriptor(navigator,'clipboard');
+  try {
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async () => { throw new Error('Clipboard unavailable'); }}});
+    click('#btnCopyList');
+    check(await waitFor(()=>$('#decklistCopyText')) && $('#listIn').value === '2 Fixture', 'When clipboard access fails, show a copyable decklist without replacing the import draft.');
+    closeModal();
+  } finally {
+    if (clipboardProperty) Object.defineProperty(navigator,'clipboard',clipboardProperty);
+    else delete navigator.clipboard;
+  }
+  $('#listIn').value = '';
+  $('#listIn').dispatchEvent(new Event('input', {bubbles:true}));
+
   click('#btnProofBack');
-  check($('#btnProofGuides').disabled, 'Front guide controls should be disabled on the back proof.');
+  check($('#btnProofGuides').disabled, 'Front guide controls should be disabled on the back preview.');
   click('#btnReviewExport');
   select('#exportScope','current');
   select('#exportSheet','1');
@@ -67,7 +123,7 @@
   renderAll();
   await drawPreview();
   check($('#exportScope').value === 'all', 'A removed sheet should reset the review scope.');
-  check($('#btnProofBack').disabled && !S.showBacks, 'Removing the backs should return the proof to the front.');
+  check($('#btnProofBack').disabled && !S.showBacks, 'Removing the backs should return the preview to the front.');
   S.settings.cols = 100;
   renderAll();
   click('#btnReviewExport');
@@ -272,6 +328,10 @@
   }
 
   click('[data-mode=order]');
+  S.orderShowBacks = true;
+  const printSheet = S.activeSheet;
+  click('#cardList [data-act="jump"]');
+  check(await waitFor(()=>document.activeElement.dataset.uid === entry.uid) && !S.orderShowBacks && S.activeSheet === printSheet, 'A card name in Order should reveal its front in the gallery without changing the print sheet.');
   click('#btnReviewExport');
   check($('#orderSummary').textContent.includes('Cards with artwork') && $('#oChooseMissingBack'), 'Order review should show a cardback action near downloads.');
   check(modalFocusable().includes($('#stockGuide summary')), 'Compare cardstock should be included in the review tab sequence.');
@@ -290,7 +350,7 @@
   if (innerWidth <= 820) {
     check(document.body.dataset.workspaceView === 'cards', 'The mobile gallery should return to Cards.');
   } else {
-    await waitFor(()=>$('#orderQueueToggle')?.textContent === 'Show queue');
+    await waitFor(()=>$('#orderQueueToggle')?.textContent === 'Show card list');
     check(visible('#orderQueueToggle'), 'Hiding the queue should leave its toggle visible.');
     click('#orderQueueToggle');
     check(!document.body.classList.contains('preview-focus'), 'The gallery toggle should restore the queue.');
