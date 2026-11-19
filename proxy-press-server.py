@@ -106,7 +106,7 @@ def asset_manifest_data():
 
 def asset_path(route):
     rel = urllib.parse.unquote(route[len("/assets/"):])
-    bundled = rel == JSPDF_ASSET or re.fullmatch(r"studio3/[^/]+\.(?:json|studio3)", rel)
+    bundled = rel == JSPDF_ASSET or re.fullmatch(r"studio3/(?:borderless/)?[^/]+\.(?:json|studio3)", rel)
     roots = [os.path.join(APP_DIR, root) for root in ("runtime-assets", "assets")] if bundled else [ASSETS]
     for root in roots:
         full = os.path.realpath(os.path.join(root, rel))

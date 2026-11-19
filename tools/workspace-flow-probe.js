@@ -108,6 +108,51 @@
   select('#cameoPaperSize','letter');
   check(layout().scm === 'letter-standard-v6.studio3' && $('#setting-pageSize').value === 'letter', 'Choosing Letter should change the template and the print paper together.');
   check($('#scmTemplateHint').hidden, 'Stock templates need no extra description.');
+  check(cleanSettings({silhouette:true,scmTemplate:'custom'}).scmTemplate === 'standard', 'Older Cameo projects should use the standard template by default.');
+  check(cleanSettings({silhouette:true,scmTemplate:'custom',regPattern:4}).scmTemplate === 'custom', 'Older Cameo projects with custom registration marks should keep their layout.');
+  select('#scmTemplate','custom');
+  check(cleanSettings(S.settings).scmTemplate === 'custom', 'Explicit custom layouts should survive reload.');
+  select('#scmTemplate','standard');
+  select('#cameoPaperSize','legal');
+  select('#scmTemplate','borderless');
+  select('#cameoPaperSize','arch_b');
+  check(S.settings.scmTemplate === 'standard', 'Paper with no borderless template should use its standard template.');
+  select('#cameoPaperSize','custom');
+  check(S.settings.scmTemplate === 'custom', 'Unsupported paper should fall back to a custom layout.');
+  select('#cameoPaperSize','letter');
+  check(layout().scm === 'letter-standard-v6.studio3', 'Returning to supported paper should restore the stock layout.');
+
+  backToProof();
+  entry.qty = 9;
+  renderAll();
+  await drawPreview();
+  click('#btnReviewExport');
+  $('#separateCutFiles').open = true;
+  check(await waitFor(()=>!$('#btnExportStudio3Tab').disabled), 'A stock Letter job should offer a native Studio download for its full sheet.');
+  check(/1 of 2 sheets/.test($('#cutFileHint').textContent), 'Review should explain which sheets have Studio files.');
+  const originalDownload = download;
+  let studioDownload;
+  try {
+    download = (blob,name) => { studioDownload = {size:blob.size,name}; };
+    click('#btnExportStudio3Tab');
+    check(await waitFor(()=>studioDownload?.size === 76004 && studioDownload.name.endsWith('sheet-1.studio3')), 'The download should deliver the matching full sheet document.');
+  } finally {
+    download = originalDownload;
+  }
+  check(/Silhouette Card Maker/.test($('#cameoJobHint').textContent) && visible('#btnReviewCutting'), 'Review should show the active layout and a stable route to its settings.');
+  select('#exportScope','current');
+  select('#exportSheet','1');
+  check(await waitFor(()=>/partial/.test($('#cutFileHint').textContent)), 'A partial sheet without a matching Studio file should point to DXF.');
+  check($('#btnExportStudio3Tab').disabled && !$('#btnExportDxfTab').disabled, 'DXF should stay available for the partial sheet.');
+  click('#btnReviewCutting');
+  check($('#btnBackToProof').textContent.includes('Back to export review'), 'Cutting settings should preserve the review return path.');
+  select('#scmTemplate','borderless');
+  backToProof();
+  check(await waitFor(()=>!$('#btnExportStudio3Tab').disabled), 'The full borderless Letter sheet should offer a native Studio download.');
+  check(/borderless/.test($('#cameoJobHint').textContent), 'Review should confirm the new layout.');
+  closeModal();
+  openPrintSettings('cutting');
+  select('#scmTemplate','standard');
   check($('#scmFit').value === 'crop' && $('#scmFitBack').value === 'same', 'Center crop should be the default for both sides.');
   check(cleanSettings({scmFit:'stretch',scmFitBack:'stretch'}).scmFit === 'crop', 'Projects with the old front default should switch to crop.');
   check(cleanSettings({scmFitBack:'stretch'}).scmFitBack === 'stretch', 'An explicit back fit should survive migration.');
