@@ -107,7 +107,13 @@
   check(layout().scm === 'a4-standard-v5.studio3', 'A4 should use the A4 stock template.');
   select('#cameoPaperSize','letter');
   check(layout().scm === 'letter-standard-v6.studio3' && $('#setting-pageSize').value === 'letter', 'Choosing Letter should change the template and the print paper together.');
-  check($('#scmTemplateHint').hidden, 'Stock templates need no extra description.');
+  check(visible('#scmTemplateHint') && /0\.625 mm bleed.*10 mm/.test($('#scmTemplateHint').textContent), 'Show the standard stock bleed and mark inset.');
+  S.settings.guides = 'all';
+  renderCutStatus();
+  check(!$('#cameoStatus').textContent.includes('cut guides are on'), 'Cameo status must ignore stale guides for stock templates.');
+  const stock = layout();
+  check(cachedGuideLines(stock,stock.per,S.settings).length === 0, 'The stock preview must omit stale printed guides.');
+  S.settings.guides = 'none';
   check(cleanSettings({silhouette:true,scmTemplate:'custom'}).scmTemplate === 'standard', 'Older Cameo projects should use the standard template by default.');
   check(cleanSettings({silhouette:true,scmTemplate:'custom',regPattern:4}).scmTemplate === 'custom', 'Older Cameo projects with custom registration marks should keep their layout.');
   select('#scmTemplate','custom');
@@ -147,6 +153,7 @@
   click('#btnReviewCutting');
   check($('#btnBackToProof').textContent.includes('Back to export review'), 'Cutting settings should preserve the review return path.');
   select('#scmTemplate','borderless');
+  check(visible('#scmTemplateHint') && $('#scmTemplateHint').textContent.includes('3.5 mm'), 'Show the borderless inset for the selected template.');
   backToProof();
   check(await waitFor(()=>!$('#btnExportStudio3Tab').disabled), 'The full borderless Letter sheet should offer a native Studio download.');
   check(/borderless/.test($('#cameoJobHint').textContent), 'Review should confirm the new layout.');
