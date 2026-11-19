@@ -106,7 +106,7 @@ def asset_manifest_data():
 
 def asset_path(route):
     rel = urllib.parse.unquote(route[len("/assets/"):])
-    bundled = rel == JSPDF_ASSET or re.fullmatch(r"studio3/(?:borderless/)?[^/]+\.(?:json|studio3)", rel)
+    bundled = rel == JSPDF_ASSET or re.fullmatch(r"studio3/(?:borderless/)?[^/]+\.(?:json|studio3)|vendor/fonts/[^/]+\.woff2", rel)
     roots = [os.path.join(APP_DIR, root) for root in ("runtime-assets", "assets")] if bundled else [ASSETS]
     for root in roots:
         full = os.path.realpath(os.path.join(root, rel))
@@ -411,8 +411,8 @@ def page_csp(page_bytes):
     return "; ".join([
         "default-src 'self'",
         f"script-src 'self' {hashes} https://cdnjs.cloudflare.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
+        "style-src 'self' 'unsafe-inline'",
+        "font-src 'self'",
         "img-src 'self' data: blob: https://cards.scryfall.io https://svgs.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com",
         "connect-src 'self' data: blob: https://api.scryfall.com https://cards.scryfall.io https://img.mpcautofill.com https://cdn.mpcautofill.com" + (" " + PUBLIC_URL if PUBLIC_URL else ""),
         "object-src 'none'",

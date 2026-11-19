@@ -76,7 +76,7 @@
     eq('inspector paper contains Letter · Landscape', $('#inspPaper').textContent.includes('Letter') && $('#inspPaper').textContent.includes('Landscape'), true);
     eq('inspector layout shows 4 × 2', $('#inspLayout').textContent.includes('4 × 2'), true);
     eq('inspector sides shows Single-sided when no backs', $('#inspSides').textContent, 'Single-sided');
-    eq('inspector cut shows Rotary trimmer', $('#inspCut').textContent, 'Rotary trimmer');
+    eq('inspector cut shows Cut by hand', $('#inspCut').textContent, 'Cut by hand');
     eq('inspector calibration populated', $('#inspCal').textContent.length > 0, true);
 
     // 7. Verify Persistent Bottom Export Bar
