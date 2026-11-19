@@ -8624,10 +8624,9 @@ async function exportPrintJob(job, withCut = false) {
           doc.setFillColor('#000000');
           for (const [x,y,w,h] of regInk) doc.rect(x,y,w,h,'F');
         }
-        if (!back && L.scm) {
+        const label = s.scmLabel.trim();
+        if (!back && L.scm && label) {
           doc.setFontSize(9.6);
-          const title = s.scmLabel ? `${s.scmLabel} · ` : '';
-          const label = `${title}Sheet ${sheets[pageIdx].index + 1} · ${L.scm.split('/').at(-1)}`;
           doc.setFontSize(Math.min(9.6, 9.6*(L.H-10)/doc.getTextWidth(label)));
           doc.text(label, L.W - (s.scmTemplate === 'borderless' ? 2.6 : 7.5),
             L.H/2 + doc.getTextWidth(label)/2, {angle:90});
