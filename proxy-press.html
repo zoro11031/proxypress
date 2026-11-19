@@ -862,10 +862,17 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 .review-section>button{width:100%}
 .review-section .hint{margin:0}
 .review-file-options>.row{margin:8px 0}
-#tab-guide .review-section{padding:0;border:0;border-radius:0;background:none}
-#tab-guide .review-downloads{padding-inline-start:16px;border-inline-start:1px solid var(--hair)}
-#tab-guide #separateCutFiles{margin:0;padding:0;border:0;border-top:1px solid var(--hair);border-radius:0;background:none}
-#tab-guide #separateCutFiles>summary{margin-inline:0;padding-inline:0}
+:is(#tab-guide,#tab-order) .review-section{padding:0;border:0;border-radius:0;background:none}
+:is(#tab-guide,#tab-order) .review-downloads{padding-inline-start:16px;border-inline-start:1px solid var(--hair)}
+.review-downloads .review-file-options{margin:0;padding:0;border:0;border-top:1px solid var(--hair);border-radius:0;background:none}
+.review-downloads details.review-file-options>summary{margin-inline:0;padding-inline:0}
+#orderSummary .osum{margin:0}
+.order-issues{margin:10px 0 0;padding:10px 0 0;border-top:1px solid var(--hair);display:grid;gap:8px}
+.order-issues li{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#tab-data .data-group{display:grid;justify-items:start;gap:8px;padding:12px 0;border-bottom:1px solid var(--hair)}
+#tab-data .data-group:first-child{padding-top:0}
+#tab-data .data-group:last-child{border-bottom:0}
+#tab-data .data-group h3,#tab-data .data-group .hint{margin:0}
 #separateCutFiles>.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr))}
 #separateCutFiles>.row button{width:100%;white-space:normal}
 #cutSheetPicker{margin:8px 0}
@@ -883,7 +890,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #printSettingsView input,#printSettingsView select{max-width:100%}
 @media(max-width:700px){
   .review-layout{grid-template-columns:minmax(0,1fr)}
-  #tab-guide .review-downloads{padding:16px 0 0;border:0;border-top:1px solid var(--hair)}
+  :is(#tab-guide,#tab-order) .review-downloads{padding:16px 0 0;border:0;border-top:1px solid var(--hair)}
   .modal .hd,.modal .bd{padding-inline:12px}
   .modal .hd>b,.settings-view-hdr h2{font-size:20px}
   .proof-kicker{flex-basis:100%}
@@ -1285,7 +1292,10 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             </div>
           </details>
         </div>
-        <label class="check"><input type="checkbox" id="oFoil"> Foil</label>
+        <div class="field full">
+          <label class="check"><input type="checkbox" id="oFoil"> Foil</label>
+          <p class="hint" id="oFoilHint" hidden>Foil is unavailable on plastic.</p>
+        </div>
       </div>
       <h4>Shared cardback</h4>
       <div class="row">
@@ -1297,14 +1307,14 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
       <input type="file" id="fileOrderBack" accept="image/*" hidden>
       <p class="hint" id="oBackHint"></p>
         </section>
-        <section class="review-section" aria-label="Order files">
-          <h3>Order files</h3>
+        <section class="review-section review-downloads" aria-labelledby="orderDownloadsTitle">
+          <h3 id="orderDownloadsTitle">Downloads</h3>
           <div id="orderSummary"></div>
-          <button class="primary" id="oZip">Download full order (ZIP)</button>
+          <button class="primary" id="oZip">Download order ZIP</button>
           <details class="adv review-file-options">
-            <summary>Order file only (XML)</summary>
-            <div class="row"><button id="oXml">Download XML</button></div>
+            <summary>XML only</summary>
             <p class="hint" id="xmlSummary"></p>
+            <div class="row"><button id="oXml" aria-describedby="xmlSummary">Download XML</button></div>
           </details>
         </section>
       </div>
@@ -1316,22 +1326,28 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
     </div>
 
     <div class="pane" id="tab-data">
-      <h3>Shared decks</h3>
-      <button id="manageShares" class="server-share">Manage shared decks…</button>
-      <h3>Backup</h3>
-      <p class="hint">Save a backup to move your decks, art, and settings to another device.</p>
-      <div class="row">
-        <button id="backupOut">Save backup file…</button>
-        <button id="backupIn">Restore from backup…</button>
-        <input type="file" id="fileBackup" accept=".json,application/json" hidden>
-      </div>
-      <p class="hint" id="signOut" hidden><a href="/logout">Sign out</a></p>
-      <h3>Defaults</h3>
-      <p class="hint">Resets settings and keeps your decks, art, and presets.</p>
-      <button id="resetSettings">Return to defaults</button>
-      <h3>Storage</h3>
-      <p class="hint" id="storageInfo"></p>
-      <div class="row"><button id="wipe" class="danger">Erase all local data</button></div>
+      <section class="data-group" aria-labelledby="backupHeading">
+        <h3 id="backupHeading">Backups</h3>
+        <p class="hint">A backup includes all decks, artwork, and print settings.</p>
+        <div class="row">
+          <button id="backupOut" class="primary">Download backup</button>
+          <button id="backupIn">Import backup…</button>
+          <input type="file" id="fileBackup" accept=".json,application/json" hidden>
+        </div>
+      </section>
+      <section class="data-group server-share" aria-labelledby="sharedHeading">
+        <h3 id="sharedHeading">Shared decks</h3>
+        <button id="manageShares">Manage share links…</button>
+      </section>
+      <section class="data-group" aria-labelledby="storageHeading">
+        <h3 id="storageHeading">Local data</h3>
+        <p class="hint" id="storageInfo"></p>
+        <div class="row">
+          <button id="resetSettings">Reset settings…</button>
+          <button id="wipe" class="danger">Erase all local data…</button>
+        </div>
+        <p class="hint" id="signOut" hidden><a href="/logout">Sign out</a></p>
+      </section>
     </div>
   </aside>
 
@@ -4582,22 +4598,24 @@ function autoSummary(r, missedOnly = false) {
   return missedOnly ? fromFolder + missed : ` High-res art picked for ${r.picked} of ${r.total}.` + fromFolder + missed;
 }
 
+function usableOrderArt(face, withImages = true) {
+  return face && !face.lowRes && (withImages ? face.custom || face.drive : face.drive && !face.custom);
+}
 function buildMpcOrder(withImages, d = deck(), settings = S.settings, orderSettings = S.mpc) {
   const fronts = new Map(), backs = new Map(), skipped = [], noBack = [], uploads = [];
-  const usable = f => f && !f.lowRes && (withImages ? f.custom || f.drive : f.drive && !f.custom);
   const add = (map, f, i) => { const k = f.custom || f.drive; if (!map.has(k)) map.set(k, {f, slots:[]}); map.get(k).slots.push(i); };
   let slot = 0;
   for (const e of d.entries) for (let q = 0; q < e.qty; q++) {
     const [f, b] = e.faces;
     if (!withImages && (f?.custom || b?.custom)) { uploads.push(e.name); continue; }
-    if (!usable(f)) { skipped.push(e.name); continue; }
-    if (b && !usable(b)) { noBack.push(e.name); continue; }
+    if (!usableOrderArt(f, withImages)) { skipped.push(e.name); continue; }
+    if (b && !usableOrderArt(b, withImages)) { noBack.push(e.name); continue; }
     add(fronts, f, slot);
     if (b) add(backs, b, slot);
     slot++;
   }
   const cb = settings.backImage ? {name:'Card back', custom:settings.backImage} : d.cardback;
-  return {d, sharedBack:cb || null, settings:{...orderSettings}, fronts, backs, slot, skipped, noBack, uploads, cardback:usable(cb) ? {f:cb, slots:[]} : null};
+  return {d, sharedBack:cb || null, settings:{...orderSettings}, fronts, backs, slot, skipped, noBack, uploads, cardback:usableOrderArt(cb, withImages) ? {f:cb, slots:[]} : null};
 }
 // Same rules as the desktop tool's sanitize-filename, so names in the zip match the paths it looks for.
 const WIN_RESERVED = ['CON', 'PRN', 'AUX', 'NUL', 'CONIN$', 'CONOUT$', ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap(n => ['COM' + n, 'LPT' + n])];
@@ -4638,28 +4656,30 @@ function mpcXml(order, entryOf) {
   if (order.cardback) xml += `    <cardback>${x(entryOf(order.cardback).id)}</cardback>\n`;
   return xml + '</order>\n';
 }
-function mpcNotes(order) {
-  const n = [];
-  if (order.uploads.length) n.push(`${order.uploads.length} card${order.uploads.length === 1 ? '' : 's'} with your own uploaded art left out (the .zip includes them)`);
-  if (order.skipped.length) n.push(`${order.skipped.length} card${order.skipped.length === 1 ? '' : 's'} without high-res art left out`);
-  if (order.noBack.length) n.push(`${order.noBack.length} double-faced card${order.noBack.length === 1 ? '' : 's'} left out because the back has no high-res art (${[...new Set(order.noBack)].slice(0, 3).join(', ')})`);
-  if (!order.cardback && [...order.backs.values()].reduce((n, c) => n + c.slots.length, 0) < order.slot) n.push('no cardback chosen');
-  if (order.slot > 612) n.push('over 612 cards, so split the order in the desktop tool');
-  return n.length ? ' Note: ' + n.join('; ') + '.' : '';
+const orderBackCount = order => [...order.backs.values()].reduce((n, c) => n + c.slots.length, 0);
+function orderArtGaps(order) {
+  return [['front', order.skipped], ['back', order.noBack]].filter(([, names]) => names.length).map(([side,names]) => {
+    const count = names.length, cards = [...new Set(names)];
+    return {side, text:`${count} ${count === 1 ? 'copy needs' : 'copies need'} print-ready ${side} art`,
+      examples:cards.slice(0,4).join(', ') + (cards.length > 4 ? '…' : '')};
+  });
 }
 function reviewOrderExport(order, withImages, proceed) {
   const missing = order.skipped.length + order.noBack.length + order.uploads.length;
-  const dfc = [...order.backs.values()].reduce((n, c) => n + c.slots.length, 0);
-  const noBack = !order.cardback && dfc < order.slot;
-  if (!missing && !noBack && order.slot <= 612) return false;
+  const noBack = !order.cardback && orderBackCount(order) < order.slot;
+  const uploadedBackExcluded = noBack && !withImages && order.sharedBack?.custom;
+  const warnings = orderArtGaps(order).map(gap => `${gap.text}. Those copies will be left out.`);
+  if (order.uploads.length) warnings.push(`${order.uploads.length} ${order.uploads.length === 1 ? 'copy uses' : 'copies use'} uploaded artwork. Use the ZIP to include uploaded artwork.`);
+  if (uploadedBackExcluded) warnings.push('Use the ZIP to include your uploaded cardback.');
+  else if (noBack) warnings.push('Add a shared cardback here or in the desktop tool.');
+  if (order.slot > 612) warnings.push('Split the order in the desktop tool.');
+  if (!warnings.length) return false;
   const fromReview = !!$('#tab-order').closest('#modal');
-  openModal(`<div class="hd"><b>${withImages?'Full order (ZIP)':'Order file (XML)'}</b><button data-close>Close</button></div><div class="bd">
-    <p><b>${esc(order.d.name)}</b> · ${esc(order.settings?.stock || S.mpc.stock)} · ${order.settings?.foil && order.settings.stock!=='(P10) Plastic'?'Foil':'Non-foil'}</p><p>${order.slot} ${order.slot===1?'card':'cards'} will be exported${missing ? `; ${missing} will be left out` : ''}.</p>
-    ${missing ? `<div class="warn">${esc(mpcNotes(order).trim())}</div>` : ''}
-    ${!withImages && order.sharedBack?.custom ? '<p class="warn">Your uploaded shared back is left out of XML. Download the full order (ZIP) to include it.</p>' : ''}
-    ${noBack ? '<p class="warn">Some cards have no cardback. Choose one before exporting, or add their backs in the desktop tool.</p>' : ''}
-    ${order.slot > 612 ? '<p class="warn">The desktop tool will need to split this into smaller orders.</p>' : ''}
-    <div class="row">${fromReview ? '' : '<button id="orderReviewBack">Review order</button>'}<button id="orderReviewExport" class="primary">${withImages?'Download full order (ZIP)':'Download order file (XML)'}</button></div></div>`, fromReview ? 'Back to order review' : '');
+  openModal(`<div class="hd"><b>Review ${withImages ? 'ZIP' : 'XML'} download</b><button data-close>Close</button></div><div class="bd">
+    <p><b>${esc(order.d.name)}</b> · ${esc(order.settings.stock)} · ${order.settings.foil && order.settings.stock !== '(P10) Plastic' ? 'Foil' : 'Non-foil'}</p>
+    <p>${order.slot} ${order.slot === 1 ? 'copy' : 'copies'} to download${missing ? ` · ${missing} left out` : ''}</p>
+    <ul class="review-issues">${warnings.map(warning => `<li>${esc(warning)}</li>`).join('')}</ul>
+    <div class="row" style="margin-top:12px">${fromReview ? '' : '<button id="orderReviewBack">Review order</button>'}<button id="orderReviewExport" class="primary">${withImages ? 'Download ZIP' : 'Download XML'}</button></div></div>`, fromReview ? 'Back to order review' : '');
   if (!fromReview) $('#orderReviewBack').onclick = () => { closeModal(); switchTab('order'); };
   $('#orderReviewExport').onclick = () => { closeModal(); proceed(); };
   return true;
@@ -4674,7 +4694,7 @@ async function exportMpcXml(reviewed = false, snapshot = null) {
   busy(false);
   const xml = mpcXml(order, c => { const i = info(c.f); return {id:c.f.drive, name:i.file || toolSanitize(c.f.mpcName || c.f.name) + '.png', query:i.query}; });
   download(new Blob([xml], {type:'application/xml'}), `${orderName(order.d)}.xml`);
-  toast(`Exported ${order.slot} cards.` + mpcNotes(order), 9000);
+  toast('Order XML downloaded.');
 }
 
 const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
@@ -4745,7 +4765,7 @@ async function exportMpcZip(reviewed = false, snapshot = null) {
     const base = orderName(order.d);
     download(makeZip([{name:`${base}.xml`, data:new TextEncoder().encode(xml)}, ...files]), `${base} (print order).zip`);
     busy(false);
-    showOrderSteps(`Downloaded ${order.slot} cards and ${files.length} images.` + mpcNotes(order));
+    showOrderSteps(`Downloaded ${order.slot} ${order.slot === 1 ? 'copy' : 'copies'} and ${files.length} image${files.length === 1 ? '' : 's'}.`);
     return true;
   } catch (err) { toast('Export failed: ' + err.message, 8000); }
   finally { await release(); busy(false); }
@@ -4775,50 +4795,58 @@ function showOrderSteps(done) {
 let reviewedOrderSnapshots=null;
 function renderOrder() {
   const project=structuredClone(deck()), settings={...S.settings}, stock={...S.mpc};
-  reviewedOrderSnapshots={zip:buildMpcOrder(true,project,settings,stock),xml:buildMpcOrder(false,project,settings,stock)};
-  const order = reviewedOrderSnapshots.zip, d = deck();
+  const snapshots = reviewedOrderSnapshots = {zip:buildMpcOrder(true,project,settings,stock),xml:buildMpcOrder(false,project,settings,stock)};
+  const {zip:order,xml} = snapshots, d = deck();
   const sel = $('#oStock');
-  sel.innerHTML = MPC_STOCKS.map(v => `<option ${v === S.mpc.stock ? 'selected' : ''}>${esc(v)}</option>`).join('');
+  sel.innerHTML = MPC_STOCKS.map(v => `<option value="${esc(v)}" ${v === S.mpc.stock ? 'selected' : ''}>${esc(v)}</option>`).join('');
   const plastic = S.mpc.stock === '(P10) Plastic';
   $('#oFoil').checked = !!S.mpc.foil && !plastic; $('#oFoil').disabled = plastic;
-  const cb = S.settings.backImage ? {custom:S.settings.backImage} : d.cardback;
-  $('#oBackThumb').style.display = cb ? '' : 'none';
+  $('#oFoilHint').hidden = !plastic;
+  if (plastic) $('#oFoil').setAttribute('aria-describedby','oFoilHint');
+  else $('#oFoil').removeAttribute('aria-describedby');
+  const cb = order.sharedBack, thumb = $('#oBackThumb');
+  thumb.style.display = cb ? '' : 'none';
   $('#oBackClear').style.display = cb ? '' : 'none';
-  if (cb) thumbSrc(cb).then(u => { if (u) $('#oBackThumb').src = u; });
+  if (cb) thumbSrc(cb).then(u => { if (u && reviewedOrderSnapshots === snapshots) thumb.src = u; });
+  else thumb.removeAttribute('src');
   $('#oBackHint').textContent = cb ? 'Used on single-faced cards.' : 'Choose a back for single-faced cards.';
-  const missing = [...order.skipped, ...order.noBack];
+  const total = d.entries.reduce((n, e) => n + e.qty, 0);
+  const gaps = orderArtGaps(order);
   const fillable = d.entries.some(e => e.qty && !e.mpc && e.faces.some(isPreview));
+  const attachable = d.entries.some(e => e.qty && e.mpc && e.faces.some(f => !usableOrderArt(f)));
   const bracket = MPC_BRACKETS.find(b => b >= order.slot) || MPC_BRACKETS[MPC_BRACKETS.length - 1];
-  const dfc = order.backs.size ? [...order.backs.values()].reduce((n, c) => n + c.slots.length, 0) : 0;
-  $('#orderSummary').innerHTML = `<dl class="osum">
-      <dt>Cards with artwork</dt><dd>${order.slot} of ${d.entries.reduce((n, e) => n + e.qty, 0)}${order.slot > 612 ? ' <span class="tag bad">over 612: split the order</span>' : ''}</dd>
-      <dt>Order size</dt><dd>${order.slot > 612 ? 'Multiple orders' : order.slot ? `${bracket}-card package` : '—'}</dd>
-      <dt>Double-faced</dt><dd>${dfc}</dd>
-      <dt>Image files</dt><dd>${new Set([...order.fronts.keys(), ...order.backs.keys(), ...(order.cardback ? [order.cardback.f.custom || order.cardback.f.drive] : [])]).size}</dd>
+  const sharedBacksNeeded = order.cardback ? 0 : order.slot - orderBackCount(order);
+  const issues = gaps.map(({side,text,examples}) => `<li><span>${esc(text)}<br><small class="hint">${esc(examples)}</small></span><button type="button" data-fix-order-art="${side}">Fix ${side} art</button></li>`);
+  if (sharedBacksNeeded) issues.push(`<li><span>${sharedBacksNeeded} ${sharedBacksNeeded === 1 ? 'copy needs' : 'copies need'} a shared cardback</span><button type="button" id="oChooseMissingBack">Choose a cardback</button></li>`);
+  $('#orderSummary').innerHTML = total ? `<dl class="osum">
+      <dt>Included in ZIP</dt><dd>${order.slot} of ${total} copies</dd>
+      ${order.slot ? `<dt>Order size</dt><dd>${order.slot > 612 ? 'Split into smaller orders' : `${bracket}-card package`}</dd>` : ''}
     </dl>
-    ${missing.length ? `<div class="warn">${missing.length} card${missing.length === 1 ? ' needs' : 's need'} high-res art and will be left out: ${esc([...new Set(missing)].slice(0, 4).join(', '))}${missing.length > 4 ? '…' : ''}.</div><div class="row"><button id="oFix">Review missing art</button><button id="oAuto">${fillable ? 'Auto fill art' : 'Attach images…'}</button></div>` : ''}
-    ${!order.cardback && dfc < order.slot ? '<div class="warn">Single-faced cards need a shared back.</div><button type="button" id="oChooseMissingBack">Choose a cardback</button>' : ''}
-    ${!d.entries.length ? '<p class="hint">Add cards to start an order.</p><button type="button" id="oAddCards">Add cards</button>' : ''}`;
+    ${issues.length ? `<ul class="order-issues">${issues.join('')}</ul>` : ''}
+    ${gaps.length && (fillable || attachable) ? `<div class="row" style="margin-top:8px">${fillable ? '<button id="oAuto">Fill missing art</button>' : ''}${attachable ? '<button id="oAttach">Attach order images…</button>' : ''}</div>` : ''}`
+    : '<p class="hint">Add cards to start an order.</p><button type="button" id="oAddCards">Add cards</button>';
   const chooseBack = $('#oChooseMissingBack');
   if (chooseBack) chooseBack.onclick = () => $('#oBackBrowse').click();
   const addCards = $('#oAddCards');
   if (addCards) addCards.onclick = () => { closeModal(); openDeckImport(); };
-  const fix = $('#oFix'); if (fix) fix.onclick = () => {
-    const e = d.entries.find(entry=>entry.qty && entry.faces.some(face=>face && (!face.custom && !face.drive || face.lowRes)));
-    if (!e) return;
-    const i = e.faces.findIndex(face=>face && (!face.custom && !face.drive || face.lowRes));
-    openMpcPicker({e, i, backLabel:'Back to order review'});
+  for (const fix of $$('[data-fix-order-art]', $('#orderSummary'))) fix.onclick = () => {
+    const back = fix.dataset.fixOrderArt === 'back';
+    const e = d.entries.find(({qty,faces:[front,otherSide]}) => qty > 0
+      && (back ? usableOrderArt(front) && otherSide && !usableOrderArt(otherSide) : !usableOrderArt(front)));
+    if (e) openMpcPicker({e, i:back ? 1 : 0, backLabel:'Back to order review'});
   };
-  const auto = $('#oAuto'); if (auto) auto.onclick = () => fillable ? mpcAutofill() : $('#fileMpcImgs').click();
+  const auto = $('#oAuto'); if (auto) auto.onclick = () => mpcAutofill();
+  const attach = $('#oAttach'); if (attach) attach.onclick = () => $('#fileMpcImgs').click();
   $('#oZip').disabled = !order.slot;
-  $('#btnXml').disabled = $('#tab-order').classList.contains('on') && !order.slot;
-  const xml = buildMpcOrder(false), excluded = d.entries.reduce((n, e) => n + e.qty, 0) - xml.slot;
   $('#oXml').disabled = !xml.slot;
-  $('#xmlSummary').textContent = `${xml.slot} included · ${excluded} left out. The autofill tool downloads online artwork.${order.cardback && !xml.cardback ? ' Your uploaded cardback is left out of XML.' : ''}`;
+  const uploadsExcluded = xml.uploads.length || (order.cardback && !xml.cardback && orderBackCount(xml) < xml.slot);
+  $('#xmlSummary').textContent = total
+    ? `${xml.slot} of ${total} copies. XML uses online artwork.${uploadsExcluded ? ' Use ZIP to include uploads.' : ''}`
+    : 'Add cards before downloading XML.';
   $('#orderSteps').innerHTML = orderStepsHtml();
   applyServerShare();
 }
-$('#oStock').onchange = e => { S.mpc.stock = e.target.value; if (S.mpc.stock === '(P10) Plastic') S.mpc.foil = false; save(); renderOrder(); };
+$('#oStock').onchange = e => { S.mpc.stock = e.target.value; save(); renderOrder(); };
 $('#oFoil').onchange = e => { S.mpc.foil = e.target.checked; save(); renderOrder(); };
 $('#oBackBrowse').onclick = () => openMpcPicker({cardback:true, backLabel:'Back to order review'});
 $('#oBackUpload').onclick = () => $('#fileOrderBack').click();
@@ -4845,14 +4873,7 @@ $('#oBackClear').onclick = async () => {
 };
 $('#oZip').onclick = () => exportMpcZip(false,reviewedOrderSnapshots.zip);
 $('#oXml').onclick = () => exportMpcXml(false,reviewedOrderSnapshots.xml);
-$('#btnXml').onclick = () => {
-  if ($('#tab-order').classList.contains('on')) {
-    exportMpcZip();
-  } else {
-    switchTab('order');
-    $('#oZip').focus();
-  }
-};
+$('#btnXml').onclick = () => switchTab('order');
 
 function cleanOrderSettings(raw) {
   return {stock:MPC_STOCKS.includes(raw?.stock) ? raw.stock : MPC_DEFAULTS.stock, foil:!!raw?.foil};
@@ -9940,10 +9961,16 @@ function download(blob, name) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 }
+function projectFileReturnLabel() {
+  if ($('#tab-data').closest('#modal')) return 'Back to project files';
+  if ($('#tab-order').closest('#modal')) return 'Back to order review';
+  if ($('#tab-guide').closest('#modal')) return 'Back to export review';
+  return '';
+}
 function showReadyDownload(blob, name) {
   if (readyDownloadUrl) URL.revokeObjectURL(readyDownloadUrl);
   readyDownloadUrl = URL.createObjectURL(new Blob([blob], {type:'application/octet-stream'}));
-  openModal(`<div class="hd"><b>Deck file ready</b><button data-close>Close</button></div><div class="bd"><p>${esc(name)}</p><p class="hint">${(blob.size / 1048576).toFixed(1)} MB · Save this file to open it on another device.</p><div class="row"><a id="readyFileSave" class="button primary">Save file</a><button id="readyFileShare" hidden>Share file…</button></div><p class="hint" id="readyFileStatus">On iPhone or iPad, choose Download or Save to Files when prompted.</p></div>`);
+  openModal(`<div class="hd"><b>File ready</b><button data-close>Close</button></div><div class="bd"><p>${esc(name)}</p><p class="hint">${(blob.size / 1048576).toFixed(1)} MB</p><div class="row"><a id="readyFileSave" class="button primary">Save file</a><button id="readyFileShare" hidden>Share file…</button></div><p class="hint" id="readyFileStatus" role="status"></p></div>`, projectFileReturnLabel());
   const a = $('#readyFileSave'); a.href = readyDownloadUrl; a.download = name; a.target = '_blank'; a.rel = 'noopener';
   const file = new File([blob], name, {type:blob.type});
   let canShare = false; try { canShare = !!navigator.canShare?.({files:[file]}) && !!navigator.share; } catch {}
@@ -10072,38 +10099,20 @@ async function importPrintDeck(data, useLayout = true) {
   } catch (err) { for (const key of written) await removeImageIfUnused(key); throw err; }
 }
 $('#printDeckOut').onclick = async () => {
-  let token, complete = false;
   busy(true, 'Packing deck and art…');
   try {
-    const parts = [], packed = new Map(), aliases = new Map(), originalImages = Object.create(null);
-    const editable = new Set(deck().entries.flatMap(e => e.faces.flatMap(f => [f.template?.artKey, f.template?.frameKey, f.template?.popKey])).filter(Boolean));
-    const server = serverAvailable();
-    if (server) token = (await shareRequest('/shares', {})).id;
+    const parts = [];
     const data = await makePrintDeck(async (key, image) => {
-      const hash = token ? (await shareRequest(`/shares/${token}/images`, image, image.type)).hash : undefined;
-      const identity = hash && hash + '/' + editable.has(key);
-      if (identity && packed.has(identity)) { aliases.set(key, packed.get(identity)); return hash; }
-      const part = await imageJsonBlob(key, await compactShareImage(image, !editable.has(key))); if (parts.length) parts.push(','); parts.push(part);
-      if (identity) { packed.set(identity, key); originalImages[key] = hash; }
-      return hash;
+      if (parts.length) parts.push(',');
+      parts.push(await imageJsonBlob(key, image));
     });
-    if (token) {
-      const result = await shareRequest('/shares/' + token, {...data, type:'linked-deck'}); complete = true;
-      data.originalShare = {token, origin:result.publicUrl || location.origin, images:originalImages};
-    }
-    const alias = (obj, fields) => { if (obj) for (const key of fields) if (aliases.has(obj[key])) obj[key] = aliases.get(obj[key]); };
-    for (const face of [...data.deck.entries.flatMap(e => e.faces), ...(data.deck.cardback ? [data.deck.cardback] : [])]) { alias(face, ['custom']); alias(face.template, ['artKey','frameKey','popKey']); }
-    alias(data.settings, ['backImage']);
     const {images, ...meta} = data;
     const blob = new Blob([JSON.stringify(meta).slice(0, -1), ',"images":{', ...parts, '}}'], {type:'application/json'});
     if (blob.size > PRINT_DECK_LIMIT) throw new Error('This print deck exceeds the 2 GB file limit. Split it into smaller decks.');
     download(blob, `${orderName(data.deck)} (print deck).json`);
   }
-  catch (err) { toast('Could not export deck package: ' + err.message, 9000); }
-  finally {
-    if (token && !complete) { try { await shareRequest(`/shares/${token}/delete`, {}); } catch {} }
-    busy(false);
-  }
+  catch (err) { toast('Could not download deck file: ' + err.message, 9000); }
+  finally { busy(false); }
 };
 $('#orderPrintDeckOut').onclick = () => $('#printDeckOut').onclick();
 async function shareRequest(path, body, type = 'application/json') {
@@ -10113,9 +10122,7 @@ async function shareRequest(path, body, type = 'application/json') {
   return data;
 }
 function showShareLink(url) {
-  const backLabel = $('#modal #sharedDeckList') ? 'Back to shared decks'
-    : $('#tab-data').closest('#modal') ? 'Back to project files'
-    : $('#tab-order').closest('#modal') ? 'Back to order review' : '';
+  const backLabel = $('#modal #sharedDeckList') ? 'Back to shared decks' : projectFileReturnLabel();
   openModal(`<div class="hd"><b>Share link ready</b><button data-close>Close</button></div><div class="bd"><p class="hint">Anyone with this link can open this copy.</p><label for="deckShareUrl">Deck link</label><input id="deckShareUrl" type="text" readonly style="margin:6px 0 10px"><button id="copyShareUrl" class="primary">Copy link</button><p class="hint" id="shareLinkStatus" role="status">Manage this link in Project files.</p></div>`, backLabel);
   const input = $('#deckShareUrl'), status = $('#shareLinkStatus'); input.value = url;
   $('#copyShareUrl').onclick = async () => {
@@ -10148,7 +10155,7 @@ $('#manageShares').onclick = async () => {
   busy(true, 'Loading shared decks…');
   try {
     const data = await shareRequest('/shares');
-    openModal(`<div class="hd"><b>Shared decks</b><button data-close>Close</button></div><div class="bd" id="sharedDeckList"><p class="hint">Removing a link stops access through that link. People who saved a copy keep it.</p>${data.shares.length ? data.shares.map(item => `<div class="row" style="margin:10px 0" data-share-row="${esc(item.id)}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(item.name)}</span><button data-share-copy="${esc(item.id)}">Copy link</button><button class="danger" data-share-remove="${esc(item.id)}">Remove link</button></div>`).join('') : '<p class="hint">No shared decks yet.</p>'}<p class="hint" id="sharedDeckStatus" role="status"></p></div>`, $('#tab-data').closest('#modal') ? 'Back to settings & backup' : '');
+    openModal(`<div class="hd"><b>Shared decks</b><button data-close>Close</button></div><div class="bd" id="sharedDeckList"><p class="hint">Removing a link stops access through that link. People who saved a copy keep it.</p>${data.shares.length ? data.shares.map(item => `<div class="row" style="margin:10px 0" data-share-row="${esc(item.id)}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(item.name)}</span><button data-share-copy="${esc(item.id)}">Copy link</button><button class="danger" data-share-remove="${esc(item.id)}">Remove link</button></div>`).join('') : '<p class="hint">No shared decks yet.</p>'}<p class="hint" id="sharedDeckStatus" role="status"></p></div>`, $('#tab-data').closest('#modal') ? 'Back to project files' : '');
     const status = $('#sharedDeckStatus');
     $('#sharedDeckList').onclick = async ev => {
       const button = ev.target.closest('button'); if (!button) return;
@@ -10220,7 +10227,7 @@ async function readPrintDeck(file) {
     return pos < buffer.length;
   };
   const space = async () => { while (await fill()) { while (pos < buffer.length && /\s/.test(buffer[pos])) pos++; if (pos < buffer.length) break; } };
-  const take = async c => { await space(); if (buffer[pos++] !== c) throw new Error('This shared deck file appears damaged or incomplete.'); };
+  const take = async c => { await space(); if (buffer[pos++] !== c) throw new Error('This file appears damaged or incomplete.'); };
   const value = async () => {
     await space();
     const parts = []; let depth = 0, quoted = false, escaped = false;
@@ -10249,7 +10256,7 @@ async function readPrintDeck(file) {
     const out = Object.create(null); await take('{'); await space();
     if (buffer[pos] === '}') { pos++; return out; }
     while (true) {
-      const key = await value(); if (typeof key !== 'string') throw new Error('This shared deck file appears damaged or incomplete.');
+      const key = await value(); if (typeof key !== 'string') throw new Error('This file appears damaged or incomplete.');
       await take(':'); out[key] = await read(key); await space();
       if (buffer[pos] === '}') { pos++; return out; }
       await take(',');
@@ -10257,7 +10264,7 @@ async function readPrintDeck(file) {
   };
   try {
     const data = await object(key => key === 'images' ? object(value) : value());
-    await space(); if (await fill()) throw new Error('This shared deck file contains unexpected extra data.');
+    await space(); if (await fill()) throw new Error('This file contains unexpected extra data.');
     return data;
   } finally { await reader.cancel(); reader.releaseLock(); }
 }
@@ -10270,11 +10277,16 @@ async function importDeckFile(file) {
     $('#listIn').value = text; await importList(text, false);
   } catch (err) { toast('Could not import file: ' + err.message, 9000); }
 }
-async function openPrintDeckFile(file) {
-  busy(true, 'Reading deck package…');
+async function openPrintDeckFile(file, {fromBackup = false} = {}) {
+  busy(true, 'Reading file…');
   try {
-    if (file.size > PRINT_DECK_LIMIT) throw new Error('This deck package exceeds the 2 GB file limit. Split it into smaller decks.');
+    if (file.size > PRINT_DECK_LIMIT) throw new Error('This file exceeds the 2 GB limit.');
     const data = await readPrintDeck(file);
+    const backLabel = fromBackup && $('#tab-data').closest('#modal') ? 'Back to project files' : '';
+    if (fromBackup && data?.app === 'proxy-press' && data.version === 1 && !data.type) {
+      reviewBackupRestore(data, backLabel);
+      return;
+    }
     if (data?.app === 'proxy-press' && data.version === 1 && !data.type && Array.isArray(data.decks) && data.decks.length) {
       openModal(`<div class="hd"><b>Import from backup</b><button data-close>Close</button></div><div class="bd"><label for="backupDeckChoice">Deck</label><select id="backupDeckChoice">${data.decks.map((d, i) => `<option value="${i}">${esc(d?.name || 'Untitled deck')}</option>`).join('')}</select><p class="hint">Adds the deck and its artwork.</p><button class="primary" id="backupDeckImport">Import deck &amp; art</button></div>`);
       $('#backupDeckImport').onclick = async () => {
@@ -10285,15 +10297,18 @@ async function openPrintDeckFile(file) {
       };
       return;
     }
-    if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Please choose a valid Proxy Press shared deck file.');
+    if (data?.app !== 'proxy-press' || data.type !== 'print-deck' || data.version !== 1) throw new Error('Choose a Proxy Press backup or deck file.');
     const d = cleanDeck(data.deck);
-    openModal(`<div class="hd"><b>Open shared deck</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><p class="hint">Save a copy of the deck and its artwork.</p><label class="check"><input type="checkbox" id="printDeckLayout"> Use the shared paper and layout settings</label><button class="primary" id="printDeckConfirm">Save to my decks</button></div>`);
+    openModal(`<div class="hd"><b>Open deck file</b><button data-close>Close</button></div><div class="bd"><p><b>${esc(d.name)}</b> · ${d.entries.reduce((n, e) => n + e.qty, 0)} cards</p><label class="check"><input type="checkbox" id="printDeckLayout" ${fromBackup ? 'checked' : ''}> Use the paper and layout settings from the file</label><button class="primary" id="printDeckConfirm">Save to my decks</button></div>`, backLabel);
     $('#printDeckConfirm').onclick = async () => {
       const useLayout = $('#printDeckLayout').checked; closeModal(); busy(true, 'Adding deck and artwork…');
-      try { await importPrintDeck(data, useLayout); } catch (err) { toast('Could not open shared deck: ' + err.message, 9000); }
+      try {
+        await importPrintDeck(data, useLayout);
+        if (backLabel && $('#tab-data').closest('#modal')) closeModal();
+      } catch (err) { toast('Could not open deck file: ' + err.message, 9000); }
       finally { busy(false); }
     };
-  } catch (err) { toast('Could not open shared deck: ' + err.message, 9000); }
+  } catch (err) { toast('Could not open file: ' + err.message, 9000); }
   finally { busy(false); }
 }
 $('#backupOut').onclick = async () => {
@@ -10354,31 +10369,57 @@ async function prepareBackupRestore(data) {
     return {decks, settings, presets, ccFonts, ccFontNames, frameSets, foilColorDefaults:cleanFoilColors(data.foilColorDefaults)};
   } catch (err) { for (const key of written) await store.del('images', key); throw err; }
 }
+function reviewBackupRestore(data, backLabel) {
+  const decks = Array.isArray(data.decks) ? data.decks.length : 0;
+  const presets = Array.isArray(data.presets) ? data.presets.length : 0;
+  const hasFoilDefault = Object.hasOwn(data, 'foilColorDefaults');
+  const contents = [`${decks} ${decks === 1 ? 'deck' : 'decks'}`, `${presets} ${presets === 1 ? 'preset' : 'presets'}`];
+  openModal(`<div class="hd"><b>Import backup</b><button data-close>Close</button></div><div class="bd">
+    <p>${contents.join(' · ')}</p>
+    <p class="hint">Decks are added as copies, with their artwork.</p>
+    ${data.settings ? `<label class="check"><input type="checkbox" id="restoreBackupSettings"> Apply the backup’s print settings to the current deck${hasFoilDefault ? ' and restore its foil color default' : ''}</label>` : ''}
+    <button type="button" id="confirmBackupRestore" class="primary">Import backup</button>
+    <p id="backupRestoreStatus" class="hint" role="status"></p>
+  </div>`, backLabel);
+  const button = $('#confirmBackupRestore'), status = $('#backupRestoreStatus');
+  modalBeforeClose = () => !button.disabled;
+  button.onclick = async () => {
+    if (button.disabled) return;
+    const useSettings = $('#restoreBackupSettings')?.checked;
+    button.disabled = true;
+    status.textContent = '';
+    busy(true, 'Importing backup…');
+    try {
+      const imported = await applyBackupRestore(data, useSettings);
+      closeModal(true);
+      toast(imported ? `Added ${imported} ${imported === 1 ? 'deck' : 'decks'} from backup.` : 'Backup imported.');
+    } catch (err) { status.textContent = 'Could not import backup: ' + err.message; }
+    finally { button.disabled = false; busy(false); }
+  };
+}
+async function applyBackupRestore(data, useSettings) {
+  const restored = await prepareBackupRestore(data);
+  const ids = new Set(S.decks.map(d => d.id));
+  for (const d of restored.decks) { if (ids.has(d.id)) { d.id = uid(); d.name += ' (imported)'; } ids.add(d.id); S.decks.push(d); }
+  const pids = new Set(S.presets.map(p => p.id));
+  for (const p of restored.presets) if (!pids.has(p.id)) { pids.add(p.id); S.presets.push(p); }
+  for (const [slot,key] of Object.entries(restored.ccFonts)) if (!S.ccFonts?.[slot]) { S.ccFonts = {...S.ccFonts,[slot]:key}; S.ccFontNames = {...S.ccFontNames,[slot]:restored.ccFontNames[slot]}; }
+  S.frameSets = [...(S.frameSets || []),...restored.frameSets];
+  const cids = new Set((S.calibrationProfiles || []).map(p=>p.id));
+  for (const raw of Array.isArray(data.calibrationProfiles) ? data.calibrationProfiles : []) if (raw && typeof raw==='object' && raw.settings && typeof raw.settings==='object') { const p=structuredClone(raw); if (!p.id || cids.has(p.id)) p.id=uid(); cids.add(p.id); S.calibrationProfiles.push(p); }
+  if (useSettings) {
+    S.settings = restored.settings;
+    if (Object.hasOwn(data, 'foilColorDefaults')) S.foilColorDefaults = restored.foilColorDefaults;
+  }
+  save();
+  renderAll();
+  return restored.decks.length;
+}
 $('#backupIn').onclick = () => $('#fileBackup').click();
-$('#fileBackup').onchange = async ev => {
-  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
-  try {
-    const data = JSON.parse(await f.text());
-    if (data.app !== 'proxy-press') throw new Error('Not a Proxy Press backup');
-    if (data.type === 'print-deck') return await importPrintDeck(data);
-    busy(true, 'Restoring…');
-    const restored = await prepareBackupRestore(data);
-    const ids = new Set(S.decks.map(d => d.id));
-    for (const d of restored.decks) { if (ids.has(d.id)) { d.id = uid(); d.name += ' (imported)'; } ids.add(d.id); S.decks.push(d); }
-    const pids = new Set(S.presets.map(p => p.id));
-    for (const p of restored.presets) if (!pids.has(p.id)) { pids.add(p.id); S.presets.push(p); }
-    for (const [slot,key] of Object.entries(restored.ccFonts)) if (!S.ccFonts?.[slot]) { S.ccFonts = {...S.ccFonts,[slot]:key}; S.ccFontNames = {...S.ccFontNames,[slot]:restored.ccFontNames[slot]}; }
-    S.frameSets = [...(S.frameSets || []),...restored.frameSets];
-    const cids = new Set((S.calibrationProfiles || []).map(p=>p.id));
-    for (const raw of Array.isArray(data.calibrationProfiles) ? data.calibrationProfiles : []) if (raw && typeof raw==='object' && raw.settings && typeof raw.settings==='object') { const p=structuredClone(raw); if (!p.id || cids.has(p.id)) p.id=uid(); cids.add(p.id); S.calibrationProfiles.push(p); }
-    const hasFoilDefault = Object.hasOwn(data, 'foilColorDefaults');
-    if (data.settings && confirm(hasFoilDefault ? 'Restore print settings and the foil default too?' : 'Restore print settings too?')) {
-      S.settings = restored.settings;
-      if (hasFoilDefault) S.foilColorDefaults = restored.foilColorDefaults;
-    }
-    save(); renderAll(); toast(`Imported ${data.decks?.length || 0} deck(s).`);
-  } catch (e) { toast('Import failed: ' + e.message, 6000); }
-  busy(false);
+$('#fileBackup').onchange = ev => {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (file) return openPrintDeckFile(file, {fromBackup:true});
 };
 $('#resetSettings').onclick = () => {
   if (!confirm('Return printer, layout, art-search, and preview settings to defaults? Your decks, artwork, and saved presets will stay saved.')) return;
