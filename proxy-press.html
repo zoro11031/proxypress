@@ -1226,10 +1226,10 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <button id="btnExportPdfTab" class="primary">Download PDF</button>
           <details class="adv review-file-options" id="separateCutFiles" hidden>
             <summary>Separate cut files</summary>
-            <div class="row"><button id="btnExportStudio3Tab">Download Studio file</button><button id="btnExportDxfTab">Download DXF</button><button id="btnExportSvgTab">Download SVG</button></div>
-            <p class="hint" id="cutFileHint"></p>
+            <div class="row"><button id="btnExportStudio3Tab" aria-describedby="cutFileHint">Download Studio file</button><button id="btnExportDxfTab">Download DXF</button><button id="btnExportSvgTab">Download SVG</button></div>
+            <p class="hint" id="cutFileHint" role="status"></p>
           </details>
-          <button id="btnCardMakerMarks" hidden>Use Silhouette Card Maker layout</button>
+          <button id="btnReviewCutting" hidden>Cutting settings</button>
         </section>
       </div>
       <details class="review-more share-export"><summary>Share or save a deck copy</summary>
@@ -1666,7 +1666,7 @@ const DEFAULTS = {
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
   dpi:1200, jpeg:92, brightness:100, saturation:100, contrast:100, foilTint:0, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
-  silhouette:false, scmTemplate:'custom', scmSkip:'', scmFit:'crop', scmStretchChosen:false, scmFitBack:'same', scmCrop:0, scmCropBack:0, scmLabel:'',
+  silhouette:false, scmTemplate:'custom', scmCustomChosen:false, scmSkip:'', scmFit:'crop', scmStretchChosen:false, scmFitBack:'same', scmCrop:0, scmCropBack:0, scmLabel:'',
   regPattern:3, regOrientation:'auto', regInset:10, regLen:0, regThickness:1, showCuts:false
 };
 
@@ -2359,6 +2359,11 @@ function scmSettings(s, variant) {
     bleed:SCM_BLEED, gap:0, cols:0, rows:0, cornerRadius:spec.radius,
     regInset:spec.inset, regLen:Math.min(20, spec.arm), regThickness:spec.thickness,
     regOrientation:spec.mat, regPattern:3, duplexFlip:'long'};
+}
+
+function preferredScmSettings(s) {
+  if (s.scmCustomChosen) return null;
+  return (s.scmTemplate === 'borderless' && scmSettings(s, 'borderless')) || scmSettings(s, 'standard');
 }
 
 function scmSkipPositions(value) {
@@ -6757,10 +6762,16 @@ function cleanSettings(raw) {
   // Older saves used stretch without recording whether anyone selected it.
   if (!out.scmStretchChosen) out.scmFit = DEFAULTS.scmFit;
   for (const key of ['scmCrop','scmCropBack']) out[key] = Math.max(0,Math.min(10,out[key]));
-  if (out.silhouette && out.scmTemplate !== 'custom') {
-    Object.assign(out, scmSettings(out, out.scmTemplate) || {scmTemplate:'custom'});
+  if (out.silhouette) {
+    // Old saves did not record the choice. Keep manually adjusted registration
+    // settings and move the old automatic layout to the stock default.
+    if (out.scmTemplate === 'custom' && raw?.scmCustomChosen === undefined) {
+      out.scmCustomChosen = out.regOrientation !== 'auto' || out.regPattern !== DEFAULTS.regPattern
+        || out.regThickness !== DEFAULTS.regThickness || out.regLen !== 0
+        || (out.regInset !== 3.5 && out.regInset !== 10);
+    }
+    Object.assign(out, preferredScmSettings(out) || {scmTemplate:'custom'});
   }
-  // Migration must not reinterpret valid custom layouts on every reload.
   return out;
 }
 // Backups are untrusted: rebuild decks from known fields with checked types.
@@ -7673,8 +7684,9 @@ $('#printSettingsView').addEventListener('change', async ev => {
   if (k === 'pageSize' && PAGE_SIZES[t.value]) [s.pageW, s.pageH] = PAGE_SIZES[t.value];
   if (['pageSize', 'orientation', 'pageW', 'pageH', 'cardPreset', 'cardW', 'cardH'].includes(k)) {
     if (s.silhouette) {
-      const stock = scmSettings(s, s.scmTemplate);
-      if (s.scmTemplate !== 'custom' && !stock) toast('No stock template for this size. Use the cut files from your export.');
+      const stock = preferredScmSettings(s);
+      if (s.scmTemplate !== 'custom' && !stock) toast('No Silhouette Card Maker template for this size. Using a custom layout.');
+      if (!stock && s.scmTemplate !== 'custom') s.regOrientation = 'auto';
       Object.assign(s, stock || {...cameoPaperLayout(s.orientation), scmTemplate:'custom'});
     }
     else { s.cols = s.rows = 0; if (k === 'orientation' || k === 'pageSize') s.bleed = bestCutBleed(); }
@@ -7866,9 +7878,11 @@ function presetSettings(p) {
   const next = {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright'};
   const colors = presetImageSettings(p);
   for (const k of PRESET_IMAGE_KEYS) next[k] = colors[k] ?? DEFAULTS[k];
-  if (S.settings.silhouette) Object.assign(next,
-    scmSettings(next, S.settings.scmTemplate) || {...cameoPaperLayout(next.orientation), scmTemplate:'custom'});
-  else if (!p.kind || FOIL_IDS.includes(p.id)) {
+  if (S.settings.silhouette) {
+    const stock = preferredScmSettings(next);
+    if (!stock && next.scmTemplate !== 'custom') next.regOrientation = 'auto';
+    Object.assign(next, stock || {...cameoPaperLayout(next.orientation), scmTemplate:'custom'});
+  } else if (!p.kind || FOIL_IDS.includes(p.id)) {
     const laser = (p.kind || printerOf(S.printer).kind) === 'Laser', portrait = next.orientation === 'portrait';
     const bleed = portrait ? (next.pageSize === 'letter' ? (laser ? 0.75 : 1) : (laser ? 1.5 : 2)) : 2;
     Object.assign(next, {cols:0, rows:0, gap:0, margin:laser ? 5 : 4, bleed});
@@ -7969,7 +7983,7 @@ function renderPresets() {
   };
   const stdPresets = ['b-letter', 'b-letter-land', 'b-a4', 'b-a4-land'].map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean);
   const foilLayouts = FOIL_IDS.map(id => BUILTIN_PRESETS.find(p => p.id === id)).map(p => {
-    const stock = S.settings.silhouette && scmTemplateFor({...S.settings, pageSize:p.settings.pageSize});
+    const stock = S.settings.silhouette && preferredScmSettings({...S.settings, pageSize:p.settings.pageSize});
     if (!stock) return card(p, false);
     // Stock templates set the orientation, so both presets would apply the same layout.
     return p.settings.orientation === 'landscape' ? card(p, false, p.name.split(' · ')[0]) : '';
@@ -8688,6 +8702,7 @@ function reviewIssueActions(issue, index) {
 function renderGuideTab() {
   clearTimeout(reviewTimer);
   const generation = ++guideGeneration;
+  $('#cutSheetPicker')?.remove();
   if (S.mode === 'order') {
     const order = buildMpcOrder(true), backs = [...order.backs.values()].reduce((n,item)=>n+item.slots.length,0);
     const warnings = order.skipped.length || order.noBack.length || !order.cardback && backs < order.slot || order.slot > 612;
@@ -8715,9 +8730,14 @@ function renderGuideTab() {
   bundle.disabled = true;
   $('#btnExportPdfTab').classList.toggle('primary', !isCameo);
   $('#btnExportPdfTab').textContent = isCameo ? 'Download PDF only' : 'Download PDF';
-  if (isCameo) bundleHint.textContent = L.scm
-    ? `Print at actual size. Template: ${L.scm.split('/').at(-1)}.`
-    : 'Print at actual size. Use the cut file with the same sheet number.';
+  if (isCameo) {
+    const template = [...$('#scmTemplate').options].find(option=>option.value === s.scmTemplate);
+    bundleHint.textContent = `${template?.textContent || 'Custom layout'} · Print at actual size.`;
+  }
+  $('#btnReviewCutting').hidden = !isCameo;
+  $('#separateCutFiles').hidden = !isCameo;
+  const cutFileHint = $('#cutFileHint');
+  cutFileHint.textContent = isCameo && slots.length ? 'Checking Studio files…' : '';
 
   const badge = $('#guideCutterBadge');
   if (badge) {
@@ -8745,6 +8765,7 @@ function renderGuideTab() {
     if (pre.errors.length) {
       review.innerHTML = `<div class="warn" style="border-color:var(--danger)"><b>Fix before downloading</b><ul class="review-issues">${pre.errors.map(reviewIssueActions).join('')}</ul></div>`;
       $('#btnExportPdfTab').disabled = true;
+      cutFileHint.textContent = '';
       if ($('#btnPdf')) $('#btnPdf').disabled = false;
       return;
     }
@@ -8756,32 +8777,26 @@ function renderGuideTab() {
     $('#btnExportPdfTab').disabled = !slots.length;
     bundle.disabled = !slots.length;
     for(const id of ['#btnExportSvgTab','#btnExportDxfTab']) $(id).disabled=!slots.length;
-    $('#btnExportStudio3Tab').disabled = !studio3MarksMatch(L,s)
-      || !scopedSheets.some(sheet=>studio3SheetSpec(studio3Key(s),sheet.slots.length));
     if ($('#btnPdf')) $('#btnPdf').disabled = false;
+    if (!isCameo || !scopedSheets.length) return;
+    return studio3AvailableSheets(job, scopedSheets).then(available => {
+      if (generation !== guideGeneration || reviewKey() !== scopeKey) return;
+      $('#btnExportStudio3Tab').disabled = available.length === 0;
+      const total = scopedSheets.length;
+      cutFileHint.textContent = available.length === total ? ''
+        : available.length ? `Studio files for ${available.length} of ${total} sheets. Use DXF for the rest.`
+        : L.scm && scopedSheets.every(sheet=>sheet.slots.length < L.cols*L.rows)
+          ? 'Use DXF for these partial sheets.' : 'Studio file unavailable. Use DXF.';
+    });
   }).catch(err => {
     if (generation !== guideGeneration || reviewKey() !== scopeKey) return;
+    cutFileHint.textContent = '';
     console.error('Couldn’t check print files:', err);
     $('#barStatus').textContent = 'Couldn’t check print files';
     review.innerHTML = '<div class="warn">Couldn’t check print files. <button type="button" data-retry-preflight>Try again</button></div>';
   });
   $('#printDeckOut').disabled = $('#orderPrintDeckOut').disabled = !deck().entries.length;
   applyServerShare();
-  $('#separateCutFiles').hidden = !isCameo;
-  const hint = $('#cutFileHint');
-  $('#btnCardMakerMarks').hidden = !isCameo || !!L.scm || !scmSettings(s, 'standard');
-  if (isCameo) {
-    const key = studio3Key(s);
-    const matchesMarks = studio3MarksMatch(L, s);
-    const s3Support = matchesMarks && key && scopedSheets.some(sheet => studio3SheetSpec(key,sheet.slots.length));
-    if (!studio3Manifest) loadStudio3Manifest().then(() => { if (generation === guideGeneration) renderGuideTab(); }).catch(() => {
-      if (generation === guideGeneration) hint.textContent = 'Studio file unavailable. Use DXF or SVG.';
-    });
-    if (key && !matchesMarks) hint.textContent = STUDIO3_MARKS_MISMATCH;
-    else if (!s3Support) hint.textContent = studio3Manifest ? 'Use DXF or SVG for these sheets.' : 'Checking Studio files…';
-    else hint.textContent = 'Studio files include the page and mark settings.';
-  }
-
   const printPane = $('#tabGuidePanePrint');
   if (printPane) {
     printPane.innerHTML = isSingleSided ? `
@@ -9531,8 +9546,10 @@ function dxfCard(rect, H) {
 // carries the page size and the registration-mark setup with it, so there is
 // nothing to type into Studio before cutting.
 //
-// Proxy Press does not write one from nothing. The container holds byte
-// offsets and counters that have not been decoded -- the value at 0x10 is a
+// Full stock sheets can use Card Maker's original file. For a custom or
+// partial sheet, Proxy Press needs a base with matching marks and card count.
+// The container holds byte offsets and counters that have not been decoded.
+// The value at 0x10 is a
 // pointer 1041 bytes ahead of the thumbnail, and three more fields vary with
 // content in ways nobody here has explained. So the export rewrites the card
 // coordinates of a real Card Maker template IN PLACE: the file's length never
@@ -9543,19 +9560,28 @@ function dxfCard(rect, H) {
 // each outline's twelve points live rather than the page hunting for them.
 const STUDIO3_BASES = {letter: {landscape: 'letter-landscape', portrait: 'letter-portrait'},
                        a4: {landscape: 'a4-landscape', portrait: 'a4-portrait'}};
-const STUDIO3_MARKS_MISMATCH = 'Use DXF and follow the Studio setup below.';
+// Original SCM documents bundled with the app. The byte counts let us detect
+// a missing or incomplete asset before offering it as a download.
+const STOCK_STUDIO3_BYTES = {
+  'letter-standard-v6.studio3':76004, 'a4-standard-v5.studio3':76192,
+  'letter-standard_double-v3.studio3':67607, 'letter-catan-v2.studio3':78708, 'a4-bridge-v4.studio3':78395,
+  'borderless/letter-standard-borderless-v2.studio3':78489, 'borderless/a4-standard-borderless-v2.studio3':78557,
+  'arch_b-standard-v4.studio3':96984
+};
+const STUDIO3_MARKS_MISMATCH = 'Registration marks don’t match a Studio template. Download DXF.';
 function studio3MarksMatch(L, s) {
   const length = STUDIO3_ARMS[studio3Key(s)];
   return s.silhouette && !registrationFrame(L,s).turned && +s.regPattern === 3
     && s.regInset >= 3.5 && s.regInset <= STUDIO3_INSET
-    && Math.abs(regArm(L,s)-length) < 0.005 && s.regThickness === 1;
+    // The stock layout table rounds Studio's registration measurements.
+    && Math.abs(regArm(L,s)-length) < (L.scm ? 0.02 : 0.005) && s.regThickness === 1;
 }
-let studio3Manifest = null, studio3ManifestPromise = null;
+let studio3ManifestPromise = null;
 function loadStudio3Manifest() {
   if (!studio3ManifestPromise) studio3ManifestPromise = fetch(serverPath('/assets/studio3/manifest.json')).then(r => {
     if (!r.ok) throw new Error('Studio templates are not installed on this server.');
     return r.json();
-  }).then(manifest => studio3Manifest = manifest).catch(err => { studio3ManifestPromise = null; throw err; });
+  }).catch(err => { studio3ManifestPromise = null; throw err; });
   return studio3ManifestPromise;
 }
 
@@ -9574,29 +9600,64 @@ function s3Points(x, y, w, h, rx, ry) {
           [x,y1-ry],[x+kx,y1-ky],[x+rx,y1]];
 }
 
-function studio3SheetSpec(key, cards) {
-  const base = studio3Manifest?.[key];
-  return base?.cards === cards ? base : studio3Manifest?.[`${key}-${cards}`];
+const studio3Files = new Map();
+function loadStudio3File(file) {
+  if (!studio3Files.has(file)) {
+    studio3Files.set(file, fetch(serverPath(`/assets/studio3/${file}`)).then(r => {
+      if (!r.ok) throw new Error('Studio template could not be read.');
+      return r.arrayBuffer();
+    }).then(buffer=>new Uint8Array(buffer)).catch(()=> {
+      studio3Files.delete(file);
+      return null;
+    }));
+  }
+  return studio3Files.get(file);
+}
+
+function studio3FileMatches(bytes, size, arm) {
+  if (!bytes || bytes.length < 1145 || bytes.length !== size) return false;
+  const dv = new DataView(bytes.buffer);
+  return [1113,1117,1121,1125].every(offset=>Math.abs(dv.getFloat32(offset,true)-STUDIO3_INSET) < 0.02)
+    && Math.abs(dv.getFloat32(1137,true)-arm) < 0.02 && Math.abs(dv.getFloat32(1141,true)-1) < 0.02;
+}
+
+async function studio3Source(job, count) {
+  const s = job.settings, L = job.layout;
+  if (!s.silhouette || !count || L.invalidSkip) return null;
+  // A stock file cuts every position. A partial or skipped sheet needs paths
+  // for just the cards it prints, so it can only use a count-matched base.
+  const stockSize = STOCK_STUDIO3_BYTES[L.scm];
+  if (stockSize && count === L.cols*L.rows) {
+    const bytes = await loadStudio3File(L.scm);
+    if (studio3FileMatches(bytes, stockSize, regArm(L,s))) return {bytes};
+  }
+  if (!studio3MarksMatch(L,s)) return null;
+  const manifest = await loadStudio3Manifest().catch(()=>null);
+  const key = studio3Key(s), base = manifest?.[key];
+  const spec = base?.cards === count ? base : manifest?.[`${key}-${count}`];
+  if (!spec) return null;
+  const bytes = await loadStudio3File(spec.file);
+  return studio3FileMatches(bytes, spec.bytes, STUDIO3_ARMS[key]) ? {bytes,spec} : null;
+}
+
+async function studio3AvailableSheets(job, sheets) {
+  const supportedCounts = new Map();
+  for (const {slots} of sheets) {
+    if (!supportedCounts.has(slots.length)) supportedCounts.set(slots.length, studio3Source(job, slots.length));
+  }
+  const supported = await Promise.all(sheets.map(sheet=>supportedCounts.get(sheet.slots.length)));
+  return sheets.filter((_,i)=>supported[i]);
 }
 
 async function cutStudio3(sheet = 0, job = buildPrintJob()) {
   const s = job.settings, L = job.layout, frame = registrationFrame(L, s), pad = studioCanvasPad(s);
   const count = cutSheetCards(L, sheet, job.slots);
-  const key = studio3Key(s);
-  if (!key) throw new Error('Silhouette Studio export covers Letter and A4 only.');
-  if (!studio3MarksMatch(L, s)) throw new Error(STUDIO3_MARKS_MISMATCH);
-  await loadStudio3Manifest();
-  const spec = studio3SheetSpec(key, count);
-  if (!spec) throw new Error(`No matching Studio template for ${count} cards on this sheet. Use DXF.`);
-  const res = await fetch(serverPath(`/assets/studio3/${spec.file}`));
-  if (!res.ok) throw new Error('Studio template could not be read.');
-  const buf = new Uint8Array(await res.arrayBuffer());
-  if (buf.length !== spec.bytes) throw new Error('Studio template does not match its manifest.');
-  const dv = new DataView(buf.buffer);
-  const realArm = dv.getFloat32(1137, true);
-  const sameInset = [1113,1117,1121,1125].every(offset=>Math.abs(dv.getFloat32(offset,true)-STUDIO3_INSET) < 0.02);
-  if (!(Math.abs(realArm-STUDIO3_ARMS[key]) < 0.005) || !sameInset || !(Math.abs(dv.getFloat32(1141,true)-1) < 0.02))
-    throw new Error('The installed Studio template has different registration settings. Download DXF for this sheet.');
+  const source = await studio3Source(job, count);
+  if (!source) throw new Error(!L.scm && !studio3MarksMatch(L,s)
+    ? STUDIO3_MARKS_MISMATCH : 'Studio file unavailable for this sheet. Download DXF.');
+  const {bytes,spec} = source;
+  if (!spec) return bytes;
+  const buf = bytes.slice(), dv = new DataView(buf.buffer);
   for (const offsets of [spec.pageOffsets, spec.storedPageOffsets].filter(Boolean)) {
     dv.setFloat32(offsets[0], frame.W+2*pad, true);
     dv.setFloat32(offsets[1], frame.H+2*pad, true);
@@ -9662,13 +9723,9 @@ async function buildCameoBundle(job, sheets, pdfName, pdfBytes) {
     .map(([x,y])=>({x,y})));
   const files = [{name:pdfName,data:pdfBytes}], rows = [], sides = job.hasBacks ? 2 : 1;
   const enc = new TextEncoder();
-  const nativeMarks = studio3MarksMatch(L,s) && await loadStudio3Manifest().catch(()=>null);
   for (const [i,sheet] of sheets.entries()) {
     const number = sheet.index + 1, frontPage = i*sides + 1;
-    // The native template always cuts every position it contains. Short
-    // sheets need a format that can describe just the occupied positions.
-    const native = nativeMarks && studio3SheetSpec(studio3Key(s),sheet.slots.length)
-      ? await cutStudio3(sheet.index,job).catch(()=>null) : null;
+    const native = await cutStudio3(sheet.index,job).catch(()=>null);
     const cutFile = `sheet-${number}.${native ? 'studio3' : 'dxf'}`;
     const svg = `sheet-${number}.svg`, dxf = `sheet-${number}.dxf`;
     files.push({name:svg,data:enc.encode(cutSvg(sheet.index,job))},
@@ -9706,9 +9763,13 @@ const CUT_FORMATS = {
 };
 async function downloadCutFile(fmt, sheet) {
   const f = CUT_FORMATS[fmt] || CUT_FORMATS.dxf, job = buildPrintJob();
+  const scopeKey = reviewKey();
   if (sheet === undefined && $('#exportScope').value === 'current') sheet = S.activeSheet || 0;
-  const available = fmt === 'studio3' ? job.sheets.filter(item=>
-    studio3SheetSpec(studio3Key(job.settings),item.slots.length)) : job.sheets;
+  const scoped = sheet === undefined ? job.sheets : job.sheets.filter(item=>item.index === sheet);
+  const available = fmt === 'studio3' ? await studio3AvailableSheets(job, scoped) : scoped;
+  if (reviewKey() !== scopeKey) return toast('The project or sheet selection changed. Review it before downloading.');
+  if (!available.length) return toast(fmt === 'studio3' && scoped.length
+    ? 'Studio file unavailable for this sheet. Download DXF.' : 'Choose a sheet with cards before downloading.');
   if (sheet === undefined && available.length === 1) sheet = available[0].index;
   if (sheet === undefined && available.length > 1) {
     if (!$('#tab-guide').closest('#modal')) switchTab('guide');
@@ -9720,13 +9781,13 @@ async function downloadCutFile(fmt, sheet) {
   }
   const selectedSheet = job.sheets[sheet ?? 0]; if (!selectedSheet) return toast('Choose a sheet in this job.');
   const preflight = await runPreflight({settings:job.settings,deck:job.project,layout:job.layout,slots:selectedSheet.slots,sheetIndices:[selectedSheet.index],hasBacks:job.hasBacks,printer:job.printer,calibration:job.calibration});
-  if (printJobKey() !== job.key) return toast('The project changed during validation. Review it before downloading.');
+  if (reviewKey() !== scopeKey) return toast('The project or sheet selection changed. Review it before downloading.');
   if (!preflight.valid) { switchTab('guide'); return toast('Resolve the blocked items before exporting cut paths.',7000); }
-  const jobKey = job.key, projectName = job.project.name.replace(/[^\w\- ]+/g, '').trim() || 'proxies';
+  const projectName = job.project.name.replace(/[^\w\- ]+/g, '').trim() || 'proxies';
   let body;
   try { body = await f.build(sheet ?? 0, job); }
   catch (e) { toast(e && e.message ? e.message : 'Could not build the cut file.', 7000); return; }
-  if (printJobKey() !== jobKey) return toast('The project changed. Review the cut file and download again.');
+  if (reviewKey() !== scopeKey) return toast('The project or sheet selection changed. Review it before downloading.');
   download(new Blob([body], {type:f.mime}), `${projectName}-cut-lines-sheet-${(sheet ?? 0) + 1}.${f.ext}`);
   if (!S.settings.silhouette) toast('Tip: turn on registration marks under Setup → Cut → Silhouette Cameo so the cutter can align.', 6000);
 }
@@ -10654,6 +10715,17 @@ if (tabGuideBtnPrint && tabGuideBtnCut) {
   };
 }
 
+function openReviewSettings(page) {
+  if (document.body.classList.contains('print-settings-active')) {
+    closeModal();
+    openPrintSettings(page);
+  } else {
+    const review = suspendModal();
+    $('#overlay').classList.remove('on');
+    openPrintSettings(page, null, review);
+  }
+}
+
 $('#exportReview').addEventListener('click', async ev => {
   if (ev.target.closest('[data-retry-preflight]')) { renderGuideTab(); return; }
   const button = ev.target.closest('[data-review-issue],[data-retry-issue]');
@@ -10670,14 +10742,7 @@ $('#exportReview').addEventListener('click', async ev => {
     openMpcPicker({cardback:true, issue, backLabel:'Back to export review'});
   } else if (['alignment','setup','cutting'].includes(issue.tab)) {
     const page = issue.tab === 'setup' ? 'layout' : issue.tab;
-    if (document.body.classList.contains('print-settings-active')) {
-      closeModal();
-      openPrintSettings(page);
-    } else {
-      const review = suspendModal();
-      $('#overlay').classList.remove('on');
-      openPrintSettings(page, null, review);
-    }
+    openReviewSettings(page);
     if (page === 'alignment') requestAnimationFrame(() => {
       const col = issue.side === 'back' ? $('#alignBackCol') : $('#alignFrontCol');
       col?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -10699,7 +10764,7 @@ $('#exportSheet').onchange = ev => {
   drawPreview();
 };
 $('#btnExportCameoJob').onclick = () => exportPDF(true, true);
-$('#btnCardMakerMarks').onclick = () => applyCameoLayout('standard');
+$('#btnReviewCutting').onclick = () => openReviewSettings('cutting');
 $('#cameoPaperSize').innerHTML = FIELDS.find(field=>field.k === 'pageSize').opts.map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 $('#cameoPaperSize').onchange = ev => {
   const paper = $('#paperForm [data-k="pageSize"]');
@@ -10798,10 +10863,10 @@ function fillInputs(map) {
 // is what gets serialized into saved and exported decks. Keep them together.
 const setShowCuts = v => { S.settings.showCuts = v; S.showCuts = v; };
 
-// the two cutter layouts, applied from either the mode button or the status fixit
 function applyCameoLayout(variant = 'standard') {
   const currentTemplate = S.settings.scmTemplate;
-  const stock = scmSettings(S.settings, variant);
+  S.settings.scmCustomChosen = variant === 'custom';
+  const stock = preferredScmSettings({...S.settings, scmTemplate:variant});
   Object.assign(S.settings, stock || {
     ...cameoPaperLayout(S.settings.orientation),
     scmTemplate:'custom', guides:'none', silhouette:true, regPattern:3, regOrientation:'auto', regThickness:1
@@ -10813,14 +10878,15 @@ function applyCameoLayout(variant = 'standard') {
   if (stock) S.settings.duplexFlip = 'long';
   setShowCuts(false);
   S.activePreset = null; save(); renderAll();
-  toast(stock ? `SCM template ready: ${layout().scm.split('/').at(-1)}.`
-    : variant === 'custom' ? 'Custom Cameo layout ready. Download its matching cut files.'
-    : 'No SCM template for this size. Download the matching custom cut files.');
+  toast(stock ? `${stock.scmTemplate === 'borderless' ? 'Borderless Silhouette Card Maker' : 'Silhouette Card Maker'} layout applied.`
+    : variant === 'custom' ? 'Custom layout applied.'
+    : 'No Silhouette Card Maker template for this size. Using a custom layout.');
 }
 
 function applyRotaryLayout(message) {
   S.settings.silhouette = false;
   S.settings.scmTemplate = 'custom';
+  S.settings.scmCustomChosen = false;
   setShowCuts(false);
   const normalMargin = printerOf(S.printer).kind === 'Laser' ? 5 : 4;
   if (S.settings.margin >= 10 || !S.settings.margin || S.settings.margin < normalMargin) S.settings.margin = normalMargin;
@@ -10908,7 +10974,7 @@ function renderCutStatus() {
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
       cEl.innerHTML = `<div class="warn"><b>Check cutter setup:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
       const cb = $('#cameoApply');
-      if (cb) cb.onclick = () => applyCameoLayout(s.scmTemplate);
+      if (cb) cb.onclick = () => applyCameoLayout(s.scmTemplate === 'custom' && !s.scmCustomChosen ? 'standard' : s.scmTemplate);
     }
   }
   const el = $('#cutStatus'); if (!el) return;

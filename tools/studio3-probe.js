@@ -92,7 +92,7 @@
       eq(`${JSON.stringify(change)} rejects a mismatched Studio template`, mismatch, STUDIO3_MARKS_MISMATCH);
     }
     {
-      const {regOrientation, ...legacy} = {...matching,...cameoPaperLayout('portrait'),regInset:5.5,regLen:14.3764};
+      const {regOrientation, scmCustomChosen, ...legacy} = {...matching,...cameoPaperLayout('portrait'),regInset:5.5,regLen:14.3764};
       S.settings = cleanSettings(legacy);
       const oldPortrait = new DataView((await cutStudio3(0)).buffer);
       const [width,height] = man['letter-portrait'].pageOffsets;
