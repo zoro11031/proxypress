@@ -1055,11 +1055,11 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             </div>
             <div class="field">
               <label for="scmFit">Front image fit</label>
-              <select id="scmFit"><option value="stretch">Stretch to fit</option><option value="crop">Center crop</option></select>
+              <select id="scmFit"><option value="crop">Center crop</option><option value="stretch">Stretch (may distort)</option></select>
             </div>
             <div class="field">
               <label for="scmFitBack">Back image fit</label>
-              <select id="scmFitBack"><option value="same">Same as front</option><option value="stretch">Stretch to fit</option><option value="crop">Center crop</option></select>
+              <select id="scmFitBack"><option value="same">Same as front</option><option value="crop">Center crop</option><option value="stretch">Stretch (may distort)</option></select>
             </div>
             <div class="field">
               <label for="scmCrop">Crop fronts (mm per edge)</label>
@@ -1666,7 +1666,7 @@ const DEFAULTS = {
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
   dpi:1200, jpeg:92, brightness:100, saturation:100, contrast:100, foilTint:0, customSrcBleed:3.048,
   dfcMode:'duplex', duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
-  silhouette:false, scmTemplate:'custom', scmSkip:'', scmFit:'stretch', scmFitBack:'same', scmCrop:0, scmCropBack:0, scmLabel:'',
+  silhouette:false, scmTemplate:'custom', scmSkip:'', scmFit:'crop', scmStretchChosen:false, scmFitBack:'same', scmCrop:0, scmCropBack:0, scmLabel:'',
   regPattern:3, regOrientation:'auto', regInset:10, regLen:0, regThickness:1, showCuts:false
 };
 
@@ -1684,6 +1684,8 @@ const BUILTIN_PRESETS = [
   {id:'b-laser-port', name:'Laser · Black-core cardstock · Portrait', builtin:true, settings:{
     orientation:'portrait', cardPreset:'mtg', cardW:63, cardH:88, cardRotation:'auto',
     margin:5, dpi:1200, jpeg:92, brightness:100}},
+  {id:'b-foil-letter-land', name:'Letter foil · Landscape', builtin:true, settings:{pageSize:'letter', orientation:'landscape'}},
+  {id:'b-foil-letter-port', name:'Letter foil · Portrait', builtin:true, settings:{pageSize:'letter', orientation:'portrait'}},
   {id:'b-foil-land', name:'A4 foil · Landscape', builtin:true, settings:{pageSize:'a4', orientation:'landscape'}},
   {id:'b-foil-port', name:'A4 foil · Portrait', builtin:true, settings:{pageSize:'a4', orientation:'portrait'}},
   {id:'b-letter-land', name:'Letter · Landscape', builtin:true, settings:{
@@ -1702,7 +1704,7 @@ const BUILTIN_PRESETS = [
 
 // The foil presets carry a kind, like the laser ones, but still belong in the paper
 // grid: they pick a sheet. One list, read by the kind pass and by renderPresets.
-const FOIL_IDS = ['b-foil-land', 'b-foil-port'];
+const FOIL_IDS = ['b-foil-letter-land', 'b-foil-letter-port', 'b-foil-land', 'b-foil-port'];
 for (const p of BUILTIN_PRESETS) p.kind = p.id.startsWith('b-inkjet') ? 'Inkjet' : (p.id.startsWith('b-laser') || FOIL_IDS.includes(p.id)) ? 'Laser' : null;
 const INKJET_STOCK_TIPS = [
   'Use inkjet paper in the rear feed. Let the ink dry before printing the back.',
@@ -6752,6 +6754,8 @@ function cleanSettings(raw) {
   out.guidePlacementSet = true;
   out.guideWidth = Math.max(0.05, Math.min(1, out.guideWidth));
   out.guideLen = Math.max(0.5, Math.min(10, out.guideLen));
+  // Older saves used stretch without recording whether anyone selected it.
+  if (!out.scmStretchChosen) out.scmFit = DEFAULTS.scmFit;
   for (const key of ['scmCrop','scmCropBack']) out[key] = Math.max(0,Math.min(10,out[key]));
   if (out.silhouette && out.scmTemplate !== 'custom') {
     Object.assign(out, scmSettings(out, out.scmTemplate) || {scmTemplate:'custom'});
@@ -7943,17 +7947,15 @@ $('#printerGuide').addEventListener('change', ev => {
 });
 
 function renderPresets() {
-  const card = (p, mine) => {
+  const card = (p, mine, name = p.name) => {
     const L = presetPer(p);
-    let title, sub;
+    let sub;
     if (mine) {
-      title = p.name;
       const paperOpt = FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === p.settings.pageSize);
       const paperName = paperOpt ? paperOpt[1].replace(/ \(.*\)$/, '') : (p.settings.pageSize || 'Custom');
       const orName = p.settings.orientation === 'landscape' ? 'Landscape' : 'Portrait';
       sub = `${paperName} · ${orName} · ${L.per} cards`;
     } else {
-      title = p.name;
       sub = `${L.per} cards per sheet`;
     }
     const isAct = mine
@@ -7962,11 +7964,16 @@ function renderPresets() {
          p.settings.pageSize === S.settings.pageSize &&
          p.settings.orientation === S.settings.orientation &&
          matchesPrintColors(presetImageSettings(p)));
-    const button = `<button type="button" data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>`;
+    const button = `<button type="button" data-preset="${esc(p.id)}" class="${isAct ? 'on' : ''}" aria-pressed="${isAct}"><b>${esc(name)}</b><span>${esc(sub)}</span></button>`;
     return mine ? `<div class="preset-item">${button}<button type="button" class="del icon" data-del="${esc(p.id)}" title="Delete preset" aria-label="Delete preset ${esc(p.name)}">×</button></div>` : button;
   };
   const stdPresets = ['b-letter', 'b-letter-land', 'b-a4', 'b-a4-land'].map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean);
-  const foilPresets = FOIL_IDS.map(id => BUILTIN_PRESETS.find(p => p.id === id)).filter(Boolean);
+  const foilLayouts = FOIL_IDS.map(id => BUILTIN_PRESETS.find(p => p.id === id)).map(p => {
+    const stock = S.settings.silhouette && scmTemplateFor({...S.settings, pageSize:p.settings.pageSize});
+    if (!stock) return card(p, false);
+    // Stock templates set the orientation, so both presets would apply the same layout.
+    return p.settings.orientation === 'landscape' ? card(p, false, p.name.split(' · ')[0]) : '';
+  }).join('');
   $('#presetGrid').innerHTML = `
     <div class="preset-group">
       <div class="preset-group-title">Standard sheet presets</div>
@@ -7985,7 +7992,7 @@ function renderPresets() {
         <div class="custom-presets-empty">No saved presets.</div>
       `}
     </div>`;
-  $('#stockPresetGrid').innerHTML = `<div class="pick presets">${foilPresets.map(p => card(p, false)).join('')}</div>`;
+  $('#stockPresetGrid').innerHTML = `<div class="pick presets">${foilLayouts}</div>`;
 }
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
 function saveCurrentPreset() {
@@ -10946,6 +10953,7 @@ for (const [id, key] of Object.entries({...CUT_INPUTS,...SCM_PDF_INPUTS})) {
       input.value = positions.join(', ');
     }
     S.settings[key] = input.type === 'checkbox' ? input.checked : input.type === 'number' || key === 'regPattern' ? Number(input.value) : input.value;
+    if (key === 'scmFit') S.settings.scmStretchChosen = input.value === 'stretch';
     if (key === 'guidePlacement') S.settings.guidePlacementSet = true;
     S.activePreset = null; save(); renderAll();
   };

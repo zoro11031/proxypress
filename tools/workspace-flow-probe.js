@@ -86,6 +86,12 @@
   check(matchesPrintColors(DEFAULTS), 'Standard paper should apply neutral colors.');
   click('[data-color-profile="foil"]');
   check(matchesPrintColors(customFoil), 'My foil colors should apply the saved values.');
+  for (const [id,orientation] of [['b-foil-letter-land','landscape'],['b-foil-letter-port','portrait']]) {
+    const selector = `#stockPresetGrid [data-preset="${id}"]`;
+    check(visible(selector), `Letter foil should offer ${orientation}.`);
+    click(selector);
+    check(S.settings.pageSize === 'letter' && S.settings.orientation === orientation && matchesPrintColors(customFoil), `Letter foil ${orientation} should apply the layout and saved colors.`);
+  }
   click('[data-preset="b-foil-land"]');
   check(matchesPrintColors(customFoil), 'Foil paper layouts should use the saved colors.');
   const restored = await prepareBackupRestore({foilColorDefaults:customFoil});
@@ -102,6 +108,18 @@
   select('#cameoPaperSize','letter');
   check(layout().scm === 'letter-standard-v6.studio3' && $('#setting-pageSize').value === 'letter', 'Choosing Letter should change the template and the print paper together.');
   check($('#scmTemplateHint').hidden, 'Stock templates need no extra description.');
+  check($('#scmFit').value === 'crop' && $('#scmFitBack').value === 'same', 'Center crop should be the default for both sides.');
+  check(cleanSettings({scmFit:'stretch',scmFitBack:'stretch'}).scmFit === 'crop', 'Projects with the old front default should switch to crop.');
+  check(cleanSettings({scmFitBack:'stretch'}).scmFitBack === 'stretch', 'An explicit back fit should survive migration.');
+  select('#scmFit','stretch');
+  check(cleanSettings(S.settings).scmFit === 'stretch', 'Choosing stretch should preserve that choice on reload.');
+  select('#scmFit','crop');
+  select('#cameoPaperSize','a4');
+  openPrintSettings('color');
+  check(!$('#stockPresetGrid [data-preset="b-foil-letter-port"]'), 'Stock Silhouette should show one foil choice per paper size.');
+  click('#stockPresetGrid [data-preset="b-foil-letter-land"]');
+  check(layout().scm === 'letter-standard-v6.studio3' && matchesPrintColors(DEFAULT_FOIL_COLORS), 'Letter foil should use the Letter stock template and foil colors.');
+  openPrintSettings('cutting');
   openDuplexWizard();
   check(!$('#duplexWizardChoices [data-flip="short"]'), 'The stock template should offer its supported flip only.');
   closeModal();

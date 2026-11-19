@@ -358,15 +358,19 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   console.log('PASS skipped positions match PDF fronts, backs, and cut lines across sheets');
 
   const fit = vm.runInContext('scmArtworkPlacement',context);
-  const fitSettings = {...skipSettings,scmFitBack:'crop'};
+  assert.equal(skipSettings.scmFit,'crop');
+  assert.equal(skipSettings.scmFitBack,'same');
   const sourceBleed = vm.runInContext('printSourceBleed',context);
-  near(sourceBleed({custom:'art'},fitSettings,true),0);
-  near(sourceBleed({custom:'art',srcBleed:3},fitSettings),3);
-  const stretch = fit(1000,1000,fitSettings,0,false), crop = fit(1000,1000,fitSettings,0,true);
+  near(sourceBleed({custom:'art'},skipSettings,true),0);
+  near(sourceBleed({custom:'art',srcBleed:3},skipSettings),3);
+  const crop = fit(1000,1000,skipSettings,0,false);
+  assert.deepEqual(fit(1000,1000,skipSettings,0,true),crop);
+  const stretch = fit(1000,1000,{...skipSettings,scmFit:'stretch'},0,false);
   near(stretch.ex,0); near(stretch.ey,0);
   near(crop.ex,0.625); near(crop.ey,0);
   near(crop.src[2]/crop.src[3],crop.dst[2]/crop.dst[3]);
-  const frontCrop = fit(1000,1000,{...fitSettings,scmCrop:2},0,false);
+  assert.deepEqual(fit(1000,1000,{...skipSettings,scmFitBack:'stretch'},0,true),stretch);
+  const frontCrop = fit(1000,1000,{...skipSettings,scmFit:'stretch',scmCrop:2},0,false);
   assert.ok(frontCrop.src[2]<stretch.src[2] && frontCrop.src[3]<stretch.src[3]);
-  console.log('PASS independent front/back crop and real bleed per axis');
+  console.log('PASS proportional defaults, optional stretch, and real bleed per axis');
 })().catch(error=>{console.error(error);process.exitCode=1;});
