@@ -9,7 +9,7 @@ const DARK_CARD = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgY
 const root = path.join(__dirname,'..');
 const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
-const functions = ['printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
+const functions = ['printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','preferredScmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
   'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle',
@@ -225,11 +225,14 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   assert.ok(fourCardJob);
   scope.value = 'all';
   unavailable.add('/assets/studio3/letter-standard_double-v3.studio3');
+  vm.runInContext("studio3Files.delete('letter-standard_double-v3.studio3')",context);
+  assert.equal((await vm.runInContext('studio3AvailableSheets',context)(fourCardJob,fourCardJob.sheets)).length,0);
   await vm.runInContext('exportPrintJob',context)(fourCardJob,true);
   const fallback = readZip(Buffer.from(await outputs.at(-1).blob.arrayBuffer()));
   const row = JSON.parse(fallback.get('registration.json')).sheets[0];
   assert.equal(row.cutFile,'sheet-1.dxf');
   assert.ok(fallback.has('sheet-1.dxf') && fallback.has('sheet-1.svg') && !fallback.has('sheet-1.studio3'));
+  unavailable.clear();
   console.log('PASS a missing native asset leaves a usable matched ZIP');
   console.log('PASS clipped registration marks block the matched download');
   console.log('PASS front artwork moved over fixed registration marks blocks export');
@@ -300,6 +303,10 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     }
     const data = Buffer.from(await outputs.at(-1).blob.arrayBuffer()), files = readZip(data);
     const info = JSON.parse(files.get('registration.json'));
+    const expectedStudio = fs.readFileSync(path.join(root,'assets/studio3',file));
+    assert.deepEqual(files.get('sheet-1.studio3'),expectedStudio,`${file}: ZIP uses the original stock document`);
+    assert.equal(info.sheets[0].cutFile,'sheet-1.studio3');
+    assert.deepEqual(Buffer.from(await vm.runInContext('cutStudio3',context)(0,job)),expectedStudio);
     const pdf = files.get(info.pdf), [front,back] = pdfPages(pdf);
     const pdfSizes = [...pdf.toString('latin1').matchAll(/\/MediaBox\s+\[0 0 (\S+) (\S+)\]/g)];
     assert.equal(pdfSizes.length,2);
