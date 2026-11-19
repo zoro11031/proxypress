@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Automates the console check that AGENTS.md asks for: load the page, watch for
+// Automates the console check run before committing: load the page, watch for
 // errors, and look for CSP violations, which the strict CSP otherwise turns into
 // silent failures.
 //
