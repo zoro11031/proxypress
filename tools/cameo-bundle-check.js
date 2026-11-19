@@ -331,6 +331,15 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     await vm.runInContext('exportPrintJob',context)({...job,settings:stale},false);
     assert.deepEqual(pdfPages(pdfDownloads.pop()),[front,back],'a stale guide setting cannot change the stock PDF');
     const image = page => page.match(/^(.+) cm$/m)[1].split(' ').map(Number);
+    if (paper === 'letter' && variant === 'standard') {
+      const adjusted = {...s,offsetX:2,backOffsetX:1.25};
+      await vm.runInContext('exportPrintJob',context)({...job,settings:adjusted},false);
+      const [fixedFront,adjustedBack] = pdfPages(pdfDownloads.pop());
+      assert.equal(fixedFront,front,'front artwork and marks stay fixed');
+      near((image(adjustedBack)[4] - image(back)[4])/pt,1.25);
+      const registration = page => page.match(/^.* re$/gm);
+      assert.deepEqual(registration(adjustedBack),registration(back),'back registration marks stay fixed');
+    }
     const [w,,,h,left,bottom] = image(front);
     const [,,,backH,,backBottom] = image(back);
     near(w/pt,cw*size+1.25);
