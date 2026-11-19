@@ -26,6 +26,8 @@ docker compose up -d --build
 
 Paste a decklist, import a Moxfield or Archidekt link, or upload images. Choose **Change art** from a card’s menu to browse printings or community artwork. **Create a card** lets you add your own artwork to a card frame.
 
+![Browsing printings and community artwork in Proxy Press](screenshots/art-picker.png)
+
 ## Print at home
 
 Choose your paper and card layout in **Print Settings**. Check both sides in the sheet preview, then open **Review export** to download all sheets or pick one to reprint. Print at **Actual size / 100%**. If the backs sit off-center, use **Alignment → Align front and back**.
@@ -36,6 +38,8 @@ In **Print Settings → Cutting**, select **Silhouette cutter** and choose your 
 
 The Silhouette Card Maker layout automatically turns off printed guides, uses 0.625 mm bleed, and takes the registration inset from the selected template (10 mm for standard Letter and A4). The stock template also fixes where each card lands on the page. For a custom layout, use the PDF and cut files from the same export. [Silhouette Card Maker cutting guide](https://alan-cha.github.io/silhouette-card-maker/tutorial/guide/)
 
+![Choosing cutting tools and registration options in Print Settings](screenshots/cutting-workflow.png)
+
 Download the **print & cut ZIP** from **Review export**. It includes the PDF and matching cut files for each sheet. In [Silhouette Control Center](https://github.com/zoro11031/silhouette-cameo-linux), open the ZIP under **Sheet**. In Silhouette Studio, open the Studio file when available or use DXF with the settings under **Cut instructions**.
 
 ### Foil colors
@@ -45,6 +49,8 @@ In **Print Settings → Color**, choose **Foil colors** and print a test sheet o
 ## Order prints
 
 Choose **Order prints → Review order**. Pick cardstock and a shared cardback, then download the order ZIP. Open **How to place the order** for the desktop tool and upload steps.
+
+![Preparing card order in the order gallery](screenshots/order-mode.png)
 
 ## Backups and sharing
 
