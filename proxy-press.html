@@ -1042,7 +1042,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
             </select>
           </div>
         </div>
-        <p id="scmTemplateHint" class="hint" hidden></p>
+        <p id="scmTemplateHint" class="hint"></p>
         <div id="cameoStatus"></div>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
@@ -1437,7 +1437,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <div class="active-values-banner">
             <div class="val-col">
               <div class="val-header">
-                <b>Front active values</b>
+                <b>Front alignment</b>
                 <span id="alignFrontSourceBadge" class="src-badge">No correction set</span>
               </div>
               <div id="alignFrontValuesText" class="val-text">X: 0.00 mm · Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
@@ -2587,7 +2587,7 @@ function makeT(L, back, s = S.settings) {
 // How far short of the sheet edge the margin guides stop, in mm.
 const GUIDE_EDGE = 1;
 function activeGuides(s) {
-  const g = s.guides || 'both';
+  const g = s.silhouette && scmTemplateFor(s) ? 'none' : (s.guides || 'both');
   if (g === 'none') return {lines:false, corners:false, outline:false, margin:false};
   if (g === 'all') return {lines:true, corners:true, outline:true, margin:false};
   if (g === 'both') return {lines:true, corners:true, outline:false, margin:false};
@@ -7366,6 +7366,7 @@ function calSlotFor(p, s) {
 }
 const FRONT_CAL_KEYS=['offsetX','offsetY','scaleX','scaleY','printRotate'];
 const BACK_CAL_KEYS=['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'];
+const frontAlignmentLocked = (s = S.settings) => !!(s.silhouette && scmTemplateFor(s));
 function calibrationScope(s,printer,back=false){return JSON.stringify([printer,calSlotKey(s),...(back?[s.duplexMethod || 'manual',s.duplexFlip || 'long']:[])]);}
 function noteCalibration(side,kind='manual'){
   const keys=side==='front'?FRONT_CAL_KEYS:BACK_CAL_KEYS;
@@ -7393,11 +7394,16 @@ function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, p
     const label={Manual:'Manual alignment applied',Saved:'Saved profile',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
     return {status,label,source,values:Object.fromEntries(keys.map(k=>[k,s[k]])),x:s[back?'backOffsetX':'offsetX'],y:s[back?'backOffsetY':'offsetY']};
   };
-  const front=sideStatus('front',FRONT_CAL_KEYS),back=sideStatus('back',BACK_CAL_KEYS),hasBacks=buildSlots(d,s).some(slot=>slot.back),sides=hasBacks?[front,back]:[front];
-  const status=sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.some(side=>side.status==='Saved')?'Saved':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
-  const label='Front: '+front.label+(hasBacks?' · Back: '+back.label:'');
-  const values='Front: X '+front.x+' mm, Y '+front.y+' mm, scale '+s.scaleX+' / '+s.scaleY+'%, rotation '+s.printRotate+'°'+(hasBacks?' · Back: extra X '+back.x+' mm, Y '+back.y+' mm, scale '+s.backScaleX+' / '+s.backScaleY+'%, rotation '+s.backRotate+'°':'');
-  return {status,label,values,hasBacks,from:got?.from || 'none',front,back};
+  const front=sideStatus('front',FRONT_CAL_KEYS),back=sideStatus('back',BACK_CAL_KEYS),hasBacks=buildSlots(d,s).some(slot=>slot.back);
+  const frontLocked = frontAlignmentLocked(s);
+  const sides = [...(frontLocked ? [] : [front]), ...(hasBacks ? [back] : [])];
+  const status=!sides.length?'Template':sides.some(side=>side.status==='Estimated')?'Estimated':sides.some(side=>side.status==='Manual')?'Manual':sides.some(side=>side.status==='Saved')?'Saved':sides.every(side=>side.status==='Measured')?'Measured':'Uncalibrated';
+  const label='Front: '+(frontLocked?'Fixed by template':front.label)+(hasBacks?' · Back: '+back.label:'');
+  const values = [
+    frontLocked ? '' : `Front: X ${front.x} mm, Y ${front.y} mm, scale ${s.scaleX} / ${s.scaleY}%, rotation ${s.printRotate}°`,
+    hasBacks ? `Back: extra X ${back.x} mm, Y ${back.y} mm, scale ${s.backScaleX} / ${s.backScaleY}%, rotation ${s.backRotate}°` : ''
+  ].filter(Boolean).join(' · ');
+  return {status,label,values,hasBacks,from:got?.from || 'none',frontLocked,front,back};
 }
 function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots(deck(), s)) {
   const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
@@ -7425,10 +7431,11 @@ function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots
 function refreshAlignmentPage() {
   const s = S.settings;
   const p = printerOf(S.printer);
-  const L = layout();
   const calStat = getCalibrationStatus(s);
+  const {frontLocked,hasBacks} = calStat;
+  $('#alignFrontCol').hidden = frontLocked;
+  $('#btnDuplexWizard').textContent = frontLocked ? 'Align backs to fronts' : 'Align front and back';
   const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-  const hasBacks = buildSlots(deck(), s).some(slot => slot.back);
 
   const printerEl = $('#alignPrinterName');
   if (printerEl) printerEl.textContent = p.name.replace(/ \(.*\)$/, '');
@@ -7439,12 +7446,12 @@ function refreshAlignmentPage() {
 
   const frontBadge = $('#alignFrontSourceBadge');
   if (frontBadge) {
-    frontBadge.textContent = calStat.front.label + (calStat.front.source && calStat.front.source !== 'No correction set' ? ` (${calStat.front.source})` : '');
-    frontBadge.className = 'src-badge ' + (calStat.front.status === 'Measured' ? 'measured' : calStat.front.status === 'Saved' ? 'saved' : calStat.front.status === 'Estimated' ? 'estimated' : calStat.front.status === 'Manual' ? 'manual' : '');
+    frontBadge.textContent = frontLocked ? 'Fixed by template' : calStat.front.label + (calStat.front.source && calStat.front.source !== 'No correction set' ? ` (${calStat.front.source})` : '');
+    frontBadge.className = 'src-badge ' + (frontLocked ? '' : calStat.front.status.toLowerCase());
   }
   const frontTxt = $('#alignFrontValuesText');
   if (frontTxt) {
-    frontTxt.textContent = `Offset X: ${calStat.front.x >= 0 ? '+' : ''}${calStat.front.x.toFixed(2)} mm · Offset Y: ${calStat.front.y >= 0 ? '+' : ''}${calStat.front.y.toFixed(2)} mm · Scale: ${s.scaleX.toFixed(1)}% / ${s.scaleY.toFixed(1)}% · Rotation: ${s.printRotate.toFixed(1)}°`;
+    frontTxt.textContent = frontLocked ? 'Adjust the backs to line up with the fronts.' : `Offset X: ${calStat.front.x >= 0 ? '+' : ''}${calStat.front.x.toFixed(2)} mm · Offset Y: ${calStat.front.y >= 0 ? '+' : ''}${calStat.front.y.toFixed(2)} mm · Scale: ${s.scaleX.toFixed(1)}% / ${s.scaleY.toFixed(1)}% · Rotation: ${s.printRotate.toFixed(1)}°`;
   }
 
   const backBadge = $('#alignBackSourceBadge');
@@ -7503,7 +7510,7 @@ function renderAlignmentOverlay() {
   const selected=page.findIndex(slot=>selectedCopies.has(copyKey(slot.e,slot.copy)));
   let displacement='';
   if(selected>=0 && page[selected].back){const center=back=>points(selected,back).split(' ').map(pair=>pair.split(',').map(Number)).reduce((sum,pt)=>[sum[0]+pt[0]/4,sum[1]+pt[1]/4],[0,0]);const front=center(false),back=center(true);displacement=`<p class="hint">Selected copy ${page[selected].copy+1}: back displacement X ${(back[0]-front[0]).toFixed(2)} mm, Y ${(back[1]-front[1]).toFixed(2)} mm.</p>`;}
-  container.innerHTML = `<p class="hint">Solid violet outlines show the front. Dashed blue outlines show the back, viewed through the front of the sheet.</p><svg role="img" aria-label="Expected front and back alignment in millimetres" viewBox="-2 -2 ${L.W+4} ${L.H+4}" style="display:block;width:100%;background:#e8e5de"><rect width="${L.W}" height="${L.H}" fill="#fff" stroke="#777" stroke-width="0.3"/>${outlines}</svg><p class="hint">${L.W} × ${L.H} mm. Front: X ${s.offsetX}, Y ${s.offsetY} mm. Extra back: X ${s.backOffsetX}, Y ${s.backOffsetY} mm.</p>${displacement}<p class="hint">${esc(status.label)}. This is the expected alignment; print the test sheets to measure your printer.</p>`;
+  container.innerHTML = `<p class="hint">Solid violet outlines show the front. Dashed blue outlines show the back, viewed through the front of the sheet.</p><svg role="img" aria-label="Expected front and back alignment in millimetres" viewBox="-2 -2 ${L.W+4} ${L.H+4}" style="display:block;width:100%;background:#e8e5de"><rect width="${L.W}" height="${L.H}" fill="#fff" stroke="#777" stroke-width="0.3"/>${outlines}</svg><p class="hint">${L.W} × ${L.H} mm. ${status.frontLocked ? 'Front: Fixed by template.' : `Front: X ${s.offsetX}, Y ${s.offsetY} mm.`} Extra back: X ${s.backOffsetX}, Y ${s.backOffsetY} mm.</p>${displacement}<p class="hint">${esc(status.label)}. This is the expected alignment; print the test sheets to measure your printer.</p>`;
 }
 function drawProofAlignment() {
   $$('.proof-alignment').forEach(el=>el.remove());
@@ -7583,7 +7590,7 @@ function renderCalibrationProfiles(activeId) {
   const current = S.calibrationProfileId;
   const active=calProfiles().find(p=>p.id===current),scope=calSlotName(calSlotKey(S.settings)),status=getCalibrationStatus();
   const actProfEl = $('#activeCalibrationProfile');
-  if (actProfEl) actProfEl.innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p><p class="hint">${esc(status.values)}</p>`;
+  if (actProfEl) actProfEl.innerHTML=`<b>Active profile</b><span>${esc(active?.name || 'No saved profile')}</span><p class="hint">${esc(scope)} · ${esc(S.settings.duplexMethod)} duplex · ${esc(S.settings.duplexFlip)} edge</p><p class="hint">${esc(status.label)}</p>${status.values ? `<p class="hint">${esc(status.values)}</p>` : ''}`;
   const held = p => {
     const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
     return keys.length ? ` \u00b7 ${keys.map(calSlotName).join(' + ')}` : '';
@@ -8079,7 +8086,7 @@ function syncPreviewControls() {
   if (calBadge) {
     const calStat = getCalibrationStatus(s);
     calBadge.style.display = 'inline-flex';
-    calBadge.textContent=calStat.label;calBadge.style.maxWidth='52ch';calBadge.style.whiteSpace='normal';calBadge.style.lineHeight='1.4';calBadge.style.color=calStat.status==='Estimated'?'var(--warning)':calStat.status==='Uncalibrated'?'var(--muted)':'var(--ok)';
+    calBadge.textContent=calStat.label;calBadge.style.maxWidth='52ch';calBadge.style.whiteSpace='normal';calBadge.style.lineHeight='1.4';calBadge.style.color=calStat.status==='Estimated'?'var(--warning)':['Uncalibrated','Template'].includes(calStat.status)?'var(--muted)':'var(--ok)';
   }
 }
 function setPreviewFocus(on) {
@@ -8465,7 +8472,7 @@ async function runPreflight(options = {}) {
           message:`Artwork is close to these marks on Sheet ${sheet}: ${close.join(', ')}. Test on plain paper.`});
       }
     }
-    if (s.guides !== 'none') {
+    if (Object.values(activeGuides(s)).some(Boolean)) {
       warnings.push({ type: 'guides_cameo', tab: 'cutting', message: 'Turn off cut guides for Cameo.' });
     }
   }
@@ -8496,7 +8503,7 @@ async function runPreflight(options = {}) {
   }
 
   const calStat = options.calibration || getCalibrationStatus(s, d, printer);
-  if (calStat.front.status === 'Estimated') {
+  if (!calStat.frontLocked && calStat.front.status === 'Estimated') {
     warnings.push({
       type: 'cal_estimated_front',
       tab: 'alignment',
@@ -8752,7 +8759,7 @@ function renderGuideTab() {
       `${job.hasBacks && !slots.some(slot=>slot.back) ? 'Blank back page · ' : ''}${isCameo ? 'Cameo registration marks' : ({both:'Margin lines and corner marks',margin:'Margin lines',corners:'Corner marks',outline:'Full card outlines',none:'No printed cut guides'}[s.guides] || 'Custom cut guides')}</span>`;
   }
 
-  jobSum?.insertAdjacentHTML('beforeend',`<br><span>${esc(job.calibration.label)}</span><br><span>${esc(job.calibration.values)}</span>`);
+  jobSum?.insertAdjacentHTML('beforeend',`<br><span>${esc(job.calibration.label)}</span>${job.calibration.values ? `<br><span>${esc(job.calibration.values)}</span>` : ''}`);
   const review = $('#exportReview');
   setReviewPending();
   runPreflight({settings:s, deck:job.project, layout:L, slots, printer:job.printer, calibration:job.calibration, sheetIndices:scopedSheets.map(sheet=>sheet.index), hasBacks:job.hasBacks, isCurrent:()=>generation === guideGeneration}).then(pre => {
@@ -8812,13 +8819,14 @@ function renderGuideTab() {
 
   const cutPane = $('#tabGuidePaneCut'), activeCutSheet = scopedSheets.find(sheet=>sheet.index === S.activeSheet) || scopedSheets[0];
   if (cutPane) {
+    const hasStockTemplate = isCameo && !L.scm && (scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless'));
     const placement = pad ? `Leave <b>${pad.toFixed(1)} mm</b> from the top and left grid edges.` : 'Align the top-left corners of the paper and mat grid.';
     cutPane.innerHTML = isCameo ? `
       <ol class="steps">
         <li>Place the sheet <b>${frame.orientation}</b> on the Studio mat. ${placement} ${s.regPattern === 3 ? 'Keep the black square at the upper left.' : ''}</li>
         <li>Open the matching cut file. Make a small test cut before cutting the sheet.</li>
       </ol>
-      ${L.scm ? `<p><a href="https://github.com/Alan-Cha/silhouette-card-maker/blob/0da09b729814aa5aafde024b5a6059624fa87951/cutting_templates/${esc(L.scm)}" target="_blank" rel="noopener">Stock template (${esc(L.scm.split('/').at(-1))})</a>. On partial sheets, use the ZIP cut file or turn off unused cuts.</p>` : ''}
+      ${L.scm ? `<p><a href="https://github.com/Alan-Cha/silhouette-card-maker/blob/0da09b729814aa5aafde024b5a6059624fa87951/cutting_templates/${esc(L.scm)}" target="_blank" rel="noopener">Matching Silhouette Card Maker template</a>. For partial sheets, use the ZIP cut file or turn off unused cuts.</p>` : `<p>Use the PDF and cut files from the same export.${hasStockTemplate ? ' To use a stock template, select it in Print Settings → Cutting before exporting.' : ''}</p>`}
       <details class="adv"><summary>Studio setup for DXF</summary>
         <ol class="steps">
           <li>Set <b>Edit → Preferences → Import → DXF Open → As-is</b>.</li>
@@ -8957,6 +8965,7 @@ function pdfText(doc, x, y, width, size = 7.5, lead = 4.1, align = null, angle =
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
   const s = S.settings, L = layout(), doc = newDoc(L), t = duplexTurn(L);
+  const front = L.scm ? DEFAULTS : s;
   const feed = duplexFeedInstruction(L, leadEdge(L));
   const wide = L.W > L.H, cx = L.W / 2, cy = L.H / 2;
   const BLACK = '#111827', RED = '#c0392b';
@@ -9008,7 +9017,7 @@ $('#btnDuplexTest').onclick = () => {
   const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
   const frontPts = corners.map(([x, y]) => ({x: Tf.x(x), y: Tf.y(y)}));
   const kd = inward(backPoint(L, {x: corners[0][0], y: corners[0][1]}));
-  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(pts.marks)} | holes ${fmt(pts.holes)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${s.offsetX.toFixed(2)},${s.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${s.scaleX.toFixed(2)},${s.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)} | rot ${s.printRotate.toFixed(3)},${s.backRotate.toFixed(3)}`;
+  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(pts.marks)} | holes ${fmt(pts.holes)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${front.offsetX.toFixed(2)},${front.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${front.scaleX.toFixed(2)},${front.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)} | rot ${front.printRotate.toFixed(3)},${s.backRotate.toFixed(3)}`;
   const keyW = L.W - 20, keyLead = 2.8;
   doc.setFontSize(6);
   const keyTop = L.H - 7 - keyLead * (doc.splitTextToSize(keyTxt, keyW).length - 1);
@@ -9033,7 +9042,7 @@ $('#btnDuplexTest').onclick = () => {
   const head1 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
   head1.write('DOUBLE-SIDED TEST  ·  PAGE 1, THE FRONT', {bold:true, size:12, lead:5.5});
   head1.write(`${paper} ${s.orientation}  ·  flip on the ${s.duplexFlip === 'short' ? 'short' : 'long'} edge  ·  back-page offset now X ${signed(s.backOffsetX)} mm, Y ${signed(s.backOffsetY)} mm`, {size:7.5});
-  head1.write(`scale ${s.scaleX.toFixed(2)} / ${s.scaleY.toFixed(2)}%  ·  back-page scale ${s.backScaleX.toFixed(2)} / ${s.backScaleY.toFixed(2)}%  ·  printer offset X ${signed(s.offsetX)}, Y ${signed(s.offsetY)} mm  ·  rotation ${signed(s.printRotate)}\u00b0 print, ${signed(s.backRotate)}\u00b0 back`, {size:7});
+  head1.write(`scale ${front.scaleX.toFixed(2)} / ${front.scaleY.toFixed(2)}%  ·  back-page scale ${s.backScaleX.toFixed(2)} / ${s.backScaleY.toFixed(2)}%  ·  printer offset X ${signed(front.offsetX)}, Y ${signed(front.offsetY)} mm  ·  rotation ${signed(front.printRotate)}\u00b0 print, ${signed(s.backRotate)}\u00b0 back`, {size:7});
 
   const bodyW = Math.min(L.W - 32, 186), body1 = pdfText(doc, (L.W - bodyW) / 2, cy + 30, bodyW, 8, 4.5);
   body1.write('PRINT PAGE 2 ON THE BACK OF THIS SHEET', {bold:true, size:9, lead:5.5});
@@ -9233,7 +9242,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     ${duplexFlipDiagram(L, mode, frontEdge)}</button>`;
   const closeLabel = document.body.classList.contains('print-settings-active') ? '← Back to alignment' : 'Close';
   openModal(`<div class="hd"><b>Double-sided calibration</b><button data-close>${closeLabel}</button></div><div class="bd">
-    <p class="hint" style="margin-top:0">Use the <b>Alignment sheet</b> to check the front first.</p>
+    <p class="hint" style="margin-top:0">${L.scm ? 'The template fixes the front. The readings below adjust the back.' : 'Use the <b>Alignment sheet</b> to check the front first.'}</p>
 
     <h4 class="wiz-h">1. ${L.scm ? 'Use long-edge flip' : 'Choose how the paper flips'}</h4>
     <div class="duplex-choices" id="duplexWizardChoices" role="radiogroup" aria-label="Double-sided flip">${DUPLEX_FLIPS.filter(([mode])=>!L.scm || mode === 'long').map(choice).join('')}</div>
@@ -9306,6 +9315,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
 }
 $('#btnDuplexWizard').onclick = () => openDuplexWizard();
 $('#btnCal').onclick = () => {
+  if (frontAlignmentLocked()) return;
   if (!window.jspdf) return toast('PDF library failed to load.');
   const s = S.settings, L = layout(), doc = newDoc(L), T = makeT(L, false);
   const wide = L.W > L.H, cx = L.W / 2, D = 100;
@@ -10318,7 +10328,7 @@ function toggleInspector(open) {
 
 let proofRestoreState = null;
 const settingsScroll = new Map(), alignmentDrafts = new Map();
-const alignmentDraftKey = () => JSON.stringify([S.deckId, calibrationScope(S.settings,S.printer,true)]);
+const alignmentDraftKey = () => JSON.stringify([S.deckId, calibrationScope(S.settings,S.printer,true), frontAlignmentLocked() ? S.settings.scmTemplate : null]);
 const SETTINGS_PAGE_TITLES = {
   layout: 'Layout',
   printer: 'Printer & paper',
@@ -10377,7 +10387,8 @@ function renderQuickSetup() {
     $('#quickCutTool').value = S.settings.silhouette ? 'cameo' : 'rotary';
   } else if (menu.page === 'alignment') {
     const profiles = calProfiles().filter(p => Object.keys(calSlots(p)).length);
-    body.insertAdjacentHTML('beforeend', `<div class="field"><label for="quickAlignmentProfile">Alignment profile</label><select id="quickAlignmentProfile"><option value="" disabled>Choose a profile</option>${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></div><div class="row">${action('btnCal','Print alignment sheet')}${getCalibrationStatus().hasBacks ? action('btnDuplexTest','Print duplex test') : ''}</div>`);
+    const {frontLocked,hasBacks} = getCalibrationStatus();
+    body.insertAdjacentHTML('beforeend', `<div class="field"><label for="quickAlignmentProfile">Alignment profile</label><select id="quickAlignmentProfile"><option value="" disabled>Choose a profile</option>${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></div><div class="row">${frontLocked ? '' : action('btnCal','Print alignment sheet')}${hasBacks ? action('btnDuplexTest','Print duplex test') : ''}</div>`);
     $('#quickAlignmentProfile').value = profiles.some(p => p.id === S.calibrationProfileId) ? S.calibrationProfileId : '';
   } else if (menu.page === 'color') {
     body.insertAdjacentHTML('beforeend', `<div class="row">${action('standardColor','Standard paper')}${action('foilColor','Foil stock')}${action('btnInspFoilPreview','Preview foil…')}</div>`);
@@ -10634,7 +10645,9 @@ $('#btnApplyAlignment').onclick = () => {
   const err = $('#alignmentInputError');
   let invalidField = null;
   const parsed = {};
+  const frontLocked = frontAlignmentLocked();
   for (const f of fields) {
+    if (frontLocked && FRONT_CAL_KEYS.includes(f.k)) continue;
     const el = $('#' + f.id);
     const val = el ? el.value.trim() : '';
     const num = Number(val);
@@ -10666,7 +10679,7 @@ $('#btnApplyAlignment').onclick = () => {
   save();
   refreshCalibrationStatus();
   refreshAlignmentPage();
-  toast('Applied alignment changes.');
+  toast(frontLocked ? 'Applied back alignment.' : 'Applied alignment changes.');
 };
 
 $('#btnResetAlignment').onclick = () => {
@@ -10677,7 +10690,7 @@ $('#btnResetAlignment').onclick = () => {
 
 $('#settingsPage-alignment').addEventListener('input', ev => {
   const key = ev.target.dataset.align;
-  if (!key) return;
+  if (!key || (FRONT_CAL_KEYS.includes(key) && frontAlignmentLocked())) return;
   const scope = alignmentDraftKey();
   const draft = alignmentDrafts.get(scope) || {};
   draft[key] = ev.target.value;
@@ -10940,10 +10953,11 @@ function renderCutStatus() {
   $('#cameoCustomRegistration').hidden = !!L.scm;
   $('#scmExportOptions').hidden = !L.scm;
   const templateHint = $('#scmTemplateHint');
-  templateHint.hidden = !!L.scm;
-  templateHint.textContent = scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless')
-    ? 'Use the cut files from your export.'
-    : 'No stock template for this paper and card size.';
+  templateHint.textContent = L.scm
+    ? `Uses the matching stock template’s layout and marks. Printed guides are off, with ${s.bleed} mm bleed and a ${s.regInset} mm registration inset.`
+    : scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless')
+      ? 'Use the PDF and cut files from the same export.'
+      : 'No stock template for this paper and card size. Use the PDF and cut files from the same export.';
   const cur = activeGuides(s);
   const allOn = cur.lines && cur.corners && cur.outline;
   const noneOn = !cur.lines && !cur.corners && !cur.outline && !cur.margin;
@@ -10959,7 +10973,7 @@ function renderCutStatus() {
   if (cEl) {
     const noConflict = !regConflict(L);
     const marksFit = !regMarksClipped(L, s);
-    const cameoOk = s.silhouette && L.fits && noConflict && marksFit && s.guides === 'none' && s.bleed <= 1;
+    const cameoOk = s.silhouette && L.fits && noConflict && marksFit && noneOn && s.bleed <= 1;
     if (cameoOk) {
       const frame = registrationFrame(L,s);
       cEl.innerHTML = `<div class="cutter-status-pill">${L.per} cards per sheet · ${frame.orientation === 'portrait' ? 'Portrait' : 'Landscape'} on mat</div>`;
@@ -10969,7 +10983,7 @@ function renderCutStatus() {
       if (!L.fits) why.push('the card grid does not fit the page');
       if (!noConflict) why.push('cards overlap registration marks');
       if (!marksFit) why.push('registration marks extend off the PDF page');
-      if (s.guides !== 'none') why.push('cut guides are on (should be None)');
+      if (!noneOn) why.push('cut guides are on (should be None)');
       if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
       cEl.innerHTML = `<div class="warn"><b>Check cutter setup:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
       const cb = $('#cameoApply');

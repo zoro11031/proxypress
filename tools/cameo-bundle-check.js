@@ -11,7 +11,7 @@ const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
 const functions = ['printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','preferredScmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
-  'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad',
+  'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad','activeGuides','guideLines','cardCornerColor',
   'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle',
   'applyCameoLayout','applyRotaryLayout','bestCutBleed'];
 const code = functions.map(name=>{
@@ -27,7 +27,7 @@ const context = vm.createContext({console, TextEncoder, Blob, calibration,
   window:{jspdf:require('../assets/vendor/jspdf.umd.min.js')},
   fetch:async url=>unavailable.has(url) ? new Response('',{status:404}) : new Response(fs.readFileSync(path.join(root,url))),
   serverPath:url=>url, sheetFeedable:()=>true, isPreview:()=>false,
-  guideLines:()=>[], inspectPrintArtwork:async()=>({ok:true,width:2400,height:3200}),
+  sourceCornerLum:new Map(), inspectPrintArtwork:async()=>({ok:true,width:2400,height:3200}),
   artworkKey:face=>face.name, renderFace:async(face,dpi,hi,rotation,settings,back)=>{
     renderedFaces.push({rotation,back});
     return {toDataURL:()=> 'data:image/png;base64,' + DARK_CARD};
@@ -39,6 +39,7 @@ const context = vm.createContext({console, TextEncoder, Blob, calibration,
   toast:message=>notices.push(message), download:(blob,name)=>outputs.push({blob,name})});
 vm.runInContext(code + '\n' + slice('const PAGE_SIZES =','const BUILTIN_PRESETS =') + '\n'
   + slice('const SCM_TEMPLATES =','function scmTemplateFor') + '\n'
+  + slice('const GUIDE_EDGE','function activeGuides') + '\n'
   + slice('const REG_MIN_LEN','function registrationFrame') + '\n'
   + slice('const CRC_TABLE','async function exportMpcZip') + '\n'
   + slice('const DXF_BULGE_90','function cutDxf'),context);
@@ -285,6 +286,13 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     assert.equal(L.scm,file);
     assert.equal(L.per,per);
     assert.equal(s.guides,'none');
+    const layoutFor = vm.runInContext('layout',context);
+    const guideLines = vm.runInContext('guideLines',context);
+    const stale = {...s,guides:'all'};
+    assert.equal(guideLines(L,per,stale).length,0,'stock cut guides stay off');
+    for (const other of [{...stale,silhouette:false}, {...stale,scmTemplate:'custom'}]) {
+      assert.ok(guideLines(layoutFor(other),1,other).length > 0,'custom and hand-cut guides still render');
+    }
     near(s.bleed,0.625);
     near(L.W,W*size);
     near(L.H,H*size);
@@ -292,6 +300,13 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     near(s.regInset,inset);
     const slots = Array.from({length:per},(_,i)=>({front:{name:'Front '+i,custom:'art'},back:{name:'Back '+i,custom:'back'}}));
     const job = {key:'job',settings:s,layout:L,slots,sheets:[{index:0,slots}],hasBacks:true,calibration,project:{name:'SCM test'}};
+    const preflight = vm.runInContext('runPreflight',context);
+    const options = {deck:job.project,layout:L,slots,calibration,printer:'test',hasBacks:true};
+    const staleReport = await preflight({...options,settings:stale});
+    assert.ok(!staleReport.warnings.some(issue=>issue.type === 'guides_cameo'),'stock guide warnings match the printed sheet');
+    const custom = {...stale,scmTemplate:'custom'};
+    const customReport = await preflight({...options,settings:custom,layout:layoutFor(custom)});
+    assert.ok(customReport.warnings.some(issue=>issue.type === 'guides_cameo'),'custom guides still warn in Cameo mode');
     const prev = outputs.length;
     renderedFaces.length = 0;
     await vm.runInContext('exportPrintJob',context)(job,true);
@@ -313,7 +328,18 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     for (const [,width,height] of pdfSizes) assert.deepEqual([+width,+height],[W*72/300,H*72/300]);
     await vm.runInContext('exportPrintJob',context)(job,false);
     assert.deepEqual(pdfPages(pdfDownloads.pop()),[front,back]);
+    await vm.runInContext('exportPrintJob',context)({...job,settings:stale},false);
+    assert.deepEqual(pdfPages(pdfDownloads.pop()),[front,back],'a stale guide setting cannot change the stock PDF');
     const image = page => page.match(/^(.+) cm$/m)[1].split(' ').map(Number);
+    if (paper === 'letter' && variant === 'standard') {
+      const adjusted = {...s,offsetX:2,backOffsetX:1.25};
+      await vm.runInContext('exportPrintJob',context)({...job,settings:adjusted},false);
+      const [fixedFront,adjustedBack] = pdfPages(pdfDownloads.pop());
+      assert.equal(fixedFront,front,'front artwork and marks stay fixed');
+      near((image(adjustedBack)[4] - image(back)[4])/pt,1.25);
+      const registration = page => page.match(/^.* re$/gm);
+      assert.deepEqual(registration(adjustedBack),registration(back),'back registration marks stay fixed');
+    }
     const [w,,,h,left,bottom] = image(front);
     const [,,,backH,,backBottom] = image(back);
     near(w/pt,cw*size+1.25);
