@@ -144,7 +144,7 @@ h3+.hint{margin-top:-6px}
 .preset .nm{flex:1;font-size:13px}
 .preset.active{border-color:var(--accent)}
 #stage{overflow:auto;background-color:var(--desk);background-image:radial-gradient(#a9c8e122 1px,transparent 1px),radial-gradient(ellipse at 48% 20%,#1b2f40,transparent 76%);background-size:24px 24px,100% 100%;padding:24px;min-width:0}
-.import-panel{padding:var(--s3);background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md);margin-bottom:var(--s3)}
+.import-panel{margin-top:8px}
 .import-panel textarea{min-height:120px;padding:9px 10px}
 .import-panel #listIn.compact{min-height:0}
 .import-panel .import-go{display:flex;gap:var(--s2);margin-top:var(--s2)}
@@ -160,7 +160,6 @@ h3+.hint{margin-top:-6px}
 #moreSources>summary:hover{color:var(--text)}
 #moreSources[open]{padding-bottom:var(--s2)}
 #moreSources[open]>summary{border-bottom:0}
-body.has-cards .import-panel{padding:10px}
 body.has-cards .import-panel textarea{min-height:0}
 .suggestion-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px}
 .suggestion-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -243,31 +242,44 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .queue-issue-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.2px;cursor:pointer;text-decoration:none}
 .queue-issue-badge.missing_art,.queue-issue-badge.missing_back,.queue-issue-badge.unreadable{background:rgba(226,97,90,.2);color:#ff9c95;border:1px solid rgba(226,97,90,.4)}
 .queue-issue-badge.low_res{background:rgb(var(--warning-rgb) / .2);color:var(--warning);border:1px solid rgb(var(--warning-rgb) / .4)}
-.art-comparison-wrap{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;background:var(--fill);border:1px solid var(--hair);border-radius:var(--r-md);padding:12px}
+.art-comparison-wrap{display:grid;gap:8px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--hair)}
 .comparison-tabs{display:none;background:var(--sunk);padding:3px;border-radius:var(--r-sm);gap:4px}
 .comparison-tabs button{flex:1;min-height:30px;font-size:12px;font-weight:600;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:3px}
 .comparison-tabs button.active{background:var(--panel2);color:var(--accent2);box-shadow:inset 0 0 0 1px rgb(var(--accent-rgb) / .4)}
-.comparison-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-.comparison-col{display:flex;flex-direction:column;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px}
-.comparison-col .col-hdr{display:flex;justify-content:space-between;align-items:center;min-height:28px}
-.comparison-col .col-title{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.comparison-col{min-width:0;display:grid;justify-items:center;gap:8px;text-align:center}
+.comparison-col .col-title{font-size:13px;font-weight:600;color:var(--text)}
 .card-crop-preview{position:relative;width:100%;max-width:180px;aspect-ratio:63/88;margin:0 auto;overflow:hidden;border-radius:5px;box-shadow:0 4px 14px rgba(0,0,0,.5);background:#0d1118;display:flex;align-items:center;justify-content:center}
 .card-crop-preview img{width:100%;height:100%;object-fit:cover;display:block}
 .card-trim-overlay{position:absolute;inset:4px;border:1.5px dashed rgb(var(--accent-rgb) / .85);border-radius:4px;pointer-events:none}
 .col-meta{overflow-wrap:anywhere;display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--muted)}
 .col-meta b{color:var(--text);font-weight:600}
-@media (max-width:600px){
-  .comparison-tabs{display:flex}
-  .comparison-grid{grid-template-columns:1fr}
+.art-picker-footer{flex:none;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;border-top:1px solid var(--hair);padding:10px clamp(12px,3vw,20px)}
+.art-picker-footer .hint{flex:1 1 160px;overflow-wrap:anywhere;margin:0}
+.art-picker-footer button{margin-inline-start:auto;max-width:100%;white-space:normal}
+@media (max-width:700px){
+  .art-comparison-wrap .comparison-tabs{display:flex}
+  .art-comparison-wrap .comparison-tabs button{min-height:var(--ctl)}
+  .comparison-grid{grid-template-columns:minmax(0,1fr)}
+  .comparison-col .col-title{display:none}
   .comparison-grid.show-current .candidate-col{display:none}
   .comparison-grid.show-candidate .current-col{display:none}
 }
-.source-nav-tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line);margin:10px 0;padding-bottom:0}
-.source-nav-tabs button{flex:1 1 100px;min-width:0;white-space:normal;background:none;border:0;font-size:12.5px;font-weight:600;color:var(--muted);padding:6px 12px;cursor:pointer;border-bottom:2px solid transparent;border-radius:4px 4px 0 0}
+@media (max-width:600px){.comparison-tabs{display:flex}}
+.source-nav-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:10px 0}
+.source-nav-tabs button{flex:1;min-width:0;white-space:normal;background:none;border:0;font-size:13px;font-weight:600;color:var(--muted);padding:6px 4px;border-bottom:2px solid transparent;border-radius:0}
 .source-nav-tabs button:hover{color:var(--text)}
-.source-nav-tabs button.active{color:var(--accent2);background:var(--fill);border-bottom:2px solid var(--accent)}
+.source-nav-tabs button[aria-selected=true]{color:var(--accent2);border-bottom-color:var(--accent)}
+.art-search-row{margin-bottom:8px}
+.art-search-row input{flex:1 1 160px;min-width:0;width:auto}
+.art-search-row select{width:auto}
+.art-search-filters{margin:0 0 8px}
+.art-search-filters .hint{margin:0 0 8px}
+.art-search-filters .field{display:grid;gap:4px;font-size:12px;color:var(--muted)}
 .src-tab-content{display:flex;flex-direction:column;gap:8px}
-.src-error-box{background:rgba(226,97,90,.15);border:1px solid rgba(226,97,90,.4);color:#ff9c95;padding:8px 12px;border-radius:var(--r-sm);font-size:12px;display:flex;align-items:center;justify-content:space-between;margin:6px 0}
+.src-tab-content .hint{margin:0}
+.src-tab-content .hint:empty,.src-tab-content .prints:empty{display:none}
+.src-more{align-self:center}
 .issue-nav-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:rgb(var(--warning-rgb) / .12);border:1px solid rgb(var(--warning-rgb) / .35);padding:7px 12px;border-radius:var(--r-sm);margin-bottom:10px;font-size:12px;color:var(--warning);font-weight:600}
 .foil-cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;margin:10px 0}
 .foil-cmp-col{display:flex;flex-direction:column;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px}
@@ -297,7 +309,6 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .pg .lbl{position:absolute;top:-24px;left:0;font-size:10px;font-weight:600;letter-spacing:.4px;color:var(--muted)}
 .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:16px;color:var(--muted);font-size:13px;flex-wrap:wrap}
 .toolbar input[type=range]{width:160px}
-.empty{color:var(--muted);text-align:center;margin-top:80px}
 #overlay{position:fixed;inset:0;background:#070e18b8;display:none;align-items:center;justify-content:center;z-index:50}
 #overlay.on{display:flex;animation:scrim-in var(--motion-panel) var(--ease-out)}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:var(--elevation);animation:modalIn var(--motion-panel) var(--ease-out)}
@@ -321,8 +332,8 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .modal .bd p,.modal .bd li,.modal .bd dd,.modal .bd>.hint,.modal .bd .wizard-step>.hint,.modal .bd .wiz-pane>.hint,.modal .bd>div>.hint{max-width:74ch}
 .prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .prints figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px}
-.prints figure.sel{border-color:var(--accent)}
 .prints figure:hover{border-color:#4a515c}
+.prints figure.sel{border-color:var(--accent)}
 .prints img{width:100%;aspect-ratio:63/88;object-fit:cover;background:var(--panel2);border-radius:5px;display:block}
 .prints figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:3px}
 .token-results{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
@@ -555,15 +566,8 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:7px 10px;transition:background .12s,color .12s}
 .menu-list button:hover{background:var(--panel2)}
 .kbd{margin-left:auto}
-.empty{max-width:480px;margin:28px auto 48px;text-align:left;background:linear-gradient(150deg,#222c39,var(--panel));border:1px solid var(--line);border-radius:18px;padding:28px 30px;color:var(--text);box-shadow:0 16px 50px #0003}
+.empty{width:min(100%,520px);margin:28px auto 48px;padding:20px 0;border-block:1px solid var(--line)}
 .empty h2{margin:0 0 12px;font-size:24px;font-weight:600;letter-spacing:-.6px}
-.empty-art{height:112px;position:relative;margin-bottom:14px}
-.empty-art i{position:absolute;left:42px;top:8px;width:59px;height:83px;border:1px solid #6589ad;border-radius:7px;background:linear-gradient(140deg,#345a7d,#172733);transform:rotate(-17deg);box-shadow:0 5px 16px #0004}
-.empty-art i:nth-child(2){left:69px;top:5px;border-color:#827db9;background:linear-gradient(140deg,#575082,#232738);transform:rotate(-5deg)}
-.empty-art i:last-child{left:96px;border-color:var(--accent);background:linear-gradient(140deg,#433278,var(--panel));transform:rotate(9deg);font:44px/83px Georgia,serif;text-align:center;color:var(--accent2)}
-.empty ol{margin:0;padding-left:20px;color:var(--muted)}
-.empty li{margin-bottom:8px}
-.empty b{color:var(--text)}
 .gal{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
 .gal .tile{position:relative;display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
 .gal img{display:block;border-radius:4%/3%;background:#000;cursor:context-menu}
@@ -670,7 +674,7 @@ body.has-cards #importDrawer:not([open]){display:none}
 @media(max-width:820px){
  #stage{padding-bottom:16px}
  #tab-cards{padding-bottom:16px}
- #proofSheetLabel,#proofCalBadge{display:none!important}
+ #proofCalBadge{display:none!important}
  .stage-controls{margin-bottom:16px}
 }
 @media(min-width:821px){
@@ -810,7 +814,8 @@ body.print-settings-active #printSettingsView{display:flex!important}
 .stage-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent)}
 .stage-controls .toolbar{min-width:0}
 .stage-heading .proof-kicker{font-size:15px;font-weight:700;letter-spacing:-.02em}
-#stage .empty{background:linear-gradient(135deg,var(--panel2),var(--panel));border-color:var(--line);max-width:520px}
+#stage{scroll-padding-top:calc(var(--stage-controls-height,80px) + 16px)}
+body[data-mode=order] #stage{scroll-padding-top:16px}
 #stage .empty h2,.settings-view-hdr h2,.modal .hd>b{font-family:var(--display);font-size:24px;line-height:1.15;font-weight:600}
 #workspaceInspector .insp-row{grid-template-columns:minmax(54px,.45fr) minmax(0,1fr);border-bottom:1px solid var(--hair);padding:2px 0 8px}
 #workspaceInspector .insp-row button{justify-content:flex-start;background:transparent;border-color:transparent}
@@ -848,17 +853,18 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:var(--accent);ba
 body[data-mode=order] .gal .tile .tile-name{font-size:13px;margin:8px 2px 2px;font-weight:650}
 body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 .order-back-prompt{padding:12px 16px;border-radius:var(--r-md)}
-.modal .hd{background:linear-gradient(110deg,rgb(var(--accent-rgb) / .05),transparent 70%),var(--panel);padding:14px 20px;flex-shrink:0}
+.modal .hd{background:var(--panel);padding:14px 20px;flex-shrink:0}
 .modal .bd{min-height:0;padding:18px 20px}
-.art-comparison-wrap{padding:14px;background:var(--sunk);border:1px solid var(--hair);border-radius:var(--r-lg)}
-.comparison-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-.col-hdr{min-width:0;overflow-wrap:anywhere}
 .review-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 .review-section{min-width:0;display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--fill);overflow-wrap:anywhere}
 .review-section h3,.review-section h4{margin:0}
 .review-section>button{width:100%}
 .review-section .hint{margin:0}
 .review-file-options>.row{margin:8px 0}
+#tab-guide .review-section{padding:0;border:0;border-radius:0;background:none}
+#tab-guide .review-downloads{padding-inline-start:16px;border-inline-start:1px solid var(--hair)}
+#tab-guide #separateCutFiles{margin:0;padding:0;border:0;border-top:1px solid var(--hair);border-radius:0;background:none}
+#tab-guide #separateCutFiles>summary{margin-inline:0;padding-inline:0}
 #separateCutFiles>.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr))}
 #separateCutFiles>.row button{width:100%;white-space:normal}
 #cutSheetPicker{margin:8px 0}
@@ -876,11 +882,10 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #printSettingsView input,#printSettingsView select{max-width:100%}
 @media(max-width:700px){
   .review-layout{grid-template-columns:minmax(0,1fr)}
-  .comparison-grid{grid-template-columns:minmax(0,1fr)}
+  #tab-guide .review-downloads{padding:16px 0 0;border:0;border-top:1px solid var(--hair)}
   .modal .hd,.modal .bd{padding-inline:12px}
   .modal .hd>b,.settings-view-hdr h2{font-size:20px}
   .proof-kicker{flex-basis:100%}
-  #stage .empty{padding:18px}
   .settings-section,.alignment-col{padding:12px}
   .duplex-choices{grid-template-columns:minmax(0,1fr)}
 }
@@ -908,7 +913,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <button id="deckRename">Rename deck</button>
           <button id="deckDup">Duplicate deck</button>
           <button id="btnCopyList">Copy decklist</button><button id="projectFiles">Project files…</button>
-          <button id="btnReplace">Replace from pasted list</button>
+          <button id="btnReplace">Replace from decklist…</button>
           <button id="btnUndoReplace" style="display:none">Undo deck replacement</button>
           <button id="btnClear" class="danger">Remove all cards</button>
           <button id="deckDel" class="danger">Delete deck</button>
@@ -931,11 +936,12 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
     <div class="pane on" id="tab-cards">
       <details class="adv" id="importDrawer" open style="margin-top:0;margin-bottom:var(--s3)">
         <summary id="importDrawerSummary" style="font-weight:600">Add cards…</summary>
-        <div class="import-panel" style="margin-top:8px;margin-bottom:0">
+        <div class="import-panel">
         <label for="listIn">Paste a decklist</label>
         <textarea id="listIn" placeholder="4 Lightning Bolt&#10;1 Sol Ring (CMM) 410"></textarea>
         <div class="import-go">
           <button id="btnImport" class="primary">Add to deck</button>
+          <button id="btnAddInstead" hidden>Add instead</button>
           <button id="btnTokens">Add needed tokens</button>
         </div>
         <div class="source-actions">
@@ -944,7 +950,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <button id="btnMaker">Create a card…</button>
         </div>
         <details class="adv" id="moreSources">
-          <summary>Local image options</summary>
+          <summary>Image folders and order files</summary>
           <div style="margin-top:8px">
             <input type="file" id="filePrintDeck" accept=".json,.txt,.dec,.dek,.csv,.xml,application/json,text/plain,text/xml" hidden>
 
@@ -963,7 +969,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
         </details>
         </div>
       </details>
-      <div id="importNote"></div>
+      <div id="importNote" aria-live="polite"></div>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
       <input type="file" id="fileMpcImgs" accept="image/*" multiple hidden>
@@ -1225,8 +1231,8 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
           <div class="hero-card-summary" id="guideJobSummary"></div>
           <div id="exportReview" aria-live="polite"></div>
         </section>
-        <section class="review-section" aria-label="Print files">
-          <div class="hero-card-title"><h3>Print files</h3><span class="cutter-badge" id="guideCutterBadge">Silhouette Cameo</span></div>
+        <section class="review-section review-downloads" aria-labelledby="guideDownloadsTitle">
+          <h3 id="guideDownloadsTitle">Downloads</h3>
           <button id="btnExportCameoJob" class="primary" hidden>Download print &amp; cut ZIP</button>
           <p class="hint" id="cameoJobHint" hidden></p>
           <button id="btnExportPdfTab" class="primary">Download PDF</button>
@@ -1332,15 +1338,14 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
     <div class="stage-controls">
     <div class="stage-heading">
       <b class="proof-kicker print-only">Sheet preview</b>
-      <div class="sheet-nav print-only">
+      <div class="sheet-nav print-only" id="previewSheetNav" hidden>
         <button type="button" id="btnSheetPrev" class="icon" aria-label="Previous sheet">‹</button>
         <select id="sheetJumpSel" aria-label="Jump to sheet"></select>
         <button type="button" id="btnSheetNext" class="icon" aria-label="Next sheet">›</button>
       </div>
-      <b id="proofSheetLabel" style="display:none">Sheet 1 of 1</b>
       <b id="workspaceTitle" style="display:none">Untitled deck</b>
       <span id="previewSummary" style="display:none"></span>
-      <div class="seg proof-views print-only" id="proofViewSeg" role="group" aria-label="Proof view">
+      <div class="seg proof-views print-only" id="proofViewSeg" role="group" aria-label="Preview side and guides" hidden>
         <button type="button" id="btnProofFront" class="on">Front</button>
         <button type="button" id="btnProofBack">Back</button>
         <button type="button" id="btnProofGuides">Guides</button>
@@ -1352,15 +1357,15 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
         <div class="seg paper-direction" role="group" aria-label="Paper orientation"><button data-orientation="portrait">Portrait</button><button data-orientation="landscape">Landscape</button></div>
       </div>
       <div class="toolbar-views">
-        <div class="toolbar-cluster">
+        <div class="toolbar-cluster" id="previewZoomControls" hidden>
           <label><input type="range" id="zoom" min="0.5" max="5" step="0.1" value="2.4" aria-label="Zoom"> <span id="zoomValue">100%</span></label>
           <button class="icon" id="zoomFit">Fit</button>
         </div>
         <input type="checkbox" id="showBacks" checked style="display:none">
         <input type="checkbox" id="showCuts" style="display:none">
         <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
-        <button id="toggleSidebar" aria-pressed="false">Hide queue</button>
-        <button type="button" id="btnShowPrintSetup" class="print-only" aria-controls="workspaceInspector">Show inspector</button>
+        <button id="toggleSidebar" aria-controls="tab-cards" aria-expanded="true">Hide card list</button>
+        <button type="button" id="btnShowPrintSetup" class="print-only" aria-controls="workspaceInspector">Show print shortcuts</button>
         <button type="button" id="toggleInspector" class="print-only" aria-controls="printSettingsView">Print settings</button>
       </div>
     </div>
@@ -1595,8 +1600,8 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 
   <aside id="workspaceInspector" class="print-only">
     <div class="inspector-hdr">
-      <h3>Print inspector</h3>
-      <button type="button" id="btnCloseSetup" aria-label="Hide print inspector">Hide</button>
+      <h3>Print shortcuts</h3>
+      <button type="button" id="btnCloseSetup" aria-label="Hide print shortcuts">Hide</button>
     </div>
     <div class="inspector-summary">
       <div class="insp-row"><span id="inspPaperLabel" class="insp-lbl">Paper</span><button type="button" id="inspPaper" data-quick-setup="paper" aria-labelledby="inspPaperLabel inspPaper">Letter · Landscape</button></div>
@@ -3134,8 +3139,11 @@ function showUnresolvedImport(staged) {
   const unres = staged?.unresolved || [];
   if (unres.length && $('#listIn')) {
     if ($('#modal #linkIn')) closeModal();
+    const draft = deck().importDraft, remaining = staged.text || unres.map(row => row.sourceLine || line(row)).join('\n');
+    deck().importDraft = makeImportDraft(remaining, !!draft?.replace, draft?.id);
+    $('#listIn').value = remaining;
+    save();
     openDeckImport();
-    $('#listIn').value = unres.map(line).join('\n');
   }
   const note = $('#importNote');
   if (note) {
@@ -3144,10 +3152,9 @@ function showUnresolvedImport(staged) {
       if (linkError) linkError.textContent = staged.error;
       else { openDeckImport(); note.innerHTML = `<div class="warn">${esc(staged.error)}</div>`; }
     } else if (unres.length) {
-      note.innerHTML = `<div class="warn">Couldn't find ${unres.length} card${unres.length === 1 ? '' : 's'}. Left in the box above to correct. Original deck was left unchanged.</div>`;
+      note.innerHTML = `<div class="warn">Couldn't find ${unres.length} card${unres.length === 1 ? '' : 's'}. Check the names in your decklist.</div>`;
     }
   }
-  toast(staged?.error || 'No matching cards found. Deck was left unchanged.', 6000);
 }
 
 function showImportNeedsReview(staged) {
@@ -3350,12 +3357,13 @@ function paintMissingSuggestions(box) {
   const note = $('#importNote'); if (!note) return;
   const items = activeMissingSuggestions.filter(it => !it.added);
   if (!items.length) { note.innerHTML = ''; return; }
-  const boxCount = $('#listIn')?.value.trim().split(/\r?\n/).filter(l => l.trim() && !/^(\/\/|#)/.test(l)).length;
+  const boxCount = box ? parseList($('#listIn').value).length : 0;
   const total = box && boxCount ? boxCount : items.length;
+  const replacing = !!deck().importDraft?.replace;
   const header = box
-    ? `Couldn't find ${total} card${total === 1 ? '' : 's'}. ${total === 1 ? 'It\'s' : 'They\'re'} left in the box above: check the spelling and press <b>Add to deck</b> again.`
+    ? `Couldn't find ${total} card${total === 1 ? '' : 's'}. Check the names in your decklist.`
     : `Couldn't find: ${esc(items.map(it => it.req.name).join(', '))}.`;
-  const choiceHtml = (c, ci, ii, req) => `<b>${esc(c.name)}</b>${box ? ` <button type="button" data-suggest-replace="${esc(c.name)}" data-item="${ii}" data-choice="${ci}" data-orig="${esc(req.name)}">Use</button>` : ''} <button type="button" data-suggest-add="${ci}" data-item="${ii}">Add</button>`;
+  const choiceHtml = (c, ci, ii, req) => `<b>${esc(c.name)}</b>${box ? ` <button type="button" data-suggest-replace="${esc(c.name)}" data-item="${ii}" data-choice="${ci}" data-orig="${esc(req.name)}">Use</button>` : ''}${replacing ? '' : ` <button type="button" data-suggest-add="${ci}" data-item="${ii}">Add</button>`}`;
   let body = '';
   if (items.length === 1 && total === 1) {
     const it = items[0], ii = activeMissingSuggestions.indexOf(it);
@@ -3943,7 +3951,7 @@ function showSheet(sheetIndex, side) {
   S.showBacks = (side === 'back');
   schedulePrintReview();
   syncProofViewButtons();
-  drawPreview();
+  return drawPreview();
 }
 
 function selectCardCopy(entryId, copyIndex, face = 0) {
@@ -3965,15 +3973,19 @@ async function openMpcPicker(target) {
   if (!isBack && target.side === 'back' && e?.faces.length > 1) faceIdx = 1;
   const face = () => isBack ? orderSharedBack() : e?.faces[faceIdx];
   const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
-  const current = () => isBack ? deck().cardback?.drive : face()?.drive;
-  let activeTab = target.defaultTab || (isBack ? 'community' : 'printings');
+  const initialTab = isBack ? 'community' : (target.defaultTab || 'printings');
+  const sourceTabs = [
+    ['printings', 'Printings', 'tabPanelPrintings'],
+    ['community', 'Community art', 'tabPanelCommunity'],
+    ['local', 'Local & uploaded', 'tabPanelLocal']
+  ];
   let selectedCandidate = null;
 
   const allIssues = getPrintJobIssues();
   let curIssueIdx = target.issue ? allIssues.findIndex(x => x.uid === target.e?.uid && (x.faceIdx ?? (x.side === 'back' ? 1 : 0)) === faceIdx) : -1;
   const curIssue = curIssueIdx >= 0 ? allIssues[curIssueIdx] : (target.issue || null);
 
-  const applyBtnLabel = isBack ? 'Use as shared cardback' : (copyCount === 1 || (target.copies?.length === 1 && target.copies[0].copies.length === 1))
+  const applyBtnLabel = isBack ? 'Use as shared cardback' : copyCount === 1
     ? 'Apply to this copy'
     : copyCount > 1
       ? `Apply to ${copyCount} copies`
@@ -3989,7 +4001,7 @@ async function openMpcPicker(target) {
 
   const curFace = face();
   const currentArtworkInfo = image => {
-    if (!image) return 'No artwork selected';
+    if (!artworkKey(image)) return 'No artwork selected';
     const source = image.scryArt ? 'Scryfall printing' : image.drive ? 'Community art' : image.custom ? 'Local upload' : 'Preview image';
     const quality = image.mpcDpi ? `${image.mpcDpi} DPI` : isPreview(image) ? 'Low-resolution placeholder' : '';
     return `<b>${esc(image.name)}</b><span>${source}</span>${quality ? `<span>${esc(quality)}</span>` : ''}`;
@@ -4007,13 +4019,13 @@ async function openMpcPicker(target) {
       </div>` : ''}
 
       <div class="art-comparison-wrap">
-        <div class="comparison-tabs">
-          <button type="button" id="btnCmpCurrent">Current</button>
-          <button type="button" id="btnCmpCandidate" class="active">Candidate</button>
+        <div class="comparison-tabs" role="group" aria-label="Artwork preview">
+          <button type="button" id="btnCmpCurrent" aria-pressed="false">Current art</button>
+          <button type="button" id="btnCmpCandidate" class="active" aria-pressed="true">New art</button>
         </div>
         <div class="comparison-grid show-candidate" id="cmpGrid">
           <div class="comparison-col current-col">
-            <div class="col-hdr"><span class="col-title">Current artwork</span></div>
+            <span class="col-title">Current artwork</span>
             <div class="card-crop-preview" id="cmpCurrentCrop">
               <img id="cmpCurrentImg" src="${esc(thumbSrcSync(curFace))}" alt="">
               <div class="card-trim-overlay"></div>
@@ -4021,13 +4033,10 @@ async function openMpcPicker(target) {
             <div class="col-meta" id="cmpCurrentMeta">${currentArtworkInfo(curFace)}</div>
           </div>
           <div class="comparison-col candidate-col">
-            <div class="col-hdr">
-              <span class="col-title">New artwork</span>
-              <button type="button" class="primary" id="btnApplyCandidate" disabled>${applyBtnLabel}</button>
-            </div>
+            <span class="col-title">New artwork</span>
             <div class="card-crop-preview" id="cmpCandidateCrop">
               <div id="cmpCandidateEmpty" class="hint" style="text-align:center;padding:24px 8px">Choose artwork below</div>
-              <img id="cmpCandidateImg" src="" alt="" style="display:none">
+              <img id="cmpCandidateImg" alt="" style="display:none">
               <div class="card-trim-overlay" style="display:none"></div>
             </div>
             <div class="col-meta" id="cmpCandidateMeta"></div>
@@ -4035,66 +4044,67 @@ async function openMpcPicker(target) {
         </div>
       </div>
 
-      ${copyCount ? `<p class="hint">Applies to ${copyCount} selected cop${copyCount === 1 ? 'y' : 'ies'}.</p>` : !isBack && e.qty > 1 ? `<p class="hint">Applies to all ${e.qty} copies of this card.</p>` : ''}
       ${!isBack && e.faces.length > 1 ? `<div class="row" style="margin-bottom:8px">${e.faces.map((f, i) => `<button class="icon ${i === faceIdx ? 'primary' : ''}" data-face="${i}">${i === 0 ? 'Front' : 'Back'}: ${esc(f.name)}</button>`).join('')}</div>` : ''}
 
       ${!isBack && face()?.custom && e.scryId && instanceArtAvailable() ? '<button type="button" id="shareCurrentArt">Share current artwork to this server</button>' : ''}
       ${isBack ? '<button type="button" id="pickerCardbackUpload">Upload cardback…</button><input type="file" id="pickerCardbackFile" accept="image/*" hidden>' : ''}
-      <div class="source-nav-tabs">
-        <button type="button" class="tab-btn ${activeTab === 'printings' ? 'active' : ''}" data-src-tab="printings" ${isBack?'hidden':''}>Printings (<span id="countSf">0</span>)</button>
-        <button type="button" class="tab-btn ${activeTab === 'community' ? 'active' : ''}" data-src-tab="community">Community art (<span id="countMpc">0</span>)</button>
-        <button type="button" class="tab-btn ${activeTab === 'local' ? 'active' : ''}" data-src-tab="local" ${isBack?'hidden':''}>Local images (<span id="countLocal">0</span>)</button>
-      </div>
-
-      ${isBack ? '' : `<div class="row" style="margin-bottom:8px">
-        <input type="text" id="mpcQ" style="flex:1;min-width:180px" value="${esc(face()?.name || '')}">
-        <select id="mpcType" style="width:auto"><option value="CARD">Card</option><option value="TOKEN" ${e.kind === 'TOKEN' ? 'selected' : ''}>Token</option></select>
-        <button class="primary" id="mpcGo">Search</button>
+      ${isBack ? '' : `<div class="row art-search-row">
+        <input type="search" id="mpcQ" aria-label="Card name" value="${esc(face()?.name || '')}">
+        <select id="mpcType" aria-label="Card or token"><option value="CARD">Card</option><option value="TOKEN" ${e.kind === 'TOKEN' ? 'selected' : ''}>Token</option></select>
+        <button id="mpcGo">Search</button>
       </div>`}
 
-      <details class="adv" style="margin:0 0 10px"><summary>Search filters</summary><p class="hint">Resolution and file size apply to community art.</p>
-        <div class="grid2" style="margin-top:8px">
-          <div class="field"><label>Min DPI</label><input type="number" data-m="minDpi" value="${S.mpc.minDpi}"></div>
-          <div class="field"><label>Prioritize images at this DPI (0 = off)</label><input type="number" data-m="preferDpi" value="${S.mpc.preferDpi}"></div>
-          <div class="field"><label>Max DPI</label><input type="number" data-m="maxDpi" value="${S.mpc.maxDpi}"></div>
-          <div class="field"><label>Max file size (MB)</label><input type="number" data-m="maxMb" value="${S.mpc.maxMb}"></div>
-          <div class="field"><label>Language</label><select data-m="lang" id="mpcLang"><option value="">Any</option></select></div>
-          <label class="check"><input type="checkbox" data-m="fuzzy" ${S.mpc.fuzzy ? 'checked' : ''}> Fuzzy search</label>
-          <label class="check"><input type="checkbox" data-m="nsfw" ${S.mpc.nsfw ? 'checked' : ''}> Include NSFW art</label>
+      <details class="art-search-filters"><summary>Search filters</summary><p class="hint">DPI limits and file size apply to community art.</p>
+        <div class="grid2">
+          <label class="field">Min DPI<input type="number" data-m="minDpi" value="${S.mpc.minDpi}"></label>
+          <label class="field">Preferred DPI (0 to turn off)<input type="number" data-m="preferDpi" value="${S.mpc.preferDpi}"></label>
+          <label class="field">Max DPI<input type="number" data-m="maxDpi" value="${S.mpc.maxDpi}"></label>
+          <label class="field">Max file size (MB)<input type="number" data-m="maxMb" value="${S.mpc.maxMb}"></label>
+          <label class="field">Language<select data-m="lang" id="mpcLang"><option value="">Any</option></select></label>
+          <label class="check"><input type="checkbox" data-m="fuzzy" ${S.mpc.fuzzy ? 'checked' : ''}> Match similar names</label>
+          <label class="check"><input type="checkbox" data-m="nsfw" ${S.mpc.nsfw ? 'checked' : ''}> Include explicit art</label>
         </div>
       </details>
       ${!isBack && e.kind==='TOKEN'?'<p class="hint"><button id="mpcTokenFaces">Choose token faces…</button></p>':''}
-      <p class="hint" id="mpcStatus"></p>
-
-      <div id="tabPanelPrintings" class="src-tab-content" style="${activeTab === 'printings' ? '' : 'display:none'}">
+      <div class="source-nav-tabs" role="tablist" aria-label="Artwork sources" ${isBack ? 'hidden' : ''}>
+        ${sourceTabs.map(([id,label,panel]) => `<button type="button" role="tab" id="artSource-${id}" aria-controls="${panel}" aria-selected="${initialTab === id}" tabindex="${initialTab === id ? 0 : -1}" data-src-tab="${id}">${label}</button>`).join('')}
+      </div>
+      <div id="tabPanelPrintings" class="src-tab-content" role="tabpanel" aria-labelledby="artSource-printings" tabindex="0" ${initialTab === 'printings' ? '' : 'hidden'}>
+        <p class="hint" id="sfStatus" role="status"></p>
+        <button class="src-more" type="button" id="btnRetrySf" hidden>Retry Scryfall</button>
         <div class="prints" id="scryfallArt"></div>
-        <div class="row" style="justify-content:center;margin-top:8px"><button id="sfArtMore" style="display:none">More Scryfall</button></div>
-        <div class="src-error-box" id="sfErrorBox" style="display:none"><span>Scryfall is unavailable.</span><button type="button" id="btnRetrySf">Retry</button></div>
+        <button class="src-more" id="sfArtMore" hidden>More printings</button>
       </div>
 
-      <div id="tabPanelCommunity" class="src-tab-content" style="${activeTab === 'community' ? '' : 'display:none'}">
+      <div id="tabPanelCommunity" class="src-tab-content" ${isBack ? 'aria-label="Community cardbacks"' : 'role="tabpanel" aria-labelledby="artSource-community" tabindex="0"'} ${initialTab === 'community' ? '' : 'hidden'}>
+        <p class="hint" id="mpcSourceStatus" role="status"></p>
+        <button class="src-more" type="button" id="btnRetryMpc" hidden>Retry community art</button>
         <div class="prints" id="communityArt"></div>
-        <div class="row" style="justify-content:center;margin-top:8px"><button id="mpcMore" style="display:none">More community art</button></div>
-        <div class="src-error-box" id="mpcErrorBox" style="display:none"><span>Community art is unavailable.</span><button type="button" id="btnRetryMpc">Retry</button></div>
+        <button class="src-more" id="mpcMore" hidden>More community art</button>
       </div>
 
-      <div id="tabPanelLocal" class="src-tab-content" style="${activeTab === 'local' ? '' : 'display:none'}">
-        ${isBack ? '' : `<p class="hint">${copyCount ? '' : '<button class="icon" id="mpcMaker">Make custom card…</button>'} <button class="icon" id="mpcOwn">Upload image…</button></p>`}
+      <div id="tabPanelLocal" class="src-tab-content" role="tabpanel" aria-labelledby="artSource-local" tabindex="0" ${initialTab === 'local' ? '' : 'hidden'}>
+        ${isBack ? '' : `<div class="row"><button id="mpcOwn">Upload image…</button>${copyCount ? '' : '<button id="mpcMaker">Make custom card…</button>'}</div>`}
+        <p class="hint" id="localStatus" role="status"></p>
         <div class="prints" id="localArt"></div>
         <div class="prints" id="sharedArt"></div>
       </div>
+    </div>
+    <div class="art-picker-footer">
+      <p class="hint" id="mpcStatus" role="status">Select an image to apply.</p>
+      <button type="button" class="primary" id="btnApplyCandidate" disabled>${applyBtnLabel}</button>
     </div>`, target.backLabel);
 
   const bd = $('#modal .bd'), find = q => $(q, bd);
+  const footer = bd.nextElementSibling, applyButton = $('#btnApplyCandidate', footer);
   const pickerDeck = S.deckId, pickerActive = () => bd.isConnected && $('#overlay').classList.contains('on') && S.deckId === pickerDeck;
-  let revision = 0, artMessage = false;
-  const status = t => find('#mpcStatus').innerHTML = t;
+  let revision = 0, applying = false;
+  const status = text => $('#mpcStatus', footer).textContent = text;
   const retry = find('#btnPickerRetryImg');
   if (retry && curIssue?.retryable) {
     retry.style.display = '';
     retry.onclick = async () => {
       retry.disabled = true;
-      artMessage = true;
       status('Checking artwork…');
       try {
         await retryArtworkIssue(curIssue);
@@ -4110,20 +4120,44 @@ async function openMpcPicker(target) {
       const file = input.files[0]; input.value = '';
       if (!file) return;
       try { if (await uploadSharedCardback(file) && pickerActive()) closeModal(); }
-      catch (err) { if (pickerActive()) status(esc(err.message)); }
+      catch (err) { if (pickerActive()) status(err.message); }
     };
   }
 
+  function showComparison(showNew) {
+    find('#cmpGrid').classList.toggle('show-current', !showNew);
+    find('#cmpGrid').classList.toggle('show-candidate', showNew);
+    for (const [button, pressed] of [[find('#btnCmpCurrent'), !showNew], [find('#btnCmpCandidate'), showNew]]) {
+      button.classList.toggle('active', pressed);
+      button.setAttribute('aria-pressed', String(pressed));
+    }
+  }
+
+  function activateSource(tabButton) {
+    for (const button of $$('.source-nav-tabs button', bd)) {
+      const selected = button === tabButton;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      find('#' + button.getAttribute('aria-controls')).hidden = !selected;
+    }
+  }
+
   function selectCandidate(cand) {
+    if (applying) return;
     selectedCandidate = cand;
-    $$('figure', bd).forEach(f => f.classList.remove('sel'));
-    if (cand.el) cand.el.classList.add('sel');
+    for (const result of $$('figure[aria-pressed=true]', bd)) {
+      result.classList.remove('sel');
+      result.setAttribute('aria-pressed', 'false');
+    }
+    cand.el.classList.add('sel');
+    cand.el.setAttribute('aria-pressed', 'true');
     find('#cmpCandidateEmpty').style.display = 'none';
     const cImg = find('#cmpCandidateImg');
     cImg.src = cand.thumb || cand.url;
     cImg.style.display = 'block';
     find('#cmpCandidateCrop .card-trim-overlay').style.display = 'block';
-    find('#btnApplyCandidate').disabled = false;
+    applyButton.disabled = false;
+    status(`${cand.name} · ${cand.sourceName}`);
     const meta = find('#cmpCandidateMeta');
     meta.innerHTML = `<b>${esc(cand.name)}</b><span>${esc(cand.sourceName)}</span><span id="cmpCandidateDpi">Checking resolution…</span>`;
     const img = new Image();
@@ -4147,19 +4181,32 @@ async function openMpcPicker(target) {
       if (dpiEl) dpiEl.textContent = 'Resolution unknown';
     };
     img.src = cand.fullUrl || cand.png || cand.thumb || cand.url;
-    const cmpGrid = find('#cmpGrid');
-    if (cmpGrid) cmpGrid.className = 'comparison-grid show-candidate';
+    showComparison(true);
   }
 
   async function applyCurrentCandidate() {
-    if (!selectedCandidate) return;
+    if (!selectedCandidate || applying) return;
+    const runId = revision;
+    applying = applyButton.disabled = true;
+    status('Applying artwork…');
+    try {
+      await saveCandidate();
+    } catch (err) {
+      if (pickerActive() && runId === revision) status(err.message);
+    } finally {
+      applying = false;
+      applyButton.disabled = !selectedCandidate;
+    }
+  }
+  applyButton.onclick = applyCurrentCandidate;
+
+  async function saveCandidate() {
     const cand = selectedCandidate;
     const chosenFace = faceIdx, chosenRun = revision;
     if (cand.type === 'scryfall') {
       const item = cand.item;
       let key;
       try {
-        artMessage = true; status('Saving Scryfall artwork…');
         const response = await fetch(item.png); if (!response.ok) throw new Error('This Scryfall image could not be downloaded.');
         const blob = await response.blob(); if (!blob.size || blob.size > 20*1048576 || !blob.type.startsWith('image/')) throw new Error('This Scryfall image could not be opened.');
         if (!pickerActive() || chosenRun !== revision) return;
@@ -4170,13 +4217,11 @@ async function openMpcPicker(target) {
           Object.assign(f, {custom:key, png:item.png, normal:item.thumb || item.png, srcBleed:0, scryArt:item.png, manual:true});
           await removeImageIfUnused(old);
         });
-      } catch(err) { if (pickerActive() && chosenRun === revision) status(esc(err.message)); return; }
-      finally { if (key) await removeImageIfUnused(key); }
+      } finally { if (key) await removeImageIfUnused(key); }
     } else if (cand.type === 'instance') {
       const item = cand.item;
       let key;
       try {
-        artMessage = true; status('Saving uploaded artwork…');
         const response = await fetch(`/art/${item.id}/image`); if (!response.ok) throw new Error('This upload is no longer available.');
         const blob = await response.blob(); if (!blob.size || blob.size > 20*1048576 || !blob.type.startsWith('image/')) throw new Error('This upload could not be opened.');
         if (!pickerActive() || chosenRun !== revision) return;
@@ -4187,10 +4232,9 @@ async function openMpcPicker(target) {
           Object.assign(f, {custom:key, srcBleed:item.bleed, localName:item.face, manual:true});
           await removeImageIfUnused(old);
         });
-      } catch(err) { if (pickerActive() && chosenRun === revision) status(esc(err.message)); return; }
-      finally { if (key) await removeImageIfUnused(key); }
+      } finally { if (key) await removeImageIfUnused(key); }
     } else if (cand.type === 'local') {
-      await applyArtChoice(target, faceIdx, async f => {
+      await applyArtChoice(target, chosenFace, async f => {
         await useLocalFile(f, cand.file);
         f.manual = true;
       });
@@ -4202,9 +4246,8 @@ async function openMpcPicker(target) {
         deck().cardback = {name:'Card back', ...mpcArt(card)};
         S.settings.backImage = null;
         await removeImageIfUnused(old);
-        toast('Cardback set.');
       } else {
-        await applyArtChoice(target, faceIdx, async f => {
+        await applyArtChoice(target, chosenFace, async f => {
           const old = f.custom;
           delete f.custom; delete f.auto; delete f.template; delete f.lowRes; delete f.scryArt;
           Object.assign(f, mpcArt(card), {manual:true});
@@ -4216,7 +4259,7 @@ async function openMpcPicker(target) {
     const remaining = getPrintJobIssues();
     if (target.issue && remaining.length) { toast(`Artwork updated. ${remaining.length} issues remain.`,8000,{label:'Next issue',fn:()=>{ const next=findIssueTarget(getPrintJobIssues()[0] || {}); if(next){showSheet(next.sheetIndex,next.side);selectCardCopy(next.entryId,next.copyIndex,next.i);openMpcPicker(next);} }}); closeModal(); return; }
     closeModal();
-    toast('Artwork updated.');
+    toast(isBack ? 'Cardback set.' : 'Artwork updated.');
   }
 
   async function page() {
@@ -4226,20 +4269,20 @@ async function openMpcPicker(target) {
     if (runId !== revision || !pickerActive()) return;
     const commGrid = find('#communityArt');
     if (commGrid) {
-      commGrid.insertAdjacentHTML('beforeend', cards.map(c => `<figure data-id="${esc(c.identifier)}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} art from ${esc(c.sourceName)}" class="${c.identifier === current() ? 'sel' : ''}">
+      commGrid.insertAdjacentHTML('beforeend', cards.map(c => `<figure data-id="${esc(c.identifier)}" tabindex="0" role="button" aria-pressed="false" aria-label="Preview ${esc(c.name)} from ${esc(c.sourceName)}">
         <img loading="lazy" src="https://img.mpcautofill.com/${esc(c.identifier)}-small-google_drive" alt="">
-        <figcaption>${esc(c.name)}<br><b>Community art</b> · ${esc(c.sourceName)} · ${S.mpc.preferDpi && c.dpi >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+c.dpi} DPI</b>` : +c.dpi + ' DPI'} · ${(+c.size / 1048576).toFixed(1)} MB</figcaption></figure>`).join(''));
+        <figcaption>${esc(c.name)}<br>${esc(c.sourceName)} · ${S.mpc.preferDpi && c.dpi >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+c.dpi} DPI</b>` : +c.dpi + ' DPI'} · ${(+c.size / 1048576).toFixed(1)} MB</figcaption></figure>`).join(''));
     }
-    find('#mpcMore').style.display = shown < ids.length ? '' : 'none';
-    const cnt = find('#countMpc'); if (cnt) cnt.textContent = ids.length;
+    find('#mpcMore').hidden = shown >= ids.length;
   }
 
-  let moreScryfall = () => {}, communityStatus = () => {};
+  let moreScryfall = () => {};
   async function runCommunity() {
     const runId = revision, active = () => runId === revision && pickerActive();
     const query = isBack ? '' : find('#mpcQ').value.trim(), kind = isBack ? 'CARD' : find('#mpcType').value;
-    find('#mpcErrorBox').style.display = 'none';
-    communityStatus('Searching community art…');
+    const retryButton = find('#btnRetryMpc'), sourceStatus = find('#mpcSourceStatus');
+    retryButton.hidden = true;
+    sourceStatus.textContent = isBack ? 'Loading cardbacks…' : 'Searching community art…';
     try {
       const q = {query:mpcQuery(query), cardType:kind};
       const found = isBack ? (await mpcApi('2/cardbacks/', {searchSettings:await mpcSettings()})).cardbacks || [] : (await mpcSearch([q])).get(q.query + '|' + q.cardType) || [];
@@ -4248,23 +4291,25 @@ async function openMpcPicker(target) {
       ids = mpcRank(found);
       shown = 0;
       find('#communityArt').replaceChildren();
-      const cnt = find('#countMpc'); if (cnt) cnt.textContent = ids.length;
       if (ids.length) await page();
-      if (active()) communityStatus(ids.length ? `${ids.length} community images found.` : 'No community images found.');
+      if (active()) {
+        const label = isBack ? 'cardback' : 'image';
+        sourceStatus.textContent = ids.length ? `${ids.length} ${label}${ids.length === 1 ? '' : 's'}` : `No ${label}s found.`;
+      }
     } catch {
-      if (active()) { find('#mpcErrorBox').style.display = 'flex'; communityStatus('Community art is unavailable.'); }
+      if (active()) {
+        sourceStatus.textContent = isBack ? 'Community cardbacks could not load.' : 'Community art could not load.';
+        retryButton.hidden = false;
+      }
     }
   }
 
   async function run() {
     const runId = ++revision, active = () => runId === revision && pickerActive();
     const query = isBack ? '' : find('#mpcQ').value.trim(), kind = isBack ? 'CARD' : find('#mpcType').value;
-    const parts = {local:'', shared:'', community:'Searching community art…', scryfall:isBack?'':'Searching Scryfall…'};
-    artMessage = false;
-    const update = (source, text) => { if (active()) { parts[source] = text; if (!artMessage) status(Object.values(parts).filter(Boolean).join(' ')); } };
-    communityStatus = text => update('community', text);
     selectedCandidate = null;
-    find('#btnApplyCandidate').disabled = true;
+    applyButton.disabled = true;
+    status('Select an image to apply.');
     find('#cmpCandidateEmpty').style.display = '';
     find('#cmpCandidateImg').style.display = 'none';
     find('#cmpCandidateCrop .card-trim-overlay').style.display = 'none';
@@ -4280,26 +4325,26 @@ async function openMpcPicker(target) {
     if (localGrid) {
       localGrid.innerHTML = localHits.map((x, i) => {
         const u = URL.createObjectURL(x.file); thumbs.push(u);
-        return `<figure data-local="${i}" tabindex="0" role="button" aria-label="Use ${esc(x.file.name)}"><img loading="lazy" src="${u}" alt=""><figcaption>${esc(x.file.name)}<br><b style="color:var(--accent2)">Your folder</b> · ${(x.file.size/1048576).toFixed(1)} MB</figcaption></figure>`;
+        return `<figure data-local="${i}" tabindex="0" role="button" aria-pressed="false" aria-label="Preview ${esc(x.file.name)}"><img loading="lazy" src="${u}" alt=""><figcaption>${esc(x.file.name)}<br>Your folder · ${(x.file.size/1048576).toFixed(1)} MB</figcaption></figure>`;
       }).join('');
     }
-    const cntLocal = find('#countLocal'); if (cntLocal) cntLocal.textContent = localHits.length;
     find('#communityArt').innerHTML = '';
     find('#scryfallArt').innerHTML = '';
+    find('#sharedArt').replaceChildren();
     shown = 0; sharedHits = []; sfHits = []; sfShown = 0; sfNext = null; sfBusy = false;
-    find('#mpcMore').style.display = find('#sfArtMore').style.display = 'none';
-    find('#sfErrorBox').style.display = find('#mpcErrorBox').style.display = 'none';
-    update('local', localHits.length ? `${localHits.length} from your folder.` : '');
+    find('#mpcMore').hidden = find('#sfArtMore').hidden = true;
+    const localStatus = find('#localStatus'), noLocalArt = 'No matching images. You can upload one above.';
+    localStatus.textContent = localHits.length ? '' : noLocalArt;
 
     const jobs = [];
     if (!isBack && instanceArtAvailable()) jobs.push((async () => {
-      update('shared', 'Searching shared uploads…');
+      if (!localHits.length) localStatus.textContent = 'Searching uploads…';
       try {
         const result = await shareRequest('/art?q=' + encodeURIComponent(query) + '&kind=' + kind); if (!active()) return;
         sharedHits = result.art || [];
-        find('#sharedArt').innerHTML = sharedHits.map(c => `<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-label="Use uploaded ${esc(c.face)} artwork"><img loading="lazy" src="/art/${esc(c.id)}/thumb" alt=""><figcaption>${esc(c.face)}<br><b style="color:var(--accent2)">Uploaded here</b> · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join('');
-        update('shared', sharedHits.length ? `${sharedHits.length} uploaded here.` : '');
-      } catch { update('shared', 'Shared uploads are unavailable.'); }
+        find('#sharedArt').innerHTML = sharedHits.map(c => `<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-pressed="false" aria-label="Preview uploaded ${esc(c.face)} artwork"><img loading="lazy" src="/art/${esc(c.id)}/thumb" alt=""><figcaption>${esc(c.face)}<br>Uploaded here · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join('');
+        localStatus.textContent = localHits.length || sharedHits.length ? '' : noLocalArt;
+      } catch { if (active()) localStatus.textContent = 'Shared uploads could not load.'; }
     })());
 
     if (!isBack) {
@@ -4307,7 +4352,9 @@ async function openMpcPicker(target) {
       sfNext = query ? `${SF}/cards/search?unique=prints&include_extras=true&order=released&q=${encodeURIComponent(q)}` : null;
       moreScryfall = async () => {
         if (sfBusy || !active()) return;
-        sfBusy = true; find('#sfArtMore').disabled = true; find('#sfErrorBox').style.display = 'none';
+        const retryButton = find('#btnRetrySf'), sourceStatus = find('#sfStatus');
+        sfBusy = true; find('#sfArtMore').disabled = true; retryButton.hidden = true;
+        if (sfNext) sourceStatus.textContent = 'Searching printings…';
         try {
           if (sfShown >= sfHits.length && sfNext) {
             const data = await sf(sfNext); if (!active()) return;
@@ -4315,17 +4362,19 @@ async function openMpcPicker(target) {
             sfNext = data.has_more && typeof data.next_page === 'string' && data.next_page.startsWith(SF + '/cards/search?') ? data.next_page : null;
           }
           const batch = sfHits.slice(sfShown, sfShown + 60), offset = sfShown; sfShown += batch.length;
-          find('#scryfallArt').insertAdjacentHTML('beforeend', batch.map((c, i) => `<figure data-scryfall="${offset + i}" tabindex="0" role="button" aria-label="Use ${esc(c.name)} from Scryfall" class="${face()?.scryArt === c.png ? 'sel' : ''}">${c.thumb ? `<img loading="lazy" src="${esc(c.thumb)}" alt="">` : ''}<figcaption>${esc(c.name)}<br><b style="color:var(--accent2)">Scryfall</b> · ${esc(c.card.set_name || c.card.set || '')} #${esc(c.card.collector_number || '')} · ${S.mpc.preferDpi && (c.dpi||300) >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+(c.dpi||300)} DPI</b>` : +(c.dpi||300) + ' DPI'}</figcaption></figure>`).join(''));
-          find('#sfArtMore').style.display = sfShown < sfHits.length || sfNext ? '' : 'none';
-          const cnt = find('#countSf'); if (cnt) cnt.textContent = sfHits.length;
-          update('scryfall', sfHits.length ? `${sfHits.length}${sfNext ? '+' : ''} Scryfall printing${sfHits.length === 1 ? '' : 's'}.` : query ? 'No Scryfall printings found.' : 'Enter a card name to search Scryfall.');
+          find('#scryfallArt').insertAdjacentHTML('beforeend', batch.map((c, i) => {
+            const printing = `${c.card.set_name || c.card.set || ''} #${c.card.collector_number || ''}`;
+            return `<figure data-scryfall="${offset + i}" tabindex="0" role="button" aria-pressed="false" aria-label="Preview ${esc(c.name)}, ${esc(printing)}">${c.thumb ? `<img loading="lazy" src="${esc(c.thumb)}" alt="">` : ''}<figcaption>${esc(c.name)}<br>${esc(printing)} · ${S.mpc.preferDpi && (c.dpi||300) >= S.mpc.preferDpi ? `<b style="color:var(--ok)">${+(c.dpi||300)} DPI</b>` : +(c.dpi||300) + ' DPI'}</figcaption></figure>`;
+          }).join(''));
+          find('#sfArtMore').hidden = sfShown >= sfHits.length && !sfNext;
+          sourceStatus.textContent = sfHits.length ? `${sfHits.length}${sfNext ? '+' : ''} printing${sfHits.length === 1 && !sfNext ? '' : 's'}` : query ? 'No printings found on Scryfall.' : 'Enter a card name to search.';
         } catch(err) {
           if (active()) {
             const noResults = err.status === 404;
             if (noResults) sfNext = null;
-            find('#sfArtMore').style.display = 'none';
-            find('#sfErrorBox').style.display = noResults ? 'none' : 'flex';
-            update('scryfall', noResults ? (sfHits.length ? 'No more Scryfall printings.' : 'No Scryfall printings found.') : 'Scryfall is unavailable.');
+            find('#sfArtMore').hidden = true;
+            retryButton.hidden = noResults;
+            sourceStatus.textContent = noResults ? (sfHits.length ? 'No more printings.' : 'No printings found on Scryfall.') : 'Scryfall could not load.';
           }
         } finally {
           if (active()) { sfBusy = false; find('#sfArtMore').disabled = false; }
@@ -4347,28 +4396,9 @@ async function openMpcPicker(target) {
       return run();
     }
     const tabBtn = ev.target.closest('.source-nav-tabs button');
-    if (tabBtn) {
-      const tab = tabBtn.dataset.srcTab;
-      activeTab = tab;
-      $$('.source-nav-tabs button', bd).forEach(b => b.classList.toggle('active', b === tabBtn));
-      find('#tabPanelPrintings').style.display = tab === 'printings' ? 'flex' : 'none';
-      find('#tabPanelCommunity').style.display = tab === 'community' ? 'flex' : 'none';
-      find('#tabPanelLocal').style.display = tab === 'local' ? 'flex' : 'none';
-      return;
-    }
-    if (ev.target.id === 'btnCmpCurrent') {
-      find('#cmpGrid').className = 'comparison-grid show-current';
-      find('#btnCmpCurrent').classList.add('active');
-      find('#btnCmpCandidate').classList.remove('active');
-      return;
-    }
-    if (ev.target.id === 'btnCmpCandidate') {
-      find('#cmpGrid').className = 'comparison-grid show-candidate';
-      find('#btnCmpCandidate').classList.add('active');
-      find('#btnCmpCurrent').classList.remove('active');
-      return;
-    }
-    if (ev.target.id === 'btnApplyCandidate') return applyCurrentCandidate();
+    if (tabBtn) return activateSource(tabBtn);
+    if (ev.target.id === 'btnCmpCurrent') return showComparison(false);
+    if (ev.target.id === 'btnCmpCandidate') return showComparison(true);
     if (ev.target.id === 'btnPickerNextIssue') {
       const issues = getPrintJobIssues();
       if (!issues.length) { toast('No more issues.'); return; }
@@ -4393,9 +4423,8 @@ async function openMpcPicker(target) {
     if (ev.target.dataset.removeArt) {
       const id = ev.target.dataset.removeArt;
       if (!confirm('Remove this upload from shared art search? Saved decks keep their copies.')) return;
-      artMessage = true;
       try { await shareRequest(`/art/${id}/delete`, {}); if (bd.isConnected) run(); }
-      catch(err) { if (bd.isConnected) status(esc(err.message)); }
+      catch(err) { if (bd.isConnected) status(err.message); }
       return;
     }
 
@@ -4455,16 +4484,20 @@ async function openMpcPicker(target) {
     });
   });
 
-  bd.addEventListener('dblclick', ev => {
-    const fig = ev.target.closest('figure');
-    if (fig && selectedCandidate) applyCurrentCandidate();
-  });
-
   bd.addEventListener('keydown', ev => {
+    if (ev.target.matches('.source-nav-tabs button') && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(ev.key)) {
+      ev.preventDefault();
+      const tabs = $$('.source-nav-tabs button', bd);
+      const index = tabs.indexOf(ev.target), offset = ev.key === 'ArrowLeft' ? -1 : 1;
+      const next = tabs[ev.key === 'Home' ? 0 : ev.key === 'End' ? tabs.length - 1 : (index + offset + tabs.length) % tabs.length];
+      activateSource(next);
+      next.focus();
+      return;
+    }
     if (ev.target.matches('figure') && ['Enter', ' '].includes(ev.key)) {
       ev.preventDefault();
       ev.target.click();
-      find('#btnApplyCandidate').focus();
+      if (!applyButton.disabled) applyButton.focus({preventScroll:true});
     }
   });
 
@@ -4830,12 +4863,10 @@ function activateDeck(id, settings) {
   S.settings = cleanSettings(settings || deck().printSettings || S.settings);
   Object.assign(S.mpc, cleanOrderSettings(deck().orderSettings || S.mpc));
   S.activeSheet = 0; S.exportSheet = null; S.activePreset = null;
-  $('#listIn').value = deck().importDraft?.text || '';
-  $('#importNote').replaceChildren();
+  restoreDeckImport();
   $('#deckFilter').value = '';
   S.filterNeedsArt = false;
   $('#exportScope').value = 'all';
-  $('#importDrawer').open = !deck().entries.length || !!deck().importDraft?.text;
 }
 
 /* ---------- UI: deck header ---------- */
@@ -5008,7 +5039,7 @@ async function renderCards() {
       <input type="checkbox" data-act="select" aria-label="Select copies of ${esc(e.name)}" hidden>
       <img data-act="art" alt="" src="${esc(thumbSrcSync(e.faces[0]))}" tabindex="0" role="button" aria-label="Change artwork for ${esc(e.name)}" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
       <div style="min-width:0;flex:1">
-        <button type="button" class="nm" data-act="jump" title="${esc(e.name)}" aria-label="Show on sheet: ${esc(e.name)}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</button>
+        <button type="button" class="nm" data-act="jump" title="${esc(e.name)}" aria-label="Show ${esc(e.name)} in ${S.mode === 'order' ? 'gallery' : 'preview'}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</button>
         <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
           ${!issues.length ? (e.faces.length > 1 ? '<span class="tag">DFC</span>' : '') : ''}${e.cornerColor ? `<span class="tag" style="display:inline-flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:${esc(e.cornerColor)};display:inline-block"></span>corner</span>` : ''}</div>
       </div>
@@ -5047,13 +5078,31 @@ function applyDeckFilter() {
   $('#deckFilterEmpty').hidden = !q && !S.filterNeedsArt ? true : rows.some(r => !r.hidden);
 }
 $('#deckFilter').oninput = applyDeckFilter;
-$('#btnResumeImport').onclick = () => { const draft = deck().importDraft; if (draft) { if (draft.format === 'order-xml') return importMpcXml(draft.text,draft.fileName || 'Imported order',{review:true}); $('#listIn').value = draft.text; openDeckImport(); } };
+function restoreDeckImport() {
+  const current = deck(), draft = current.importDraft, textDraft = draft?.format !== 'order-xml' ? draft : null;
+  $('#listIn').value = textDraft?.text || '';
+  $('#importNote').replaceChildren();
+  $('#importDrawer').open = !current.entries.length || !!textDraft?.text || !!textDraft?.replace;
+}
+$('#btnResumeImport').onclick = () => {
+  const draft = deck().importDraft;
+  if (!draft) return;
+  if (draft.format === 'order-xml') return importMpcXml(draft.text,draft.fileName || 'Imported order',{review:true});
+  $('#listIn').value = draft.text;
+  openDeckImport();
+};
 function syncImportDrawer() {
   const open = $('#importDrawer').open, draft = deck()?.importDraft;
   const button = $('#btnAddCards');
   button.textContent = open ? 'Hide import' : 'Add cards';
   button.setAttribute('aria-expanded', String(open));
-  $('#btnResumeImport').hidden = !draft?.text || (open && draft.format !== 'order-xml');
+  const replace = !!draft?.replace;
+  const resume = $('#btnResumeImport');
+  resume.hidden = !draft?.text || (open && draft.format !== 'order-xml');
+  resume.textContent = replace ? 'Resume replacement' : 'Resume import';
+  $('#btnImport').textContent = replace ? 'Review replacement' : 'Add to deck';
+  $('#btnAddInstead').hidden = !replace;
+  $('#btnTokens').hidden = replace;
 }
 function openDeckImport() {
   if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
@@ -5062,7 +5111,20 @@ function openDeckImport() {
   syncImportDrawer();
   $('#listIn').focus();
 }
-$('#listIn').addEventListener('input', () => { deck().importDraft = $('#listIn').value.trim() ? makeImportDraft($('#listIn').value) : null; syncImportDrawer(); save(); });
+$('#listIn').addEventListener('input', () => {
+  const text = $('#listIn').value, replace = !!deck().importDraft?.replace;
+  deck().importDraft = text.trim() || replace ? makeImportDraft(text, replace) : null;
+  syncImportDrawer();
+  save();
+});
+$('#btnAddInstead').onclick = () => {
+  const text = $('#listIn').value;
+  deck().importDraft = text.trim() ? makeImportDraft(text) : null;
+  $('#importNote').replaceChildren();
+  syncImportDrawer();
+  save();
+  $('#listIn').focus();
+};
 $('#btnAddCards').onclick = () => { if ($('#importDrawer').open) $('#importDrawer').open = false; else openDeckImport(); syncImportDrawer(); };
 $('#btnMultiSelect').onclick = () => { S.multiSelect = !S.multiSelect; if (!S.multiSelect) selectedCopies.clear(); $('#btnMultiSelect').textContent = S.multiSelect ? 'Done' : 'Select'; $('#btnMultiSelect').setAttribute('aria-pressed', String(S.multiSelect)); syncCardSelection(); };
 $('#btnFilterNeedsArt').onclick = () => {
@@ -5073,6 +5135,28 @@ $('#btnFilterNeedsArt').onclick = () => {
 };
 $('#importDrawer').addEventListener('toggle', syncImportDrawer);
 $('#cardList').addEventListener('keydown', ev=>{if(ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)){ev.preventDefault();ev.target.click();}});
+async function revealQueueCard(entry) {
+  if (!entry?.qty) return;
+  const order = S.mode === 'order', project = S.deckId;
+  const sheet = order ? 0 : buildPrintJob().sheets.findIndex(page =>
+    page.slots.some(slot => slot.e.uid === entry.uid && slot.copy === 0 && slot.fi === 0));
+  if (sheet < 0) return;
+  setWorkspaceView('proof', {redraw:false});
+  selectCardCopy(entry.uid, 0, 0);
+  if (!order && S.zoomMode === 'fit') $('#zoomFit').click();
+  if (order) {
+    S.orderShowBacks = false;
+    await drawPreview();
+  } else {
+    await showSheet(sheet, 'front');
+  }
+  if (S.deckId !== project) return;
+  const uid = CSS.escape(entry.uid);
+  const card = $(`#pages [data-uid="${uid}"][data-copy="0"][data-face="0"]`)
+    || $(`#pages [data-order-issue="${uid}"][data-order-copy="0"]`);
+  card?.scrollIntoView({block:'center', inline:'nearest'});
+  focusNavigationTarget(card);
+}
 $('#cardList').addEventListener('click', async ev => {
   const row = ev.target.closest('.card'); if (!row) return;
   const entry = deck().entries.find(e => e.uid === row.dataset.uid);
@@ -5083,7 +5167,7 @@ $('#cardList').addEventListener('click', async ev => {
     const all = Array.from({length:entry.qty}, (_, q) => copyKey(entry, q)), remove = all.every(k => selectedCopies.has(k));
     all.forEach(k => remove ? selectedCopies.delete(k) : selectedCopies.add(k)); selectionAnchor = all[0]; syncCardSelection(); return;
   }
-  if (act==='jump') { const slot=buildSlots(deck(),queueSettings()).findIndex(sl=>sl.e.uid===entry.uid); if(slot>=0){selectCardCopy(entry.uid,0,0);showSheet(Math.floor(slot/layout().per),'front');setWorkspaceView('proof');} return; }
+  if (act === 'jump') return revealQueueCard(entry);
   if (!act || act === 'qty') return;
   const d = deck(), e = d.entries.find(x => x.uid === row.dataset.uid);
   if (act === 'inc') e.qty++;
@@ -5138,11 +5222,19 @@ $('#fileFace').onchange = async ev => {
   promptUploadedMatches(changed.filter(entry=>!entry.scryId));
 };
 $('#btnImport').onclick = () => {
-  const v = $('#listIn').value;
-  if (/^\s*(<\?xml[^>]*>\s*)?<order[\s>]/.test(v)) { importMpcXml(v, 'Imported order', {review:true}).then(ok => { if (ok) $('#listIn').value = ''; }); return; }
-  importList(v, false);
+  const text = $('#listIn').value, replace = !!deck().importDraft?.replace;
+  if (/^\s*(<\?xml[^>]*>\s*)?<order[\s>]/.test(text)) {
+    if (replace) { $('#importNote').textContent = 'Choose Add instead to import an order file.'; return; }
+    return importMpcXml(text, 'Imported order', {review:true}).then(ok => { if (ok) $('#listIn').value = ''; });
+  }
+  return importList(text, replace);
 };
-$('#btnReplace').onclick = () => importList($('#listIn').value, true);
+$('#btnReplace').onclick = () => {
+  deck().importDraft = makeImportDraft($('#listIn').value, true);
+  $('#importNote').replaceChildren();
+  openDeckImport();
+  save();
+};
 if ($('#btnUndoReplace')) $('#btnUndoReplace').onclick = () => undoDeckReplacement();
 $('#importNote').addEventListener('click', async ev => {
   const button=ev.target.closest('[data-suggest-replace],[data-suggest-add]'); if(!button || button.disabled)return;
@@ -5194,7 +5286,15 @@ const clearDeck = async () => {
 $('#btnClear').onclick = clearDeck;
 $('#btnCopyList').onclick = async () => {
   const txt = deck().entries.filter(e => !e.custom).map(e => `${e.qty} ${e.name} (${(e.set || '').toUpperCase()}) ${e.cn}`).join('\n');
-  try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); } catch { $('#listIn').value = txt; toast('Decklist placed in the import box.'); }
+  try { await navigator.clipboard.writeText(txt); toast('Decklist copied.'); }
+  catch {
+    openModal(`<div class="hd"><b>Copy decklist</b><button data-close>Close</button></div><div class="bd">
+      <textarea aria-label="Decklist" id="decklistCopyText" readonly rows="10">${esc(txt)}</textarea>
+    </div>`);
+    const field = $('#decklistCopyText');
+    field.focus();
+    field.select?.();
+  }
 };
 
 let modalBeforeClose = null, modalReturnFocus = null, modalAfterClose = null;
@@ -6395,7 +6495,7 @@ function openTour(at = 0) {
     const t = ev.target.dataset.tour;
     const isLast = tourStep === steps.length - 1;
     if (t === 'back') openTour(tourStep - 1);
-    else if (t === 'next') isLast ? (closeModal(), $('#listIn').focus()) : openTour(tourStep + 1);
+    else if (t === 'next') isLast ? (closeModal(), openDeckImport()) : openTour(tourStep + 1);
   };
 }
 $('#btnHelp').onclick = () => openTour(0);
@@ -8104,8 +8204,8 @@ function syncPreviewControls() {
 }
 function setPreviewFocus(on) {
   document.body.classList.toggle('preview-focus',on);
-  $('#toggleSidebar').textContent=on?'Show sidebar':'Hide sidebar';
-  $('#toggleSidebar').setAttribute('aria-pressed',on);
+  $('#toggleSidebar').textContent = on ? 'Show card list' : 'Hide card list';
+  $('#toggleSidebar').setAttribute('aria-expanded', String(!on));
   if (S.zoomMode === 'fit') $('#zoomFit').click();
 }
 $('#toggleSidebar').onclick=()=>setPreviewFocus(!document.body.classList.contains('preview-focus'));
@@ -8129,7 +8229,6 @@ function syncProofViewButtons() {
 }
 function emptyWorkspaceHtml(order = false) {
   return `<div class="empty">
-    <div class="empty-art" aria-hidden="true"><i></i><i></i><i>P</i></div>
     <h2>${order ? 'Add cards to your order' : 'Add cards to your deck'}</h2>
     <div class="row"><button class="primary" data-start="paste">Paste a decklist</button>
     <button data-start="import">Import from link or file…</button><button data-start="upload">Upload images…</button></div>
@@ -8157,9 +8256,10 @@ async function drawPreview() {
   const slots = job.slots, pages = job.sheets.map(sheet=>sheet.slots), wrap = $('#pages');
   $('#workspaceTitle').textContent = deck().name;
   S.activeSheet = Math.max(0, Math.min(S.activeSheet ?? 0, Math.max(0, pages.length - 1)));
-  const curSheet = pages.length ? S.activeSheet + 1 : 0;
-  const sheetLbl = $('#proofSheetLabel');
-  if (sheetLbl) sheetLbl.textContent = pages.length ? `Sheet ${curSheet} of ${pages.length}` : 'Sheet 0 of 0';
+  const hasSheets = job.slots.length > 0;
+  $('#previewSheetNav').hidden = !hasSheets;
+  $('#proofViewSeg').hidden = !hasSheets;
+  $('#previewZoomControls').hidden = !hasSheets;
   const jumpSel = $('#sheetJumpSel');
   if (jumpSel) {
     jumpSel.innerHTML = pages.map((_, i) => `<option value="${i}" ${i === S.activeSheet ? 'selected' : ''}>Sheet ${i + 1} of ${pages.length}</option>`).join('');
@@ -8270,7 +8370,7 @@ async function drawGallery(gen, wrap, z) {
   const previews=new Map(),thumbnail=face=>{const key=artworkKey(face);if(!previews.has(key))previews.set(key,thumbSrc(face));return previews.get(key);};
   const root=document.createElement('div');root.className='order-gallery';
   const queueHidden = innerWidth <= 820 || document.body.classList.contains('preview-focus');
-  root.innerHTML=`<div class="order-gallery-tools"><div class="order-gallery-name"><b>Order gallery</b><span>${count} ${count===1?'copy':'copies'}</span></div><div class="seg" role="group" aria-label="Gallery side" ${count?'':'hidden'}><button data-order-side="front" aria-pressed="${!S.orderShowBacks}" class="${!S.orderShowBacks?'on':''}">Front</button><button data-order-side="back" aria-pressed="${!!S.orderShowBacks}" class="${S.orderShowBacks?'on':''}">Back</button></div><label ${count?'':'hidden'}>Card size <select id="orderDensity" aria-label="Gallery density"><option value="120">Compact</option><option value="180">Comfortable</option><option value="240">Large</option></select></label><button id="orderQueueToggle" aria-expanded="${!queueHidden}" aria-controls="tab-cards">${queueHidden?'Show queue':'Hide queue'}</button></div>`;
+  root.innerHTML=`<div class="order-gallery-tools"><div class="order-gallery-name"><b>Order gallery</b><span>${count} ${count===1?'copy':'copies'}</span></div><div class="seg" role="group" aria-label="Gallery side" ${count?'':'hidden'}><button data-order-side="front" aria-pressed="${!S.orderShowBacks}" class="${!S.orderShowBacks?'on':''}">Front</button><button data-order-side="back" aria-pressed="${!!S.orderShowBacks}" class="${S.orderShowBacks?'on':''}">Back</button></div><label ${count?'':'hidden'}>Card size <select id="orderDensity" aria-label="Gallery card size"><option value="120">Compact</option><option value="180">Medium</option><option value="240">Large</option></select></label><button id="orderQueueToggle" aria-expanded="${!queueHidden}" aria-controls="tab-cards">${queueHidden?'Show card list':'Hide card list'}</button></div>`;
   if(sharedCount){const prompt=document.createElement('div');prompt.className='order-back-prompt';prompt.innerHTML=cb?'<img alt="Shared cardback"><b>Shared cardback</b><button class="gal-cb">Change cardback</button><button class="order-back-clear">Clear cardback</button>':`<span>${sharedCount} ${sharedCount===1?'copy needs':'copies need'} a shared back.</span><button class="gal-cb">Choose a cardback</button>`;if(cb)thumbnail(cb).then(u=>{if(gen===previewGen&&u)$('img',prompt).src=u;});root.appendChild(prompt);}
   const grid=document.createElement('div');grid.className='gal';
   for(const e of d.entries){if(!e.qty||!e.faces.length)continue;for(let copy=0;copy<e.qty;copy++){
@@ -8758,12 +8858,6 @@ function renderGuideTab() {
   $('#separateCutFiles').hidden = !isCameo;
   const cutFileHint = $('#cutFileHint');
   cutFileHint.textContent = isCameo && slots.length ? 'Checking Studio files…' : '';
-
-  const badge = $('#guideCutterBadge');
-  if (badge) {
-    badge.textContent = isCameo ? 'Silhouette Cameo' : 'Rotary Trimmer';
-    badge.className = 'cutter-badge' + (isCameo ? '' : ' rotary');
-  }
 
   const jobSum = $('#guideJobSummary');
   if (jobSum) {
@@ -10285,7 +10379,7 @@ async function renderStorage() {
 }
 
 /* ---------- misc UI ---------- */
-function setWorkspaceView(view) {
+function setWorkspaceView(view, {redraw = true} = {}) {
   document.body.dataset.workspaceView = view;
   document.body.classList.toggle('m-preview', view === 'proof');
   $$('#mbar button').forEach(button => {
@@ -10293,7 +10387,7 @@ function setWorkspaceView(view) {
     button.classList.toggle('on', on); button.setAttribute('aria-pressed', String(on));
   });
   syncCardSelection();
-  if (view === 'proof') { renderPreview(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); }
+  if (view === 'proof' && redraw) { renderPreview(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); }
 }
 function switchTab(name) {
   if (['setup', 'layout', 'presets', 'cutting', 'alignment', 'printer', 'color'].includes(name)) {
@@ -10330,7 +10424,7 @@ function toggleInspector(open) {
     else { document.body.classList.remove('inspector-open'); setWorkspaceView('cards'); }
   } else {
     document.body.classList.toggle('inspector-collapsed', !shouldOpen);
-    document.body.classList.remove('preview-focus');
+    if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
     if (shouldOpen) {
       document.body.classList.add('inspector-open');
     } else {
@@ -11121,6 +11215,7 @@ function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); render
 
 (async () => {
   await load();
+  restoreDeckImport();
   S.mode = S.mode || 'print'; applyMode();
   serverAssetsP = loadServerAssets();
   if (innerWidth < 820) S.zoom = Math.max(1, Math.min(S.zoom, (innerWidth - 40) / layout().W));

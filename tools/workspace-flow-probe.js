@@ -11,6 +11,11 @@
     return false;
   };
   const click = selector => $(selector)?.click();
+  const press = (selector, key) => {
+    const event = new Event('keydown', {bubbles:true, cancelable:true});
+    Object.defineProperty(event, 'key', {value:key});
+    $(selector)?.dispatchEvent(event);
+  };
   const select = (selector, value) => {
     const control = $(selector);
     control.value = value;
@@ -23,6 +28,15 @@
   deck().entries = [];
   S.settings = {...DEFAULTS,orientation:'landscape',cardRotation:'upright',bleed:0.625};
   renderAll();
+  await drawPreview();
+  check($('#previewSheetNav')?.hidden && $('#previewZoomControls')?.hidden, 'An empty preview should show import actions without sheet or zoom controls.');
+  check($('#proofViewSeg').getAttribute('aria-label') === 'Preview side and guides', 'Screen-reader labels should call this Preview.');
+  if (innerWidth > 820) {
+    click('#toggleSidebar');
+    check($('#toggleSidebar').getAttribute('aria-expanded') === 'false', 'The card list toggle should announce when the list is hidden.');
+    click('#btnShowPrintSetup');
+    check($('#toggleSidebar').textContent === 'Hide card list' && $('#toggleSidebar').getAttribute('aria-expanded') === 'true', 'Showing print shortcuts should update the reopened card list toggle.');
+  }
   await waitFor(()=>$('#barStatus').textContent.includes('Add cards'));
   click('#btnReviewExport');
   await waitFor(()=>$('[data-review-issue]'));
@@ -48,8 +62,55 @@
   deck().entries = [entry];
   renderAll();
   await drawPreview();
+  const nextEntry = {...entry, uid:'workspace-next', qty:1};
+  deck().entries.push(nextEntry);
+  renderCards();
+  click('#cardList [data-uid="workspace-next"] [data-act="jump"]');
+  check(await waitFor(()=>document.activeElement.dataset.uid === nextEntry.uid) && S.activeSheet === 1, 'Clicking a card should focus it on its own preview sheet.');
+  deck().entries.pop();
+  renderCards();
+  await showSheet(0, 'front');
+
+  setWorkspaceView('cards');
+  click('#btnReplace');
+  $('#listIn').value = '2 Fixture';
+  $('#listIn').dispatchEvent(new Event('input', {bubbles:true}));
+  check(deck().importDraft?.replace && $('#btnImport').textContent === 'Review replacement', 'Editing a replacement draft should preserve its intended action.');
+  const savedDraft = await waitFor(async () => (await store.get('kv','decks'))?.find(d=>d.id === deck().id)?.importDraft?.replace);
+  check(savedDraft, 'The replacement action should be saved with the decklist.');
+  $('#listIn').value = '';
+  if (typeof restoreDeckImport === 'function') restoreDeckImport();
+  check($('#listIn').value === '2 Fixture', 'The saved decklist should return to the import box.');
+  click('#btnAddCards');
+  check($('#btnResumeImport').textContent === 'Resume replacement' && visible('#btnResumeImport'), 'A closed replacement draft should have a clearly labeled resume action.');
+  click('#btnResumeImport');
+  const originalResolver = resolveDeckImport;
+  try {
+    resolveDeckImport = async () => ({resolved:[{...entry,qty:2}],unresolved:[],rows:[]});
+    click('#btnImport');
+    check(await waitFor(()=>$('#btnReviewConfirm')) && $('#btnReviewConfirm').textContent === 'Replace deck', 'A resumed draft should open replacement confirmation.');
+    closeModal();
+    check(entry.qty === 10, 'Closing replacement review should preserve the deck.');
+  } finally {
+    resolveDeckImport = originalResolver;
+  }
+  click('#btnAddInstead');
+  check($('#btnImport').textContent === 'Add to deck' && $('#listIn').value === '2 Fixture' && !deck().importDraft?.replace, 'Add instead should retain the list and exit replacement mode.');
+  const clipboardProperty = Object.getOwnPropertyDescriptor(navigator,'clipboard');
+  try {
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async () => { throw new Error('Clipboard unavailable'); }}});
+    click('#btnCopyList');
+    check(await waitFor(()=>$('#decklistCopyText')) && $('#listIn').value === '2 Fixture', 'When clipboard access fails, show a copyable decklist without replacing the import draft.');
+    closeModal();
+  } finally {
+    if (clipboardProperty) Object.defineProperty(navigator,'clipboard',clipboardProperty);
+    else delete navigator.clipboard;
+  }
+  $('#listIn').value = '';
+  $('#listIn').dispatchEvent(new Event('input', {bubbles:true}));
+
   click('#btnProofBack');
-  check($('#btnProofGuides').disabled, 'Front guide controls should be disabled on the back proof.');
+  check($('#btnProofGuides').disabled, 'Front guide controls should be disabled on the back preview.');
   click('#btnReviewExport');
   select('#exportScope','current');
   select('#exportSheet','1');
@@ -62,7 +123,7 @@
   renderAll();
   await drawPreview();
   check($('#exportScope').value === 'all', 'A removed sheet should reset the review scope.');
-  check($('#btnProofBack').disabled && !S.showBacks, 'Removing the backs should return the proof to the front.');
+  check($('#btnProofBack').disabled && !S.showBacks, 'Removing the backs should return the preview to the front.');
   S.settings.cols = 100;
   renderAll();
   click('#btnReviewExport');
@@ -134,6 +195,7 @@
   await drawPreview();
   click('#btnReviewExport');
   const cutFiles = $('#separateCutFiles'), cutDisclosure = $('summary',cutFiles), studio = $('#btnExportStudio3Tab');
+  check($('#guideDownloadsTitle')?.textContent === 'Downloads' && visible('#btnExportCameoJob'), 'Review should put the ZIP in a dedicated Downloads section.');
   check(await waitFor(()=>!studio.disabled), 'A stock Letter job should offer a native Studio download for its full sheet.');
   check(modalFocusable().includes(cutDisclosure) && !modalFocusable().includes(studio), 'A closed disclosure should be focusable while its controls stay out of the tab sequence.');
   cutFiles.open = true;
@@ -228,12 +290,54 @@
   check(S.settings.guides === 'corners', 'Choosing corners should replace margin-only guides.');
   backToProof();
 
+  const originalSf = sf;
+  const file = new Blob([await store.get('images',custom)], {type:'image/png'});
+  Object.defineProperty(file, 'name', {value:'Fixture front.png'});
+  const localImage = {file, key:'fixture front', words:new Set(['fixture','front'])};
+  localIndex.push(localImage);
+  try {
+    let failSearch = true;
+    sf = async () => {
+      if (failSearch) throw new Error('Test Scryfall connection error');
+      return {data:[{name:'Fixture front', set_name:'Test Set', collector_number:'9',
+        image_uris:{png:'https://cards.scryfall.io/test.png'}}]};
+    };
+    openMpcPicker({e:entry, i:0});
+    const apply = $('#btnApplyCandidate');
+    check(apply.disabled && apply.closest('.art-picker-footer') && !apply.closest('.bd'), 'Apply should stay in the footer outside the scrolling comparison.');
+    check($('#artSource-printings')?.getAttribute('aria-selected') === 'true' && $('#tabPanelCommunity').hidden, 'Printings should be selected with other sources hidden.');
+    check(await waitFor(()=>visible('#btnRetrySf')) && $('#sfStatus')?.textContent.includes('could not load'), 'An unavailable source should show a retry beside its own results.');
+    failSearch = false;
+    click('#btnRetrySf');
+    check(await waitFor(()=>$('[data-scryfall]')) && $('#btnRetrySf').hidden, 'Retry should replace an error with results.');
+    press('#artSource-printings', 'ArrowRight');
+    check(document.activeElement === $('#artSource-community') && $('#tabPanelPrintings').hidden && !$('#tabPanelCommunity').hidden, 'Arrow keys should focus and activate the next artwork source.');
+    press('#artSource-community', 'End');
+    check($('#artSource-local')?.getAttribute('aria-selected') === 'true' && $('#artSource-printings')?.getAttribute('tabindex') === '-1', 'Only the selected source should be in the tab sequence.');
+    press('[data-local="0"]', 'Enter');
+    check(!apply.disabled && document.activeElement === apply && $('[data-local="0"]')?.getAttribute('aria-pressed') === 'true', 'Selecting a result with Enter should preview it and focus Apply.');
+    check(entry.faces[0].custom === custom, 'Previewing artwork should leave the current card untouched.');
+    click('#btnCmpCurrent');
+    check($('#cmpGrid').classList.contains('show-current') && $('#btnCmpCurrent').getAttribute('aria-pressed') === 'true' && visible('#btnApplyCandidate') && !apply.disabled, 'Comparing the current artwork should keep Apply available.');
+    click('#btnApplyCandidate');
+    check(await waitFor(()=>!$('#overlay').classList.contains('on')) && entry.faces[0].localName === file.name, 'Apply from Current art should save the chosen image.');
+  } finally {
+    sf = originalSf;
+    localIndex.splice(localIndex.indexOf(localImage),1);
+    closeModal();
+  }
+
   click('[data-mode=order]');
+  S.orderShowBacks = true;
+  const printSheet = S.activeSheet;
+  click('#cardList [data-act="jump"]');
+  check(await waitFor(()=>document.activeElement.dataset.uid === entry.uid) && !S.orderShowBacks && S.activeSheet === printSheet, 'A card name in Order should reveal its front in the gallery without changing the print sheet.');
   click('#btnReviewExport');
   check($('#orderSummary').textContent.includes('Cards with artwork') && $('#oChooseMissingBack'), 'Order review should show a cardback action near downloads.');
   check(modalFocusable().includes($('#stockGuide summary')), 'Compare cardstock should be included in the review tab sequence.');
   click('#oChooseMissingBack');
   check($('#modal .hd [data-close]').textContent.includes('Back to order review'), 'Choosing a missing back should keep the order review return path.');
+  check(!visible('.source-nav-tabs') && visible('#tabPanelCommunity') && visible('#pickerCardbackUpload'), 'A cardback should show community artwork and upload without tabs that go nowhere.');
   closeModal();
   check($('#modalTitle')?.textContent === 'Review order', 'Close cardback picker should restore order review.');
   closeModal();
@@ -246,13 +350,13 @@
   if (innerWidth <= 820) {
     check(document.body.dataset.workspaceView === 'cards', 'The mobile gallery should return to Cards.');
   } else {
-    await waitFor(()=>$('#orderQueueToggle')?.textContent === 'Show queue');
+    await waitFor(()=>$('#orderQueueToggle')?.textContent === 'Show card list');
     check(visible('#orderQueueToggle'), 'Hiding the queue should leave its toggle visible.');
     click('#orderQueueToggle');
     check(!document.body.classList.contains('preview-focus'), 'The gallery toggle should restore the queue.');
   }
 
   if (failures.length) return {failures};
-  console.log('PASS workspace flows: import, review, foil defaults, cutting, and Order queue');
+  console.log('PASS workspace flows: import, review, foil defaults, cutting, artwork picker, and Order queue');
   return true;
 })()
