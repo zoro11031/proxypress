@@ -53,7 +53,7 @@
   click('#btnReviewExport');
   select('#exportScope','current');
   select('#exportSheet','1');
-  check(S.activeSheet === 1, 'The sheet chooser should update the selected sheet.');
+  check(S.exportSheet === 1 && S.activeSheet === 0, 'Exporting one sheet should leave the preview sheet alone.');
   check(/2 cards · 1 sheet/.test($('#guideJobSummary').textContent), 'The review should summarize the selected sheet.');
   closeModal();
 
@@ -133,9 +133,13 @@
   renderAll();
   await drawPreview();
   click('#btnReviewExport');
-  $('#separateCutFiles').open = true;
-  check(await waitFor(()=>!$('#btnExportStudio3Tab').disabled), 'A stock Letter job should offer a native Studio download for its full sheet.');
+  const cutFiles = $('#separateCutFiles'), cutDisclosure = $('summary',cutFiles), studio = $('#btnExportStudio3Tab');
+  check(await waitFor(()=>!studio.disabled), 'A stock Letter job should offer a native Studio download for its full sheet.');
+  check(modalFocusable().includes(cutDisclosure) && !modalFocusable().includes(studio), 'A closed disclosure should be focusable while its controls stay out of the tab sequence.');
+  cutFiles.open = true;
   check(/1 of 2 sheets/.test($('#cutFileHint').textContent), 'Review should explain which sheets have Studio files.');
+  await downloadCutFile('dxf');
+  check($('#cutSheetPicker')?.closest('#separateCutFiles') && document.activeElement === $('#cutSheet'), 'The separate cut picker should sit beside its buttons and receive focus.');
   const originalDownload = download;
   let studioDownload;
   try {
@@ -158,6 +162,22 @@
   check(await waitFor(()=>!$('#btnExportStudio3Tab').disabled), 'The full borderless Letter sheet should offer a native Studio download.');
   check(/borderless/.test($('#cameoJobHint').textContent), 'Review should confirm the new layout.');
   closeModal();
+
+  entry.qty = 10;
+  renderAll();
+  openPrintSettings('layout');
+  $('#btnReviewExport').focus();
+  click('#btnReviewExport');
+  select('#exportScope','current');
+  select('#exportSheet','1');
+  $('#btnReviewCutting').focus();
+  click('#btnReviewCutting');
+  check($('#btnBackToProof').textContent.includes('Back to export review'), 'Opening Cutting from review should show the same return path inside Settings.');
+  backToProof();
+  check($('#modalTitle')?.textContent === 'Review export' && $('#exportSheet').value === '1', 'Back should resume review with the selected sheet.');
+  check(document.activeElement === $('#btnReviewCutting'), 'Resumed review should restore the Cutting settings button focus.');
+  closeModal();
+  check($('#printSettingsView').dataset.page === 'layout' && document.activeElement === $('#btnReviewExport'), 'Closing resumed review should restore the original Settings page and opener.');
   openPrintSettings('cutting');
   select('#scmTemplate','standard');
   check($('#scmFit').value === 'crop' && $('#scmFitBack').value === 'same', 'Center crop should be the default for both sides.');
@@ -208,8 +228,17 @@
   check(S.settings.guides === 'corners', 'Choosing corners should replace margin-only guides.');
   backToProof();
 
-  deck().entries = [];
   click('[data-mode=order]');
+  click('#btnReviewExport');
+  check($('#orderSummary').textContent.includes('Cards with artwork') && $('#oChooseMissingBack'), 'Order review should show a cardback action near downloads.');
+  check(modalFocusable().includes($('#stockGuide summary')), 'Compare cardstock should be included in the review tab sequence.');
+  click('#oChooseMissingBack');
+  check($('#modal .hd [data-close]').textContent.includes('Back to order review'), 'Choosing a missing back should keep the order review return path.');
+  closeModal();
+  check($('#modalTitle')?.textContent === 'Review order', 'Close cardback picker should restore order review.');
+  closeModal();
+  deck().entries = [];
+  renderAll();
   setWorkspaceView('proof');
   await drawPreview();
   check(visible('#orderQueueToggle'), 'The empty Order gallery should offer access to the queue.');

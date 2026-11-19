@@ -11,7 +11,7 @@ const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
 const functions = ['printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','preferredScmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
-  'newDoc','pdfLines','runPreflight','exportPrintJob','cameoPaperLayout','studioCanvasPad','activeGuides','guideLines','cardCornerColor',
+  'newDoc','pdfLines','runPreflight','exportSheetIndex','exportPrintJob','cameoPaperLayout','studioCanvasPad','activeGuides','guideLines','cardCornerColor',
   'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle',
   'applyCameoLayout','applyRotaryLayout','bestCutBleed'];
 const code = functions.map(name=>{
@@ -32,7 +32,7 @@ const context = vm.createContext({console, TextEncoder, Blob, calibration,
     renderedFaces.push({rotation,back});
     return {toDataURL:()=> 'data:image/png;base64,' + DARK_CARD};
   },
-  printJobKey:()=> 'job', reviewKey:()=>`${scope.value}/${state.activeSheet}`,
+  printJobKey:()=> 'job', reviewKey:()=>`${scope.value}/${state.exportSheet ?? state.activeSheet}`,
   imgCache:new Map(), latestPrintReview:null, renderGuideTab:()=>{}, switchTab:()=>{},
   busy:()=>{}, busyProgress:()=>{}, sleep:async()=>{}, showPostExportInstructions:()=>{},
   resolveAppliedCalibration:()=>{}, setShowCuts:()=>{}, save:()=>{}, renderAll:()=>{}, printerOf:()=>({kind:'Laser'}),
@@ -83,7 +83,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
   let fourCardJob;
   for (const [paper,orientation,count,overrides,duplex,current] of cases) {
     Object.assign(context,{paper,orientation,count,overrides,duplex});
-    scope.value = current ? 'current' : 'all'; state.activeSheet = current ? 1 : 0;
+    scope.value = current ? 'current' : 'all'; state.activeSheet = 0; state.exportSheet = current ? 1 : null;
     const name = `${paper}-${orientation}-${count}${current ? '-current' : ''}${overrides.regOrientation ? '-turned' : ''}${overrides.printRotate ? '-corrected' : ''}${overrides.offsetY === -11 ? '-11mm-up' : ''}${overrides.regInset === 3.5 ? '-3.5mm-inset' : ''}${overrides.offsetY === 1.1 ? '-tight-bleed' : ''}`;
     const job = vm.runInContext(`(() => {
       const settings = {...DEFAULTS,...cameoPaperLayout(orientation),pageSize:paper,silhouette:true,guides:'none',...overrides};
