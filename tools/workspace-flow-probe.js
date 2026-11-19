@@ -11,6 +11,11 @@
     return false;
   };
   const click = selector => $(selector)?.click();
+  const press = (selector, key) => {
+    const event = new Event('keydown', {bubbles:true, cancelable:true});
+    Object.defineProperty(event, 'key', {value:key});
+    $(selector)?.dispatchEvent(event);
+  };
   const select = (selector, value) => {
     const control = $(selector);
     control.value = value;
@@ -134,6 +139,7 @@
   await drawPreview();
   click('#btnReviewExport');
   const cutFiles = $('#separateCutFiles'), cutDisclosure = $('summary',cutFiles), studio = $('#btnExportStudio3Tab');
+  check($('#guideDownloadsTitle')?.textContent === 'Downloads' && visible('#btnExportCameoJob'), 'Review should put the ZIP in a dedicated Downloads section.');
   check(await waitFor(()=>!studio.disabled), 'A stock Letter job should offer a native Studio download for its full sheet.');
   check(modalFocusable().includes(cutDisclosure) && !modalFocusable().includes(studio), 'A closed disclosure should be focusable while its controls stay out of the tab sequence.');
   cutFiles.open = true;
@@ -228,12 +234,50 @@
   check(S.settings.guides === 'corners', 'Choosing corners should replace margin-only guides.');
   backToProof();
 
+  const originalSf = sf;
+  const file = new Blob([await store.get('images',custom)], {type:'image/png'});
+  Object.defineProperty(file, 'name', {value:'Fixture front.png'});
+  const localImage = {file, key:'fixture front', words:new Set(['fixture','front'])};
+  localIndex.push(localImage);
+  try {
+    let failSearch = true;
+    sf = async () => {
+      if (failSearch) throw new Error('Test Scryfall connection error');
+      return {data:[{name:'Fixture front', set_name:'Test Set', collector_number:'9',
+        image_uris:{png:'https://cards.scryfall.io/test.png'}}]};
+    };
+    openMpcPicker({e:entry, i:0});
+    const apply = $('#btnApplyCandidate');
+    check(apply.disabled && apply.closest('.art-picker-footer') && !apply.closest('.bd'), 'Apply should stay in the footer outside the scrolling comparison.');
+    check($('#artSource-printings')?.getAttribute('aria-selected') === 'true' && $('#tabPanelCommunity').hidden, 'Printings should be selected with other sources hidden.');
+    check(await waitFor(()=>visible('#btnRetrySf')) && $('#sfStatus')?.textContent.includes('could not load'), 'An unavailable source should show a retry beside its own results.');
+    failSearch = false;
+    click('#btnRetrySf');
+    check(await waitFor(()=>$('[data-scryfall]')) && $('#btnRetrySf').hidden, 'Retry should replace an error with results.');
+    press('#artSource-printings', 'ArrowRight');
+    check(document.activeElement === $('#artSource-community') && $('#tabPanelPrintings').hidden && !$('#tabPanelCommunity').hidden, 'Arrow keys should focus and activate the next artwork source.');
+    press('#artSource-community', 'End');
+    check($('#artSource-local')?.getAttribute('aria-selected') === 'true' && $('#artSource-printings')?.getAttribute('tabindex') === '-1', 'Only the selected source should be in the tab sequence.');
+    press('[data-local="0"]', 'Enter');
+    check(!apply.disabled && document.activeElement === apply && $('[data-local="0"]')?.getAttribute('aria-pressed') === 'true', 'Selecting a result with Enter should preview it and focus Apply.');
+    check(entry.faces[0].custom === custom, 'Previewing artwork should leave the current card untouched.');
+    click('#btnCmpCurrent');
+    check($('#cmpGrid').classList.contains('show-current') && $('#btnCmpCurrent').getAttribute('aria-pressed') === 'true' && visible('#btnApplyCandidate') && !apply.disabled, 'Comparing the current artwork should keep Apply available.');
+    click('#btnApplyCandidate');
+    check(await waitFor(()=>!$('#overlay').classList.contains('on')) && entry.faces[0].localName === file.name, 'Apply from Current art should save the chosen image.');
+  } finally {
+    sf = originalSf;
+    localIndex.splice(localIndex.indexOf(localImage),1);
+    closeModal();
+  }
+
   click('[data-mode=order]');
   click('#btnReviewExport');
   check($('#orderSummary').textContent.includes('Cards with artwork') && $('#oChooseMissingBack'), 'Order review should show a cardback action near downloads.');
   check(modalFocusable().includes($('#stockGuide summary')), 'Compare cardstock should be included in the review tab sequence.');
   click('#oChooseMissingBack');
   check($('#modal .hd [data-close]').textContent.includes('Back to order review'), 'Choosing a missing back should keep the order review return path.');
+  check(!visible('.source-nav-tabs') && visible('#tabPanelCommunity') && visible('#pickerCardbackUpload'), 'A cardback should show community artwork and upload without tabs that go nowhere.');
   closeModal();
   check($('#modalTitle')?.textContent === 'Review order', 'Close cardback picker should restore order review.');
   closeModal();
@@ -253,6 +297,6 @@
   }
 
   if (failures.length) return {failures};
-  console.log('PASS workspace flows: import, review, foil defaults, cutting, and Order queue');
+  console.log('PASS workspace flows: import, review, foil defaults, cutting, artwork picker, and Order queue');
   return true;
 })()
