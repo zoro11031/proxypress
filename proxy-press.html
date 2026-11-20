@@ -971,6 +971,22 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #workspaceBar .bar-status span{white-space:nowrap}
 .bar-actions{display:flex;gap:8px;flex-shrink:0}
 #workspaceInspector #inspCal{white-space:pre;overflow-wrap:normal}
+/* A pasted deck name can be any length; the picker never pushes the header apart. */
+header .deckbar select{max-width:min(34vw,340px);text-overflow:ellipsis}
+#btnSettings .ico{display:none}
+@media(max-width:360px){header h1{display:none}#modeSeg{grid-column:1/3}}
+@media(max-width:480px){#btnSettings{width:var(--ctl);padding:0}#btnSettings .ico{display:block}#btnSettings span{display:none}#modeSeg button{font-size:12px;padding-inline:6px}header .deckbar select{max-width:none}}
+/* Presets are a ruled table: hairlines between cells in any arrangement. */
+#printSettingsView .pick{gap:1px;background:var(--line);border-block:1px solid var(--line);border-top:0}
+#printSettingsView .pick button,#printSettingsView .pick .preset-item{background:var(--bg);border:0;border-radius:0}
+#printSettingsView .pick button.on{background:linear-gradient(var(--accent-wash),var(--accent-wash)),var(--bg);color:var(--text)}
+#printSettingsView .pick button:hover{background:linear-gradient(var(--fill),var(--fill)),var(--bg)}
+/* Column headings share one line. */
+body[data-mode=print] #workspaceInspector{padding-top:10px}
+#workspaceInspector .inspector-hdr{padding:6px 0 10px;top:-10px}
+/* The selected-card strip lies flat on the mat. */
+.proof-card-footer{background:var(--bg);border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0}
+.proof-card-trim{font-family:var(--mono)}
 #setupSummary{background:none;border:0;padding:0;font-family:var(--mono);font-size:12px}
 #setupSummary b{font-family:system-ui,sans-serif;font-size:14px}
 body.print-settings-active #toggleInspector{display:none}
@@ -983,11 +999,6 @@ body.print-settings-active #toggleInspector{display:none}
 /* Settings is a ticket too: ruled sections flat on the mat, presets as ruled rows. */
 .settings-section,.alignment-col,.active-setup-card,.alignment-commit-bar{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:16px 0}
 .settings-section h3{border-bottom:0;padding-bottom:0}
-#printSettingsView .pick{gap:0;border-top:1px solid var(--line)}
-#printSettingsView .pick button{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
-#printSettingsView .pick button:hover{background:var(--fill)}
-#printSettingsView .pick button.on{background:var(--accent-wash);color:var(--text)}
-#printSettingsView .pick.presets button+button,#printSettingsView .pick .preset-item+.preset-item{border-left:1px solid var(--line)}
 #mbar #mbarCount{display:block;font:12px/1.2 var(--mono);opacity:.85}
 #mbar button{flex-direction:column;gap:0;line-height:1.2}
 .copy-selection-mark{border:0;border-radius:0;box-shadow:none;color:transparent}
@@ -1048,7 +1059,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
   </div>
   <div class="hzone hzone-act">
     <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4"/><circle cx="8" cy="11.6" r=".5"/></svg></button>
-    <button id="btnSettings" class="icon">Project files</button>
+    <button id="btnSettings" class="icon" aria-label="Project files"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg><span>Project files</span></button>
     <button id="btnPdf" class="primary print-only">Review export</button>
     <button id="btnXml" class="primary order-only">Review order</button>
   </div>
@@ -3268,7 +3279,7 @@ async function resolveDeckImport(text) {
     return { resolved, unresolved: missing, fallbacks, rows, text };
   } catch (e) {
     busy(false);
-    return { resolved: [], unresolved: [], fallbacks: [], error: 'Scryfall error: ' + e.message, text };
+    return { resolved: [], unresolved: [], fallbacks: [], error: scryfallFailure(e), retry: true, text };
   }
 }
 
@@ -3288,7 +3299,7 @@ function showUnresolvedImport(staged) {
     if (staged?.error && !unres.length) {
       const linkError = $('#modal #importLinkError');
       if (linkError) linkError.textContent = staged.error;
-      else { openDeckImport(); note.innerHTML = `<div class="warn">${esc(staged.error)}</div>`; }
+      else { openDeckImport(); note.innerHTML = `<div class="warn">${esc(staged.error)}${staged.retry ? ' <button type="button" id="importRetry">Try again</button>' : ''}</div>`; const retry = $('#importRetry'); if (retry) retry.onclick = () => $('#btnImport').click(); }
     } else if (unres.length) {
       note.innerHTML = `<div class="warn">Couldn't find ${unres.length} card${unres.length === 1 ? '' : 's'}. Check the names in your decklist.</div>`;
     }
@@ -3568,7 +3579,7 @@ async function addTokens() {
     save(); renderAll();
     const auto = await mpcAutofill({auto:true});
     toast(`Added ${found.length} token/emblem card${found.length === 1 ? '' : 's'}.` + autoSummary(auto), 6000);
-  } catch (e) { toast('Scryfall error: ' + e.message, 6000); }
+  } catch (e) { toast(scryfallFailure(e), 6000); }
   busy(false);
 }
 
@@ -11452,6 +11463,12 @@ addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckM
 $('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
 // The status line wraps only between phrases, never inside "2 passes".
 new MutationObserver(() => { const el = $('#barStatus'); if (el.children.length || !el.textContent.includes(' · ')) return; el.innerHTML = el.textContent.split(' · ').map(t => `<span>${esc(t)}</span>`).join(' · '); }).observe($('#barStatus'), {childList:true, characterData:true, subtree:true});
+// A failed lookup names the problem and the way out, not the browser's own error text.
+function scryfallFailure(e) {
+  return /fetch|network|load failed|timed? ?out|abort/i.test(String(e?.message || e)) || !navigator.onLine
+    ? 'Couldn’t reach Scryfall. Check your internet connection, then try again. Your decklist is kept.'
+    : `Scryfall couldn’t look up these cards (${String(e?.message || e).slice(0, 80)}). Try again in a minute.`;
+}
 $('#dfcKeep').onclick = () => { S.settings.dfcChosen = true; save(); renderAll(); };
 $('#dfcSeparate').onclick = () => { S.settings.dfcMode = 'separate'; S.settings.dfcChosen = true; save(); renderAll(); toast('Double-faced cards will print as separate cards.'); };
 function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); renderCards(); renderSuggestions(); renderSettings(); renderPresets(); renderPrinter(); renderGuideTab(); renderPreview(); renderStats(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit' && $('#stage').getClientRects().length) $('#zoomFit').click(); }); }
