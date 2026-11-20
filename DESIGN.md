@@ -19,6 +19,11 @@ colors:
   warning-amber: "#eed98a"
   danger-coral: "#ff9c95"
   ok-green: "#a1d7aa"
+  placeholder-pencil: "#8b979d"
+  danger-solid: "#b8372f"
+  paper-slot: "#e6e8e2"
+  paper-ink: "#5b6266"
+  paper-edge: "#9aa3a8"
 typography:
   title:
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
@@ -187,7 +192,8 @@ The workspace is flat. Depth comes from tone: the mat, the rails one step lighte
 
 ### Shadow Vocabulary
 - **Overlay** (`box-shadow: 0 18px 46px #0a0c0dc2, 0 2px 6px #0a0c0d80`): dialogs, the quick-setup popover and the toast.
-- **Menu** (`box-shadow: 0 12px 32px rgba(0,0,0,.5)`): dropdown menus and the context menu.
+- Dropdown menus, the context menu and the narrow-screen job ticket drawer use the same overlay shadow. There is one elevation, not a ladder.
+- **Scrim** (`--scrim`, graphite at 72%): behind dialogs and the busy indicator.
 
 ### Named Rules
 **The Flat On The Mat Rule.** Nothing on the workspace casts a shadow or sits in a box inside another box. A section is a rule above a heading, not a card. If it does not float over the workspace, it does not lift.
