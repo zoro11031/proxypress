@@ -167,7 +167,7 @@ The mat grid uses white at very low alpha (#ffffff09 minor, #ffffff14 major); ha
 **Character:** The machine's own sans for words, the machine's own mono for numbers: a printed form, not a brand. No web fonts load for the UI.
 
 ### Hierarchy
-- **Title** (600-650, 18px, 1.4): column headings (Cards, Job ticket), step and empty-state headings, gallery names.
+- **Title** (600-650, 18px, 1.4): column headings (Cards, Print summary), step and empty-state headings, gallery names.
 - **Body** (400, 14px, 1.4): default text, buttons, card names, ticket labels.
 - **Label** (400, 12px, 1.4): hints, meta lines, tags, compact buttons, bar status.
 - **Numeral** (mono, 12px, tabular): every number and measurement: set codes and collector numbers, ticket values, the job summary, zoom, sheet dimensions, page counts.
@@ -231,7 +231,7 @@ The card list reads as a printed tournament decklist.
 - **Total:** a 3px double rule in Chalk Text, the count in Numeral Strong, the unique-name count in muted mono.
 
 ### Job Ticket
-The inspector reads as a print-shop job ticket.
+The inspector reads as a print-shop job ticket. "Job ticket" is the design metaphor only; its visible title is **Print summary**.
 - **Rows:** a 64px label column in body sans, then the value as a borderless button in 12px tabular mono, ruled between rows.
 - **Changed:** a value the app changed is blue text with a blue border, followed by a note in Blue Ink with explicit choices, until accepted.
 
@@ -244,7 +244,7 @@ With no cards, the sheet is still drawn at fit scale: a dashed Field Edge outlin
 Short questions (a name, a choice between faces) use an in-app dialog, never the browser's `prompt()`. One field or a column of choices, the primary action on the right, and Cancel only in the header. On phones it is a bottom sheet rather than a full-screen page. Opened over another dialog, it stacks and returns to that dialog.
 
 ### Settings And Presets
-Settings sections are flat on the mat: a Hairline Rule above each, 16px vertical padding, no fill, no radius. Presets are a ruled table: cells separated by 1px Hairline Rule gaps, the chosen preset marked with the blue wash. Alignment shows each value once, in its field; the source badge (Measured, Manual, Saved) sits in the column header rather than in a summary banner that repeats the form.
+Settings sections are flat on the mat: a Hairline Rule above each, 16px vertical padding, no fill, no radius. Presets are a ruled table: cells separated by 1px Hairline Rule gaps, the chosen preset marked with the blue wash. Alignment shows each value once, in its field; the source badge (Measured, Entered by hand, Saved, Not adjusted) sits in the column header rather than in a summary banner that repeats the form.
 
 ### Icons
 Drawn inline SVG line icons, 16px, 1.5 stroke, round caps and joins, in currentColor.
@@ -261,6 +261,7 @@ Drawn inline SVG line icons, 16px, 1.5 stroke, round caps and joins, in currentC
 - **Do** use drawn SVG icons at a 1.5 stroke.
 
 ### Don't:
+- Don't use print-shop or developer slang in visible text ("job ticket", "8 up", "rendering", "cut paths"). Do keep the terms card printers already use: offset, bleed, crop, registration marks, duplex, DPI.
 - **Don't** add a second accent hue, a lavender accent, gradients or glows.
 - **Don't** use glass or blurred bars, or shadows on anything that does not float over the workspace.
 - **Don't** nest a bordered panel inside another bordered panel.

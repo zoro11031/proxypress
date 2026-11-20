@@ -1545,7 +1545,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         <input type="checkbox" id="showCuts" style="display:none">
         <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
         <button id="toggleSidebar" aria-controls="tab-cards" aria-expanded="true">Hide card list</button>
-        <button type="button" id="btnShowPrintSetup" class="print-only" aria-controls="workspaceInspector">Show job ticket</button>
+        <button type="button" id="btnShowPrintSetup" class="print-only" aria-controls="workspaceInspector">Show print summary</button>
       </div>
     </div>
     </div>
@@ -1616,7 +1616,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         <div class="active-setup-card" id="alignmentActiveCard">
           <div class="active-setup-grid">
             <div class="setup-item">
-              <span class="setup-lbl">Active printer</span>
+              <span class="setup-lbl">Printer</span>
               <b id="alignPrinterName">Printer</b>
             </div>
             <div class="setup-item">
@@ -1624,8 +1624,8 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
               <b id="alignPaperFeed">Letter · Landscape</b>
             </div>
             <div class="setup-item">
-              <span class="setup-lbl">Duplex mode</span>
-              <b id="alignDuplexMode">Manual duplex · Long-edge flip</b>
+              <span class="setup-lbl">Sides</span>
+              <b id="alignDuplexMode">Double-sided, flip by hand, long edge</b>
             </div>
           </div>
         </div>
@@ -1634,7 +1634,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           <div class="alignment-col" id="alignFrontCol">
             <div class="col-hdr">
               <h3>Front alignment</h3>
-              <span id="alignFrontSourceBadge" class="src-badge">No correction set</span>
+              <span id="alignFrontSourceBadge" class="src-badge">Not adjusted</span>
             </div>
             <p id="alignFrontValuesText" class="hint" hidden></p>
             <div class="align-fields-grid">
@@ -1670,7 +1670,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           <div class="alignment-col" id="alignBackCol">
             <div class="col-hdr">
               <h3>Back alignment</h3>
-              <span id="alignBackSourceBadge" class="src-badge">No correction set</span>
+              <span id="alignBackSourceBadge" class="src-badge">Not adjusted</span>
             </div>
             <div class="align-fields-grid">
               <div class="field">
@@ -1770,8 +1770,8 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
 
   <aside id="workspaceInspector" class="print-only">
     <div class="inspector-hdr">
-      <h2>Job ticket</h2>
-      <button type="button" id="btnCloseSetup" aria-label="Hide job ticket">Hide</button>
+      <h2>Print summary</h2>
+      <button type="button" id="btnCloseSetup" aria-label="Hide print summary">Hide</button>
     </div>
     <div class="inspector-summary">
       <div class="insp-row"><span id="inspPaperLabel" class="insp-lbl">Paper</span><button type="button" id="inspPaper" data-quick-setup="paper" aria-labelledby="inspPaperLabel inspPaper">Letter · Landscape</button></div>
@@ -1968,7 +1968,7 @@ const PRINTERS = [
     paper:'Laser-compatible cardstock, 176–200gsm, or lighter supported paper',
     settings:[['Paper source', 'Tray 1'], ['Paper type', 'Cardstock 176–200g for matte cardstock; Card Glossy 176–200g for matching laser glossy stock'],
       ['Print quality', 'Best available for the selected media'], ['Two-sided printing', 'Manual re-feed for cardstock'], ['Scale', 'Actual size / 100%']],
-    tips:['Cardstock 176–200g is supported from Tray 1 with manual duplexing only.', 'Match the paper type and weight to the sheet; choose a lighter paper type for lighter stock.', '300gsm cardstock exceeds the listed media range. Use lighter paper with a backing card in a sleeve.'],
+    tips:['Cardstock 176–200g is supported from Tray 1 when flipping by hand only.', 'Match the paper type and weight to the sheet; choose a lighter paper type for lighter stock.', '300gsm cardstock exceeds the listed media range. Use lighter paper with a backing card in a sleeve.'],
     sources:[['Paper types and trays', 'https://support.hp.com/sg-en/document/ish_7095504-5795932-16']]},
   {id:'mf753', name:'Canon Color imageCLASS MF753Cdw / MF753Cdw II (laser)', kind:'Laser',
     paper:'Black-core laser cardstock, 310gsm or 300gsm', presets:['b-laser-land', 'b-laser-port', 'b-foil-land', 'b-foil-port'],
@@ -6661,11 +6661,11 @@ async function openCardMaker(target) {
   ['#ccLookup', '#ccNum'].forEach(id => { $(id).onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); }; });
   $('#ccSave').onclick = async () => {
     if (!art) return toast('Choose your art first.');
-    busy(true, 'Rendering your card…');
+    busy(true, 'Drawing your card…');
     try {
       const c = await renderCustomCard(t, art, 600 / 25.4);
       const key = await storeImage(await new Promise(r => c.toBlob(r, 'image/png')));
-      if (!cv.isConnected || S.deckId !== editorDeck.id || !matchesRevision(editorDeck, editorRevision)) { await removeImageIfUnused(key); throw new Error('The project changed while rendering. Your card has not been applied.'); }
+      if (!cv.isConnected || S.deckId !== editorDeck.id || !matchesRevision(editorDeck, editorRevision)) { await removeImageIfUnused(key); throw new Error('The deck changed while your card was being drawn. Your card has not been applied.'); }
       if (!e) { e = {uid:uid(), qty:1, name:t.name || 'Custom card', custom:true, faces:[{name:t.name || 'Custom card'}], tokens:[]}; deck().entries.push(e); }
       const f = e.faces[i], old = f.custom;
       for (const k of ['drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'lowRes', 'scryArt']) delete f[k];
@@ -7747,17 +7747,17 @@ function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, p
   const sideStatus=(side,keys)=>{
     const back=side==='back',record=d?.calibrationState?.[side],same=values=>values && keys.every(k=>Number.isFinite(values[k]??DEFAULTS[k])&&Math.abs((values[k]??DEFAULTS[k])-s[k])<0.00001),neutral=keys.every(k=>Math.abs(s[k]-DEFAULTS[k])<0.00001);
     const profHasSide=back?(got?.hasBack??false):(got?.hasFront??false),profMeasured=back?got?.backMeasured:got?.frontMeasured;
-    let status='Uncalibrated',source='No correction set';
-    if(neutral){status='Uncalibrated';source='No correction set';}
+    let status='Uncalibrated',source='Not adjusted';
+    if(neutral){status='Uncalibrated';source='Not adjusted';}
     else {
       const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
-      if(recordExact){status=record.kind==='measured'?'Measured':'Manual';source=record.kind==='measured'?'Recorded measurement':'Entered alignment';}
+      if(recordExact){status=record.kind==='measured'?'Measured':'Manual';source=record.kind==='measured'?'Recorded measurement':'Entered by hand';}
       else if(profHasSide && got?.set && same(got.set) && got.from==='exact'){status=profMeasured?'Measured':'Saved';source=p.name;}
       else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
       else if(profHasSide && got?.set && same(got.set)){status='Estimated';source=got.from==='turned'?'Turned from other orientation':'Carried alignment';}
-      else {status='Manual';source='Entered alignment';}
+      else {status='Manual';source='Entered by hand';}
     }
-    const label={Manual:'Manual alignment applied',Saved:'Saved profile',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'No correction set'}[status];
+    const label={Manual:'Entered by hand',Saved:'Saved profile',Measured:'Measured for this setup',Estimated:'Estimated alignment',Uncalibrated:'Not adjusted'}[status];
     return {status,label,source,values:Object.fromEntries(keys.map(k=>[k,s[k]])),x:s[back?'backOffsetX':'offsetX'],y:s[back?'backOffsetY':'offsetY']};
   };
   const front=sideStatus('front',FRONT_CAL_KEYS),back=sideStatus('back',BACK_CAL_KEYS),hasBacks=buildSlots(d,s).some(slot=>slot.back);
@@ -7786,7 +7786,7 @@ function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots
   if (inspPaper) inspPaper.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
 
   const inspLayout = $('#inspLayout');
-  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} up`;
+  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} per sheet`;
 
   const inspSides = $('#inspSides');
   const dfcNote = dfcMadeDuplex(s, slots);
@@ -7821,11 +7821,11 @@ function refreshAlignmentPage() {
   const paperEl = $('#alignPaperFeed');
   if (paperEl) paperEl.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
   const dupEl = $('#alignDuplexMode');
-  if (dupEl) dupEl.textContent = !hasBacks ? sidesLabel(s, false) : `${sidesLabel(s, true)} · ${s.duplexFlip === 'short' ? 'short-edge flip' : 'long-edge flip'}`;
+  if (dupEl) dupEl.textContent = !hasBacks ? sidesLabel(s, false) : `${sidesLabel(s, true)}, ${s.duplexFlip === 'short' ? 'short edge' : 'long edge'}`;
 
   const frontBadge = $('#alignFrontSourceBadge');
   if (frontBadge) {
-    frontBadge.textContent = frontLocked ? 'Fixed by template' : calStat.front.label + (calStat.front.source && calStat.front.source !== 'No correction set' ? ` (${calStat.front.source})` : '');
+    frontBadge.textContent = frontLocked ? 'Fixed by template' : calStat.front.label + (['Saved','Estimated','Measured'].includes(calStat.front.status) && calStat.front.source !== 'Recorded measurement' ? ` (${calStat.front.source})` : '');
     frontBadge.className = 'src-badge ' + (frontLocked ? '' : calStat.front.status.toLowerCase());
   }
   const frontTxt = $('#alignFrontValuesText');
@@ -7836,7 +7836,7 @@ function refreshAlignmentPage() {
 
   const backBadge = $('#alignBackSourceBadge');
   if (backBadge) {
-    backBadge.textContent = calStat.back.label + (calStat.back.source && calStat.back.source !== 'No correction set' ? ` (${calStat.back.source})` : '');
+    backBadge.textContent = calStat.back.label + (['Saved','Estimated','Measured'].includes(calStat.back.status) && calStat.back.source !== 'Recorded measurement' ? ` (${calStat.back.source})` : '');
     backBadge.className = 'src-badge ' + (calStat.back.status === 'Measured' ? 'measured' : calStat.back.status === 'Saved' ? 'saved' : calStat.back.status === 'Estimated' ? 'estimated' : calStat.back.status === 'Manual' ? 'manual' : '');
   }
 
@@ -8135,7 +8135,7 @@ $('#printSettingsView').addEventListener('click', ev => {
   if (calDel) {
     const id = calDel.dataset.calDel;
     const p = S.calibrationProfiles.find(x => x.id === id);
-    if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
+    if (!p || !confirm(`Delete alignment profile "${p.name}"?`)) return;
     S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
     if ($('#calProfileSel')?.value === id) {
       $('#calProfileSel').value = ''; S.calibrationProfileId = null;
@@ -8239,7 +8239,7 @@ $('#calProfileDelete').onclick = () => {
   if (!id) return toast('Choose a saved profile first.');
   if (BUILTIN_CAL_PROFILES.some(p => p.id === id)) return toast('Built-in starting points cannot be deleted.');
   const p = S.calibrationProfiles.find(x => x.id === id);
-  if (!p || !confirm(`Delete calibration profile "${p.name}"?`)) return;
+  if (!p || !confirm(`Delete alignment profile "${p.name}"?`)) return;
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
   $('#calProfileName').value = '';
   $('#calProfileSel').value = ''; S.calibrationProfileId = null;
@@ -8998,7 +8998,7 @@ async function exportPrintJob(job, withCut = false) {
     }
   }
   let done = false;
-  busy(true, 'Rendering cards…');
+  busy(true, 'Preparing cards…');
   try {
     const doc = newDoc(L), cache = new Map(); let rendered = 0, first = true;
     const regInk = regInkBoxes(regMarks(L,s));
@@ -9031,7 +9031,7 @@ async function exportPrintJob(job, withCut = false) {
           rendered++;
           const cardNum = pageOffset + i + 1;
           const side = hasBacks ? (back ? ' (back)' : ' (front)') : '';
-          busyProgress(rendered / (totalFaces || 1), `Rendering card ${cardNum} of ${totalCards}${side}…`);
+          busyProgress(rendered / (totalFaces || 1), `Preparing card ${cardNum} of ${totalCards}${side}…`);
           const p = slotPos(L, i, back, s);
           await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back), back);
           await sleep(0);
@@ -9521,7 +9521,7 @@ $('#btnDuplexTest').onclick = () => {
   body2.write('HOW TO READ IT', {bold:true, size:9, lead:5.5});
   body2.write('1   Find where the centre of the ring on the front lands on this side. On plain paper, hold the sheet up to a light. On card stock, push a pin through the exact centre of that ring, from the front, and look at the hole from this side.');
   body2.write('2   Read the hole against the ringed grid in the middle of this page. One square is 1 mm, and the short ticks on the centre lines are half a square.');
-  body2.write(`3   Those two numbers go straight into the duplex calibration wizard, which does the arithmetic for you. By hand, ${rot2 ? 'SUBTRACT them from' : 'add them to'} the current values \u2014 this page is printed turned, so its grid runs the other way:`);
+  body2.write(`3   Those two numbers go straight into Align front and back, which does the arithmetic for you. By hand, ${rot2 ? 'SUBTRACT them from' : 'add them to'} the current values \u2014 this page is printed turned, so its grid runs the other way:`);
   body2.gap(1);
   // ASCII hyphen: U+2212 is not in the WinAnsi encoding jsPDF uses for Helvetica.
   const op = rot2 ? '-' : '+';
@@ -9653,7 +9653,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     <span class="duplex-choice-hd">${name}${s.duplexFlip === mode ? '<span class="tag">selected</span>' : ''}</span>
     ${duplexFlipDiagram(L, mode, frontEdge)}</button>`;
   const closeLabel = document.body.classList.contains('print-settings-active') ? '← Back to alignment' : 'Close';
-  openModal(`<div class="hd"><b>Double-sided calibration</b><button data-close>${closeLabel}</button></div><div class="bd">
+  openModal(`<div class="hd"><b>Align front and back</b><button data-close>${closeLabel}</button></div><div class="bd">
     <p class="hint" style="margin-top:0">${L.scm ? 'The template fixes the front. The readings below adjust the back.' : 'Use the <b>Alignment sheet</b> to check the front first.'}</p>
 
     <h4 class="wiz-h">1. ${L.scm ? 'Use long-edge flip' : 'Choose how the paper flips'}</h4>
@@ -10207,14 +10207,14 @@ async function downloadCutFile(fmt, sheet) {
   const selectedSheet = job.sheets[sheet ?? 0]; if (!selectedSheet) return toast('Choose a sheet in this job.');
   const preflight = await runPreflight({settings:job.settings,deck:job.project,layout:job.layout,slots:selectedSheet.slots,sheetIndices:[selectedSheet.index],hasBacks:job.hasBacks,printer:job.printer,calibration:job.calibration});
   if (reviewKey() !== scopeKey) return toast('The project or sheet selection changed. Review it before downloading.');
-  if (!preflight.valid) { switchTab('guide'); return toast('Resolve the blocked items before exporting cut paths.',7000); }
+  if (!preflight.valid) { switchTab('guide'); return toast('Fix the problems in Review export before downloading cut files.',7000); }
   const projectName = job.project.name.replace(/[^\w\- ]+/g, '').trim() || 'proxies';
   let body;
   try { body = await f.build(sheet ?? 0, job); }
   catch (e) { toast(e && e.message ? e.message : 'Could not build the cut file.', 7000); return; }
   if (reviewKey() !== scopeKey) return toast('The project or sheet selection changed. Review it before downloading.');
   download(new Blob([body], {type:f.mime}), `${projectName}-cut-lines-sheet-${(sheet ?? 0) + 1}.${f.ext}`);
-  if (!S.settings.silhouette) toast('Tip: turn on registration marks under Setup → Cut → Silhouette Cameo so the cutter can align.', 6000);
+  if (!S.settings.silhouette) toast('Tip: choose Silhouette cutter in Print settings → Cutting to add registration marks so the cutter can align.', 6000);
 }
 
 /* ---------- backup ---------- */
@@ -10836,7 +10836,7 @@ function renderQuickSetup() {
   } else if (menu.page === 'alignment') {
     const profiles = calProfiles().filter(p => Object.keys(calSlots(p)).length);
     const {frontLocked,hasBacks} = getCalibrationStatus();
-    body.insertAdjacentHTML('beforeend', `<div class="field"><label for="quickAlignmentProfile">Alignment profile</label><select id="quickAlignmentProfile"><option value="" disabled>Choose a profile</option>${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></div><div class="row">${frontLocked ? '' : action('btnCal','Print alignment sheet')}${hasBacks ? action('btnDuplexTest','Print duplex test') : ''}</div>`);
+    body.insertAdjacentHTML('beforeend', `<div class="field"><label for="quickAlignmentProfile">Alignment profile</label><select id="quickAlignmentProfile"><option value="" disabled>Choose a profile</option>${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></div><div class="row">${frontLocked ? '' : action('btnCal','Print alignment sheet')}${hasBacks ? action('btnDuplexTest','Print double-sided test') : ''}</div>`);
     $('#quickAlignmentProfile').value = profiles.some(p => p.id === S.calibrationProfileId) ? S.calibrationProfileId : '';
   } else if (menu.page === 'color') {
     body.insertAdjacentHTML('beforeend', `<div class="row">${action('standardColor','Standard paper')}${action('foilColor','Foil stock')}${action('btnInspFoilPreview','Preview foil…')}</div>`);
@@ -11469,7 +11469,7 @@ function renderCutStatus() {
     rHint.textContent = `Extra artwork beyond the cut edge. Try ${best} mm for this layout.`;
   }
   if (s.silhouette) {
-    el.innerHTML = `<div class="warn">Registration marks are enabled for Silhouette Cameo (rotary cut guides disabled).</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for rotary cutting</button></div>`;
+    el.innerHTML = `<div class="warn">This sheet uses registration marks for a Silhouette cutter, so the trimmer guides are off.</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Set up for a trimmer</button></div>`;
   } else {
     const guideDesc = (() => {
       if (s.guides === 'corners') return 'Corner marks enabled';

@@ -72,8 +72,8 @@
     // Check status on Alignment page and inspector
     const calStat = getCalibrationStatus();
     check('front status is Manual after explicit entry', calStat.front.status === 'Manual');
-    check('front label is Manual alignment applied', calStat.front.label === 'Manual alignment applied');
-    check('front source is Entered alignment', calStat.front.source === 'Entered alignment');
+    check('front label is Entered by hand', calStat.front.label === 'Entered by hand');
+    check('front source is Entered by hand', calStat.front.source === 'Entered by hand');
 
     // Check active setup card in Alignment page
     refreshAlignmentPage();
@@ -153,7 +153,7 @@
     check('back offset loaded from profile', S.settings.backOffsetY === 1);
     const afterProfileStat = getCalibrationStatus();
     check('front did NOT get credit from back-only profile', afterProfileStat.front.status === 'Manual');
-    check('front source is not profile name', afterProfileStat.front.source === 'Entered alignment');
+    check('front source is not profile name', afterProfileStat.front.source === 'Entered by hand');
 
     // 9. Saving profile test:
     $('#calProfileName').value = 'Test Custom Profile';
