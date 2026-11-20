@@ -50,7 +50,7 @@ button{background:var(--panel2);border:1px solid var(--field);border-radius:var(
 button:hover{border-color:rgb(var(--accent-rgb) / .35)}
 button:active:not(:disabled){transform:scale(.98)}
 :where(button,input,select,textarea,summary,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-button.primary,#readyFileSave{background:var(--action);color:var(--action-ink);border-color:var(--action-edge);font-weight:700;box-shadow:0 1px 2px #07111b45}
+button.primary,#readyFileSave{background:var(--action);color:var(--action-ink);border-color:var(--action-edge);font-weight:700}
 button.primary:hover,#readyFileSave:hover{background-color:var(--action-hover);border-color:var(--action-hover)}
 button.primary:active{transform:scale(.98)}
 #readyFileSave{display:inline-flex;align-items:center;min-height:var(--ctl);border:1px solid var(--action-edge);border-radius:var(--r-sm);padding:6px 11px;text-decoration:none}
@@ -969,6 +969,9 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #workspaceBar .bar-status,#guideJobSummary,.sum span,.pick button span,.gal .qty{font-family:var(--mono);font-variant-numeric:tabular-nums}
 #workspaceBar .bar-status{font-size:12px}
 #workspaceBar .bar-status span{white-space:nowrap}
+.pg .lowres-mark{width:10px;height:10px;padding:0;border-radius:1px}
+@media(max-width:480px){#workspaceBar{flex-wrap:wrap;row-gap:6px}#workspaceBar>div.bar-status{flex:1 0 100%}#workspaceBar .bar-actions{margin-left:auto}}
+@media(max-width:360px){#workspaceBar .bar-status .opt{display:none}}
 .bar-actions{display:flex;gap:8px;flex-shrink:0}
 #workspaceInspector #inspCal{white-space:pre;overflow-wrap:normal}
 /* A pasted deck name can be any length; the picker never pushes the header apart. */
@@ -983,7 +986,9 @@ header .deckbar select{max-width:min(34vw,340px);text-overflow:ellipsis}
 #printSettingsView .pick button:hover{background:linear-gradient(var(--fill),var(--fill)),var(--bg)}
 /* Column headings share one line. */
 body[data-mode=print] #workspaceInspector{padding-top:10px}
-#workspaceInspector .inspector-hdr{padding:6px 0 10px;top:-10px}
+#workspaceInspector .inspector-hdr{padding:2px 0 10px;top:-10px}
+#btnCloseSetup{min-height:28px;padding:2px 10px}
+#workspaceInspector #inspCal{column-gap:12px}
 /* The selected-card strip lies flat on the mat. */
 .proof-card-footer{background:var(--bg);border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0}
 .proof-card-trim{font-family:var(--mono)}
@@ -7713,7 +7718,7 @@ function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots
   if (inspCal) {
     const calStat = getCalibrationStatus(s);
     const n = v => { const x = Number(v) || 0; return (x < 0 ? '−' : '+') + Math.abs(x).toFixed(1); };
-    inspCal.textContent = (calStat.frontLocked ? 'Front template' : `Front X ${n(calStat.front.x)} Y ${n(calStat.front.y)}`) + (calStat.hasBacks ? `\nBack  X ${n(calStat.back.x)} Y ${n(calStat.back.y)}` : '');
+    inspCal.textContent = (calStat.frontLocked ? 'Front template' : `Front X${n(calStat.front.x)} Y${n(calStat.front.y)}`) + (calStat.hasBacks ? `\nBack  X${n(calStat.back.x)} Y${n(calStat.back.y)}` : '');
     inspCal.title = calStat.label;
     inspCal.style.color = ({Measured:'var(--ok)', Saved:'var(--ok)', Estimated:'var(--warning)', Manual:'var(--focus)'})[calStat.status] || '';
   }
@@ -8491,7 +8496,8 @@ async function drawPreview() {
     Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
     const rot = faceRot(L, back);
     if (isPreview(face)) {
-      const tag = document.createElement('span'); tag.className = 'lowres'; tag.textContent = 'Placeholder';
+      // Zoomed out, the full label would spill into the next card; a red mark carries it instead.
+      const tag = document.createElement('span'); tag.className = z < 1.6 ? 'lowres lowres-mark' : 'lowres'; tag.textContent = z < 1.6 ? '' : 'Placeholder'; tag.title = 'Placeholder art';
       Object.assign(tag.style, {left:T.x(p.x)*z + 4 + 'px', top:T.y(p.y)*z + 4 + 'px'});
       el.appendChild(tag);
     }
@@ -11462,7 +11468,7 @@ $$('#deckMenu .menu-list button').forEach(b => b.addEventListener('click', () =>
 addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckMenu').removeAttribute('open'); });
 $('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
 // The status line wraps only between phrases, never inside "2 passes".
-new MutationObserver(() => { const el = $('#barStatus'); if (el.children.length || !el.textContent.includes(' · ')) return; el.innerHTML = el.textContent.split(' · ').map(t => `<span>${esc(t)}</span>`).join(' · '); }).observe($('#barStatus'), {childList:true, characterData:true, subtree:true});
+new MutationObserver(() => { const el = $('#barStatus'); if (el.children.length || !el.textContent.includes(' · ')) return; el.innerHTML = el.textContent.split(' · ').map((t, i) => `<span${t === 'print at 100%' ? ' class="opt"' : ''}>${i ? '· ' : ''}${esc(t)}</span>`).join(' '); }).observe($('#barStatus'), {childList:true, characterData:true, subtree:true});
 // A failed lookup names the problem and the way out, not the browser's own error text.
 function scryfallFailure(e) {
   return /fetch|network|load failed|timed? ?out|abort/i.test(String(e?.message || e)) || !navigator.onLine

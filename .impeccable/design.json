@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-20T00:00:00Z",
+  "title": "Design System: Proxy Press",
+  "extensions": {
+    "colorMeta": {
+      "graphite-mat": {
+        "role": "neutral",
+        "displayName": "Graphite Mat",
+        "canonical": "oklch(24.0% 0.007 229)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#232526",
+          "#3f4244",
+          "#5e6264",
+          "#7f8385",
+          "#a2a6a7",
+          "#c7c9cb",
+          "#edefef"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Rail",
+        "canonical": "oklch(26.9% 0.008 224)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#232526",
+          "#3f4344",
+          "#5d6264",
+          "#7e8385",
+          "#a1a6a8",
+          "#c6cacb",
+          "#edefef"
+        ]
+      },
+      "rail-raised": {
+        "role": "neutral",
+        "displayName": "Rail Raised",
+        "canonical": "oklch(31.3% 0.010 229)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#232527",
+          "#3e4345",
+          "#5c6265",
+          "#7d8387",
+          "#a1a6a8",
+          "#c6cacc",
+          "#edeff0"
+        ]
+      },
+      "sunk-well": {
+        "role": "neutral",
+        "displayName": "Sunk Well",
+        "canonical": "oklch(21.4% 0.007 229)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#232526",
+          "#3f4244",
+          "#5e6264",
+          "#7f8385",
+          "#a2a6a7",
+          "#c7c9cb",
+          "#edefef"
+        ]
+      },
+      "hairline-rule": {
+        "role": "neutral",
+        "displayName": "Hairline Rule",
+        "canonical": "oklch(37.3% 0.013 229)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#222627",
+          "#3d4346",
+          "#5b6366",
+          "#7c8488",
+          "#a0a6a9",
+          "#c5cacc",
+          "#eceff0"
+        ]
+      },
+      "field-edge": {
+        "role": "neutral",
+        "displayName": "Field Edge",
+        "canonical": "oklch(54.7% 0.019 231)",
+        "tonalRamp": [
+          "#090c0d",
+          "#212629",
+          "#3b4348",
+          "#586369",
+          "#79848b",
+          "#9da7ac",
+          "#c3cace",
+          "#ebeff1"
+        ]
+      },
+      "chalk-text": {
+        "role": "neutral",
+        "displayName": "Chalk Text",
+        "canonical": "oklch(94.6% 0.006 223)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#242526",
+          "#404244",
+          "#5e6263",
+          "#7f8385",
+          "#a2a6a7",
+          "#c7c9ca",
+          "#edefef"
+        ]
+      },
+      "pencil-muted": {
+        "role": "neutral",
+        "displayName": "Pencil Muted",
+        "canonical": "oklch(74.6% 0.015 225)",
+        "tonalRamp": [
+          "#090c0c",
+          "#212628",
+          "#3c4346",
+          "#596367",
+          "#7a8489",
+          "#9ea7aa",
+          "#c4cacd",
+          "#eceff0"
+        ]
+      },
+      "process-cyan": {
+        "role": "primary",
+        "displayName": "Process Cyan",
+        "canonical": "oklch(75.0% 0.127 223)",
+        "tonalRamp": [
+          "#000e16",
+          "#002b3a",
+          "#004b63",
+          "#006e90",
+          "#0090b4",
+          "#62b1cd",
+          "#9ed3e6",
+          "#d6f4ff"
+        ]
+      },
+      "process-cyan-hover": {
+        "role": "primary",
+        "displayName": "Process Cyan Hover",
+        "canonical": "oklch(79.6% 0.113 221)",
+        "tonalRamp": [
+          "#000e14",
+          "#002b38",
+          "#004b5f",
+          "#006d8a",
+          "#2690ad",
+          "#6bb1c8",
+          "#a3d2e2",
+          "#d9f4fd"
+        ]
+      },
+      "cyan-ink": {
+        "role": "primary",
+        "displayName": "Cyan Ink",
+        "canonical": "oklch(88.9% 0.067 218)",
+        "tonalRamp": [
+          "#030d10",
+          "#11292f",
+          "#224852",
+          "#356a78",
+          "#578b9a",
+          "#85adb8",
+          "#b3cfd7",
+          "#e2f2f7"
+        ]
+      },
+      "focus-cyan": {
+        "role": "primary",
+        "displayName": "Focus Cyan",
+        "canonical": "oklch(83.6% 0.093 220)",
+        "tonalRamp": [
+          "#010e12",
+          "#042a34",
+          "#0b4a59",
+          "#146c82",
+          "#3f8ea5",
+          "#76afc1",
+          "#aad1dd",
+          "#ddf3fa"
+        ]
+      },
+      "cyan-dark-ink": {
+        "role": "primary",
+        "displayName": "Cyan Dark Ink",
+        "canonical": "oklch(18.9% 0.027 227)",
+        "tonalRamp": [
+          "#080c0e",
+          "#1e262a",
+          "#38444a",
+          "#53646c",
+          "#73868e",
+          "#99a8ae",
+          "#c1cbd0",
+          "#e9f0f2"
+        ]
+      },
+      "sheet-paper": {
+        "role": "neutral",
+        "displayName": "Sheet Paper",
+        "canonical": "oklch(97.1% 0.005 118)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252524",
+          "#424240",
+          "#61625f",
+          "#82837f",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeed"
+        ]
+      },
+      "warning-amber": {
+        "role": "status",
+        "displayName": "Warning Amber",
+        "canonical": "oklch(88.5% 0.102 95)",
+        "tonalRamp": [
+          "#0f0b01",
+          "#2c2505",
+          "#4e410d",
+          "#716018",
+          "#93823d",
+          "#b3a572",
+          "#d3c9a6",
+          "#f4efda"
+        ]
+      },
+      "danger-coral": {
+        "role": "status",
+        "displayName": "Danger Coral",
+        "canonical": "oklch(79.2% 0.120 24)",
+        "tonalRamp": [
+          "#170605",
+          "#3d1817",
+          "#672e2c",
+          "#954642",
+          "#ba6762",
+          "#d4918c",
+          "#edbbb7",
+          "#ffe7e4"
+        ]
+      },
+      "ok-green": {
+        "role": "status",
+        "displayName": "Ok Green",
+        "canonical": "oklch(83.0% 0.084 149)",
+        "tonalRamp": [
+          "#050e06",
+          "#162b1a",
+          "#2b4b31",
+          "#416d4a",
+          "#628f6a",
+          "#8cb092",
+          "#b8d1bb",
+          "#e4f3e6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Column, step and empty-state headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default text, buttons, card names, ticket labels."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Hints, meta lines, tags, compact buttons, bar status."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Every number and measurement, tabular mono."
+      },
+      "numeral-strong": {
+        "displayName": "Numeral Strong",
+        "purpose": "Decklist quantities and the deck total."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 18px 46px #0a0c0dc2, 0 2px 6px #0a0c0d80",
+        "purpose": "Dialogs, the quick-setup popover and the toast."
+      },
+      {
+        "name": "menu",
+        "value": "0 12px 32px rgba(0,0,0,.5)",
+        "purpose": "Dropdown and context menus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(.22,1,.36,1)",
+        "purpose": "Press feedback and overlay entrances."
+      },
+      {
+        "name": "motion-quick",
+        "value": "150ms",
+        "purpose": "Colour, border and press transitions."
+      },
+      {
+        "name": "motion-panel",
+        "value": "240ms",
+        "purpose": "Dialog, popover and toast entrances."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "none",
+        "purpose": "prefers-reduced-motion removes all animation and transition."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tiny",
+        "value": "360px"
+      },
+      {
+        "name": "phone",
+        "value": "480px"
+      },
+      {
+        "name": "compact",
+        "value": "820px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default control: graphite key with a field-edge border.",
+      "html": "<button class=\"ds-btn\">Print settings</button>",
+      "css": ".ds-btn{font:14px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--text,#e9eef0);background:var(--panel2,#2c3235);border:1px solid var(--field,#66737a);border-radius:3px;padding:6px 11px;min-height:36px;cursor:pointer;transition:border-color 150ms,transform 150ms cubic-bezier(.22,1,.36,1)}.ds-btn:hover{border-color:rgb(51 191 232 / .35)}.ds-btn:focus-visible{outline:2px solid #7fd8f3;outline-offset:2px}.ds-btn:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The next step in an area, once: Review export, Change selected art.",
+      "html": "<button class=\"ds-btn-primary\">Review export</button>",
+      "css": ".ds-btn-primary{font:700 14px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#05161d;background:#33bfe8;border:1px solid #33bfe8;border-radius:3px;padding:6px 11px;min-height:36px;cursor:pointer;transition:background-color 150ms,transform 150ms cubic-bezier(.22,1,.36,1)}.ds-btn-primary:hover{background:#5ccdf0;border-color:#5ccdf0}.ds-btn-primary:focus-visible{outline:2px solid #7fd8f3;outline-offset:2px}.ds-btn-primary:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Drawn 1.5-stroke SVG icon beside a label.",
+      "html": "<button class=\"ds-btn ds-btn-icon\"><svg class=\"ds-ico\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M2 4.5h4l1.5 1.5H14v6.5H2z\"/></svg><span>Project files</span></button>",
+      "css": ".ds-btn-icon{display:inline-flex;align-items:center;gap:6px;font:14px system-ui,sans-serif;color:#e9eef0;background:#2c3235;border:1px solid #66737a;border-radius:3px;padding:6px 11px;min-height:36px}.ds-btn-icon:focus-visible{outline:2px solid #7fd8f3;outline-offset:2px}.ds-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Inputs sit one step below the mat.",
+      "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Filter cards…\">",
+      "css": ".ds-input{font:14px/1.4 system-ui,sans-serif;color:#e9eef0;background:#161a1c;border:1px solid #66737a;border-radius:3px;padding:6px 9px;width:240px;transition:border-color .15s ease}.ds-input::placeholder{color:#a3afb4}.ds-input:focus-visible{outline:2px solid #7fd8f3;outline-offset:2px}"
+    },
+    {
+      "name": "Decklist",
+      "kind": "custom",
+      "refersTo": "decklist-row",
+      "description": "Count first, ruled rows, crop-mark selection, double-ruled total.",
+      "html": "<div class=\"ds-deck\"><div class=\"ds-row\"><b>4</b><span>Lightning Bolt<i>MSC #806</i></span></div><div class=\"ds-row ds-sel\"><b>1</b><span>Black Lotus<i>VMA #4</i></span></div><div class=\"ds-row\"><b>1</b><span>Sol Ring<i>TRC #499</i></span></div><div class=\"ds-total\"><b>6</b><span>Cards</span><em>3 names</em></div></div>",
+      "css": ".ds-deck{width:260px;padding:0 8px;background:#222729;color:#e9eef0;font:14px/1.4 system-ui,sans-serif}.ds-row{position:relative;display:grid;grid-template-columns:44px 1fr;align-items:center;min-height:46px;padding:6px 0;border-bottom:1px solid #3a4246}.ds-row:hover{background:#c8d6dc08}.ds-row b,.ds-total b{font:700 14px ui-monospace,'Cascadia Mono',Menlo,monospace}.ds-row span{font-weight:600}.ds-row i{display:block;font:400 12px ui-monospace,Menlo,monospace;font-style:normal;color:#a3afb4}.ds-sel{background:rgb(51 191 232 / .10)}.ds-sel::before,.ds-sel::after{content:'';position:absolute;width:9px;height:9px;border:2px solid #33bfe8}.ds-sel::before{left:-6px;top:-1px;border-right:0;border-bottom:0}.ds-sel::after{right:-6px;bottom:-1px;border-left:0;border-top:0}.ds-total{display:grid;grid-template-columns:44px 1fr auto;align-items:baseline;padding:8px 0 4px;margin-top:-1px;border-top:3px double #e9eef0;font-weight:700}.ds-total em{font:400 12px ui-monospace,Menlo,monospace;font-style:normal;color:#a3afb4}"
+    },
+    {
+      "name": "Job Ticket",
+      "kind": "custom",
+      "refersTo": "ticket-value",
+      "description": "Labels left, mono values right; a changed value stays cyan until accepted.",
+      "html": "<div class=\"ds-ticket\"><div class=\"ds-trow\"><span>Paper</span><button>Letter · Landscape</button></div><div class=\"ds-trow\"><span>Layout</span><button>4 × 2 · 8 up</button></div><div class=\"ds-trow\"><span>Sides</span><button class=\"ds-changed\">Double-sided, flip by hand</button></div><p class=\"ds-note\">A double-faced card made this job double-sided.</p></div>",
+      "css": ".ds-ticket{width:260px;padding:0 12px;background:#222729;color:#e9eef0;font:14px/1.4 system-ui,sans-serif}.ds-trow{display:grid;grid-template-columns:64px 1fr;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #3a4246}.ds-trow button{text-align:left;font:12px/1.4 ui-monospace,'Cascadia Mono',Menlo,monospace;font-variant-numeric:tabular-nums;color:#e9eef0;background:none;border:1px solid transparent;border-radius:3px;padding:6px;cursor:pointer}.ds-trow button:hover{border-color:#66737a}.ds-trow button:focus-visible{outline:2px solid #7fd8f3;outline-offset:2px}.ds-trow button.ds-changed{color:#33bfe8;border-color:#33bfe8}.ds-note{margin:8px 0;font-size:12px;color:#a8e6f8}"
+    },
+    {
+      "name": "Sheet On The Mat",
+      "kind": "card",
+      "refersTo": "sheet-paper",
+      "description": "Paper sheet on a scaled mm grid, with crop-mark selection on a card.",
+      "html": "<div class=\"ds-mat\"><div class=\"ds-sheet\"><div class=\"ds-card\"></div><div class=\"ds-card ds-pick\"></div></div><small>Page 1 · 279.4 × 215.9 mm</small></div>",
+      "css": ".ds-mat{padding:24px;background-color:#1c2022;background-image:linear-gradient(#ffffff14 1px,transparent 1px),linear-gradient(90deg,#ffffff14 1px,transparent 1px),linear-gradient(#ffffff09 1px,transparent 1px),linear-gradient(90deg,#ffffff09 1px,transparent 1px);background-size:50px 50px,50px 50px,10px 10px,10px 10px;background-position:24px 24px}.ds-sheet{display:flex;gap:6px;padding:14px;width:fit-content;background:#f5f6f2}.ds-card{width:63px;height:88px;background:#2c3235}.ds-pick{--c:#33bfe8;background:linear-gradient(var(--c),var(--c)) 0 0/14px 3px no-repeat,linear-gradient(var(--c),var(--c)) 0 0/3px 14px no-repeat,linear-gradient(var(--c),var(--c)) 100% 100%/14px 3px no-repeat,linear-gradient(var(--c),var(--c)) 100% 100%/3px 14px no-repeat,#2c3235}.ds-mat small{display:block;margin-top:6px;color:#a3afb4;font:12px ui-monospace,Menlo,monospace}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "nav",
+      "refersTo": "button",
+      "description": "View segments (Front / Back / Guides): the active segment is filled cyan.",
+      "html": "<div class=\"ds-seg\"><button class=\"on\">Front</button><button>Back</button><button>Guides</button></div>",
+      "css": ".ds-seg{display:inline-flex;background:#161a1c;border:1px solid #66737a;border-radius:4px;overflow:hidden}.ds-seg button{font:14px system-ui,sans-serif;color:#a3afb4;background:none;border:0;border-radius:0;padding:6px 12px;min-height:36px;cursor:pointer;transition:background .15s,color .15s}.ds-seg button:hover{color:#e9eef0}.ds-seg button.on{background:#33bfe8;color:#05161d;font-weight:600}.ds-seg button:focus-visible{outline:2px solid #7fd8f3;outline-offset:-2px}"
+    },
+    {
+      "name": "Mode Switch",
+      "kind": "nav",
+      "refersTo": "button",
+      "description": "Print at home / Order prints; the current mode takes the cyan wash and cyan ink.",
+      "html": "<div class=\"ds-mode\"><button class=\"on\">Print at home</button><button>Order prints</button></div>",
+      "css": ".ds-mode{display:inline-flex;gap:2px;padding:3px;background:#161a1c;border:1px solid #3a4246;border-radius:4px}.ds-mode button{font:14px system-ui,sans-serif;color:#a3afb4;background:none;border:0;border-radius:4px;padding:6px 12px;min-height:32px;cursor:pointer}.ds-mode button:hover{color:#e9eef0;background:#c8d6dc08}.ds-mode button.on{background:rgb(51 191 232 / .10);color:#a8e6f8;box-shadow:inset 0 0 0 1px rgb(51 191 232 / .23)}.ds-mode button:focus-visible{outline:2px solid #7fd8f3;outline-offset:-2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cutting Mat & Decklist",
+    "overview": "The workspace is a graphite cutting mat on a print-shop bench. The sheet lies on the mat at true scale, with a millimetre grid behind it that starts at the sheet's own corner and rulers along its top and left edges carrying mm numerals. To the left the deck reads as a tournament decklist: count first, ruled rows, a double-ruled total. To the right the settings read as a job ticket: plain labels on the left, values in tabular mono on the right. The one live colour is process cyan, the colour of a cut line, and it marks only what is selected, focused, the next action, or something the app changed that the user has not yet accepted.\n\nDensity is that of a working tool, not a dashboard. Everything lies flat on the mat. Sections are separated by hairline rules, not boxed. The white sheet is the brightest object on screen and nothing competes with it. Overlays (dialogs, popovers, menus, the toast) are the only things that leave the surface.\n\nThe system replaces an earlier lavender, glassy dark-SaaS look and refuses its devices: lavender accent, glass bars, glows, boxes nested inside boxes, eyebrow labels and side-stripe callouts.",
+    "keyCharacteristics": [
+      "Graphite neutrals in four close steps, paper white for the sheet only, process cyan as the single live colour.",
+      "The mat grid and rulers are drawn at the sheet's own scale, so 10 mm on the mat is 10 mm on paper.",
+      "System sans for words in three sizes (12 / 14 / 18); system mono with tabular figures for every number.",
+      "Selection is drawn as crop-mark corners, the same marks the printer gets.",
+      "Flat, ruled sections; only overlays lift.",
+      "Drawn line icons at a 1.5 stroke, never glyphs."
+    ],
+    "rules": [
+      {
+        "name": "The One Live Colour Rule",
+        "body": "Process Cyan is the only hue that means \"act on this\" or \"this is the current one\". If something is cyan, it is selected, focused, the next action, a cut line, or a change awaiting acceptance. Nothing else is cyan.",
+        "section": "colors"
+      },
+      {
+        "name": "The Changed-Until-Accepted Rule",
+        "body": "When the app changes a setting on the user's behalf, the value stays cyan in the job ticket, with a note and explicit choices, until the user accepts it. The output never changes silently.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paper Is Brightest Rule",
+        "body": "Sheet Paper is reserved for the sheet. No UI surface is lighter than Chalk Text, and no surface uses the paper colour.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Numbers Rule",
+        "body": "A number is set in mono with tabular figures wherever it appears, including inside sentences of status text. Words never are.",
+        "section": "typography"
+      },
+      {
+        "name": "The Three Sizes Rule",
+        "body": "UI text uses 12, 14 and 18px. Hierarchy beyond that comes from weight and placement, not new sizes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat On The Mat Rule",
+        "body": "Nothing on the workspace casts a shadow or sits in a box inside another box. A section is a rule above a heading, not a card. If it does not float over the workspace, it does not lift.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep Process Cyan (#33bfe8) for selection, focus, the primary action, cut lines and changed-until-accepted values only.",
+      "**Do** set every number in system mono with tabular figures.",
+      "**Do** separate sections with a 1px Hairline Rule (#3a4246) and lay them flat on the mat.",
+      "**Do** keep control borders at Field Edge (#66737a) or stronger so every control edge is at least 3:1.",
+      "**Do** draw the mat grid and rulers at the sheet's own scale, aligned to the sheet's corner.",
+      "**Do** mark selection with crop-mark corners.",
+      "**Do** use drawn SVG icons at a 1.5 stroke."
+    ],
+    "donts": [
+      "**Don't** add a second accent hue, a lavender accent, gradients or glows.",
+      "**Don't** use glass or blurred bars, or shadows on anything that does not float over the workspace.",
+      "**Don't** nest a bordered panel inside another bordered panel.",
+      "**Don't** add eyebrow labels or uppercase tracked kickers above headings.",
+      "**Don't** use a thick coloured stripe on one side of a callout.",
+      "**Don't** introduce UI text sizes outside 12, 14 and 18px.",
+      "**Don't** make any UI surface as bright as the sheet.",
+      "**Don't** use the bundled serif faces (Crimson Text, Goudy Bookletter 1911, Spectral) for UI text; they exist only to render custom cards."
+    ]
+  }
+}
