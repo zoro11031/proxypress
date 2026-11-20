@@ -3120,7 +3120,7 @@ async function sf(url, opts = {}) {
     try {
       const r = await fetch(serverPath('/sf' + url.slice(SF.length)), {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
       if (/json/.test(r.headers.get('Content-Type') || '')) j = await r.json();
-      if (j && (r.ok || j.object === 'error')) { if (!r.ok) { const err=new Error(j.details);err.status=r.status;throw err; } return j; }
+      if (j && (r.ok || j.object === 'error')) { if (j.object === 'error') { const err=new Error(j.details);err.status=j.status||r.status;throw err; } return j; }
       if (r.status === 404 || r.status === 401) sfRelay = false;
     } catch (err) { if (j) throw err; sfRelay = false; }
   }

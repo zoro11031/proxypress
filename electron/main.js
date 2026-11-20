@@ -201,7 +201,10 @@ async function handleSf(req, res, method, reqPath, body) {
     if (method === 'GET' && upstream.status === 200) {
       cachePut('sf:' + targetUrl, text);
     }
-    res.writeHead(upstream.status, { 'Content-Type': 'application/json' });
+    // Same as the Python relay: an empty result is a 200 carrying Scryfall's error object.
+    let status = upstream.status;
+    if (status === 404) { try { if (JSON.parse(text).object === 'error') status = 200; } catch {} }
+    res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(text);
   } catch (err) {
     res.writeHead(502, { 'Content-Type': 'application/json' });

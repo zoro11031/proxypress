@@ -16,7 +16,7 @@
   check('settings replaces queue, proof and inspector',!$('#tab-cards').getClientRects().length&&!$('#stage').getClientRects().length&&!$('#workspaceInspector').getClientRects().length);
   check('settings has no horizontal overflow',view.scrollWidth<=view.clientWidth+1);
   check('return and tabs stay visible while scrolling',getComputedStyle($('.settings-view-nav')).position==='sticky');
-  $('#customPaperDrawer').open=true;
+  if ($('#customPaperDrawer')) $('#customPaperDrawer').open=true;
   const paper=$('#paperForm [data-k=pageSize]');paper.value='a4';paper.dispatchEvent(new Event('change',{bubbles:true}));
   check('canonical setup change applied',S.settings.pageSize==='a4');
   $('#tabNav-alignment').click();
@@ -31,7 +31,10 @@
   back.click();
   check('back restores the original Cards view and focus',document.body.dataset.workspaceView==='cards'&&document.activeElement===opener);
 
-  S.calibrationProfileId=null;deck().calibrationState={};S.settings.offsetX=1.25;
+  // Alignment carried over from another setup is Estimated, which the review flags; a
+  // manual entry for this exact setup is deliberate and rightly raises nothing.
+  S.calibrationProfileId=null;S.settings.offsetX=1.25;
+  deck().calibrationState={front:{kind:'manual',scope:'another-setup',values:Object.fromEntries(FRONT_CAL_KEYS.map(k=>[k,S.settings[k]]))}};
   $('#btnReviewExport').click();
   check('review dialog uses existing download controls',!!$('#btnExportPdfTab').closest('#modal'));
   $('#exportScope').value='current';$('#exportScope').dispatchEvent(new Event('change',{bubbles:true}));

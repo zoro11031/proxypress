@@ -55,13 +55,13 @@
     check('found alignment input offsetX', !!inputX);
 
     // Test typing invalid value
-    inputX.value = 'invalid';
+    inputX.value = ''; inputX.dispatchEvent(new Event('input', {bubbles: true}));
     $('#btnApplyAlignment')?.click();
     check('invalid input shows error message', $('#alignmentInputError').style.display !== 'none');
     check('invalid input does not mutate S.settings', S.settings.offsetX === 0);
 
     // Test entering 1.25 mm without clicking Apply
-    inputX.value = '1.25';
+    inputX.value = '1.25'; inputX.dispatchEvent(new Event('input', {bubbles: true}));
     check('typing 1.25 does not immediately mutate S.settings', S.settings.offsetX === 0);
 
     // Click Apply changes
@@ -120,7 +120,7 @@
 
     // Now apply 1.25 mm
     openPrintSettings('alignment');
-    $('#input-offsetX').value = '1.25';
+    $('#input-offsetX').value = '1.25'; $('#input-offsetX').dispatchEvent(new Event('input', {bubbles: true}));
     $('#btnApplyAlignment').click();
     await exportPDF(true);
     const appliedExport = outputs[1];

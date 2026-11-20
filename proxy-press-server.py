@@ -939,9 +939,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, j = scryfall(path)
                 if status == 200:
                     cache_put("get:" + path, j)
+        # Scryfall answers "no cards match" with 404. Relay that as 200 carrying the
+        # error object (its own "status" field keeps the 404), so an empty search is
+        # not logged as a failed request; the page reads the status from the body.
+        if status == 404 and isinstance(j, dict) and j.get("object") == "error":
+            j.setdefault("status", 404)
+            status = 200
         body = json.dumps(j).encode()
         extra = []
-        if status == 200 and method == "GET":
+        if status == 200 and method == "GET" and not (isinstance(j, dict) and j.get("object") == "error"):
             extra = [("Cache-Control", f"private, max-age={3600 if route in ('/cards/search', '/cards/autocomplete') else 86400}"),
                      ("ETag", f'"{hashlib.sha256(body).hexdigest()[:16]}"')]
         self.send(status, body, "application/json", extra)
