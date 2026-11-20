@@ -2,28 +2,29 @@
 name: Proxy Press
 description: Decklist in, print-ready sheet out, laid flat on a graphite cutting mat.
 colors:
-  graphite-mat: "#1c2022"
-  rail: "#222729"
-  rail-raised: "#2c3235"
-  sunk-well: "#161a1c"
-  hairline-rule: "#3a4246"
-  field-edge: "#66737a"
-  chalk-text: "#e9eef0"
-  pencil-muted: "#a3afb4"
-  process-cyan: "#33bfe8"
-  process-cyan-hover: "#5ccdf0"
-  cyan-ink: "#a8e6f8"
-  focus-cyan: "#7fd8f3"
-  cyan-dark-ink: "#05161d"
+  graphite-mat: "#1d1e20"
+  rail: "#232427"
+  rail-raised: "#2d2e32"
+  sunk-well: "#17181a"
+  hairline-rule: "#3c3e43"
+  field-edge: "#6c6f76"
+  chalk-text: "#ecedef"
+  pencil-muted: "#a8abb2"
+  process-magenta: "#ec64ac"
+  process-magenta-fill: "#e0459b"
+  process-magenta-hover: "#ea66b0"
+  magenta-ink: "#f5a3cf"
+  focus-magenta: "#f08cc2"
+  magenta-dark-ink: "#1d0711"
   sheet-paper: "#f5f6f2"
   warning-amber: "#eed98a"
   danger-coral: "#ff9c95"
   ok-green: "#a1d7aa"
-  placeholder-pencil: "#8b979d"
+  placeholder-pencil: "#909399"
   danger-solid: "#b8372f"
-  paper-slot: "#e6e8e2"
-  paper-ink: "#5b6266"
-  paper-edge: "#9aa3a8"
+  paper-slot: "#e7e7e3"
+  paper-ink: "#5e6065"
+  paper-edge: "#a3a5aa"
 typography:
   title:
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
@@ -71,14 +72,14 @@ components:
     padding: "6px 11px"
     height: "{spacing.control}"
   button-primary:
-    backgroundColor: "{colors.process-cyan}"
-    textColor: "{colors.cyan-dark-ink}"
+    backgroundColor: "{colors.process-magenta-fill}"
+    textColor: "{colors.magenta-dark-ink}"
     rounded: "{rounded.sm}"
     padding: "6px 11px"
     height: "{spacing.control}"
   button-primary-hover:
-    backgroundColor: "{colors.process-cyan-hover}"
-    textColor: "{colors.cyan-dark-ink}"
+    backgroundColor: "{colors.process-magenta-hover}"
+    textColor: "{colors.magenta-dark-ink}"
   input:
     backgroundColor: "{colors.sunk-well}"
     textColor: "{colors.chalk-text}"
@@ -96,7 +97,7 @@ components:
     rounded: "{rounded.sm}"
     padding: "6px 6px"
   ticket-value-changed:
-    textColor: "{colors.process-cyan}"
+    textColor: "{colors.process-magenta}"
   dialog:
     backgroundColor: "{colors.rail}"
     textColor: "{colors.chalk-text}"
@@ -109,14 +110,14 @@ components:
 
 **Creative North Star: "The Cutting Mat & Decklist"**
 
-The workspace is a graphite cutting mat on a print-shop bench. The sheet lies on the mat at true scale, with a millimetre grid behind it that starts at the sheet's own corner and rulers along its top and left edges carrying mm numerals. To the left the deck reads as a tournament decklist: count first, ruled rows, a double-ruled total. To the right the settings read as a job ticket: plain labels on the left, values in tabular mono on the right. The one live colour is process cyan, the colour of a cut line, and it marks only what is selected, focused, the next action, or something the app changed that the user has not yet accepted.
+The workspace is a graphite cutting mat on a print-shop bench. The sheet lies on the mat at true scale, with a millimetre grid behind it that starts at the sheet's own corner and rulers along its top and left edges carrying mm numerals. To the left the deck reads as a tournament decklist: count first, ruled rows, a double-ruled total. To the right the settings read as a job ticket: plain labels on the left, values in tabular mono on the right. The one live colour is process magenta, the colour of a cut line, and it marks only what is selected, focused, the next action, or something the app changed that the user has not yet accepted.
 
 Density is that of a working tool, not a dashboard. Everything lies flat on the mat. Sections are separated by hairline rules, not boxed. The white sheet is the brightest object on screen and nothing competes with it. Overlays (dialogs, popovers, menus, the toast) are the only things that leave the surface.
 
 The system replaces an earlier lavender, glassy dark-SaaS look and refuses its devices: lavender accent, glass bars, glows, boxes nested inside boxes, eyebrow labels and side-stripe callouts.
 
 **Key Characteristics:**
-- Graphite neutrals in four close steps, paper white for the sheet only, process cyan as the single live colour.
+- Graphite neutrals in four close steps, paper white for the sheet only, process magenta as the single live colour.
 - The mat grid and rulers are drawn at the sheet's own scale, so 10 mm on the mat is 10 mm on paper.
 - System sans for words in three sizes (12 / 14 / 18); system mono with tabular figures for every number.
 - Selection is drawn as crop-mark corners, the same marks the printer gets.
@@ -125,35 +126,36 @@ The system replaces an earlier lavender, glassy dark-SaaS look and refuses its d
 
 ## Colors
 
-Cool graphite at low chroma, one saturated cyan, and a paper white kept for the sheet itself.
+Neutral graphite with no hue cast, one saturated magenta, and a paper white kept for the sheet itself.
 
 ### Primary
-- **Process Cyan** (#33bfe8): the single live colour. Selection (crop marks, the selected-card wash, the selection bar's border), the primary action (Review export, Change selected art), cut lines, active segment, and ticket values the app changed until the user accepts them. Text on it is Cyan Dark Ink.
-- **Process Cyan Hover** (#5ccdf0): primary-action hover only.
-- **Focus Cyan** (#7fd8f3): the 2px keyboard focus outline, offset 2px.
-- **Cyan Ink** (#a8e6f8): cyan-tinted note text, such as the job-ticket note that explains a change ("A double-faced card made this job double-sided.").
-- **Cyan Dark Ink** (#05161d): text on a cyan fill.
+- **Process Magenta** (#ec64ac): the single live colour. Selection (crop marks, the selected-card wash, the selection bar's border), the primary action (Review export, Change selected art), cut lines, active segment, and ticket values the app changed until the user accepts them. Text on it is Magenta Dark Ink.
+- **Process Magenta Fill** (#e0459b): the primary button's fill, under dark ink (5.0:1). The lighter Process Magenta is for text, borders and crop marks, where it reaches 4.5:1 on every rail.
+- **Process Magenta Hover** (#ea66b0): primary-action hover only.
+- **Focus Magenta** (#f08cc2): the 2px keyboard focus outline, offset 2px.
+- **Magenta Ink** (#f5a3cf): magenta-tinted note text, such as the job-ticket note that explains a change ("A double-faced card made this job double-sided.").
+- **Magenta Dark Ink** (#1d0711): text on a magenta fill.
 
 ### Neutral
-- **Graphite Mat** (#1c2022): page background and the mat behind the sheet; also the flat background of settings sections and preset rows.
-- **Rail** (#222729): header, footer bar, side rails and dialog surfaces. One step lighter than the mat.
-- **Rail Raised** (#2c3235): default button fill.
-- **Sunk Well** (#161a1c): text inputs, selects and textareas sit below the mat.
-- **Hairline Rule** (#3a4246): row rules, section rules, panel edges, ruler minor ticks.
-- **Field Edge** (#66737a): control borders and ruler major ticks; at least 3:1 against the mat and the rails, so every control edge is visible.
-- **Chalk Text** (#e9eef0): primary text, and the double rule over the deck total.
-- **Pencil Muted** (#a3afb4): secondary text, ruler numerals, totals' secondary counts.
+- **Graphite Mat** (#1d1e20): page background and the mat behind the sheet; also the flat background of settings sections and preset rows.
+- **Rail** (#232427): header, footer bar, side rails and dialog surfaces. One step lighter than the mat.
+- **Rail Raised** (#2d2e32): default button fill.
+- **Sunk Well** (#17181a): text inputs, selects and textareas sit below the mat.
+- **Hairline Rule** (#3c3e43): row rules, section rules, panel edges, ruler minor ticks.
+- **Field Edge** (#6c6f76): control borders and ruler major ticks; at least 3:1 against the mat and the rails, so every control edge is visible.
+- **Chalk Text** (#ecedef): primary text, and the double rule over the deck total.
+- **Pencil Muted** (#a8abb2): secondary text, ruler numerals, totals' secondary counts.
 - **Sheet Paper** (#f5f6f2): the sheet preview only. It is the brightest thing on screen.
 
 ### Status
 - **Warning Amber** (#eed98a), **Danger Coral** (#ff9c95), **OK Green** (#a1d7aa): text and borders for warnings, destructive actions and success states. They report state; they are never decoration.
 
-The mat grid uses white at very low alpha (#ffffff09 minor, #ffffff14 major); hairline washes use #c8d6dc1f and #c8d6dc08; the cyan wash is Process Cyan at 10%.
+The mat grid uses white at very low alpha (#ffffff09 minor, #ffffff14 major); hairline washes use #d4d6da1f and #d4d6da08; the magenta wash is Process Magenta at 10%.
 
 ### Named Rules
-**The One Live Colour Rule.** Process Cyan is the only hue that means "act on this" or "this is the current one". If something is cyan, it is selected, focused, the next action, a cut line, or a change awaiting acceptance. Nothing else is cyan.
+**The One Live Colour Rule.** Process Magenta is the only hue that means "act on this" or "this is the current one". If something is magenta, it is selected, focused, the next action, a cut line, or a change awaiting acceptance. Nothing else is magenta.
 
-**The Changed-Until-Accepted Rule.** When the app changes a setting on the user's behalf, the value stays cyan in the job ticket, with a note and explicit choices, until the user accepts it. The output never changes silently.
+**The Changed-Until-Accepted Rule.** When the app changes a setting on the user's behalf, the value stays magenta in the job ticket, with a note and explicit choices, until the user accepts it. The output never changes silently.
 
 **The Paper Is Brightest Rule.** Sheet Paper is reserved for the sheet. No UI surface is lighter than Chalk Text, and no surface uses the paper colour.
 
@@ -180,7 +182,7 @@ On phones (820px and below) inputs, selects and textareas are set at 16px so the
 
 ## Layout
 
-Three columns over a fixed footer. The header is one row: name, the Print at home / Order prints segment, the deck picker, and a mono count. Below it, a left rail holds the decklist, a right rail holds the job ticket (each clamp(250px, 22vw, 280px)), and the centre is the mat. The sheet controls sit in one row directly under the header, with the rulers just below them; the sheet is shown at fit scale with its mm dimensions beneath it in mono. The footer (52px) carries the job summary in mono on the left and Print settings plus the cyan Review export on the right.
+Three columns over a fixed footer. The header is one row: name, the Print at home / Order prints segment, the deck picker, and a mono count. Below it, a left rail holds the decklist, a right rail holds the job ticket (each clamp(250px, 22vw, 280px)), and the centre is the mat. The sheet controls sit in one row directly under the header, with the rulers just below them; the sheet is shown at fit scale with its mm dimensions beneath it in mono. The footer (52px) carries the job summary in mono on the left and Print settings plus the magenta Review export on the right.
 
 The mat grid is part of the layout, not a texture. The preview sets the grid to the sheet's zoom: 10 mm minor and 50 mm major squares, tightening to 5 mm and 10 mm once the zoom is high enough, with the grid origin moved onto the sheet's top-left corner. The rulers hang off the sheet's top and left edges and move with it, with numerals every 50 mm (every 10 mm at high zoom). In order mode the grid returns to the stage origin.
 
@@ -200,7 +202,7 @@ The workspace is flat. Depth comes from tone: the mat, the rails one step lighte
 
 ## Shapes
 
-Small, square-ish corners, as on cut stock and print-shop hardware: 3px for buttons and inputs, 4px for menus, tiles and the toast, 6px for dialogs and popovers. Flattened elements (decklist rows, settings sections, preset cells) use no radius at all. Edges are 1px hairlines; the one heavy rule is the 3px double rule above the deck total. Selection is drawn as crop-mark corners: 3px cyan L-brackets at the corners of a selected card on the sheet, and 9px corner brackets offset outside a selected decklist row.
+Small, square-ish corners, as on cut stock and print-shop hardware: 3px for buttons and inputs, 4px for menus, tiles and the toast, 6px for dialogs and popovers. Flattened elements (decklist rows, settings sections, preset cells) use no radius at all. Edges are 1px hairlines; the one heavy rule is the 3px double rule above the deck total. Selection is drawn as crop-mark corners: 3px magenta L-brackets at the corners of a selected card on the sheet, and 9px corner brackets offset outside a selected decklist row.
 
 ## Components
 
@@ -208,36 +210,36 @@ Small, square-ish corners, as on cut stock and print-shop hardware: 3px for butt
 Plain and square-shouldered; they look like keys on a machine panel.
 - **Shape:** gently squared (3px), 36px minimum height (42px on touch layouts).
 - **Default:** Rail Raised fill, Field Edge border, Chalk Text label.
-- **Primary:** Process Cyan fill and border, Cyan Dark Ink label at weight 700. Used once per area for the next step (Review export, Change selected art).
-- **Hover / Focus / Active:** default buttons take a 35% cyan border on hover; primary brightens to Process Cyan Hover. Focus is a 2px Focus Cyan outline offset 2px. Pressing scales to 0.98 over 150ms.
+- **Primary:** Process Magenta fill and border, Magenta Dark Ink label at weight 700. Used once per area for the next step (Review export, Change selected art).
+- **Hover / Focus / Active:** default buttons take a 35% magenta border on hover; primary brightens to Process Magenta Hover. Focus is a 2px Focus Magenta outline offset 2px. Pressing scales to 0.98 over 150ms.
 - **Danger:** Danger Coral label on the default button.
 
 ### Segmented Controls
-- **View segments** (Front / Back / Guides and similar): a Sunk Well track with a Field Edge border and 4px radius; segments are muted text with no fill, and the active one is filled Process Cyan with Cyan Dark Ink at weight 600.
-- **Mode switch** (Print at home / Order prints): a Sunk Well track with a Hairline Rule border and 3px inner padding; the active mode takes the 10% cyan wash, Cyan Ink text and a faint inset cyan edge, so it reads as the current place rather than an action.
+- **View segments** (Front / Back / Guides and similar): a Sunk Well track with a Field Edge border and 4px radius; segments are muted text with no fill, and the active one is filled Process Magenta with Magenta Dark Ink at weight 600.
+- **Mode switch** (Print at home / Order prints): a Sunk Well track with a Hairline Rule border and 3px inner padding; the active mode takes the 10% magenta wash, Magenta Ink text and a faint inset magenta edge, so it reads as the current place rather than an action.
 
 ### Inputs / Fields
 - **Style:** Sunk Well fill, Field Edge border, 3px radius, 6px 9px padding.
-- **Focus:** the shared 2px Focus Cyan outline.
+- **Focus:** the shared 2px Focus Magenta outline.
 - **Selects** use a drawn chevron, not a glyph.
 
 ### Decklist
 The card list reads as a printed tournament decklist.
 - **Rows:** no fill, no radius, a Hairline Rule under each row, 46px minimum. Columns are quantity (Numeral Strong, editable in place with a border only on hover and focus), thumbnail, name with a mono set-code meta line, and a row menu.
 - **Hover:** a faint fill wash.
-- **Selected:** the 10% cyan wash plus cyan corner brackets outside the row's top-left and bottom-right.
+- **Selected:** the 10% magenta wash plus magenta corner brackets outside the row's top-left and bottom-right.
 - **Total:** a 3px double rule in Chalk Text, the count in Numeral Strong, the unique-name count in muted mono.
 
 ### Job Ticket
 The inspector reads as a print-shop job ticket.
 - **Rows:** a 64px label column in body sans, then the value as a borderless button in 12px tabular mono, ruled between rows.
-- **Changed:** a value the app changed is cyan text with a cyan border, followed by a note in Cyan Ink with explicit choices, until accepted.
+- **Changed:** a value the app changed is magenta text with a magenta border, followed by a note in Magenta Ink with explicit choices, until accepted.
 
 ### Sheet On The Mat
-The preview sheet in Sheet Paper on the scaled grid, with mm rulers on its top and left edges and its page size in mono below. Card selection on the sheet is the crop-mark overlay; selected tiles in the order gallery take the cyan wash instead.
+The preview sheet in Sheet Paper on the scaled grid, with mm rulers on its top and left edges and its page size in mono below. Card selection on the sheet is the crop-mark overlay; selected tiles in the order gallery take the magenta wash instead.
 
 ### Settings And Presets
-Settings sections are flat on the mat: a Hairline Rule above each, 16px vertical padding, no fill, no radius. Presets are a ruled table: cells separated by 1px Hairline Rule gaps, the chosen preset marked with the cyan wash.
+Settings sections are flat on the mat: a Hairline Rule above each, 16px vertical padding, no fill, no radius. Presets are a ruled table: cells separated by 1px Hairline Rule gaps, the chosen preset marked with the magenta wash.
 
 ### Icons
 Drawn inline SVG line icons, 16px, 1.5 stroke, round caps and joins, in currentColor.
@@ -245,10 +247,10 @@ Drawn inline SVG line icons, 16px, 1.5 stroke, round caps and joins, in currentC
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep Process Cyan (#33bfe8) for selection, focus, the primary action, cut lines and changed-until-accepted values only.
+- **Do** keep Process Magenta (#ec64ac) for selection, focus, the primary action, cut lines and changed-until-accepted values only.
 - **Do** set every number in system mono with tabular figures.
-- **Do** separate sections with a 1px Hairline Rule (#3a4246) and lay them flat on the mat.
-- **Do** keep control borders at Field Edge (#66737a) or stronger so every control edge is at least 3:1.
+- **Do** separate sections with a 1px Hairline Rule (#3c3e43) and lay them flat on the mat.
+- **Do** keep control borders at Field Edge (#6c6f76) or stronger so every control edge is at least 3:1.
 - **Do** draw the mat grid and rulers at the sheet's own scale, aligned to the sheet's corner.
 - **Do** mark selection with crop-mark corners.
 - **Do** use drawn SVG icons at a 1.5 stroke.

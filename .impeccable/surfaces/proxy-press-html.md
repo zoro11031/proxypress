@@ -13,9 +13,9 @@ Out of scope: card-maker rendering, PDF/cut/order output, layout and calibration
 
 ## Direction contract
 
-THESIS: The sheet lies on a graphite cutting mat; the deck reads as a tournament decklist and the settings as a job ticket. It refuses the dark-SaaS kit: lavender accent, glass bars, glows, nested bordered panels, eyebrow labels, side-stripe callouts.
+THESIS: The sheet lies on a graphite cutting mat; the deck reads as a tournament decklist and the settings as a job ticket. It refuses the dark-SaaS kit: lavender accent, glass bars, glows, teal or cyan casts, nested bordered panels, eyebrow labels, side-stripe callouts.
 
-OWN-WORLD: Graphite mat #1c2022 with a 1 mm / 10 mm grid and ruler edges carrying mm numerals; rails one step lighter; hairline rules #3a4246; text #e9eef0. Process cyan is the single live colour: selection, focus, primary action, cut lines. Paper stays #f5f6f2. System sans in three sizes, system mono for every number. Crop-mark corners mark selection. Everything lies flat on the mat; only dialogs lift.
+OWN-WORLD: Neutral graphite mat #1d1e20 with a 1 mm / 10 mm grid and ruler edges carrying mm numerals; rails one step lighter; hairline rules #3c3e43; text #ecedef. Process magenta is the single live colour: selection, focus, primary action, cut lines. Paper stays #f5f6f2. System sans in three sizes, system mono for every number. Crop-mark corners mark selection. Everything lies flat on the mat; only dialogs lift.
 
 STORY: Paste a list, see it ruled as a decklist with a double-ruled total. Watch the cards land on the sheet, which lies on the mat. Read the job ticket. Anything the app changed for you stays in cyan until you accept it. Review export, then print at 100%.
 

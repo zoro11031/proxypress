@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proxy Press</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%23525d63' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233a4246' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231c2022' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%2333bfe8' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E">
-<meta name="theme-color" content="#222729">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235a5c61' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233c3e43' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231d1e20' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23e0459b' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="theme-color" content="#232427">
 <script src="assets/vendor/jspdf.umd.min.js"></script>
 <style>
 /* Card-maker fallback faces, bundled so custom cards render the same offline. */
@@ -22,18 +22,18 @@
 @font-face{font-family:"Spectral";font-style:normal;font-weight:700;font-display:swap;src:url("assets/vendor/fonts/spectral-700-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{
   color-scheme:dark;
-  /* Graphite cutting mat. One live colour, process cyan: selection, focus, the
-     primary action and cut lines. Everything else is graphite and paper. */
-  --bg:#1c2022;--panel:#222729;--panel2:#2c3235;--line:#3a4246;--field:#66737a;--text:#e9eef0;--muted:#a3afb4;
-  --accent:#33bfe8;--accent2:#a8e6f8;--accent-ink:#05161d;--accent-rgb:51 191 232;
-  --action:#33bfe8;--action-hover:#5ccdf0;--action-edge:#33bfe8;--action-ink:#05161d;
-  --accent-wash:rgb(var(--accent-rgb) / .10);--focus:#7fd8f3;--focus-rgb:127 216 243;
-  --warning:#eed98a;--warning-rgb:238 217 138;--danger:#ff9c95;--danger-rgb:226 97 90;--ok:#a1d7aa;--desk:#1c2022;
-  --hair:#c8d6dc1f;--fill:#c8d6dc08;--sunk:#161a1c;
+  /* Neutral graphite cutting mat. One live colour, process magenta: selection, focus,
+     the primary action and changed values. Everything else is graphite and paper. */
+  --bg:#1d1e20;--panel:#232427;--panel2:#2d2e32;--line:#3c3e43;--field:#6c6f76;--text:#ecedef;--muted:#a8abb2;
+  --accent:#ec64ac;--accent2:#f5a3cf;--accent-ink:#1d0711;--accent-rgb:236 100 172;
+  --action:#e0459b;--action-hover:#ea66b0;--action-edge:#e0459b;--action-ink:#1d0711;
+  --accent-wash:rgb(var(--accent-rgb) / .12);--focus:#f08cc2;--focus-rgb:240 140 194;
+  --warning:#eed98a;--warning-rgb:238 217 138;--danger:#ff9c95;--danger-rgb:226 97 90;--ok:#a1d7aa;--desk:#1d1e20;
+  --hair:#d4d6da1f;--fill:#d4d6da08;--sunk:#17181a;
   --grid-minor:#ffffff09;--grid-major:#ffffff14;--paper:#f5f6f2;
-  --placeholder:#8b979d;--ok-rgb:161 215 170;--danger-solid:#b8372f;--scrim:rgb(10 12 13 / .72);
+  --placeholder:#909399;--ok-rgb:161 215 170;--danger-solid:#b8372f;--scrim:rgb(10 12 13 / .72);
   /* On the sheet itself: a blank slot reads as paper waiting for ink, in graphite, not brown. */
-  --paper-2:#e6e8e2;--paper-ink:#5b6266;--paper-edge:#9aa3a8;
+  --paper-2:#e7e7e3;--paper-ink:#5e6065;--paper-edge:#a3a5aa;
   --r-sm:3px;--r-md:4px;--r-lg:6px;
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;
   --ctl:36px;
@@ -1049,7 +1049,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
 <body>
 <header>
   <div class="hzone hzone-brand">
-    <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%23525d63' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233a4246' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231c2022' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%2333bfe8' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
+    <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235a5c61' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233c3e43' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231d1e20' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23e0459b' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
     <div class="seg" id="modeSeg" role="group" aria-label="Mode">
       <button data-mode="print" aria-pressed="true">Print at home</button>
       <button data-mode="order" aria-pressed="false">Order prints</button>
@@ -3467,7 +3467,11 @@ async function importList(text, replace, correction = null) {
   if (S.deckId !== target.id || !matchesRevision(current, target)) { showImportNeedsReview(staged); return; }
   if (!staged?.resolved.length) { showUnresolvedImport(staged); renderCards(); if (staged?.unresolved?.length) await suggestMissingCards(staged.unresolved, true); return; }
   for(const row of staged.rows || []){const draftRow=current.importDraft.rows?.find(item=>item.sourceLine===row.sourceLine && item.lineId===row.lineId);if(draftRow)draftRow.section=row.section || '';}
-  if (!(await reviewReplacement(target, staged, !!replace))) return;
+  // A clean add (every line found, no substitutions) goes straight in, with Undo; anything
+  // that replaces cards, swaps a printing or leaves lines behind is reviewed first.
+  const cleanAdd = !replace && !staged.unresolved?.length && !staged.fallbacks?.length && !$('#modal #linkIn');
+  const before = cleanAdd ? structuredClone(current.entries) : null;
+  if (!cleanAdd && !(await reviewReplacement(target, staged, !!replace))) return;
   if (S.deckId !== target.id || current.importDraft?.id !== command || !matchesRevision(current, target)) { showImportNeedsReview(staged); return; }
   if (replace) applyDeckReplacement(current, staged, {keepUndo:true});
   else {
@@ -3485,7 +3489,11 @@ async function importList(text, replace, correction = null) {
   else $('#importDrawer').open = false;
   save(); renderAll();
   if (!remaining) focusNavigationTarget($('#btnAddCards'));
-  if (!replace) { toast(`Added ${staged.resolved.reduce((n,e)=>n+e.qty,0)} copies.`); mpcAutofill({auto:true}); }
+  if (!replace) {
+    const added = staged.resolved.reduce((n,e)=>n+e.qty,0), deckId = current.id;
+    toast(`Added ${added} ${added === 1 ? 'copy' : 'copies'} to ${current.name}.`, 8000, before ? {label:'Undo', fn:() => { const d = S.decks.find(x => x.id === deckId); if (!d) return; d.entries = before; d.updated = Date.now(); save(); renderAll(); }} : null);
+    mpcAutofill({auto:true});
+  }
   if (unresolved.length) suggestMissingCards(unresolved, true); else { activeMissingSuggestions = []; suggestMissingRun++; }
 }
 let suggestMissingRun = 0, activeMissingSuggestions = [];
@@ -5481,7 +5489,8 @@ function focusNavigationTarget(...targets) {
 }
 function labelModal() {
   const title = $('#modal .hd b');
-  if (title) { title.id = 'modalTitle'; $('#modal').setAttribute('aria-labelledby', title.id); }
+  // The dialog title heads the dialog's own outline, so its h3 sections follow an h2.
+  if (title) { title.id = 'modalTitle'; title.setAttribute('role', 'heading'); title.setAttribute('aria-level', '2'); $('#modal').setAttribute('aria-labelledby', title.id); }
   else $('#modal').removeAttribute('aria-labelledby');
 }
 function suspendModal() {

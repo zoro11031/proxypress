@@ -7,7 +7,9 @@
     const canvas=document.createElement('canvas');canvas.width=63;canvas.height=88;
     const key=await storeImage(await new Promise(r=>canvas.toBlob(r)));
     const a={id:uid(),name:'Intended project',entries:[]},b={id:uid(),name:'Other project',entries:[]};S.decks=[a,b];S.deckId=a.id;renderAll();
-    const staged=()=>({resolved:[{uid:uid(),scryId:'same-print',scryFace:0,name:'Resolved card',qty:2,faces:[{name:'Front',custom:key}]}],unresolved:[],fallbacks:[],rows:[{sourceLine:'2 Resolved card',section:'Commander',qty:2,outcome:'Resolved'}]});
+    const staged=()=>({resolved:[{uid:uid(),scryId:'same-print',scryFace:0,name:'Resolved card',qty:2,faces:[{name:'Front',custom:key}]}],unresolved:[],fallbacks:[{req:{name:'Resolved card'},originalSet:'old',card:{set:'new'}}],rows:[{sourceLine:'2 Resolved card',section:'Commander',qty:2,outcome:'Resolved'}]});
+    // A substituted printing is reviewed; a clean add goes straight in (checked at the end).
+    const clean=()=>({...staged(),fallbacks:[]});
     resolveDeckImport=async()=>staged();mpcAutofill=async()=>({});
     for(const dismiss of [()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})),()=>$('#overlay').click(),()=>$('#btnReviewCancel').click()]){
       const pending=importList('2 Resolved card',false);await wait(()=>!!$('#btnReviewConfirm'));
@@ -23,6 +25,10 @@
     resolveDeckImport=async()=>staged();const commit=importList($('#listIn').value,false);await wait(()=>!!$('#btnReviewConfirm'));$('#btnReviewConfirm').click();await commit;
     check('explicit commit changes intended project only',a.entries.length===1&&a.entries[0].qty===2&&b.entries.length===0);
     check('successful import clears draft',!a.importDraft);
+    closeModal(true);resolveDeckImport=async()=>clean();const before=a.entries.length,quick=importList('2 Resolved card',false);await quick;
+    check('clean add commits without a review dialog',!$('#overlay').classList.contains('on')&&a.entries.reduce((n,e)=>n+e.qty,0)===4);
+    check('clean add offers Undo',!$('#toastAction').hidden&&$('#toastAction').textContent==='Undo');
+    $('#toastAction').click();check('Undo restores the deck',a.entries.length===before&&a.entries[0].qty===2);
     return fails.length?{failed:fails}:true;
   } finally {closeModal(true);resolveDeckImport=resolveImport;mpcAutofill=autofill;Object.assign(S,saved);save();renderAll();}
 })();
