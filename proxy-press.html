@@ -615,7 +615,7 @@ details.adv{margin-top:var(--s3);border:1px solid var(--hair);border-radius:var(
 details.adv summary{cursor:pointer;padding:9px 0;font-size:12px;font-weight:600;list-style:none;display:flex;align-items:center;gap:7px}
 details.adv summary:hover{color:var(--accent2)}
 details.adv summary::-webkit-details-marker{display:none}
-details.adv summary::before{content:'▸';color:var(--muted);font-size:12px;transition:transform .15s}
+details.adv summary::before{content:'';width:10px;height:10px;flex:none;background:var(--muted);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .15s}
 details.adv[open]>summary{margin:0 calc(var(--s3) * -1) var(--s2);padding:9px var(--s3);border-bottom:1px solid var(--hair)}
 details.adv[open]>summary::before{transform:rotate(90deg)}
 details.adv:not([open]){padding-bottom:0}
@@ -961,6 +961,35 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 .insp-note .row{gap:6px}
 .insp-note button{font-size:12px;min-height:32px;padding:4px 10px}
 #zoomValue,#previewSummary{font-family:var(--mono);font-variant-numeric:tabular-nums}
+:root{--chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m6 3 5 5-5 5' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3C/svg%3E")}
+.ico{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ico circle[r="1.3"],.ico circle[r=".5"]{fill:currentColor;stroke:none}
+.sheet-nav button{min-width:28px;padding:0 4px}
+/* Numbers are set in mono wherever they appear. */
+#workspaceBar .bar-status,#guideJobSummary,.sum span,.pick button span,.gal .qty{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#workspaceBar .bar-status{font-size:12px}
+#workspaceBar .bar-status span{white-space:nowrap}
+.bar-actions{display:flex;gap:8px;flex-shrink:0}
+#workspaceInspector #inspCal{white-space:pre;overflow-wrap:normal}
+#setupSummary{background:none;border:0;padding:0;font-family:var(--mono);font-size:12px}
+#setupSummary b{font-family:system-ui,sans-serif;font-size:14px}
+body.print-settings-active #toggleInspector{display:none}
+@media(max-width:820px){#workspaceBar .bar-status{display:block;flex:1;white-space:normal;overflow:visible;text-overflow:clip}#workspaceBar{margin-bottom:calc(64px + env(safe-area-inset-bottom))}#mbar button{min-height:50px}#modeSeg button{white-space:nowrap;padding-inline:8px}}
+/* Controls band sits flush under the header, one row, rulers just below. */
+@media(min-width:821px){body[data-mode=print] #stage{padding-top:0}body[data-mode=print] .stage-controls{margin-top:0;margin-bottom:32px;flex-wrap:nowrap}.stage-controls .stage-heading,.stage-controls .toolbar-views{flex-wrap:nowrap}}
+/* Select mode: the checkbox takes the thumbnail's place. */
+#cardList .card>[data-act=select]{left:51px;top:50%;translate:0 -50%;width:18px;height:18px;margin:0}
+#cardList .card:has(>[data-act=select]:not([hidden]))>img{visibility:hidden}
+/* Settings is a ticket too: ruled sections flat on the mat, presets as ruled rows. */
+.settings-section,.alignment-col,.active-setup-card,.alignment-commit-bar{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:16px 0}
+.settings-section h3{border-bottom:0;padding-bottom:0}
+#printSettingsView .pick{gap:0;border-top:1px solid var(--line)}
+#printSettingsView .pick button{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+#printSettingsView .pick button:hover{background:var(--fill)}
+#printSettingsView .pick button.on{background:var(--accent-wash);color:var(--text)}
+#printSettingsView .pick.presets button+button,#printSettingsView .pick .preset-item+.preset-item{border-left:1px solid var(--line)}
+#mbar #mbarCount{display:block;font:12px/1.2 var(--mono);opacity:.85}
+#mbar button{flex-direction:column;gap:0;line-height:1.2}
 .copy-selection-mark{border:0;border-radius:0;box-shadow:none;color:transparent}
 header h1 span{margin-left:-4px}
 #workspaceInspector .insp-row{grid-template-columns:64px minmax(0,1fr)}
@@ -973,6 +1002,16 @@ body[data-mode=order] .gal .tile{background:none;border-color:transparent;paddin
 body[data-mode=order] .gal .tile:hover{border-color:var(--line)}
 body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;background:var(--accent-wash)}
 .order-back-prompt{background:var(--panel)}
+@media(max-width:820px){
+  header{grid-template-columns:auto minmax(0,1fr) auto}
+  header h1{grid-row:1;grid-column:1}
+  .hzone-brand{display:contents}
+  #modeSeg{grid-row:1;grid-column:2;justify-self:start}
+  .hzone-act{grid-row:1;grid-column:3}
+  .hzone-deck{grid-row:2;grid-column:1/-1}
+  #btnSettings{padding-inline:8px}
+}
+@media(max-width:480px){header h1{font-size:0;gap:0}header h1 .logo{width:24px;height:24px}#modeSeg{grid-row:1;grid-column:2}.hzone-deck{grid-row:2}}
 @media(max-width:820px){body[data-mode=print] #stage{padding-left:26px}body[data-mode=print] .stage-controls{margin-left:-26px;padding-left:12px}#cardList .card{grid-template-columns:52px 30px minmax(0,1fr) 44px}#cardList .card .qty input{width:48px;min-height:44px}#cardList .card>[data-act=select]{left:58px}}
 .stage-controls{border-bottom-color:var(--line)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -992,7 +1031,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
     <div class="deckbar">
       <select id="deckSel" aria-label="Deck"></select>
       <details class="menu" id="deckMenu">
-        <summary title="Deck options" aria-label="Deck options">⋯</summary>
+        <summary title="Deck options" aria-label="Deck options"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg></summary>
         <div class="menu-list">
           <button id="deckNew">New deck</button>
           <button id="deckRename">Rename deck</button>
@@ -1008,7 +1047,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
     <span class="stats" id="stats"></span><span id="saveStatus" role="status">Saved</span><button id="retrySave" hidden>Retry save</button>
   </div>
   <div class="hzone hzone-act">
-    <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour">?</button>
+    <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4"/><circle cx="8" cy="11.6" r=".5"/></svg></button>
     <button id="btnSettings" class="icon">Project files</button>
     <button id="btnPdf" class="primary print-only">Review export</button>
     <button id="btnXml" class="primary order-only">Review order</button>
@@ -1433,9 +1472,9 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
     <div class="stage-heading">
       <b class="proof-kicker print-only">Sheet preview</b>
       <div class="sheet-nav print-only" id="previewSheetNav" hidden>
-        <button type="button" id="btnSheetPrev" class="icon" aria-label="Previous sheet">‹</button>
+        <button type="button" id="btnSheetPrev" class="icon" aria-label="Previous sheet"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button>
         <select id="sheetJumpSel" aria-label="Jump to sheet"></select>
-        <button type="button" id="btnSheetNext" class="icon" aria-label="Next sheet">›</button>
+        <button type="button" id="btnSheetNext" class="icon" aria-label="Next sheet"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button>
       </div>
       <b id="workspaceTitle" style="display:none">Untitled deck</b>
       <span id="previewSummary" style="display:none"></span>
@@ -1460,7 +1499,6 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         <label class="row order-only"><input type="checkbox" id="orderShowBacks" style="width:auto"> Show double-faced backs</label>
         <button id="toggleSidebar" aria-controls="tab-cards" aria-expanded="true">Hide card list</button>
         <button type="button" id="btnShowPrintSetup" class="print-only" aria-controls="workspaceInspector">Show job ticket</button>
-        <button type="button" id="toggleInspector" class="print-only" aria-controls="printSettingsView">Print settings</button>
       </div>
     </div>
     </div>
@@ -1477,7 +1515,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
   <section id="printSettingsView" class="print-only" style="display:none">
     <div class="settings-view-nav">
     <div class="settings-view-hdr">
-      <button type="button" id="btnBackToProof" class="icon">← Back to preview</button>
+      <button type="button" id="btnBackToProof" class="icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8H3m4-4L3 8l4 4"/></svg><span>Back to preview</span></button>
       <div class="settings-view-title-wrap">
         <h2 id="settingsViewTitle">Print settings</h2>
       </div>
@@ -1724,7 +1762,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
 </div>
 <footer id="workspaceBar">
   <div class="bar-status" id="barStatus">Ready to export · 1 sheet · 2 PDF pages</div>
-  <button type="button" id="btnReviewExport" class="primary">Review export</button>
+  <div class="bar-actions"><button type="button" id="toggleInspector" class="print-only" aria-controls="printSettingsView">Print settings</button><button type="button" id="btnReviewExport" class="primary">Review export</button></div>
 </footer>
 
 <div id="workspaceParking" hidden></div>
@@ -5153,7 +5191,7 @@ async function renderCards() {
       <span class="copy-badge" style="font-size:12px;color:var(--muted);padding:0 4px">×${e.qty}</span>
       <div class="ctl">
         <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity"><button class="icon" data-act="inc" aria-label="More">+</button></div>
-        <button class="icon more" data-act="more" title="Card options" aria-label="Card options">⋯</button>
+        <button class="icon more" data-act="more" title="Card options" aria-label="Card options"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg></button>
       </div>
       <div class="queue-card-issues"${issues.length ? '' : ' hidden'}>${queueIssueButtons(issues)}</div>
     </div>`;
@@ -7486,7 +7524,7 @@ function renderSettings() {
   $('#calForm').innerHTML = FIELDS.filter(f => CAL_KEYS.includes(f.k)).map(fieldHtml).join('');
   const block = adv => groups.map(g => {
     const h = g.fields.filter(f => !paperKeys.includes(f.k) && !CAL_KEYS.includes(f.k) && !PRESET_IMAGE_KEYS.includes(f.k) && !!f.adv === adv && (!f.show || f.show(s))).map(fieldHtml).join('');
-    return h ? `<h3>${g.sec}</h3><div class="grid2">${h}</div>` : '';
+    return h ? `${g.sec === 'Card size' ? '' : `<h3>${g.sec}</h3>`}<div class="grid2">${h}</div>` : '';
   }).join('');
   const changed = ADV_KEYS.filter(k => String(s[k]) !== String(DEFAULTS[k])).length;
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
@@ -7663,7 +7701,9 @@ function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots
   const inspCal = $('#inspCal');
   if (inspCal) {
     const calStat = getCalibrationStatus(s);
-    inspCal.textContent = calStat.label;
+    const n = v => { const x = Number(v) || 0; return (x < 0 ? '−' : '+') + Math.abs(x).toFixed(1); };
+    inspCal.textContent = (calStat.frontLocked ? 'Front template' : `Front X ${n(calStat.front.x)} Y ${n(calStat.front.y)}`) + (calStat.hasBacks ? `\nBack  X ${n(calStat.back.x)} Y ${n(calStat.back.y)}` : '');
+    inspCal.title = calStat.label;
     inspCal.style.color = ({Measured:'var(--ok)', Saved:'var(--ok)', Estimated:'var(--warning)', Manual:'var(--focus)'})[calStat.status] || '';
   }
 }
@@ -8550,7 +8590,7 @@ function renderStats() {
   if (S.mode === 'order') {
     const o = buildMpcOrder(true), miss = o.skipped.length + o.noBack.length;
     $('#stats').textContent = `${o.slot} card${o.slot === 1 ? '' : 's'} in order${miss ? ` · ${miss} need art` : ''}`;
-    $('#mbarCount').textContent = o.slot ? `· ${o.slot} cards` : '';
+    $('#mbarCount').textContent = o.slot ? `${o.slot} cards` : '';
     return;
   }
   const slots = buildSlots(), L = layout(), pages = Math.ceil(slots.length / L.per);
@@ -8558,7 +8598,7 @@ function renderStats() {
   const tokens = slots.filter(s => s.e?.kind === 'TOKEN').length;
   const tokenBreakdown = tokens ? ` (${slots.length - tokens} deck, ${tokens} token${tokens === 1 ? '' : 's'})` : '';
   $('#stats').textContent = `${slots.length} card${slots.length===1?'':'s'}${tokenBreakdown} · ${pages} sheet${pages === 1 ? '' : 's'}${backs ? ' (double-sided)' : ''}`;
-  $('#mbarCount').textContent = slots.length ? `· ${pages} sheet${pages === 1 ? '' : 's'}` : '';
+  $('#mbarCount').textContent = slots.length ? `${pages} sheet${pages === 1 ? '' : 's'}` : '';
 }
 $$('#mbar button').forEach(b => b.onclick = () => b.dataset.mview === 'setup' ? switchTab('setup') : setWorkspaceView(b.dataset.mview));
 addEventListener('resize', () => { syncCardSelection(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); });
@@ -10822,8 +10862,8 @@ function openPrintSettings(page = 'layout', opener = document.activeElement, rev
       opener: opener?.isConnected ? opener : null,
       workspaceView, reviewFrame, stageLeft:stage.scrollLeft, stageTop:stage.scrollTop, queueTop:queue.scrollTop
     };
-    $('#btnBackToProof').textContent = reviewFrame ? '← Back to export review'
-      : innerWidth <= 820 && workspaceView === 'cards' ? '← Back to cards' : '← Back to preview';
+    $('#btnBackToProof span').textContent = reviewFrame ? 'Back to export review'
+      : innerWidth <= 820 && workspaceView === 'cards' ? 'Back to cards' : 'Back to preview';
     $('#printSettingsView').dataset.page = '';
   }
   document.body.classList.add('print-settings-active');
@@ -11410,6 +11450,8 @@ $$('#modeSeg button').forEach(b => b.onclick = () => {
 $$('#deckMenu .menu-list button').forEach(b => b.addEventListener('click', () => $('#deckMenu').removeAttribute('open')));
 addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckMenu').removeAttribute('open'); });
 $('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
+// The status line wraps only between phrases, never inside "2 passes".
+new MutationObserver(() => { const el = $('#barStatus'); if (el.children.length || !el.textContent.includes(' · ')) return; el.innerHTML = el.textContent.split(' · ').map(t => `<span>${esc(t)}</span>`).join(' · '); }).observe($('#barStatus'), {childList:true, characterData:true, subtree:true});
 $('#dfcKeep').onclick = () => { S.settings.dfcChosen = true; save(); renderAll(); };
 $('#dfcSeparate').onclick = () => { S.settings.dfcMode = 'separate'; S.settings.dfcChosen = true; save(); renderAll(); toast('Double-faced cards will print as separate cards.'); };
 function renderAll() { renderOrder(); renderCutStatus(); renderDeckSel(); renderCards(); renderSuggestions(); renderSettings(); renderPresets(); renderPrinter(); renderGuideTab(); renderPreview(); renderStats(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit' && $('#stage').getClientRects().length) $('#zoomFit').click(); }); }
