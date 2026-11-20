@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proxy Press</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235a5c61' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233c3e43' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231d1e20' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23965df2' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235a5c61' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233c3e43' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231d1e20' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%233daee9' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#232427">
 <script src="assets/vendor/jspdf.umd.min.js"></script>
 <style>
@@ -22,12 +22,12 @@
 @font-face{font-family:"Spectral";font-style:normal;font-weight:700;font-display:swap;src:url("assets/vendor/fonts/spectral-700-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{
   color-scheme:dark;
-  /* Neutral graphite cutting mat. One live colour, regal purple: selection, focus,
+  /* Neutral graphite cutting mat. One live colour, cerulean blue: selection, focus,
      the primary action and changed values. Everything else is graphite and paper. */
   --bg:#1d1e20;--panel:#232427;--panel2:#2d2e32;--line:#3c3e43;--field:#6c6f76;--text:#ecedef;--muted:#a8abb2;
-  --accent:#b488f7;--accent2:#e2d1fc;--accent-ink:#130426;--accent-rgb:180 136 247;
-  --action:#965df2;--action-hover:#a772f5;--action-edge:#965df2;--action-ink:#130426;
-  --accent-wash:rgb(var(--accent-rgb) / .12);--focus:#ccaef9;--focus-rgb:204 174 249;
+  --accent:#3daee9;--accent2:#b8e5fa;--accent-ink:#0c1a24;--accent-rgb:61 174 233;
+  --action:#3daee9;--action-hover:#5bc0f2;--action-edge:#3daee9;--action-ink:#0c1a24;
+  --accent-wash:rgb(var(--accent-rgb) / .12);--focus:#7bcbf6;--focus-rgb:123 203 246;
   --warning:#eed98a;--warning-rgb:238 217 138;--danger:#ff9c95;--danger-rgb:226 97 90;--ok:#a1d7aa;--desk:#1d1e20;
   --hair:#d4d6da1f;--fill:#d4d6da08;--sunk:#17181a;
   --grid-minor:#ffffff09;--grid-major:#ffffff14;--paper:#f5f6f2;
@@ -1049,7 +1049,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
 <body>
 <header>
   <div class="hzone hzone-brand">
-    <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235a5c61' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233c3e43' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231d1e20' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%23965df2' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
+    <h1><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='rotate%28-15 24 35%29'%3E%3Crect x='9' y='10' width='28' height='40' rx='3' fill='%235a5c61' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%28-6 29 34%29'%3E%3Crect x='15' y='10' width='28' height='40' rx='3' fill='%233c3e43' stroke='%230F1115' stroke-width='1.2'/%3E%3C/g%3E%3Cg transform='rotate%285 36 33%29'%3E%3Crect x='23' y='11' width='28' height='41' rx='3' fill='%231d1e20' stroke='%230F1115' stroke-width='1.2'/%3E%3Crect x='25.5' y='13.5' width='23' height='36' rx='2' fill='none' stroke='%233daee9' stroke-width='1.8'/%3E%3Cpath d='M 32 21 H 38 C 42.5 21 44.5 23 44.5 26.5 C 44.5 30 42.5 31.8 38 31.8 H 35 V 38.5 H 37 V 40 H 30.5 V 38.5 H 32 V 22.5 H 30.5 V 21 Z M 35 23 V 29.8 H 37.8 C 40.5 29.8 41.8 28.5 41.8 26.5 C 41.8 24.5 40.5 23 37.8 23 Z' fill='%23EDF7F8'/%3E%3C/g%3E%3C/svg%3E" alt="" width="26" height="26" class="logo">Proxy<span>Press</span></h1>
     <div class="seg" id="modeSeg" role="group" aria-label="Mode">
       <button data-mode="print" aria-pressed="true">Print at home</button>
       <button data-mode="order" aria-pressed="false">Order prints</button>
