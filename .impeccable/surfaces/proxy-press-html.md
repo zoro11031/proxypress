@@ -15,11 +15,11 @@ Out of scope: card-maker rendering, PDF/cut/order output, layout and calibration
 
 THESIS: The sheet lies on a graphite cutting mat; the deck reads as a tournament decklist and the settings as a job ticket. It refuses the dark-SaaS kit: lavender accent, glass bars, glows, teal or cyan casts, nested bordered panels, eyebrow labels, side-stripe callouts.
 
-OWN-WORLD: Neutral graphite mat #1d1e20 with a 1 mm / 10 mm grid and ruler edges carrying mm numerals; rails one step lighter; hairline rules #3c3e43; text #ecedef. Process magenta is the single live colour: selection, focus, primary action, cut lines. Paper stays #f5f6f2. System sans in three sizes, system mono for every number. Crop-mark corners mark selection. Everything lies flat on the mat; only dialogs lift.
+OWN-WORLD: Neutral graphite mat #1d1e20 with a 1 mm / 10 mm grid and ruler edges carrying mm numerals; rails one step lighter; hairline rules #3c3e43; text #ecedef. Regal purple is the single live colour: selection, focus, primary action, cut lines. Paper stays #f5f6f2. System sans in three sizes, system mono for every number. Crop-mark corners mark selection. Everything lies flat on the mat; only dialogs lift.
 
-STORY: Paste a list, see it ruled as a decklist with a double-ruled total. Watch the cards land on the sheet, which lies on the mat. Read the job ticket. Anything the app changed for you stays in cyan until you accept it. Review export, then print at 100%.
+STORY: Paste a list, see it ruled as a decklist with a double-ruled total. Watch the cards land on the sheet, which lies on the mat. Read the job ticket. Anything the app changed for you stays in purple until you accept it. Review export, then print at 100%.
 
-FIRST VIEWPORT: 48px header (name, Print at home / Order prints, deck select, mono count). Left 300px decklist: Qty | Card | set code, totals under a double rule. Centre: mat with top and left rulers; sheet controls under the ruler; sheet at fit scale with mm dimensions beneath it. Right 300px job ticket, mono values. 52px footer: job summary on the left, Print settings and the cyan Review export on the right.
+FIRST VIEWPORT: 48px header (name, Print at home / Order prints, deck select, mono count). Left 300px decklist: Qty | Card | set code, totals under a double rule. Centre: mat with top and left rulers; sheet controls under the ruler; sheet at fit scale with mm dimensions beneath it. Right 300px job ticket, mono values. 52px footer: job summary on the left, Print settings and the purple Review export on the right.
 
 FORM: Cutting Mat & Decklist, grounded list position 3 (assigned), pinned material: user's cutting-mat choice. seed:4c5d9638136d11d3
 

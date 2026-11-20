@@ -124,79 +124,89 @@
           "#eceff0"
         ]
       },
-      "process-magenta": {
+      "regal-purple": {
         "role": "primary",
-        "displayName": "Process Magenta",
-        "canonical": "oklch(75.0% 0.127 223)",
+        "displayName": "Regal Purple",
+        "canonical": "oklch(71.4% 0.162 301)",
         "tonalRamp": [
-          "#000e16",
-          "#002b3a",
-          "#004b63",
-          "#006e90",
-          "#0090b4",
-          "#62b1cd",
-          "#9ed3e6",
-          "#d6f4ff"
+          "#100223",
+          "#2b0e4b",
+          "#472274",
+          "#633b9a",
+          "#8059ba",
+          "#9c7bd4",
+          "#b89fe7",
+          "#d4c4f4",
+          "#e8e0fa",
+          "#f6f3fe"
         ]
       },
-      "process-magenta-hover": {
+      "regal-purple-hover": {
         "role": "primary",
-        "displayName": "Process Magenta Hover",
-        "canonical": "oklch(79.6% 0.113 221)",
+        "displayName": "Regal Purple Hover",
+        "canonical": "oklch(66.5% 0.190 300)",
         "tonalRamp": [
-          "#000e14",
-          "#002b38",
-          "#004b5f",
-          "#006d8a",
-          "#2690ad",
-          "#6bb1c8",
-          "#a3d2e2",
-          "#d9f4fd"
+          "#100223",
+          "#2b0e4b",
+          "#472274",
+          "#633b9a",
+          "#8059ba",
+          "#9c7bd4",
+          "#b89fe7",
+          "#d4c4f4",
+          "#e8e0fa",
+          "#f6f3fe"
         ]
       },
-      "magenta-ink": {
+      "purple-ink": {
         "role": "primary",
-        "displayName": "Magenta Ink",
-        "canonical": "oklch(88.9% 0.067 218)",
+        "displayName": "Purple Ink",
+        "canonical": "oklch(88.8% 0.061 303)",
         "tonalRamp": [
-          "#030d10",
-          "#11292f",
-          "#224852",
-          "#356a78",
-          "#578b9a",
-          "#85adb8",
-          "#b3cfd7",
-          "#e2f2f7"
+          "#100223",
+          "#2b0e4b",
+          "#472274",
+          "#633b9a",
+          "#8059ba",
+          "#9c7bd4",
+          "#b89fe7",
+          "#d4c4f4",
+          "#e8e0fa",
+          "#f6f3fe"
         ]
       },
-      "focus-magenta": {
+      "focus-purple": {
         "role": "primary",
-        "displayName": "Focus Magenta",
-        "canonical": "oklch(83.6% 0.093 220)",
+        "displayName": "Focus Purple",
+        "canonical": "oklch(80.3% 0.108 302)",
         "tonalRamp": [
-          "#010e12",
-          "#042a34",
-          "#0b4a59",
-          "#146c82",
-          "#3f8ea5",
-          "#76afc1",
-          "#aad1dd",
-          "#ddf3fa"
+          "#100223",
+          "#2b0e4b",
+          "#472274",
+          "#633b9a",
+          "#8059ba",
+          "#9c7bd4",
+          "#b89fe7",
+          "#d4c4f4",
+          "#e8e0fa",
+          "#f6f3fe"
         ]
       },
-      "magenta-dark-ink": {
+      "purple-dark-ink": {
         "role": "primary",
-        "displayName": "Magenta Dark Ink",
-        "canonical": "oklch(18.9% 0.027 227)",
+        "displayName": "Purple Dark Ink",
+        "canonical": "oklch(16.2% 0.069 300)",
         "tonalRamp": [
-          "#080c0e",
-          "#1e262a",
-          "#38444a",
-          "#53646c",
-          "#73868e",
-          "#99a8ae",
-          "#c1cbd0",
-          "#e9f0f2"
+          "#090114",
+          "#15042a",
+          "#270a4a",
+          "#3e166f",
+          "#5b289a",
+          "#7d46c7",
+          "#a270f1",
+          "#ccaef9",
+          "#e2d1fc",
+          "#f6f3fe"
         ]
       },
       "sheet-paper": {
@@ -338,7 +348,7 @@
       "refersTo": "button",
       "description": "Default control: graphite key with a field-edge border.",
       "html": "<button class=\"ds-btn\">Print settings</button>",
-      "css": ".ds-btn{font:14px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--text,#ecedef);background:var(--panel2,#2d2e32);border:1px solid var(--field,#6c6f76);border-radius:3px;padding:6px 11px;min-height:36px;cursor:pointer;transition:border-color 150ms,transform 150ms cubic-bezier(.22,1,.36,1)}.ds-btn:hover{border-color:rgb(51 191 232 / .35)}.ds-btn:focus-visible{outline:2px solid #f08cc2;outline-offset:2px}.ds-btn:active{transform:scale(.98)}"
+      "css": ".ds-btn{font:14px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--text,#ecedef);background:var(--panel2,#2d2e32);border:1px solid var(--field,#6c6f76);border-radius:3px;padding:6px 11px;min-height:36px;cursor:pointer;transition:border-color 150ms,transform 150ms cubic-bezier(.22,1,.36,1)}.ds-btn:hover{border-color:rgb(180 136 247 / .35)}.ds-btn:focus-visible{outline:2px solid #ccaef9;outline-offset:2px}.ds-btn:active{transform:scale(.98)}"
     },
     {
       "name": "Primary Button",
@@ -346,7 +356,7 @@
       "refersTo": "button-primary",
       "description": "The next step in an area, once: Review export, Change selected art.",
       "html": "<button class=\"ds-btn-primary\">Review export</button>",
-      "css": ".ds-btn-primary{font:700 14px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1d0711;background:#ec64ac;border:1px solid #ec64ac;border-radius:3px;padding:6px 11px;min-height:36px;cursor:pointer;transition:background-color 150ms,transform 150ms cubic-bezier(.22,1,.36,1)}.ds-btn-primary:hover{background:#ea66b0;border-color:#ea66b0}.ds-btn-primary:focus-visible{outline:2px solid #f08cc2;outline-offset:2px}.ds-btn-primary:active{transform:scale(.98)}"
+      "css": ".ds-btn-primary{font:700 14px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#130426;background:#965df2;border:1px solid #965df2;border-radius:3px;padding:6px 11px;min-height:36px;cursor:pointer;transition:background-color 150ms,transform 150ms cubic-bezier(.22,1,.36,1)}.ds-btn-primary:hover{background:#a772f5;border-color:#a772f5}.ds-btn-primary:focus-visible{outline:2px solid #ccaef9;outline-offset:2px}.ds-btn-primary:active{transform:scale(.98)}"
     },
     {
       "name": "Icon Button",
@@ -354,7 +364,7 @@
       "refersTo": "button",
       "description": "Drawn 1.5-stroke SVG icon beside a label.",
       "html": "<button class=\"ds-btn ds-btn-icon\"><svg class=\"ds-ico\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M2 4.5h4l1.5 1.5H14v6.5H2z\"/></svg><span>Project files</span></button>",
-      "css": ".ds-btn-icon{display:inline-flex;align-items:center;gap:6px;font:14px system-ui,sans-serif;color:#ecedef;background:#2d2e32;border:1px solid #6c6f76;border-radius:3px;padding:6px 11px;min-height:36px}.ds-btn-icon:focus-visible{outline:2px solid #f08cc2;outline-offset:2px}.ds-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}"
+      "css": ".ds-btn-icon{display:inline-flex;align-items:center;gap:6px;font:14px system-ui,sans-serif;color:#ecedef;background:#2d2e32;border:1px solid #6c6f76;border-radius:3px;padding:6px 11px;min-height:36px}.ds-btn-icon:focus-visible{outline:2px solid #ccaef9;outline-offset:2px}.ds-ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}"
     },
     {
       "name": "Text Field",
@@ -362,7 +372,7 @@
       "refersTo": "input",
       "description": "Inputs sit one step below the mat.",
       "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Filter cards…\">",
-      "css": ".ds-input{font:14px/1.4 system-ui,sans-serif;color:#ecedef;background:#17181a;border:1px solid #6c6f76;border-radius:3px;padding:6px 9px;width:240px;transition:border-color .15s ease}.ds-input::placeholder{color:#a8abb2}.ds-input:focus-visible{outline:2px solid #f08cc2;outline-offset:2px}"
+      "css": ".ds-input{font:14px/1.4 system-ui,sans-serif;color:#ecedef;background:#17181a;border:1px solid #6c6f76;border-radius:3px;padding:6px 9px;width:240px;transition:border-color .15s ease}.ds-input::placeholder{color:#a8abb2}.ds-input:focus-visible{outline:2px solid #ccaef9;outline-offset:2px}"
     },
     {
       "name": "Decklist",
@@ -370,15 +380,15 @@
       "refersTo": "decklist-row",
       "description": "Count first, ruled rows, crop-mark selection, double-ruled total.",
       "html": "<div class=\"ds-deck\"><div class=\"ds-row\"><b>4</b><span>Lightning Bolt<i>MSC #806</i></span></div><div class=\"ds-row ds-sel\"><b>1</b><span>Black Lotus<i>VMA #4</i></span></div><div class=\"ds-row\"><b>1</b><span>Sol Ring<i>TRC #499</i></span></div><div class=\"ds-total\"><b>6</b><span>Cards</span><em>3 names</em></div></div>",
-      "css": ".ds-deck{width:260px;padding:0 8px;background:#232427;color:#ecedef;font:14px/1.4 system-ui,sans-serif}.ds-row{position:relative;display:grid;grid-template-columns:44px 1fr;align-items:center;min-height:46px;padding:6px 0;border-bottom:1px solid #3c3e43}.ds-row:hover{background:#d4d6da08}.ds-row b,.ds-total b{font:700 14px ui-monospace,'Cascadia Mono',Menlo,monospace}.ds-row span{font-weight:600}.ds-row i{display:block;font:400 12px ui-monospace,Menlo,monospace;font-style:normal;color:#a8abb2}.ds-sel{background:rgb(51 191 232 / .10)}.ds-sel::before,.ds-sel::after{content:'';position:absolute;width:9px;height:9px;border:2px solid #ec64ac}.ds-sel::before{left:-6px;top:-1px;border-right:0;border-bottom:0}.ds-sel::after{right:-6px;bottom:-1px;border-left:0;border-top:0}.ds-total{display:grid;grid-template-columns:44px 1fr auto;align-items:baseline;padding:8px 0 4px;margin-top:-1px;border-top:3px double #ecedef;font-weight:700}.ds-total em{font:400 12px ui-monospace,Menlo,monospace;font-style:normal;color:#a8abb2}"
+      "css": ".ds-deck{width:260px;padding:0 8px;background:#232427;color:#ecedef;font:14px/1.4 system-ui,sans-serif}.ds-row{position:relative;display:grid;grid-template-columns:44px 1fr;align-items:center;min-height:46px;padding:6px 0;border-bottom:1px solid #3c3e43}.ds-row:hover{background:#d4d6da08}.ds-row b,.ds-total b{font:700 14px ui-monospace,'Cascadia Mono',Menlo,monospace}.ds-row span{font-weight:600}.ds-row i{display:block;font:400 12px ui-monospace,Menlo,monospace;font-style:normal;color:#a8abb2}.ds-sel{background:rgb(180 136 247 / .12)}.ds-sel::before,.ds-sel::after{content:'';position:absolute;width:9px;height:9px;border:2px solid #b488f7}.ds-sel::before{left:-6px;top:-1px;border-right:0;border-bottom:0}.ds-sel::after{right:-6px;bottom:-1px;border-left:0;border-top:0}.ds-total{display:grid;grid-template-columns:44px 1fr auto;align-items:baseline;padding:8px 0 4px;margin-top:-1px;border-top:3px double #ecedef;font-weight:700}.ds-total em{font:400 12px ui-monospace,Menlo,monospace;font-style:normal;color:#a8abb2}"
     },
     {
       "name": "Job Ticket",
       "kind": "custom",
       "refersTo": "ticket-value",
-      "description": "Labels left, mono values right; a changed value stays magenta until accepted.",
+      "description": "Labels left, mono values right; a changed value stays purple until accepted.",
       "html": "<div class=\"ds-ticket\"><div class=\"ds-trow\"><span>Paper</span><button>Letter · Landscape</button></div><div class=\"ds-trow\"><span>Layout</span><button>4 × 2 · 8 up</button></div><div class=\"ds-trow\"><span>Sides</span><button class=\"ds-changed\">Double-sided, flip by hand</button></div><p class=\"ds-note\">A double-faced card made this job double-sided.</p></div>",
-      "css": ".ds-ticket{width:260px;padding:0 12px;background:#232427;color:#ecedef;font:14px/1.4 system-ui,sans-serif}.ds-trow{display:grid;grid-template-columns:64px 1fr;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #3c3e43}.ds-trow button{text-align:left;font:12px/1.4 ui-monospace,'Cascadia Mono',Menlo,monospace;font-variant-numeric:tabular-nums;color:#ecedef;background:none;border:1px solid transparent;border-radius:3px;padding:6px;cursor:pointer}.ds-trow button:hover{border-color:#6c6f76}.ds-trow button:focus-visible{outline:2px solid #f08cc2;outline-offset:2px}.ds-trow button.ds-changed{color:#ec64ac;border-color:#ec64ac}.ds-note{margin:8px 0;font-size:12px;color:#f5a3cf}"
+      "css": ".ds-ticket{width:260px;padding:0 12px;background:#232427;color:#ecedef;font:14px/1.4 system-ui,sans-serif}.ds-trow{display:grid;grid-template-columns:64px 1fr;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #3c3e43}.ds-trow button{text-align:left;font:12px/1.4 ui-monospace,'Cascadia Mono',Menlo,monospace;font-variant-numeric:tabular-nums;color:#ecedef;background:none;border:1px solid transparent;border-radius:3px;padding:6px;cursor:pointer}.ds-trow button:hover{border-color:#6c6f76}.ds-trow button:focus-visible{outline:2px solid #ccaef9;outline-offset:2px}.ds-trow button.ds-changed{color:#b488f7;border-color:#b488f7}.ds-note{margin:8px 0;font-size:12px;color:#e2d1fc}"
     },
     {
       "name": "Sheet On The Mat",
@@ -386,30 +396,30 @@
       "refersTo": "sheet-paper",
       "description": "Paper sheet on a scaled mm grid, with crop-mark selection on a card.",
       "html": "<div class=\"ds-mat\"><div class=\"ds-sheet\"><div class=\"ds-card\"></div><div class=\"ds-card ds-pick\"></div></div><small>Page 1 · 279.4 × 215.9 mm</small></div>",
-      "css": ".ds-mat{padding:24px;background-color:#1d1e20;background-image:linear-gradient(#ffffff14 1px,transparent 1px),linear-gradient(90deg,#ffffff14 1px,transparent 1px),linear-gradient(#ffffff09 1px,transparent 1px),linear-gradient(90deg,#ffffff09 1px,transparent 1px);background-size:50px 50px,50px 50px,10px 10px,10px 10px;background-position:24px 24px}.ds-sheet{display:flex;gap:6px;padding:14px;width:fit-content;background:#f5f6f2}.ds-card{width:63px;height:88px;background:#2d2e32}.ds-pick{--c:#ec64ac;background:linear-gradient(var(--c),var(--c)) 0 0/14px 3px no-repeat,linear-gradient(var(--c),var(--c)) 0 0/3px 14px no-repeat,linear-gradient(var(--c),var(--c)) 100% 100%/14px 3px no-repeat,linear-gradient(var(--c),var(--c)) 100% 100%/3px 14px no-repeat,#2d2e32}.ds-mat small{display:block;margin-top:6px;color:#a8abb2;font:12px ui-monospace,Menlo,monospace}"
+      "css": ".ds-mat{padding:24px;background-color:#1d1e20;background-image:linear-gradient(#ffffff14 1px,transparent 1px),linear-gradient(90deg,#ffffff14 1px,transparent 1px),linear-gradient(#ffffff09 1px,transparent 1px),linear-gradient(90deg,#ffffff09 1px,transparent 1px);background-size:50px 50px,50px 50px,10px 10px,10px 10px;background-position:24px 24px}.ds-sheet{display:flex;gap:6px;padding:14px;width:fit-content;background:#f5f6f2}.ds-card{width:63px;height:88px;background:#2d2e32}.ds-pick{--c:#b488f7;background:linear-gradient(var(--c),var(--c)) 0 0/14px 3px no-repeat,linear-gradient(var(--c),var(--c)) 0 0/3px 14px no-repeat,linear-gradient(var(--c),var(--c)) 100% 100%/14px 3px no-repeat,linear-gradient(var(--c),var(--c)) 100% 100%/3px 14px no-repeat,#2d2e32}.ds-mat small{display:block;margin-top:6px;color:#a8abb2;font:12px ui-monospace,Menlo,monospace}"
     },
     {
       "name": "Segmented Control",
       "kind": "nav",
       "refersTo": "button",
-      "description": "View segments (Front / Back / Guides): the active segment is filled magenta.",
+      "description": "View segments (Front / Back / Guides): the active segment is filled purple.",
       "html": "<div class=\"ds-seg\"><button class=\"on\">Front</button><button>Back</button><button>Guides</button></div>",
-      "css": ".ds-seg{display:inline-flex;background:#17181a;border:1px solid #6c6f76;border-radius:4px;overflow:hidden}.ds-seg button{font:14px system-ui,sans-serif;color:#a8abb2;background:none;border:0;border-radius:0;padding:6px 12px;min-height:36px;cursor:pointer;transition:background .15s,color .15s}.ds-seg button:hover{color:#ecedef}.ds-seg button.on{background:#ec64ac;color:#1d0711;font-weight:600}.ds-seg button:focus-visible{outline:2px solid #f08cc2;outline-offset:-2px}"
+      "css": ".ds-seg{display:inline-flex;background:#17181a;border:1px solid #6c6f76;border-radius:4px;overflow:hidden}.ds-seg button{font:14px system-ui,sans-serif;color:#a8abb2;background:none;border:0;border-radius:0;padding:6px 12px;min-height:36px;cursor:pointer;transition:background .15s,color .15s}.ds-seg button:hover{color:#ecedef}.ds-seg button.on{background:#965df2;color:#130426;font-weight:600}.ds-seg button:focus-visible{outline:2px solid #ccaef9;outline-offset:-2px}"
     },
     {
       "name": "Mode Switch",
       "kind": "nav",
       "refersTo": "button",
-      "description": "Print at home / Order prints; the current mode takes the magenta wash and magenta ink.",
+      "description": "Print at home / Order prints; the current mode takes the purple wash and purple ink.",
       "html": "<div class=\"ds-mode\"><button class=\"on\">Print at home</button><button>Order prints</button></div>",
-      "css": ".ds-mode{display:inline-flex;gap:2px;padding:3px;background:#17181a;border:1px solid #3c3e43;border-radius:4px}.ds-mode button{font:14px system-ui,sans-serif;color:#a8abb2;background:none;border:0;border-radius:4px;padding:6px 12px;min-height:32px;cursor:pointer}.ds-mode button:hover{color:#ecedef;background:#d4d6da08}.ds-mode button.on{background:rgb(51 191 232 / .10);color:#f5a3cf;box-shadow:inset 0 0 0 1px rgb(51 191 232 / .23)}.ds-mode button:focus-visible{outline:2px solid #f08cc2;outline-offset:-2px}"
+      "css": ".ds-mode{display:inline-flex;gap:2px;padding:3px;background:#17181a;border:1px solid #3c3e43;border-radius:4px}.ds-mode button{font:14px system-ui,sans-serif;color:#a8abb2;background:none;border:0;border-radius:4px;padding:6px 12px;min-height:32px;cursor:pointer}.ds-mode button:hover{color:#ecedef;background:#d4d6da08}.ds-mode button.on{background:rgb(180 136 247 / .12);color:#e2d1fc;box-shadow:inset 0 0 0 1px rgb(180 136 247 / .23)}.ds-mode button:focus-visible{outline:2px solid #ccaef9;outline-offset:-2px}"
     }
   ],
   "narrative": {
     "northStar": "The Cutting Mat & Decklist",
-    "overview": "The workspace is a graphite cutting mat on a print-shop bench. The sheet lies on the mat at true scale, with a millimetre grid behind it that starts at the sheet's own corner and rulers along its top and left edges carrying mm numerals. To the left the deck reads as a tournament decklist: count first, ruled rows, a double-ruled total. To the right the settings read as a job ticket: plain labels on the left, values in tabular mono on the right. The one live colour is process magenta, the colour of a cut line, and it marks only what is selected, focused, the next action, or something the app changed that the user has not yet accepted.\n\nDensity is that of a working tool, not a dashboard. Everything lies flat on the mat. Sections are separated by hairline rules, not boxed. The white sheet is the brightest object on screen and nothing competes with it. Overlays (dialogs, popovers, menus, the toast) are the only things that leave the surface.\n\nThe system replaces an earlier lavender, glassy dark-SaaS look and refuses its devices: lavender accent, glass bars, glows, boxes nested inside boxes, eyebrow labels and side-stripe callouts.",
+    "overview": "The workspace is a graphite cutting mat on a print-shop bench. The sheet lies on the mat at true scale, with a millimetre grid behind it that starts at the sheet's own corner and rulers along its top and left edges carrying mm numerals. To the left the deck reads as a tournament decklist: count first, ruled rows, a double-ruled total. To the right the settings read as a job ticket: plain labels on the left, values in tabular mono on the right. The one live colour is regal purple, the colour of a cut line, and it marks only what is selected, focused, the next action, or something the app changed that the user has not yet accepted.\n\nDensity is that of a working tool, not a dashboard. Everything lies flat on the mat. Sections are separated by hairline rules, not boxed. The white sheet is the brightest object on screen and nothing competes with it. Overlays (dialogs, popovers, menus, the toast) are the only things that leave the surface.\n\nThe system replaces an earlier glassy dark-SaaS look and refuses its devices: glass bars, glows, boxes nested inside boxes, eyebrow labels and side-stripe callouts.",
     "keyCharacteristics": [
-      "Graphite neutrals in four close steps, paper white for the sheet only, process magenta as the single live colour.",
+      "Graphite neutrals in four close steps, paper white for the sheet only, regal purple as the single live colour.",
       "The mat grid and rulers are drawn at the sheet's own scale, so 10 mm on the mat is 10 mm on paper.",
       "System sans for words in three sizes (12 / 14 / 18); system mono with tabular figures for every number.",
       "Selection is drawn as crop-mark corners, the same marks the printer gets.",
@@ -419,12 +429,12 @@
     "rules": [
       {
         "name": "The One Live Colour Rule",
-        "body": "Process Magenta is the only hue that means \"act on this\" or \"this is the current one\". If something is magenta, it is selected, focused, the next action, a cut line, or a change awaiting acceptance. Nothing else is magenta.",
+        "body": "Regal Purple is the only hue that means \"act on this\" or \"this is the current one\". If something is purple, it is selected, focused, the next action, a cut line, or a change awaiting acceptance. Nothing else is purple.",
         "section": "colors"
       },
       {
         "name": "The Changed-Until-Accepted Rule",
-        "body": "When the app changes a setting on the user's behalf, the value stays magenta in the job ticket, with a note and explicit choices, until the user accepts it. The output never changes silently.",
+        "body": "When the app changes a setting on the user's behalf, the value stays purple in the job ticket, with a note and explicit choices, until the user accepts it. The output never changes silently.",
         "section": "colors"
       },
       {
@@ -449,7 +459,7 @@
       }
     ],
     "dos": [
-      "**Do** keep Process Magenta (#ec64ac) for selection, focus, the primary action, cut lines and changed-until-accepted values only.",
+      "**Do** keep Regal Purple (#b488f7) for selection, focus, the primary action, cut lines and changed-until-accepted values only.",
       "**Do** set every number in system mono with tabular figures.",
       "**Do** separate sections with a 1px Hairline Rule (#3c3e43) and lay them flat on the mat.",
       "**Do** keep control borders at Field Edge (#6c6f76) or stronger so every control edge is at least 3:1.",
@@ -458,7 +468,7 @@
       "**Do** use drawn SVG icons at a 1.5 stroke."
     ],
     "donts": [
-      "**Don't** add a second accent hue, a lavender accent, gradients or glows.",
+      "**Don't** add a second accent hue, gradients or glows.",
       "**Don't** use glass or blurred bars, or shadows on anything that does not float over the workspace.",
       "**Don't** nest a bordered panel inside another bordered panel.",
       "**Don't** add eyebrow labels or uppercase tracked kickers above headings.",
