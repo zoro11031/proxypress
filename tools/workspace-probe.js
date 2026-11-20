@@ -47,24 +47,24 @@
     eq('duplicate quantity badge is hidden', getComputedStyle(copyBadge).display, 'none');
 
     // 4. Verify Center Proof Stage and View Controls
-    eq('proof sheet label displays Sheet 1 of 1', $('#proofSheetLabel').textContent, 'Sheet 1 of 1');
+    eq('sheet picker shows Sheet 1 of 1', $('#sheetJumpSel').selectedOptions[0]?.textContent, 'Sheet 1 of 1');
     eq('proof front button on', $('#btnProofFront').classList.contains('on'), true);
     eq('proof back button off', $('#btnProofBack').classList.contains('on'), false);
     eq('proof guides button off', $('#btnProofGuides').classList.contains('on'), false);
 
     // Click Back view button
+    S.settings.backs = true; S.settings.backImage = samplePng; await drawPreview();
     $('#btnProofBack').click();
     eq('showBacks enabled via proof toggle', S.showBacks, true);
     eq('proof back button now on', $('#btnProofBack').classList.contains('on'), true);
 
-    // Click Guides toggle button
+    // Click Front view button; guides are front-only, so toggle them there
+    $('#btnProofFront').click();
+    eq('showBacks disabled via front button', S.showBacks, false);
     $('#btnProofGuides').click();
     eq('showCuts enabled via proof toggle', S.showCuts, true);
     eq('proof guides button now on', $('#btnProofGuides').classList.contains('on'), true);
-
-    // Click Front view button
-    $('#btnProofFront').click();
-    eq('showBacks disabled via front button', S.showBacks, false);
+    S.settings.backs = false; S.settings.backImage = null; await drawPreview();
 
     // 5. Verify Card Detail Footer
     eq('proof card footer hidden without selection', $('#proofCardFooter').style.display, 'none');
@@ -84,6 +84,18 @@
     eq('workspace export bar exists', !!bar, true);
     eq('workspace export bar has ready status', /Checking|Ready|Review warnings|Blocked/.test($('#barStatus').textContent), true);
     eq('workspace review export button exists', !!$('#btnReviewExport'), true);
+
+    // 8. A double-faced card never makes the job double-sided silently
+    eq('no sides notice for single-faced deck', $('#inspSidesNote').hidden, true);
+    S.settings.dfcMode = 'duplex'; S.settings.dfcChosen = false;
+    d.entries.push({uid: 'c3', name: 'Delver of Secrets', qty: 1, faces: [{name: 'Delver of Secrets', custom: null, scryArt: samplePng, normal: samplePng}, {name: 'Insectile Aberration', custom: null, scryArt: samplePng, normal: samplePng}]});
+    renderAll(); await drawPreview();
+    eq('sides notice shown after a double-faced card', $('#inspSidesNote').hidden, false);
+    eq('sides value marked as changed', $('#inspSides').classList.contains('changed'), true);
+    $('#dfcSeparate').click(); await drawPreview();
+    eq('separate choice sets dfcMode', S.settings.dfcMode, 'separate');
+    eq('sides notice cleared after choosing', $('#inspSidesNote').hidden, true);
+    eq('job is single-sided after separate choice', $('#inspSides').textContent, 'Single-sided');
 
     if (fails.length) return {failed: fails};
     return true;
