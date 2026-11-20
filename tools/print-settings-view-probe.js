@@ -77,7 +77,7 @@
 
     // Check active setup card in Alignment page
     refreshAlignmentPage();
-    check('alignmentActiveCard front banner reflects 1.25 mm', $('#alignFrontValuesText').textContent.includes('1.25 mm'));
+    check('alignment form shows 1.25 mm and a Manual badge', +$('#input-offsetX').value === 1.25 && /manual/.test($('#alignFrontSourceBadge').className));
 
     // 5. Verify PDF export shifts front image by exactly 1.25 mm
     const c = document.createElement('canvas');

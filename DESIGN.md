@@ -238,8 +238,13 @@ The inspector reads as a print-shop job ticket.
 ### Sheet On The Mat
 The preview sheet in Sheet Paper on the scaled grid, with mm rulers on its top and left edges and its page size in mono below. Card selection on the sheet is the crop-mark overlay; selected tiles in the order gallery take the blue wash instead.
 
+With no cards, the sheet is still drawn at fit scale: a dashed Field Edge outline with no paper fill (Sheet Paper is for a real sheet), the card slots as Hairline Rule rectangles, the rulers, and the paper, size and layout in mono below. The heading and one sentence sit centred inside it. The sidebar already holds the import buttons, so the sheet does not repeat them; phones, where the sidebar is another view, get a single Add cards button.
+
+### Small Dialogs
+Short questions (a name, a choice between faces) use an in-app dialog, never the browser's `prompt()`. One field or a column of choices, the primary action on the right, and Cancel only in the header. On phones it is a bottom sheet rather than a full-screen page. Opened over another dialog, it stacks and returns to that dialog.
+
 ### Settings And Presets
-Settings sections are flat on the mat: a Hairline Rule above each, 16px vertical padding, no fill, no radius. Presets are a ruled table: cells separated by 1px Hairline Rule gaps, the chosen preset marked with the blue wash.
+Settings sections are flat on the mat: a Hairline Rule above each, 16px vertical padding, no fill, no radius. Presets are a ruled table: cells separated by 1px Hairline Rule gaps, the chosen preset marked with the blue wash. Alignment shows each value once, in its field; the source badge (Measured, Manual, Saved) sits in the column header rather than in a summary banner that repeats the form.
 
 ### Icons
 Drawn inline SVG line icons, 16px, 1.5 stroke, round caps and joins, in currentColor.

@@ -408,6 +408,7 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
   #overlay{align-items:stretch}
   .modal{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;border:0}
   .modal.duplex{width:100vw;max-height:100dvh}
+  .modal.ask{height:auto;align-self:flex-end;border-top:1px solid var(--line);border-radius:var(--r-lg) var(--r-lg) 0 0}
   .modal .hd{position:sticky;top:0;background:var(--panel);z-index:2}
   .modal .bd{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #ctx button{padding:11px 12px;font-size:14px}
@@ -555,6 +556,17 @@ table.specs-tbl th{color:var(--muted);font-weight:500;width:42%}
 .round:hover{background:var(--panel2);border-color:var(--line);color:var(--text)}
 #dataSlot .pane{display:block;padding:0;overflow:visible}
 .modal.narrow{width:min(600px,calc(100vw - 32px))}
+.modal .bd.ask{display:grid;gap:12px}
+.ask-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.ask-choices{display:grid;gap:8px}
+.modal .bd.help{display:grid;gap:0}
+.help-sec{padding:16px 0;border-top:1px solid var(--hair)}
+.help-sec:first-child{padding-top:0;border-top:0}
+.help-sec h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.help-sec p{margin:0 0 8px}
+.help-sec p:last-child{margin-bottom:0}
+.help-foot{margin:0;padding-top:16px;border-top:1px solid var(--hair)}
+.ask-choices button{justify-content:flex-start;text-align:left;min-height:var(--ctl)}
 .tour p{margin:0 0 10px;line-height:1.5}
 .tour-body{animation:tourFadeIn .22s cubic-bezier(.16,1,.3,1) forwards}
 @keyframes tourFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -590,7 +602,17 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .menu-list button:hover{background:var(--panel2)}
 .kbd{margin-left:auto}
 .empty{width:min(100%,520px);margin:28px auto 48px;padding:20px 0;border-block:1px solid var(--line)}
-.empty h2{margin:0 0 12px;font-size:18px;font-weight:600;letter-spacing:-.6px}
+.empty h2{margin:0 0 8px;font-size:18px;font-weight:600;letter-spacing:-.6px}
+.empty .hint{margin:0}
+.empty-add{display:none;margin-top:16px}
+.pg.pg-empty{background:none;box-shadow:none;outline:1px dashed var(--field);outline-offset:0}
+.pg-empty svg.pg-slots{z-index:0}
+.pg-empty .pg-slots rect{fill:none;stroke:var(--hair);stroke-width:1}
+.pg-empty .lbl{right:0;white-space:normal}
+.pg-empty .lbl .n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pg-empty .empty{position:absolute;inset:0;z-index:1;width:auto;margin:0;padding:16px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.pg-empty .empty .hint{max-width:34ch}
+@media (max-width:820px){.empty-add{display:inline-flex}}
 .gal{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
 .gal .tile{position:relative;display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:6px}
 .gal img{display:block;border-radius:4%/3%;background:#000;cursor:context-menu}
@@ -779,18 +801,15 @@ body.print-settings-active #printSettingsView{display:flex!important}
 .active-setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
 .setup-item{display:flex;flex-direction:column;gap:3px}
 .setup-lbl{font-size:12px;color:var(--muted)}
-.active-values-banner{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;padding-top:10px;border-top:1px solid var(--hair)}
-.val-col{display:flex;flex-direction:column;gap:4px}
-.val-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.col-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .src-badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:var(--r-md);background:var(--sunk);color:var(--muted)}
 .src-badge.measured{background:rgb(var(--ok-rgb) / .1);color:var(--ok)}
 .src-badge.manual{background:rgb(var(--focus-rgb) / .13);color:var(--focus)}
 .src-badge.estimated{background:rgb(var(--warning-rgb) / .14);color:var(--warning)}
-.val-text{font-size:12px;color:var(--text);font-family:monospace}
 
 .alignment-split-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
 .alignment-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:14px}
-.alignment-col,.settings-section,.val-col{min-width:0;overflow-wrap:anywhere}
+.alignment-col,.settings-section{min-width:0;overflow-wrap:anywhere}
 .alignment-col button,.settings-section button{white-space:normal}
 .align-fields-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .align-fields-grid .field.full{grid-column:1/-1}
@@ -1075,7 +1094,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
     <span class="stats" id="stats"></span><span id="saveStatus" role="status">Saved</span><button id="retrySave" hidden>Retry save</button>
   </div>
   <div class="hzone hzone-act">
-    <button id="btnHelp" class="icon round" title="Quick tour" aria-label="Quick tour"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4"/><circle cx="8" cy="11.6" r=".5"/></svg></button>
+    <button id="btnHelp" class="icon round" title="Help" aria-label="Help"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4"/><circle cx="8" cy="11.6" r=".5"/></svg></button>
     <button id="btnSettings" class="icon" aria-label="Project files"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg><span>Project files</span></button>
     <button id="btnPdf" class="primary print-only">Review export</button>
     <button id="btnXml" class="primary order-only">Review order</button>
@@ -1609,29 +1628,15 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
               <b id="alignDuplexMode">Manual duplex · Long-edge flip</b>
             </div>
           </div>
-          <div class="active-values-banner">
-            <div class="val-col">
-              <div class="val-header">
-                <b>Front alignment</b>
-                <span id="alignFrontSourceBadge" class="src-badge">No correction set</span>
-              </div>
-              <div id="alignFrontValuesText" class="val-text">X: 0.00 mm · Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
-            </div>
-            <div class="val-col">
-              <div class="val-header">
-                <b>Back active values</b>
-                <span id="alignBackSourceBadge" class="src-badge">No correction set</span>
-              </div>
-              <div id="alignBackValuesText" class="val-text">Extra X: 0.00 mm · Extra Y: 0.00 mm · Scale: 100% / 100% · Rotation: 0°</div>
-            </div>
-          </div>
         </div>
 
         <div class="alignment-split-grid" id="setupGroup-calibration">
           <div class="alignment-col" id="alignFrontCol">
             <div class="col-hdr">
               <h3>Front alignment</h3>
+              <span id="alignFrontSourceBadge" class="src-badge">No correction set</span>
             </div>
+            <p id="alignFrontValuesText" class="hint" hidden></p>
             <div class="align-fields-grid">
               <div class="field">
                 <label for="input-offsetX">Printer offset X (mm)</label>
@@ -1665,6 +1670,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           <div class="alignment-col" id="alignBackCol">
             <div class="col-hdr">
               <h3>Back alignment</h3>
+              <span id="alignBackSourceBadge" class="src-badge">No correction set</span>
             </div>
             <div class="align-fields-grid">
               <div class="field">
@@ -5057,11 +5063,11 @@ $('#deckSel').onchange = e => {
   if (!abandonPrintSettings()) { e.target.value = S.deckId; return; }
   activateDeck(e.target.value); save(); renderAll();
 };
-$('#deckNew').onclick = () => {
-  const name = prompt('Deck name', 'New deck')?.trim(); if (!name || !abandonPrintSettings()) return;
+$('#deckNew').onclick = async () => {
+  const name = await askText({title:'New deck', label:'Deck name', value:'New deck', ok:'Create deck'}); if (!name || !abandonPrintSettings()) return;
   const d = {id:uid(), name, entries:[], updated:Date.now()}; S.decks.push(d); activateDeck(d.id); save(); renderAll();
 };
-$('#deckRename').onclick = () => { const d = deck(); const n = prompt('Rename deck', d.name)?.trim(); if (n) { d.name = n; save(); renderDeckSel(); schedulePrintReview(); } };
+$('#deckRename').onclick = async () => { const d = deck(); const n = await askText({title:'Rename deck', label:'Deck name', value:d.name, ok:'Rename'}); if (n && deck() === d) { d.name = n; save(); renderDeckSel(); schedulePrintReview(); } };
 $('#deckDup').onclick = () => {
   if (!abandonPrintSettings()) return;
   rememberProjectSetup();
@@ -5372,8 +5378,13 @@ $('#cardList').addEventListener('click', async ev => {
   }
   else if (act === 'art') { const target = selectedArtTarget(); if (target?.copies.some(x => x.uid === e.uid)) { openMpcPicker({...target, e, i:0}); return; } if (e.faces[0]?.template) openCardMaker({e, i:0}); else if (e.custom && !e.mpc) { faceTarget = {e, i:0}; $('#fileFace').click(); } else openMpcPicker({e, i:0}); return; }
   else if (act === 'upload') {
-    if (e.faces.length > 1) { const i = prompt(`Which face? 1 = ${e.faces[0].name}, 2 = ${e.faces[1].name}`, '1'); if (!i) return; faceTarget = {e, i:Math.min(e.faces.length, Math.max(1, +i)) - 1}; }
-    else faceTarget = {e, i:0};
+    if (e.faces.length > 1) {
+      askChoice({title:'Upload art for which face?', choices:e.faces.map((f, i) => ({label:f.name || `Face ${i + 1}`, value:i}))}).then(i => {
+        if (i == null) return; faceTarget = {e, i}; $('#fileFace').click();
+      });
+      return;
+    }
+    faceTarget = {e, i:0};
     $('#fileFace').click(); return;
   }
   else if (act === 'mpc') { openMpcPicker({e, i:0}); return; }
@@ -5528,11 +5539,44 @@ function openModal(html, backLabel = '') {
     const after = modalAfterClose; modalAfterClose = null; if (after) after();
     modalBeforeClose = null;
   }
-  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex'); $('#overlay').classList.add('on');
+  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex', 'ask'); $('#overlay').classList.add('on');
   const parent = modalParents.at(-1), back = $('#modal .hd [data-close]');
   if (parent && back) back.textContent = '← ' + parent.backLabel;
   labelModal();
   modalFocusable()[0]?.focus();
+}
+// In-app replacements for prompt(): a dialog that resolves to the entered text, or to null on Cancel/Close.
+function askDialog(head, body, wire) {
+  return new Promise(resolve => {
+    let settled = false;
+    const done = v => { if (settled) return; settled = true; modalAfterClose = null; closeModal(true); resolve(v); };
+    openModal(`<div class="hd"><b>${esc(head)}</b><button data-close>Cancel</button></div><div class="bd ask">${body}</div>`,
+      $('#overlay').classList.contains('on') ? 'Back' : '');
+    $('#modal').classList.add('narrow', 'ask');
+    modalAfterClose = () => { if (!settled) { settled = true; resolve(null); } };
+    wire(done);
+  });
+}
+function askText({title, label, value = '', ok = 'Save', hint = '', max = 100}) {
+  return askDialog(title, `<form id="askForm" class="field">
+      <label for="askInput">${esc(label)}</label>
+      <input type="text" id="askInput" maxlength="${max}" autocomplete="off" value="${esc(value)}">
+      ${hint ? `<p class="hint">${esc(hint)}</p>` : ''}
+      <div class="ask-actions"><button type="submit" class="primary" id="askOk">${esc(ok)}</button></div>
+    </form>`, done => {
+    const input = $('#askInput'), okBtn = $('#askOk');
+    const sync = () => { okBtn.disabled = !input.value.trim(); };
+    input.oninput = sync; sync();
+    input.focus(); input.select();
+    $('#askForm').onsubmit = ev => { ev.preventDefault(); const v = input.value.trim(); if (v) done(v); };
+  });
+}
+function askChoice({title, hint = '', choices}) {
+  return askDialog(title, `${hint ? `<p class="hint">${esc(hint)}</p>` : ''}
+    <div class="ask-choices">${choices.map((c, n) => `<button type="button" data-ask="${n}">${esc(c.label)}</button>`).join('')}</div>`, done => {
+    $('#modal .ask-choices').onclick = ev => { const b = ev.target.closest('[data-ask]'); if (b) done(choices[+b.dataset.ask].value); };
+    $('#modal [data-ask]')?.focus();
+  });
 }
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
 function closeModal(force = false) {
@@ -6678,7 +6722,26 @@ function openTour(at = 0) {
     else if (t === 'next') isLast ? (closeModal(), openDeckImport()) : openTour(tourStep + 1);
   };
 }
-$('#btnHelp').onclick = () => openTour(0);
+function openHelp() {
+  const order = S.mode === 'order';
+  const print = `<section class="help-sec"><h3>Print at actual size</h3>
+      <p>Open the PDF in a PDF app and print at <b>Actual size / 100%</b>. “Fit to page” shrinks the cards and the cut lines no longer match.</p>
+      <p>Match the paper size, direction and tray to <b>Print settings → Printer</b>.</p></section>
+    <section class="help-sec"><h3>Double-sided cards</h3>
+      <p>Cards with backs print in two passes. With automatic double-sided printing, choose the flip edge shown in <b>Review export</b>. Printing by hand, turn the sheet over the way the export steps say and feed it back in.</p>
+      <p>If the backs land out of place, open <b>Print settings → Alignment</b> and use <b>Align front and back</b>.</p></section>
+    <section class="help-sec"><h3>Cutting</h3>
+      <p>With a trimmer or scissors, cut along the guides into strips, then into cards. A fixed stop on the trimmer keeps every card the same size.</p>
+      <p>With a Silhouette cutter, download the print &amp; cut ZIP and place the sheet on the mat as <b>Review export</b> describes. Make a small test cut first.</p></section>`;
+  const ordering = `<section class="help-sec"><h3>Ordering prints</h3>
+      <p>Switch to <b>Order prints</b>, choose a cardstock and cardback in <b>Review order</b>, and download the ZIP. <b>How to place the order</b> walks through the upload.</p></section>`;
+  openModal(`<div class="hd"><b>Help</b><button data-close>Close</button></div>
+    <div class="bd help">${order ? ordering + print : print + ordering}
+      <p class="help-foot"><button type="button" id="helpTour">Replay the welcome tour</button></p></div>`);
+  $('#modal').classList.add('narrow');
+  $('#helpTour').onclick = () => { closeModal(true); openTour(0); };
+}
+$('#btnHelp').onclick = openHelp;
 $('#projectFiles').onclick = () => $('#btnSettings').click();
 $('#btnSettings').onclick = () => {
   openModal(`<div class="hd"><b>Project files</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
@@ -7767,17 +7830,14 @@ function refreshAlignmentPage() {
   }
   const frontTxt = $('#alignFrontValuesText');
   if (frontTxt) {
-    frontTxt.textContent = frontLocked ? 'Adjust the backs to line up with the fronts.' : `Offset X: ${calStat.front.x >= 0 ? '+' : ''}${calStat.front.x.toFixed(2)} mm · Offset Y: ${calStat.front.y >= 0 ? '+' : ''}${calStat.front.y.toFixed(2)} mm · Scale: ${s.scaleX.toFixed(1)}% / ${s.scaleY.toFixed(1)}% · Rotation: ${s.printRotate.toFixed(1)}°`;
+    frontTxt.hidden = !frontLocked;
+    frontTxt.textContent = frontLocked ? 'The template fixes the fronts. Adjust the backs to line up with them.' : '';
   }
 
   const backBadge = $('#alignBackSourceBadge');
   if (backBadge) {
     backBadge.textContent = calStat.back.label + (calStat.back.source && calStat.back.source !== 'No correction set' ? ` (${calStat.back.source})` : '');
     backBadge.className = 'src-badge ' + (calStat.back.status === 'Measured' ? 'measured' : calStat.back.status === 'Saved' ? 'saved' : calStat.back.status === 'Estimated' ? 'estimated' : calStat.back.status === 'Manual' ? 'manual' : '');
-  }
-  const backTxt = $('#alignBackValuesText');
-  if (backTxt) {
-    backTxt.textContent = `Extra X: ${calStat.back.x >= 0 ? '+' : ''}${calStat.back.x.toFixed(2)} mm · Extra Y: ${calStat.back.y >= 0 ? '+' : ''}${calStat.back.y.toFixed(2)} mm · Scale: ${s.backScaleX.toFixed(1)}% / ${s.backScaleY.toFixed(1)}% · Rotation: ${s.backRotate.toFixed(1)}°`;
   }
 
   const inputs = {
@@ -8130,13 +8190,13 @@ if (newCalBtn) newCalBtn.onclick = () => {
   renderCalibrationProfiles();save();refreshCalibrationStatus();
   toast('Ready to create new alignment profile. Adjust alignment numbers, enter a profile name, and click Save profile.');
 };
-$('#calProfileSave').onclick = () => {
+$('#calProfileSave').onclick = async () => {
   let name = $('#calProfileName').value.trim().slice(0, 100);
   if (!name) {
     const def = printerOf(S.printer).name.replace(/ \(.*\)$/, '') + ' alignment';
-    const entered = prompt('Name this calibration profile:', def);
-    if (!entered || !entered.trim()) return;
-    name = entered.trim().slice(0, 100);
+    const entered = await askText({title:'Save alignment profile', label:'Profile name', value:def, ok:'Save profile'});
+    if (!entered) return;
+    name = entered.slice(0, 100);
     $('#calProfileName').value = name;
   }
   if (BUILTIN_CAL_PROFILES.some(p => p.name.toLowerCase() === name.toLowerCase()))
@@ -8333,12 +8393,12 @@ function renderPresets() {
   $('#stockPresetGrid').innerHTML = `<div class="pick presets">${paperPresets(FOIL_IDS)}</div>`;
 }
 function pickSettings() { return Object.fromEntries(PRESET_KEYS.map(k => [k, S.settings[k]])); }
-function saveCurrentPreset() {
+async function saveCurrentPreset() {
   const L = layout();
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === S.settings.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
   const defName = `${paper} ${S.settings.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.per} cards`;
-  const name = prompt('Name this preset:', defName);
-  if (!name || !name.trim()) return;
+  const name = await askText({title:'Save preset', label:'Preset name', value:defName, ok:'Save preset'});
+  if (!name) return;
   const p = {id:uid(), name:name.trim(), settings:pickSettings()};
   S.presets.push(p);
   S.activePreset = p.id;
@@ -8436,8 +8496,23 @@ function syncProofViewButtons() {
 function emptyWorkspaceHtml(order = false) {
   return `<div class="empty">
     <h2>${order ? 'Add cards to your order' : 'Add cards to your deck'}</h2>
-    <div class="row"><button class="primary" data-start="paste">Paste a decklist</button>
-    <button data-start="import">Import from link or file…</button><button data-start="upload">Upload images…</button></div>
+    <p class="hint">Paste a decklist, import a link or upload images from the deck panel.</p>
+    <button class="primary empty-add" data-start="paste">Add cards</button>
+  </div>`;
+}
+// With no cards, the sheet still lies on the mat: its outline, rulers and empty card slots at fit scale.
+function emptySheetHtml(L, z, s) {
+  const T = makeT(L, false, s);
+  let slots = '';
+  for (let i = 0; i < L.per; i++) {
+    const p = slotPos(L, i, false, s);
+    slots += `<rect x="${T.x(p.x + s.bleed)*z}" y="${T.y(p.y + s.bleed)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" rx="${3*z}"/>`;
+  }
+  const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
+  return `<div class="pg pg-empty" style="width:${L.W*z}px;height:${L.H*z}px">
+    <span class="lbl">${esc(paper)} ${s.orientation} · <span class="n">${L.W} × ${L.H} mm</span> · <span class="n">${L.cols} × ${L.rows}</span> cards</span>${matRulers(L, z)}
+    <svg class="pg-slots" width="${L.W*z}" height="${L.H*z}" aria-hidden="true">${slots}</svg>
+    ${emptyWorkspaceHtml()}
   </div>`;
 }
 async function drawPreview() {
@@ -8486,7 +8561,8 @@ async function drawPreview() {
   setMatScale(S.mode === 'order' ? 2.4 : z);
   if (S.mode === 'order') return drawGallery(gen,wrap,z);
   if (!slots.length) {
-    wrap.innerHTML = emptyWorkspaceHtml();
+    wrap.innerHTML = emptySheetHtml(L, z, s);
+    alignMat(wrap.firstElementChild);
     return;
   }
   const frag = document.createDocumentFragment(), jobs = [];
