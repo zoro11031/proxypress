@@ -1227,6 +1227,8 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         </div>
         <p id="scmTemplateHint" class="hint"></p>
         <div id="cameoStatus"></div>
+        <div class="row" style="margin-top:10px"><button id="btnRegTestPdf" aria-describedby="regTestHint">Download marks-only test page</button></div>
+        <p class="hint" id="regTestHint">A PDF with only the registration marks, in the same place as on your print. Print it on scrap paper to check that the cutter finds the marks and to try cut settings without spending toner on artwork.</p>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
           <summary>Advanced cutting options</summary>
@@ -1409,7 +1411,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           <button id="btnExportPdfTab" class="primary">Download PDF</button>
           <details class="adv review-file-options" id="separateCutFiles" hidden>
             <summary>Separate cut files</summary>
-            <div class="row"><button id="btnExportStudio3Tab" aria-describedby="cutFileHint">Download Studio file</button><button id="btnExportDxfTab">Download DXF</button><button id="btnExportSvgTab">Download SVG</button></div>
+            <div class="row"><button id="btnExportStudio3Tab" aria-describedby="cutFileHint">Download Studio file</button><button id="btnExportDxfTab">Download DXF</button><button id="btnExportSvgTab">Download SVG</button><button id="btnRegTestPdfTab" title="Registration marks only, no artwork">Download marks-only PDF</button></div>
             <p class="hint" id="cutFileHint" role="status"></p>
           </details>
           <button id="btnReviewCutting" hidden>Cutting settings</button>
@@ -9072,6 +9074,27 @@ async function exportPrintJob(job, withCut = false) {
   if (done) showPostExportInstructions(pages.length, withCut);
 }
 
+// A page with nothing on it but the cutter's registration marks, drawn by the
+// same code and in the same place as on a real export. Printed on scrap paper
+// it checks that the cutter reads the marks and tries the cut settings without
+// spending toner on artwork. It does not need any cards in the project.
+function registrationTestDoc(L, s) {
+  const doc = newDoc(L), ink = regInkBoxes(regMarks(L, s));
+  doc.setFillColor('#000000');
+  for (const [x,y,w,h] of ink) doc.rect(x,y,w,h,'F');
+  return {doc, ink};
+}
+function exportRegistrationTest() {
+  if (!window.jspdf) return toast('The PDF library could not load from this ProxyPress instance. Reload the page. If it still fails, check the server installation.', 8000);
+  const s = S.settings, L = layout(s);
+  if (!s.silhouette) return toast('Choose Silhouette cutter in Print settings → Cutting to add registration marks.', 6000);
+  if (regMarksClipped(L, s)) return toast('Registration marks extend off the PDF page. Increase the mark inset.', 7000);
+  const {doc} = registrationTestDoc(L, s);
+  const base = deck().name.replace(/[^\w\- ]+/g, '').trim() || 'proxies';
+  doc.save(`${base}-registration-marks-${L.W}x${L.H}mm.pdf`);
+  toast('Marks-only test page downloaded. Print it at 100% scale, the same way as the cards.', 7000);
+}
+
 function openExportWizard(initialStep = 1) {
   if (initialStep === 1 || initialStep === 2) switchTab('setup');
   else if (initialStep === 3) switchTab('cutting');
@@ -11264,6 +11287,7 @@ if ($('#btnExportPdfTab')) $('#btnExportPdfTab').onclick = async () => { await e
 if ($('#btnExportStudio3Tab')) $('#btnExportStudio3Tab').onclick = () => downloadCutFile('studio3');
 if ($('#btnExportDxfTab')) $('#btnExportDxfTab').onclick = () => downloadCutFile('dxf');
 if ($('#btnExportSvgTab')) $('#btnExportSvgTab').onclick = () => downloadCutFile('svg');
+for (const id of ['#btnRegTestPdf','#btnRegTestPdfTab']) if ($(id)) $(id).onclick = exportRegistrationTest;
 if ($('#btnProofFront')) $('#btnProofFront').onclick = () => { S.showBacks = false; S.proofSide = 'front'; if ($('#showBacks')) $('#showBacks').checked = false; syncProofViewButtons(); drawPreview(); };
 if ($('#btnProofBack')) $('#btnProofBack').onclick = () => { S.showBacks = true; S.proofSide = 'back'; if ($('#showBacks')) $('#showBacks').checked = true; syncProofViewButtons(); drawPreview(); };
 if ($('#btnProofGuides')) $('#btnProofGuides').onclick = () => { setShowCuts(!S.showCuts); save(); syncProofViewButtons(); renderPreview(); };
