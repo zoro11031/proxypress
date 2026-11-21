@@ -1227,8 +1227,8 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         </div>
         <p id="scmTemplateHint" class="hint"></p>
         <div id="cameoStatus"></div>
-        <div class="row" style="margin-top:10px"><button id="btnRegTestPdf" aria-describedby="regTestHint">Download marks-only test page</button></div>
-        <p class="hint" id="regTestHint">A PDF with only the registration marks, in the same place as on your print. Print it on scrap paper to check that the cutter finds the marks and to try cut settings without spending toner on artwork.</p>
+        <div class="row" style="margin-top:10px"><button id="btnRegTestPdf" aria-describedby="regTestHint">Download registration test page</button></div>
+        <p class="hint" id="regTestHint">A PDF with the registration marks in the same place as on your print, and a faint outline of every card position: a thin solid line at the bleed edge and a dashed line at the safe area. The outlines are pure black, so a colour laser prints them from black toner alone. Print it on scrap paper and cut it. If the cutter finds the marks and the cuts are centred, each cut falls between the two lines with an even margin all round.</p>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
           <summary>Advanced cutting options</summary>
@@ -1256,7 +1256,8 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
             </div>
             <div class="field full">
               <label for="scmLabel">Printed sheet label</label>
-              <input id="scmLabel" type="text" maxlength="48" placeholder="Optional">
+              <input id="scmLabel" type="text" maxlength="48" placeholder="Optional" aria-describedby="scmLabelHint">
+              <p class="hint" id="scmLabelHint">Each sheet is printed with its sheet number and cutting template along the edge, as Silhouette Card Maker does. Text entered here is added in front.</p>
             </div>
           </div>
           <div id="cameoCustomRegistration">
@@ -1411,7 +1412,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           <button id="btnExportPdfTab" class="primary">Download PDF</button>
           <details class="adv review-file-options" id="separateCutFiles" hidden>
             <summary>Separate cut files</summary>
-            <div class="row"><button id="btnExportStudio3Tab" aria-describedby="cutFileHint">Download Studio file</button><button id="btnExportDxfTab">Download DXF</button><button id="btnExportSvgTab">Download SVG</button><button id="btnRegTestPdfTab" title="Registration marks only, no artwork">Download marks-only PDF</button></div>
+            <div class="row"><button id="btnExportStudio3Tab" aria-describedby="cutFileHint">Download Studio file</button><button id="btnExportDxfTab">Download DXF</button><button id="btnExportSvgTab">Download SVG</button><button id="btnRegTestPdfTab" title="Registration marks and card outlines, no artwork">Download registration test page</button></div>
             <p class="hint" id="cutFileHint" role="status"></p>
           </details>
           <button id="btnReviewCutting" hidden>Cutting settings</button>
@@ -2525,7 +2526,15 @@ const SCM_TEMPLATES = {
   'arch_b/70mm_square/standard': ["arch_b-70mm_square-v2.studio3", "landscape", 5400, 3600, 827, 827, 602, 124, 5, 4, 0, 10.0, 39.71, 1.0, 3.0],
 };
 const SCM_MM_PER_PIXEL = 25.4 / 300;
-const SCM_BLEED = 0.625;
+// Card Maker places cards 15 px apart at 300 ppi (CARD_DISTANCE) and prints
+// each card's edge out by half that gap, rounded up: calculate_max_print_bleed
+// gives ceil((pitch - card) / 2) = 8 px. Two neighbours' bleeds then meet with
+// no white sliver between them, and every card lands on whole 300 ppi pixels.
+// (Its SPECIFICATION.md says 0.625 mm, which is 7.4 px and leaves a sliver;
+// the code is what prints.) Card Maker uses 15 px on an axis with a single
+// card; this keeps one value for both axes, so those few layouts get 8 px there.
+const SCM_PITCH_PX = 15;
+const SCM_BLEED = Math.ceil(SCM_PITCH_PX / 2) * SCM_MM_PER_PIXEL;
 const SCM_LAYOUT_FIELDS = new Set(['orientation', 'cardRotation', 'cardW', 'cardH',
   'margin', 'gap', 'bleed', 'cols', 'rows', 'duplexFlip']);
 
@@ -2534,6 +2543,27 @@ function scmTemplateFor(s, variant = s.scmTemplate) {
   if (!row) return null;
   const [file, mat, W, H, cw, ch, x, y, cols, rows, portrait, inset, arm, thickness, radius] = row;
   return {file, mat, W, H, cw, ch, x, y, cols, rows, portrait:!!portrait, inset, arm, thickness, radius};
+}
+
+// The sheet label Card Maker prints on every front page, in its own words,
+// so a sheet can be matched to its sheet number and cutting template.
+function scmSheetLabel(s, sheetIndex) {
+  const spec = scmTemplateFor(s), own = s.scmLabel.trim();
+  const text = `sheet: ${sheetIndex + 1}, template: ${spec.file.replace(/^.*\//, '').replace(/\.studio3$/, '')}`;
+  return own ? `label: ${own}, ${text}` : text;
+}
+
+// Where Card Maker's label sits: add_front_back_pages centres 40 px Arial
+// (9.6 pt) on a line inset from the right edge by the registration inset less
+// two mark thicknesses (the inset alone when borderless), each rounded to whole
+// 300 ppi pixels as size_to_pixel does. Its bundled Arial puts that centre
+// ("mm" anchor) 14 px above the baseline, and jsPDF places text by baseline.
+// Returns the baseline's distance from the right edge in mm.
+const SCM_LABEL_MIDDLE_PX = 14;
+function scmLabelBaseline(s) {
+  const spec = scmTemplateFor(s), px = mm => Math.round(mm / SCM_MM_PER_PIXEL);
+  const margin = px(spec.inset) - (s.scmTemplate === 'borderless' ? 0 : 2 * px(spec.thickness));
+  return (margin - SCM_LABEL_MIDDLE_PX) * SCM_MM_PER_PIXEL;
 }
 
 function scmSettings(s, variant) {
@@ -2559,7 +2589,7 @@ function scmSkipPositions(value) {
 function scmLayout(s) {
   const spec = scmTemplateFor(s);
   const {W, H, cw, ch, x, y, cols, rows, portrait} = spec;
-  const bleed = s.bleed, pitch = 15;
+  const bleed = s.bleed, pitch = SCM_PITCH_PX;
   // SCM rotates portrait sheets counterclockwise after placing their cards.
   const [x0, y0] = portrait ? [y, H-x-(cols-1)*(cw+pitch)-cw] : [x, y];
   const [width, height] = (portrait ? [ch, cw] : [cw, ch]).map(px=>px*SCM_MM_PER_PIXEL);
@@ -2570,7 +2600,12 @@ function scmLayout(s) {
   const positions = Array.from({length:cols*rows},(_,i)=>i);
   const occupied = positions.filter(i=>!skipped.has(i+1));
   const slotOrder = occupied.length ? occupied : positions;
+  // The page is Card Maker's whole-pixel page (3507 px for A4's 297 mm, as its
+  // PDF declares), but generate_reg_mark places the marks from the nominal paper
+  // size, so the right and bottom marks sit from 297 mm, not from 296.93.
+  const paper = PAGE_SIZES[s.pageSize] || [H*SCM_MM_PER_PIXEL, W*SCM_MM_PER_PIXEL];
   return {scm:spec.file, scmPortrait:portrait, W:W*SCM_MM_PER_PIXEL, H:H*SCM_MM_PER_PIXEL,
+    regW:Math.max(...paper), regH:Math.min(...paper),
     cw:width, ch:height, sw, sh, cols:gridCols, rows:gridRows, per:slotOrder.length, slotOrder,
     invalidSkip:!occupied.length,
     gw:sw+(gridCols-1)*stepX, gh:sh+(gridRows-1)*stepY,
@@ -2982,11 +3017,13 @@ function registrationFrame(L, s) {
   const orientation = s.silhouette && (s.regOrientation === 'portrait' || s.regOrientation === 'landscape')
     ? s.regOrientation : s.orientation;
   const turned = orientation !== s.orientation;
-  if (!turned) return {W:L.W, H:L.H, orientation, turned, toPaper:(x,y)=>[x,y], toMat:(x,y)=>[x,y]};
+  // Card Maker templates measure the marks from the nominal paper (see scmLayout).
+  const PW = L.regW ?? L.W, PH = L.regH ?? L.H;
+  if (!turned) return {W:PW, H:PH, orientation, turned, toPaper:(x,y)=>[x,y], toMat:(x,y)=>[x,y]};
   const portrait = orientation === 'portrait';
-  return {W:L.H, H:L.W, orientation, turned,
-    toPaper:portrait ? (x,y)=>[y,L.H-x] : (x,y)=>[L.W-y,x],
-    toMat:portrait ? (x,y)=>[L.H-y,x] : (x,y)=>[y,L.W-x]};
+  return {W:PH, H:PW, orientation, turned,
+    toPaper:portrait ? (x,y)=>[y,PH-x] : (x,y)=>[PW-y,x],
+    toMat:portrait ? (x,y)=>[PH-y,x] : (x,y)=>[y,PW-x]};
 }
 function regArm(L, s = S.settings) {
   if (s.regLen > 0) return Math.max(REG_MIN_LEN, Math.min(s.regLen, REG_MAX_LEN));
@@ -3049,11 +3086,14 @@ function regMarks(L, s = S.settings) {
 
 function regInkBoxes(marks) {
   if (!marks.width) return [];
-  // Card Maker strokes the square and uses projecting caps on the L arms.
-  // Use filled rectangles so the proof, PDF and collision checks see exactly
-  // the same footprint.
+  // Card Maker (page_manager.generate_reg_mark) draws the 5 mm square as a
+  // matplotlib Rectangle stroked at the mark thickness, so its ink runs half a
+  // stroke past each edge: 5 + t mm square, its corner t/2 outside the inset.
+  // The L arms are Line2D strokes with projecting caps. Use filled rectangles
+  // of those footprints so the proof, PDF and collision checks see exactly
+  // what Card Maker prints.
   const t = marks.width / 2;
-  return [...marks.rects,
+  return [...marks.rects.map(([x,y,w,h])=>[x-t,y-t,w+2*t,h+2*t]),
     ...marks.lines.map(([x,y,u,v])=>[Math.min(x,u)-t,Math.min(y,v)-t,Math.abs(x-u)+2*t,Math.abs(y-v)+2*t])];
 }
 
@@ -9049,11 +9089,11 @@ async function exportPrintJob(job, withCut = false) {
           doc.setFillColor('#000000');
           for (const [x,y,w,h] of regInk) doc.rect(x,y,w,h,'F');
         }
-        const label = s.scmLabel.trim();
-        if (!back && L.scm && label) {
+        const label = L.scm ? scmSheetLabel(s, sheets[pageIdx].index) : '';
+        if (!back && L.scm) {
           doc.setFontSize(9.6);
           doc.setFontSize(Math.min(9.6, 9.6*(L.H-10)/doc.getTextWidth(label)));
-          doc.text(label, L.W - (s.scmTemplate === 'borderless' ? 2.6 : 7.5),
+          doc.text(label, L.W - scmLabelBaseline(s),
             L.H/2 + doc.getTextWidth(label)/2, {angle:90});
         }
       }
@@ -9074,15 +9114,50 @@ async function exportPrintJob(job, withCut = false) {
   if (done) showPostExportInstructions(pages.length, withCut);
 }
 
-// A page with nothing on it but the cutter's registration marks, drawn by the
-// same code and in the same place as on a real export. Printed on scrap paper
-// it checks that the cutter reads the marks and tries the cut settings without
-// spending toner on artwork. It does not need any cards in the project.
+// A test page with the cutter's registration marks, drawn by the same code and
+// in the same place as on a real export, and every card position outlined
+// faintly: a thin solid line at the bleed edge and a dashed one at the safe area,
+// 3 mm inside the trim. Printed on scrap paper it checks that the cutter reads
+// the marks and tries the cut settings without spending toner on artwork; a
+// cut that registers lands between the two outlines with an even margin all
+// round. The outlines go through the same transform and page turn as the card
+// art, so a calibration offset moves them just as it moves the cards. It does
+// not need any cards in the project.
+// The outlines are pure black, kept faint by being thin and sparsely dashed
+// rather than by being grey. On a colour laser a grey is often built from all
+// four toners; pure black vector art prints from the black cartridge alone
+// when Pure Black Text covers graphics (measured: Canon suite FINDINGS §18,
+// which the cardstock profiles rely on). A grey only goes black-only through
+// Gray Compensation, which is off by default and has not been measured.
+const REG_TEST_SAFE = 3, REG_TEST_INK = '#000000', REG_TEST_LINE = 0.1, REG_TEST_DASH = [0.6, 1.4];
+function registrationTestOutlines(L, s) {
+  const T = makeT(L, false, s), radius = Math.max(0, Math.min(s.cornerRadius ?? 3.2, L.cw/2, L.ch/2));
+  const inset = s.bleed + REG_TEST_SAFE, sr = Math.max(0, radius - REG_TEST_SAFE);
+  return Array.from({length: L.per}, (_, i) => {
+    const p = slotPos(L, i, false, s);
+    return {
+      bleed: [T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh)],
+      safe: L.cw > 2*REG_TEST_SAFE && L.ch > 2*REG_TEST_SAFE
+        ? [T.x(p.x + inset), T.y(p.y + inset), T.w(L.cw - 2*REG_TEST_SAFE), T.h(L.ch - 2*REG_TEST_SAFE), T.w(sr), T.h(sr)] : null
+    };
+  });
+}
 function registrationTestDoc(L, s) {
-  const doc = newDoc(L), ink = regInkBoxes(regMarks(L, s));
+  const doc = newDoc(L), ink = regInkBoxes(regMarks(L, s)), outlines = registrationTestOutlines(L, s);
+  const turned = backTurn(doc, L, true, false, s);
+  doc.setDrawColor(REG_TEST_INK); doc.setLineWidth(REG_TEST_LINE);
+  for (const {bleed, safe} of outlines) {
+    doc.setLineDashPattern([], 0); doc.rect(...bleed, 'S');
+    if (!safe) continue;
+    const [x, y, w, h, rx, ry] = safe;
+    doc.setLineDashPattern(REG_TEST_DASH, 0);
+    if (rx > 0) doc.roundedRect(x, y, w, h, rx, ry, 'S'); else doc.rect(x, y, w, h, 'S');
+  }
+  doc.setLineDashPattern([], 0);
+  if (turned) backTurn(doc, L, false, false, s);
   doc.setFillColor('#000000');
   for (const [x,y,w,h] of ink) doc.rect(x,y,w,h,'F');
-  return {doc, ink};
+  return {doc, ink, outlines};
 }
 function exportRegistrationTest() {
   if (!window.jspdf) return toast('The PDF library could not load from this ProxyPress instance. Reload the page. If it still fails, check the server installation.', 8000);
@@ -9091,8 +9166,8 @@ function exportRegistrationTest() {
   if (regMarksClipped(L, s)) return toast('Registration marks extend off the PDF page. Increase the mark inset.', 7000);
   const {doc} = registrationTestDoc(L, s);
   const base = deck().name.replace(/[^\w\- ]+/g, '').trim() || 'proxies';
-  doc.save(`${base}-registration-marks-${L.W}x${L.H}mm.pdf`);
-  toast('Marks-only test page downloaded. Print it at 100% scale, the same way as the cards.', 7000);
+  doc.save(`${base}-registration-test-${L.W}x${L.H}mm.pdf`);
+  toast('Registration test page downloaded. Print it at 100% scale, the same way as the cards.', 7000);
 }
 
 function openExportWizard(initialStep = 1) {

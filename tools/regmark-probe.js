@@ -26,6 +26,9 @@
       // its corner on the inset, and four L arms over two corners.
       eq(`${tag} square count`, m.rects.length, 1);
       eq(`${tag} square`, m.rects[0].join(','), [i, i, 5, 5].join(','));
+      // Card Maker strokes that square at the mark thickness, so the printed
+      // ink is 5 + t mm with its corner t/2 outside the inset.
+      eq(`${tag} square ink`, regInkBoxes(m)[0].map(v => v.toFixed(4)).join(','), [i - t/2, i - t/2, 5 + t, 5 + t].map(v => v.toFixed(4)).join(','));
       eq(`${tag} arm count`, m.lines.length, 4);
       eq(`${tag} nothing bottom-right`, m.lines.some(([x, y]) => x > L.W / 2 && y > L.H / 2), false);
 
