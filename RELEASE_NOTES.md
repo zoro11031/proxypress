@@ -1,17 +1,15 @@
-# Proxy Press v0.9.0
+# Proxy Press v0.10.0
 
-Cutting with stock Silhouette Card Maker templates, a calmer workspace, and clearer export and order review.
+A new workspace, Silhouette Card Maker output that matches Card Maker's own, and a double-sided test that measures the back's angle and size as well as its offset.
 
-- **Silhouette Card Maker:** PDFs and cut files match the stock Letter and A4 templates, with guides off, the template's bleed and registration marks, and back-only alignment. Cameo setups default to it.
-- **Cut files:** the print & cut ZIP has matched PDF, Studio, DXF and SVG files for each sheet, including four-card Letter landscape. Exports with mismatched registration are blocked.
-- **Workspace:** Print settings opens full-width, with quick setup menus, a slate and teal theme, and consistent navigation between preview, settings, artwork and review.
-- **Alignment:** edits take effect only when applied, and fronts and backs show their own calibration status in setup, proof and review.
-- **Artwork:** proportions are preserved, Apply stays in view in the art picker, and Preview opens from the card list and import drafts.
-- **Printing:** cardbacks are off by default, sheets no longer get automatic labels, Letter foil layouts are new, and foil colors can be saved as a default.
-- **Orders:** clearer download steps, and deck file exports stay on your device.
+- **Workspace:** the sheet lies on a cutting mat with millimetre rulers, the card list reads like a decklist, and the print summary shows every setting in one place. Anything Proxy Press changes for you, such as making a job double-sided for a double-faced card, stays highlighted until you accept it. Short questions use in-app dialogs instead of browser pop-ups.
+- **Silhouette Card Maker:** card positions, bleed, registration marks and the sheet label now match Card Maker's `create_pdf.py` on all 190 of its templates, including the single-row and single-column ones.
+- **Registration test page:** a one-page PDF with the registration marks and a faint outline of every card position, a solid line at the bleed edge and a dashed line at the safe area. Cut it on scrap paper: if the cuts are centred, each one falls between the two lines. The outlines are pure black, so a color laser prints them from black toner alone.
+- **Double-sided test:** prints your real layout on both sides with five pin points on every card and a 1 mm grid behind each. Enter as many readings as you like, or scan page 2 against black paper and Proxy Press reads every hole. It works out the back's offset, angle and size, reports any skew no setting can fix, and never changes the front.
+- **Fixes:** cards from your own images no longer show a stray "#", and the card list's counts and layout summary are easier to read.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/Proxy-Press-0.9.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/Proxy-Press-0.9.0.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/Proxy-Press-0.10.0.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/Proxy-Press-0.10.0.msi).
 
-**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/Proxy-Press-0.9.0.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/Proxy-Press-0.9.0.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/Proxy-Press-0.9.0.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/Proxy-Press-0.9.0.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.9.0/proxypress-bin-aur.tar.gz).
+**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/Proxy-Press-0.10.0.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/Proxy-Press-0.10.0.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/Proxy-Press-0.10.0.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/Proxy-Press-0.10.0.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.10.0/proxypress-bin-aur.tar.gz).
