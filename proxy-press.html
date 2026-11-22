@@ -2232,22 +2232,22 @@ function printSourceBleed(face, s, assumedRatio = false) {
 function scmArtworkPlacement(iw, ih, s, sourceBleed, back) {
   const crop = (back ? s.scmCropBack : s.scmCrop) || 0;
   const fit = back && s.scmFitBack !== 'same' ? s.scmFitBack : s.scmFit;
-  const cw = s.cardW, ch = s.cardH, bleed = s.bleed;
+  const cw = s.cardW, ch = s.cardH, B = cardBleed(s);
   let sx = iw / (cw + 2*sourceBleed) * (1 - 2*crop/cw);
   let sy = ih / (ch + 2*sourceBleed) * (1 - 2*crop/ch);
   if (fit === 'crop') sx = sy = Math.min(sx, sy);
-  const ex = Math.min(bleed, Math.max(0, (iw/sx - cw)/2));
-  const ey = Math.min(bleed, Math.max(0, (ih/sy - ch)/2));
+  const ex = Math.min(B.x, Math.max(0, (iw/sx - cw)/2));
+  const ey = Math.min(B.y, Math.max(0, (ih/sy - ch)/2));
   const w = Math.min(iw, (cw+2*ex)*sx), h = Math.min(ih, (ch+2*ey)*sy);
-  return {src:[(iw-w)/2,(ih-h)/2,w,h], dst:[bleed-ex,bleed-ey,cw+2*ex,ch+2*ey], ex, ey};
+  return {src:[(iw-w)/2,(ih-h)/2,w,h], dst:[B.x-ex,B.y-ey,cw+2*ex,ch+2*ey], ex, ey};
 }
 async function renderFace(face, dpi, hi, rot = 0, settings = S.settings, back = false) {
   const s = {...settings};
   const url = await faceSrc(face, hi, s);
   if (!url) throw new Error(`No image for "${face.name}"`);
   const img = await loadImage(url);
-  const k = dpi / 25.4, b = s.bleed;
-  const W = Math.round((s.cardW + 2*b) * k), H = Math.round((s.cardH + 2*b) * k);
+  const k = dpi / 25.4, b = s.bleed, B = cardBleed(s);
+  const W = Math.round((s.cardW + 2*B.x) * k), H = Math.round((s.cardH + 2*B.y) * k);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
@@ -2312,7 +2312,7 @@ async function renderFace(face, dpi, hi, rot = 0, settings = S.settings, back = 
 
 const previewCache = new Map();
 function settingsSig(s = S.settings) {
-  return [s.cardW, s.cardH, s.bleed, s.bleedMode, s.brightness, s.saturation, s.contrast, s.foilTint,
+  return [s.cardW, s.cardH, s.bleed, ...Object.values(cardBleed(s)), s.bleedMode, s.brightness, s.saturation, s.contrast, s.foilTint,
     s.customSrcBleed, s.duplexFlip, s.silhouette, s.scmTemplate, s.scmFit, s.scmFitBack, s.scmCrop, s.scmCropBack].join(',');
 }
 async function previewUrl(face, rot = 0, settings = S.settings, back = false) {
@@ -2538,10 +2538,20 @@ const SCM_MM_PER_PIXEL = 25.4 / 300;
 // gives ceil((pitch - card) / 2) = 8 px. Two neighbours' bleeds then meet with
 // no white sliver between them, and every card lands on whole 300 ppi pixels.
 // (Its SPECIFICATION.md says 0.625 mm, which is 7.4 px and leaves a sliver;
-// the code is what prints.) Card Maker uses 15 px on an axis with a single
-// card; this keeps one value for both axes, so those few layouts get 8 px there.
-const SCM_PITCH_PX = 15;
+// the code is what prints.) An axis with a single card gets 15 px: see cardBleed.
+const SCM_PITCH_PX = 15, SCM_MIN_BLEED_PX = 15;
 const SCM_BLEED = Math.ceil(SCM_PITCH_PX / 2) * SCM_MM_PER_PIXEL;
+// Card Maker bleeds each axis on its own: half the gap between neighbours, and
+// MINIMUM_BLEED (15 px) on an axis that has a single card and so no neighbour.
+// cardBleed is in the card's own axes, the frame its art is rendered in;
+// slotBleed is in the page's, where the card may lie turned.
+function cardBleed(s) {
+  const spec = s.silhouette && s.scmTemplate && s.scmTemplate !== 'custom' && scmTemplateFor(s);
+  if (!spec) return {x: s.bleed, y: s.bleed};
+  const mm = n => (n === 1 ? SCM_MIN_BLEED_PX : Math.ceil(SCM_PITCH_PX / 2)) * SCM_MM_PER_PIXEL;
+  return {x: mm(spec.cols), y: mm(spec.rows)};
+}
+function slotBleed(L, s) { return L.bx !== undefined ? {x: L.bx, y: L.by} : {x: s.bleed, y: s.bleed}; }
 const SCM_LAYOUT_FIELDS = new Set(['orientation', 'cardRotation', 'cardW', 'cardH',
   'margin', 'gap', 'bleed', 'cols', 'rows', 'duplexFlip']);
 
@@ -2596,13 +2606,13 @@ function scmSkipPositions(value) {
 function scmLayout(s) {
   const spec = scmTemplateFor(s);
   const {W, H, cw, ch, x, y, cols, rows, portrait} = spec;
-  const bleed = s.bleed, pitch = SCM_PITCH_PX;
+  const own = cardBleed(s), bx = portrait ? own.y : own.x, by = portrait ? own.x : own.y, pitch = SCM_PITCH_PX;
   // SCM rotates portrait sheets counterclockwise after placing their cards.
   const [x0, y0] = portrait ? [y, H-x-(cols-1)*(cw+pitch)-cw] : [x, y];
   const [width, height] = (portrait ? [ch, cw] : [cw, ch]).map(px=>px*SCM_MM_PER_PIXEL);
   const stepX = width+pitch*SCM_MM_PER_PIXEL, stepY = height+pitch*SCM_MM_PER_PIXEL;
   const gridCols = portrait ? rows : cols, gridRows = portrait ? cols : rows;
-  const sw = width+2*bleed, sh = height+2*bleed;
+  const sw = width+2*bx, sh = height+2*by;
   const skipped = new Set(scmSkipPositions(s.scmSkip));
   const positions = Array.from({length:cols*rows},(_,i)=>i);
   const occupied = positions.filter(i=>!skipped.has(i+1));
@@ -2616,7 +2626,7 @@ function scmLayout(s) {
     cw:width, ch:height, sw, sh, cols:gridCols, rows:gridRows, per:slotOrder.length, slotOrder,
     invalidSkip:!occupied.length,
     gw:sw+(gridCols-1)*stepX, gh:sh+(gridRows-1)*stepY,
-    x0:x0*SCM_MM_PER_PIXEL-bleed, y0:y0*SCM_MM_PER_PIXEL-bleed,
+    x0:x0*SCM_MM_PER_PIXEL-bx, y0:y0*SCM_MM_PER_PIXEL-by, bx, by,
     stepX, stepY, fits:true, rot:portrait ? -90 : 0, mirrorX:false};
 }
 function layout(s = S.settings) {
@@ -7277,7 +7287,7 @@ function applyFoilToneModel(srcCanvas, params = {}) {
 async function renderPrintColors(face, settings = S.settings, dpi = 300) {
   const s = {...S.settings,...settings}, rendered = await renderFace(face,dpi,true,0,s), k=dpi/25.4;
   const canvas=document.createElement('canvas'); canvas.width=Math.round(s.cardW*k); canvas.height=Math.round(s.cardH*k);
-  canvas.getContext('2d').drawImage(rendered,Math.round(s.bleed*k),Math.round(s.bleed*k),canvas.width,canvas.height,0,0,canvas.width,canvas.height);
+  const B=cardBleed(s);canvas.getContext('2d').drawImage(rendered,Math.round(B.x*k),Math.round(B.y*k),canvas.width,canvas.height,0,0,canvas.width,canvas.height);
   return canvas;
 }
 
@@ -7925,8 +7935,8 @@ function renderAlignmentOverlay() {
   const L = layout(), s = S.settings, status = getCalibrationStatus();
   const page = paginate(buildSlots(), L.per)[S.activeSheet || 0] || [];
   const points = (index, back) => {
-    const p = slotPos(L, index, back), T = makeT(L, back);
-    return [[p.x+s.bleed,p.y+s.bleed],[p.x+s.bleed+L.cw,p.y+s.bleed],[p.x+s.bleed+L.cw,p.y+s.bleed+L.ch],[p.x+s.bleed,p.y+s.bleed+L.ch]].map(([x,y])=>{
+    const p = slotPos(L, index, back), T = makeT(L, back), B = slotBleed(L, s);
+    return [[p.x+B.x,p.y+B.y],[p.x+B.x+L.cw,p.y+B.y],[p.x+B.x+L.cw,p.y+B.y+L.ch],[p.x+B.x,p.y+B.y+L.ch]].map(([x,y])=>{
       const transformed = turnPt(L, {x:T.x(x),y:T.y(y)}, back);
       const physical = back ? backPoint(L, transformed) : transformed;
       return `${physical.x.toFixed(3)},${physical.y.toFixed(3)}`;
@@ -8555,7 +8565,8 @@ function emptySheetHtml(L, z, s) {
   let slots = '';
   for (let i = 0; i < L.per; i++) {
     const p = slotPos(L, i, false, s);
-    slots += `<rect x="${T.x(p.x + s.bleed)*z}" y="${T.y(p.y + s.bleed)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" rx="${3*z}"/>`;
+    const B = slotBleed(L, s);
+    slots += `<rect x="${T.x(p.x + B.x)*z}" y="${T.y(p.y + B.y)*z}" width="${T.w(L.cw)*z}" height="${T.h(L.ch)*z}" rx="${3*z}"/>`;
   }
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
   return `<div class="pg pg-empty" style="width:${L.W*z}px;height:${L.H*z}px">
@@ -8872,8 +8883,8 @@ async function runPreflight(options = {}) {
         if (!(back ? slots[sheetIdx * L.per + i].back : slots[sheetIdx * L.per + i].front)) continue;
         const p = slotPos(L, i, back, s);
         const T = makeT(L, back, s);
-        const left = p.x + s.bleed;
-        const top = p.y + s.bleed;
+        const B = slotBleed(L, s), left = p.x + B.x;
+        const top = p.y + B.y;
         const right = left + L.cw;
         const bottom = top + L.ch;
         const corners = [
@@ -9139,13 +9150,13 @@ async function exportPrintJob(job, withCut = false) {
 const REG_TEST_SAFE = 3, REG_TEST_INK = '#000000', REG_TEST_LINE = 0.1, REG_TEST_DASH = [0.6, 1.4];
 function registrationTestOutlines(L, s) {
   const T = makeT(L, false, s), radius = Math.max(0, Math.min(s.cornerRadius ?? 3.2, L.cw/2, L.ch/2));
-  const inset = s.bleed + REG_TEST_SAFE, sr = Math.max(0, radius - REG_TEST_SAFE);
+  const B = slotBleed(L, s), sr = Math.max(0, radius - REG_TEST_SAFE);
   return Array.from({length: L.per}, (_, i) => {
     const p = slotPos(L, i, false, s);
     return {
       bleed: [T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh)],
       safe: L.cw > 2*REG_TEST_SAFE && L.ch > 2*REG_TEST_SAFE
-        ? [T.x(p.x + inset), T.y(p.y + inset), T.w(L.cw - 2*REG_TEST_SAFE), T.h(L.ch - 2*REG_TEST_SAFE), T.w(sr), T.h(sr)] : null
+        ? [T.x(p.x + B.x + REG_TEST_SAFE), T.y(p.y + B.y + REG_TEST_SAFE), T.w(L.cw - 2*REG_TEST_SAFE), T.h(L.ch - 2*REG_TEST_SAFE), T.w(sr), T.h(sr)] : null
     };
   });
 }
@@ -9499,12 +9510,12 @@ function duplexCardInset(L) { return Math.max(6, Math.min(9, Math.min(L.cw, L.ch
 // the card, which is how the card art itself lands - including Card Maker
 // templates, whose backs flip by row rather than by a mirror of the page.
 function duplexCardPoints(L, s = S.settings) {
-  const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L), out = [];
+  const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L), B = slotBleed(L, s), out = [];
   const local = [[d, d], [L.cw - d, d], [d, L.ch - d], [L.cw - d, L.ch - d], [L.cw / 2, L.ch / 2]];
   for (let i = 0; i < L.per; i++) {
     const p = slotPos(L, i, false, s), pb = slotPos(L, i, true, s);
     local.forEach(([u, v], j) => {
-      const fu = s.bleed + u, fv = s.bleed + v;
+      const fu = B.x + u, fv = B.y + v;
       const front = {x: p.x + fu, y: p.y + fv};
       const pre = {x: pb.x + (L.mirrorX ? L.sw - fu : fu), y: pb.y + (L.mirrorX ? fv : L.sh - fv)};
       const printed = turnPt(L, {x: Tf.x(front.x), y: Tf.y(front.y)}, false, s);
@@ -9532,12 +9543,12 @@ function duplexReadSign(L) { return backPageRot(L) === 180 ? -1 : 1; }
 function duplexCardTestDoc(L, s = S.settings) {
   const doc = newDoc(L), pts = duplexCardPoints(L, s), rot2 = backPageRot(L), f2 = duplexReadSign(L);
   const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L);
-  const skeleton = (T, x, y) => {
+  const B = slotBleed(L, s), skeleton = (T, x, y) => {
     doc.setDrawColor(REG_TEST_INK); doc.setLineWidth(REG_TEST_LINE); doc.setLineDashPattern([], 0);
     doc.rect(T.x(x), T.y(y), T.w(L.sw), T.h(L.sh), 'S');
     if (L.cw > 2 * REG_TEST_SAFE && L.ch > 2 * REG_TEST_SAFE) {
       doc.setLineDashPattern(REG_TEST_DASH, 0);
-      doc.rect(T.x(x + s.bleed + REG_TEST_SAFE), T.y(y + s.bleed + REG_TEST_SAFE), T.w(L.cw - 2 * REG_TEST_SAFE), T.h(L.ch - 2 * REG_TEST_SAFE), 'S');
+      doc.rect(T.x(x + B.x + REG_TEST_SAFE), T.y(y + B.y + REG_TEST_SAFE), T.w(L.cw - 2 * REG_TEST_SAFE), T.h(L.ch - 2 * REG_TEST_SAFE), 'S');
       doc.setLineDashPattern([], 0);
     }
   };
@@ -10181,7 +10192,7 @@ function studioCanvasPad(s) {
 }
 
 function cutterCardRect(L, s, index, frame, pad = 0) {
-  const p = slotPos(L,index,false,s), left = p.x+s.bleed, top = p.y+s.bleed;
+  const p = slotPos(L,index,false,s), B = slotBleed(L,s), left = p.x+B.x, top = p.y+B.y;
   const radius = Math.max(0,Math.min(s.cornerRadius ?? 3.2,L.cw/2,L.ch/2)), T = makeT(L,false,s);
   // Registration stays in sheet coordinates. Apply the artwork's correction
   // to the outline, then express it in the rotated and padded cutter canvas.

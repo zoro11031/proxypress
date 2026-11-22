@@ -54,7 +54,7 @@
         eq(`${tag} slot ${i} bleed`, round(outlines[i].bleed), round([T.x(p2.x), T.y(p2.y), T.w(L.sw), T.h(L.sh)]));
         const [x, y, w, h] = outlines[i].safe, b = outlines[i].bleed, side = (b[2] - w) / 2, top = (b[3] - h) / 2;
         eq(`${tag} slot ${i} safe centred`, [x - b[0], y - b[1]].map(v => v.toFixed(4)).join(','), [side, top].map(v => v.toFixed(4)).join(','));
-        eq(`${tag} slot ${i} safe inset`, side.toFixed(4), (s.bleed + REG_TEST_SAFE).toFixed(4));
+        eq(`${tag} slot ${i} safe inset`, side.toFixed(4), (slotBleed(L, s).x + REG_TEST_SAFE).toFixed(4));
       }
       ran++;
     }
