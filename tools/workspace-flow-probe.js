@@ -188,7 +188,7 @@
   if ($('#printSettingsView').dataset.page !== 'cutting') openPrintSettings('cutting');
   select('#cameoPaperSize','letter');
   check(layout().scm === 'letter-standard-v6.studio3' && $('#setting-pageSize').value === 'letter', 'Choosing Letter should change the template and the print paper together.');
-  check(visible('#scmTemplateHint') && /0\.625 mm bleed.*10 mm/.test($('#scmTemplateHint').textContent), 'Show the standard stock bleed and mark inset.');
+  check(visible('#scmTemplateHint') && /0\.68 mm bleed.*10 mm/.test($('#scmTemplateHint').textContent), 'Show the standard stock bleed and mark inset.');
   S.settings.guides = 'all';
   renderCutStatus();
   check(!$('#cameoStatus').textContent.includes('cut guides are on'), 'Cameo status must ignore stale guides for stock templates.');
@@ -314,8 +314,8 @@
   check(!$('#duplexWizardChoices [data-flip="short"]'), 'The stock template should offer its supported flip only.');
   check(!$('#modal .bd').textContent.includes('check the front first'), 'The stock wizard should direct the user to align the backs.');
   const wizardBackX = 1.25 + (backPageRot(layout()) === 180 ? -0.5 : 0.5);
-  $('#duplexWizardX').value = '0.5';
-  $('#duplexWizardY').value = '0';
+  const setRead=(id,x,y)=>{for(const [ax,v] of [['x',x],['y',y]]){const el=document.querySelector(`#duplexWizardPoints input[data-id="${id}"][data-ax="${ax}"]`);el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));}};
+  setRead('1E', '0.5', '0');
   click('#duplexWizardApply');
   check(S.settings.backOffsetX === wizardBackX && S.settings.offsetX === 2, 'Wizard readings should adjust only the back.');
   closeModal();

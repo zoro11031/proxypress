@@ -228,12 +228,13 @@
       eq('declined turn leaves them alone', turn('landscape', false), '0,1,2.2,-2.8');
     } finally { window.confirm = realConfirm; }
 
-    // The wizard adds the reading to what is already there. Replacing it would make
+    // The wizard adds the reading to what is already there. One point fits the
+    // offset alone, which is exactly that addition. Replacing it would make
     // the second run of the test undo the first correction instead of confirming it.
     S.settings = {...DEFAULTS, backOffsetX:0.5, backOffsetY:-0.25};
     openDuplexWizard();
-    document.querySelector('#duplexWizardX').value = '-0.75';
-    document.querySelector('#duplexWizardY').value = '+1';
+    const setRead=(id,x,y)=>{for(const [ax,v] of [['x',x],['y',y]]){const el=document.querySelector(`#duplexWizardPoints input[data-id="${id}"][data-ax="${ax}"]`);el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));}};
+    setRead('1E', '-0.75', '+1');
     document.querySelector('#duplexWizardApply').click();
     eq('wizard adds the X reading', S.settings.backOffsetX, -0.25);
     eq('wizard adds the Y reading', S.settings.backOffsetY, 0.75);

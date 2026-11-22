@@ -343,6 +343,13 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .duplex-choice:hover{border-color:var(--field)}
 .duplex-choice.on{border-color:var(--accent);background:rgb(var(--accent-rgb) / .07)}
 .duplex-choice-hd{display:block;font-weight:600;font-size:14px;margin-bottom:2px}
+.duplex-points{width:100%;max-width:480px;border-collapse:collapse;margin-top:8px}
+.duplex-points th,.duplex-points td{padding:4px 8px 4px 0;border-bottom:1px solid var(--line);text-align:left;font-weight:400;font-size:var(--t-m)}
+.duplex-points thead th{font-size:var(--t-s);color:var(--muted)}
+.duplex-points input{width:100%;min-width:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.duplex-points .num,#duplexWizardSum .num,#duplexWizardEntered .num,#duplexWizardScanHint .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.duplex-points th[scope=row]{white-space:nowrap}
+.duplex-points .pt-name{display:block;font-size:var(--t-s);color:var(--muted)}
 .duplex-read{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-md);padding:10px;max-width:480px}
 @keyframes scrim-in{from{background-color:transparent}}
 @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -7676,7 +7683,7 @@ function renderSettings() {
       ? ` · <span style="color:var(--accent);font-weight:600">Custom colors</span>`
       : '';
   const sumHtml = `<b>${esc(paper)} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'} · ${L.per} cards per sheet</b>
-    <span>${s.bleed} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
+    <span>${+s.bleed.toFixed(2)} mm bleed${L.rot ? ' · cards sideways' : ''}${buildSlots().some(x => x.back) ? ' · double-sided' : ''} · margins ${L.x0.toFixed(1)} / ${L.y0.toFixed(1)} mm${foilBadge}</span>`;
   const sumEl = $('#setupSummary');
   if (sumEl) sumEl.innerHTML = sumHtml;
 
@@ -9471,183 +9478,316 @@ function pdfText(doc, x, y, width, size = 7.5, lead = 4.1, align = null, angle =
     }
   };
 }
+/* ---------- double-sided card test ---------- */
+// The double-sided test is the real sheet: every card position on both sides,
+// drawn as the registration test's skeleton (bleed edge and safe area) through
+// the same transforms the cards print with, and five pierce points per card.
+// A pin pushed through a front point comes out on the back inside a 1 mm read
+// grid centred where it should land, so each point gives an X and a Y reading.
+// Points spread across the sheet separate what one point cannot: shift, turn
+// and size. Each grid is boxed by four black dots on a 10 mm square, so a scan
+// can measure every hole against the print right beside it rather than against
+// the whole scan: a sheet that bows on the glass, or a scanner that stretches,
+// moves the dots and the hole together and cancels out.
+const DUPLEX_LETTERS = ['A', 'B', 'C', 'D', 'E'];       // top left, top right, bottom left, bottom right, centre
+const DUPLEX_DOT = 5, DUPLEX_DOT_R = 0.5, DUPLEX_GRID_CYAN = '#00a0e0';
+function duplexCardInset(L) { return Math.max(6, Math.min(9, Math.min(L.cw, L.ch) / 4)); }
+// Every pierce point, in page 2's own millimetres: `pre` is where its grid is
+// drawn from before the back page's scale, offset and turn; `mark` is where the
+// grid's zero prints; `hole` is where a pin through the front point comes out.
+// The back point is the front point's place in the BACK slot, mirrored inside
+// the card, which is how the card art itself lands - including Card Maker
+// templates, whose backs flip by row rather than by a mirror of the page.
+function duplexCardPoints(L, s = S.settings) {
+  const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L), out = [];
+  const local = [[d, d], [L.cw - d, d], [d, L.ch - d], [L.cw - d, L.ch - d], [L.cw / 2, L.ch / 2]];
+  for (let i = 0; i < L.per; i++) {
+    const p = slotPos(L, i, false, s), pb = slotPos(L, i, true, s);
+    local.forEach(([u, v], j) => {
+      const fu = s.bleed + u, fv = s.bleed + v;
+      const front = {x: p.x + fu, y: p.y + fv};
+      const pre = {x: pb.x + (L.mirrorX ? L.sw - fu : fu), y: pb.y + (L.mirrorX ? fv : L.sh - fv)};
+      const printed = turnPt(L, {x: Tf.x(front.x), y: Tf.y(front.y)}, false, s);
+      out.push({card: i, letter: DUPLEX_LETTERS[j], id: `${i + 1}${DUPLEX_LETTERS[j]}`, front, pre,
+        mark: turnPt(L, {x: Tb.x(pre.x), y: Tb.y(pre.y)}, true, s), hole: backPoint(L, printed)});
+    });
+  }
+  return out;
+}
+// The four dots round a read grid, and card 1's extra orientation dot, in
+// page 2's printed millimetres. The reader is built on these.
+function duplexDotsAt(L, pre, s = S.settings) {
+  const Tb = makeT(L, true, s), at = (x, y) => turnPt(L, {x: Tb.x(x), y: Tb.y(y)}, true, s);
+  return [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => at(pre.x + a * DUPLEX_DOT, pre.y + b * DUPLEX_DOT));
+}
+function duplexOrientDot(L, pre, s = S.settings) {
+  const Tb = makeT(L, true, s);
+  return turnPt(L, {x: Tb.x(pre.x), y: Tb.y(pre.y - 2 * DUPLEX_DOT)}, true, s);
+}
+// Reading convention: X to the right and Y downwards, looking at page 2 the
+// right way up, which is how its grid labels read. A page printed turned
+// (backPageRot 180) runs those axes the other way in its own coordinates.
+function duplexReadSign(L) { return backPageRot(L) === 180 ? -1 : 1; }
+
+function duplexCardTestDoc(L, s = S.settings) {
+  const doc = newDoc(L), pts = duplexCardPoints(L, s), rot2 = backPageRot(L), f2 = duplexReadSign(L);
+  const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L);
+  const skeleton = (T, x, y) => {
+    doc.setDrawColor(REG_TEST_INK); doc.setLineWidth(REG_TEST_LINE); doc.setLineDashPattern([], 0);
+    doc.rect(T.x(x), T.y(y), T.w(L.sw), T.h(L.sh), 'S');
+    if (L.cw > 2 * REG_TEST_SAFE && L.ch > 2 * REG_TEST_SAFE) {
+      doc.setLineDashPattern(REG_TEST_DASH, 0);
+      doc.rect(T.x(x + s.bleed + REG_TEST_SAFE), T.y(y + s.bleed + REG_TEST_SAFE), T.w(L.cw - 2 * REG_TEST_SAFE), T.h(L.ch - 2 * REG_TEST_SAFE), 'S');
+      doc.setLineDashPattern([], 0);
+    }
+  };
+  /* page 1, the front: pierce targets */
+  let turned = backTurn(doc, L, true, false, s);
+  doc.setTextColor('#000000'); doc.setFillColor('#000000');
+  for (let i = 0; i < L.per; i++) { const p = slotPos(L, i, false, s); skeleton(Tf, p.x, p.y); }
+  for (const p of pts) {
+    const {x, y} = p.front;
+    doc.setDrawColor('#000000'); doc.setLineWidth(0.15);
+    for (const [a, b, c, e] of [[-4.5, 0, -2.2, 0], [2.2, 0, 4.5, 0], [0, -4.5, 0, -2.2], [0, 2.2, 0, 4.5]])
+      doc.line(Tf.x(x + a), Tf.y(y + b), Tf.x(x + c), Tf.y(y + e));
+    doc.circle(Tf.x(x), Tf.y(y), Tf.w(1.6));
+    doc.setFontSize(6.5);
+    doc.text(p.id, Tf.x(x + 2.6), Tf.y(y - 2.6));
+  }
+  if (turned) backTurn(doc, L, false, false, s);
+  doc.setFontSize(6.5);
+  const note = 'DOUBLE-SIDED TEST, PAGE 1. Print at 100%. Turn the sheet over as Align front and back shows and print page 2 on its back. Pierce each ringed point from this side.';
+  if (L.y0 >= 4) doc.text(note, L.W / 2, Math.min(L.y0 - 1.2, 4), {align: 'center', maxWidth: L.W - 20});
+
+  /* page 2, the back: read grids, the dots round them, and the card skeletons */
+  doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
+  turned = backTurn(doc, L, true, true, s);
+  for (let i = 0; i < L.per; i++) { const p = slotPos(L, i, true, s); skeleton(Tb, p.x, p.y); }
+  for (const p of pts) {
+    const {x, y} = p.pre;
+    doc.setDrawColor(DUPLEX_GRID_CYAN); doc.setTextColor(DUPLEX_GRID_CYAN);
+    drawReadGrid(doc, (dx, dy) => [Tb.x(x + f2 * dx), Tb.y(y + f2 * dy)], 1, {angle: rot2, font: 4.2});
+    doc.setFillColor('#000000'); doc.setTextColor('#000000');
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) doc.circle(Tb.x(x + a * DUPLEX_DOT), Tb.y(y + b * DUPLEX_DOT), Tb.w(DUPLEX_DOT_R), 'F');
+    if (p.card === 0 && p.letter === 'A') doc.circle(Tb.x(x), Tb.y(y - 2 * DUPLEX_DOT), Tb.w(DUPLEX_DOT_R), 'F');
+    doc.setFontSize(6.5);
+    atext(doc, p.id, Tb.x(x + f2 * 1.2), Tb.y(y + f2 * 7.6), null, rot2);
+  }
+  if (turned) backTurn(doc, L, false, true, s);
+  return {doc, points: pts};
+}
+
+// Fitting the back to the readings. A reading is where the hole sits on its
+// grid, so the back's grid zero there has to move by exactly that much on the
+// file for the next sheet to read zero: the printer's own error on the second
+// pass is the same next time, and cancels. The front is never touched. The fit
+// moves only what the points can tell apart: one point gives a shift, points
+// spread out also give the turn, and a spread across X or Y gives that axis's
+// size. A shear (the back's axes no longer square to each other) has no setting
+// to apply it to, so it is measured from a free affine fit and reported.
+const DUPLEX_FIT_STEP = {backOffsetX: 0.01, backOffsetY: 0.01, backRotate: 0.001, backScaleX: 0.001, backScaleY: 0.001};
+function duplexMarkAt(L, s, pre) {
+  const Tb = makeT(L, true, s);
+  return turnPt(L, {x: Tb.x(pre.x), y: Tb.y(pre.y)}, true, s);
+}
+function solveLinear(A, b) {
+  const n = b.length, M = A.map((row, i) => [...row, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if (Math.abs(M[p][c]) < 1e-12) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((row, i) => row[n] / row[i]);
+}
+function duplexShear(pairs) {
+  if (pairs.length < 3) return null;
+  const n = pairs.length, mx = pairs.reduce((a, p) => a + p.from.x, 0) / n, my = pairs.reduce((a, p) => a + p.from.y, 0) / n;
+  const tx = pairs.reduce((a, p) => a + p.to.x, 0) / n, ty = pairs.reduce((a, p) => a + p.to.y, 0) / n;
+  let sxx = 0, sxy = 0, syy = 0, ax = [0, 0], ay = [0, 0];
+  for (const p of pairs) {
+    const u = p.from.x - mx, v = p.from.y - my, X = p.to.x - tx, Y = p.to.y - ty;
+    sxx += u * u; sxy += u * v; syy += v * v; ax[0] += u * X; ax[1] += v * X; ay[0] += u * Y; ay[1] += v * Y;
+  }
+  const det = sxx * syy - sxy * sxy;
+  if (Math.abs(det) < 1e-6 * Math.max(1, sxx * syy)) return null;   // collinear: no shear to see
+  const inv = [[syy / det, -sxy / det], [-sxy / det, sxx / det]];
+  const a = inv[0][0] * ax[0] + inv[0][1] * ax[1], b = inv[1][0] * ax[0] + inv[1][1] * ax[1];
+  const c = inv[0][0] * ay[0] + inv[0][1] * ay[1], e = inv[1][0] * ay[0] + inv[1][1] * ay[1];
+  const angle = Math.acos(Math.max(-1, Math.min(1, (a * b + c * e) / (Math.hypot(a, c) * Math.hypot(b, e)))));
+  return 90 - angle * 180 / Math.PI;
+}
+// readings: [{id, x, y}] in the grid's own reading (X right, Y down, page 2 upright).
+function solveDuplexReadings(L, s, readings) {
+  const pts = new Map(duplexCardPoints(L, s).map(p => [p.id, p])), f2 = duplexReadSign(L);
+  const used = readings.filter(r => pts.has(r.id) && Number.isFinite(r.x) && Number.isFinite(r.y)).map(r => {
+    const p = pts.get(r.id);
+    return {id: r.id, pre: p.pre, from: p.mark, to: {x: p.mark.x + f2 * r.x, y: p.mark.y + f2 * r.y}, reading: r};
+  });
+  if (!used.length) return {error: 'Enter at least one reading.'};
+  const xs = used.map(u => u.from.x), ys = used.map(u => u.from.y);
+  const spanX = Math.max(...xs) - Math.min(...xs), spanY = Math.max(...ys) - Math.min(...ys);
+  const active = ['backOffsetX', 'backOffsetY'];
+  if (Math.hypot(spanX, spanY) >= 20) active.push('backRotate');
+  if (spanX >= 30) active.push('backScaleX');
+  if (spanY >= 30) active.push('backScaleY');
+  let cur = Object.fromEntries(Object.keys(DUPLEX_FIT_STEP).map(k => [k, s[k]]));
+  const resid = params => used.flatMap(u => { const m = duplexMarkAt(L, {...s, ...params}, u.pre); return [u.to.x - m.x, u.to.y - m.y]; });
+  for (let it = 0; it < 12; it++) {
+    const r0 = resid(cur), J = active.map(k => {
+      const r1 = resid({...cur, [k]: cur[k] + DUPLEX_FIT_STEP[k]});
+      return r0.map((v, i) => (v - r1[i]) / DUPLEX_FIT_STEP[k]);
+    });
+    const A = active.map(a => active.map(b => J[active.indexOf(a)].reduce((t, v, i) => t + v * J[active.indexOf(b)][i], 0)));
+    const g = active.map((a, i) => J[i].reduce((t, v, j) => t + v * r0[j], 0));
+    const step = solveLinear(A, g);
+    if (!step) break;
+    active.forEach((k, i) => { cur[k] += step[i]; });
+    if (step.every((v, i) => Math.abs(v) < DUPLEX_FIT_STEP[active[i]] * 1e-3)) break;
+  }
+  const left = resid(cur), per = used.map((u, i) => ({id: u.id, x: left[2 * i] * f2, y: left[2 * i + 1] * f2}));
+  const dist = per.map(p => Math.hypot(p.x, p.y));
+  return {
+    values: Object.fromEntries(active.map(k => [k, +cur[k].toFixed(k === 'backRotate' ? 3 : 3)])),
+    active, points: used.length, residuals: per,
+    rms: Math.sqrt(dist.reduce((a, v) => a + v * v, 0) / dist.length), max: Math.max(...dist),
+    shear: duplexShear(used)
+  };
+}
+
+// Reading a scan of page 2. Scan the back with black paper behind the sheet,
+// so each pin hole shows dark. The reader finds the black dots, groups them
+// into the 10 mm squares round each read grid, picks out card 1's square by
+// its extra dot, and from there knows which square is which. Each hole is then
+// measured in its own square's frame - an affine fit to those four dots - so
+// it is read against print a few millimetres away, never across the sheet.
+// The grid is cyan, which is light in the green channel, so a hole is found in
+// that channel even where it sits on a grid line.
+function darkComponents(img, test) {
+  const {width: w, height: h, data} = img, lab = new Int32Array(w * h).fill(-1), comps = [];
+  const stack = new Int32Array(w * h);
+  for (let start = 0; start < w * h; start++) {
+    if (lab[start] !== -1 || !test(data, start * 4)) continue;
+    const id = comps.length, c = {n: 0, sx: 0, sy: 0, x0: w, y0: h, x1: 0, y1: 0};
+    let top = 0; stack[top++] = start; lab[start] = id;
+    while (top) {
+      const i = stack[--top], x = i % w, y = (i - x) / w;
+      c.n++; c.sx += x; c.sy += y;
+      if (x < c.x0) c.x0 = x; if (x > c.x1) c.x1 = x; if (y < c.y0) c.y0 = y; if (y > c.y1) c.y1 = y;
+      for (const j of [i - 1, i + 1, i - w, i + w]) {
+        if (j < 0 || j >= w * h || lab[j] !== -1) continue;
+        if ((j === i - 1 && x === 0) || (j === i + 1 && x === w - 1)) continue;
+        if (!test(data, j * 4)) continue;
+        lab[j] = id; stack[top++] = j;
+      }
+    }
+    comps.push(c);
+  }
+  return comps;
+}
+function fitAffine(src, dst) {
+  // dst = [a b c; d e f] * [x y 1], least squares over the pairs
+  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], bx = [0, 0, 0], by = [0, 0, 0];
+  src.forEach(([x, y], i) => {
+    const v = [x, y, 1];
+    for (let r = 0; r < 3; r++) { for (let c = 0; c < 3; c++) A[r][c] += v[r] * v[c]; bx[r] += v[r] * dst[i][0]; by[r] += v[r] * dst[i][1]; }
+  });
+  const px = solveLinear(A, bx), py = solveLinear(A, by);
+  return px && py ? {fwd: (x, y) => [px[0] * x + px[1] * y + px[2], py[0] * x + py[1] * y + py[2]], px, py} : null;
+}
+function invertAffine({px, py}) {
+  const det = px[0] * py[1] - px[1] * py[0];
+  return (X, Y) => { const u = X - px[2], v = Y - py[2]; return [(py[1] * u - px[1] * v) / det, (-py[0] * u + px[0] * v) / det]; };
+}
+function readDuplexScan(img, L, s = S.settings) {
+  const pts = duplexCardPoints(L, s), f2 = duplexReadSign(L), {width: w, data} = img;
+  const lum = (d, i) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+  // Round, solid, dark blobs: the dots, and nothing that is a line or a letter.
+  const blobs = darkComponents(img, (d, i) => lum(d, i) < 110).filter(c => {
+    const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, fill = c.n / (bw * bh);
+    return bw >= 4 && bh >= 4 && bw / bh > 0.75 && bw / bh < 1.33 && fill > 0.6 && fill < 0.92;
+  }).map(c => ({x: c.sx / c.n, y: c.sy / c.n, d: (c.x1 - c.x0 + c.y1 - c.y0 + 2) / 2}));
+  if (blobs.length < 4) return {error: 'No dots found. Scan page 2 whole, at 600 dpi or more, with black paper behind it.'};
+  // Squares: four dots, sides equal and square to each other.
+  const near = (x, y, tol) => blobs.find(b => Math.hypot(b.x - x, b.y - y) < tol);
+  const quads = new Map();
+  blobs.forEach((a, ia) => blobs.forEach((b, ib) => {
+    if (ia === ib) return;
+    const vx = b.x - a.x, vy = b.y - a.y, side = Math.hypot(vx, vy);
+    if (side < 6 * a.d || side > 16 * a.d || Math.abs(b.d / a.d - 1) > 0.3) return;
+    const tol = side * 0.12, c = near(a.x - vy, a.y + vx, tol), e = near(b.x - vy, b.y + vx, tol);
+    if (!c || !e) return;
+    const four = [a, b, c, e], key = four.map(q => blobs.indexOf(q)).sort((p, q) => p - q).join(',');
+    if (!quads.has(key)) quads.set(key, {dots: four, x: four.reduce((t, q) => t + q.x, 0) / 4, y: four.reduce((t, q) => t + q.y, 0) / 4, side});
+  }));
+  const qs = [...quads.values()];
+  if (!qs.length) return {error: 'No read grids found. Scan page 2 whole, flat, at 600 dpi or more.'};
+  const ppm = qs.map(q => q.side).sort((p, q) => p - q)[qs.length >> 1] / (2 * DUPLEX_DOT);
+  // Card 1's square has a fifth dot 10 mm from its centre.
+  const anchorPt = pts.find(p => p.id === '1A');
+  const eDir = (() => { const o = duplexOrientDot(L, anchorPt.pre, s); return Math.atan2(o.y - anchorPt.mark.y, o.x - anchorPt.mark.x); })();
+  let best = null;
+  for (const q of qs) for (const b of blobs) {
+    if (q.dots.includes(b)) continue;
+    const r = Math.hypot(b.x - q.x, b.y - q.y) / ppm;
+    if (Math.abs(r - 2 * DUPLEX_DOT) > 1.2) continue;
+    const fDir = Math.atan2(b.y - q.y, b.x - q.x);
+    for (const mirror of [1, -1]) {
+      // file mm -> scan px: rotate, scale, optionally mirror (a sheet scanned through a mirror)
+      const th = fDir - mirror * eDir;
+      const map = p => { const u = p.x - anchorPt.mark.x, v = mirror * (p.y - anchorPt.mark.y);
+        return [q.x + ppm * (u * Math.cos(th) - v * Math.sin(th)), q.y + ppm * (u * Math.sin(th) + v * Math.cos(th))]; };
+      const hits = pts.filter(p => { const [x, y] = map(p.mark); return qs.some(o => Math.hypot(o.x - x, o.y - y) < 2 * ppm); }).length;
+      if (!best || hits > best.hits) best = {hits, map};
+    }
+  }
+  if (!best) return {error: 'Card 1 could not be found: its read grid A has an extra dot above it. Scan page 2 whole.'};
+  // One 10 mm vector fixes the turn only roughly; across a sheet that error, and
+  // any bow, outgrows the match window. Refit the whole map from every square
+  // matched so far, which pulls in the next ring of squares, until it settles.
+  const nearestQuad = (x, y) => qs.find(o => Math.hypot(o.x - x, o.y - y) < 2 * ppm);
+  let place = best.map;
+  for (let it = 0; it < 6; it++) {
+    const src = [], dst = [];
+    for (const p of pts) { const q = nearestQuad(...place(p.mark)); if (q) { src.push([p.mark.x, p.mark.y]); dst.push([q.x, q.y]); } }
+    const A = src.length >= 3 && fitAffine(src, dst);
+    if (!A) break;
+    place = p => A.fwd(p.x, p.y);
+    if (src.length === pts.length) break;
+  }
+  const readings = [], missing = [];
+  for (const p of pts) {
+    const [px, py] = place(p.mark), q = nearestQuad(px, py);
+    if (!q) { missing.push(p.id); continue; }
+    const dots = duplexDotsAt(L, p.pre, s), src = [], dst = [];
+    for (const dm of dots) {
+      const [ex, ey] = place(dm), hit = q.dots.reduce((a, b) => Math.hypot(b.x - ex, b.y - ey) < Math.hypot(a.x - ex, a.y - ey) ? b : a);
+      src.push([dm.x, dm.y]); dst.push([hit.x, hit.y]);
+    }
+    const A = fitAffine(src, dst);
+    if (!A) { missing.push(p.id); continue; }
+    const back = invertAffine(A), [cx, cy] = A.fwd(p.mark.x, p.mark.y), R = Math.round(2.6 * ppm);
+    // The hole: dark in the green channel, inside the clear disc round the grid's zero.
+    let n = 0, sx = 0, sy = 0;
+    const x0 = Math.max(0, Math.round(cx - R)), x1 = Math.min(w - 1, Math.round(cx + R));
+    const y0 = Math.max(0, Math.round(cy - R)), y1 = Math.min(img.height - 1, Math.round(cy + R));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if ((x - cx) ** 2 + (y - cy) ** 2 > R * R) continue;
+      const i = (y * w + x) * 4;
+      if (data[i + 1] < 80 && data[i] < 120) { n++; sx += x; sy += y; }
+    }
+    const area = n / (ppm * ppm);
+    if (area < 0.03 || area > 3) { missing.push(p.id); continue; }
+    const [hx, hy] = back(sx / n, sy / n);
+    readings.push({id: p.id, x: +(f2 * (hx - p.mark.x)).toFixed(3), y: +(f2 * (hy - p.mark.y)).toFixed(3)});
+  }
+  return {readings, missing, dpi: ppm * 25.4};
+}
+
 $('#btnDuplexTest').onclick = () => {
   if (!window.jspdf) return toast('PDF library failed to load.');
-  const s = S.settings, L = layout(), doc = newDoc(L), t = duplexTurn(L);
-  const front = L.scm ? DEFAULTS : s;
-  const feed = duplexFeedInstruction(L, leadEdge(L));
-  const wide = L.W > L.H, cx = L.W / 2, cy = L.H / 2;
-  const BLACK = '#111827', RED = '#c0392b';
-  const paper = (FIELDS.find(f => f.k === 'pageSize')?.opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
-  const inset = duplexTestInset(L);
-  const pts = duplexTestPoints(L, inset), corners = pts.corners;
-  const signed = v => (v >= 0 ? '+' : '') + v.toFixed(2);
-
-  const square = (T, x, y, half, n, ang = 0, gap = 0) => {
-    const f = ang === 180 ? -1 : 1;
-    doc.setLineWidth(0.3);
-    doc.rect(T.x(x - half), T.y(y - half), T.w(half * 2), T.h(half * 2));
-    doc.setLineWidth(0.15);
-    if (gap) {
-      // Arms stop short of the middle, leaving a clear disc for the pin hole.
-      doc.line(T.x(x - half - 3), T.y(y), T.x(x - gap), T.y(y));
-      doc.line(T.x(x + gap), T.y(y), T.x(x + half + 3), T.y(y));
-      doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y - gap));
-      doc.line(T.x(x), T.y(y + gap), T.x(x), T.y(y + half + 3));
-    } else {
-      doc.line(T.x(x - half - 3), T.y(y), T.x(x + half + 3), T.y(y));
-      doc.line(T.x(x), T.y(y - half - 3), T.x(x), T.y(y + half + 3));
-    }
-    doc.setFontSize(7);
-    atext(doc, String(n), T.x(x + f * (half + 4.5)), T.y(y - f * (half - 1)), null, ang);
-  };
-
-  /* ---------- page 1, the front ---------- */
-  const Tf = makeT(L, false);
-  doc.setTextColor(BLACK); doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
-  // Clear in the middle, like the back's marks: once both sides are scanned the
-  // hole cancels out, so where exactly it goes stops mattering and the one thing
-  // that does matter is that nothing else dark shares the ring with it. A printed
-  // aiming dot would be indistinguishable from the hole.
-  corners.forEach(([x, y], i) => {
-    square(Tf, x, y, 8, i + 1, 0, 3.4);
-    doc.setLineWidth(0.15);
-    doc.circle(Tf.x(x), Tf.y(y), Tf.w(2.6));
-  });
-  const inward = p => ({x: p.x + (p.x < cx ? 14 : -14), y: p.y + (p.y < cy ? 14 : -14)});
-  const fdot = inward({x: corners[0][0], y: corners[0][1]});
-  doc.circle(Tf.x(fdot.x), Tf.y(fdot.y), Tf.w(1.2), 'F');
-
-  // Everything a reader of a scan needs that the scan cannot show, in page 2's
-  // millimetres: where the back marks and the front marks were printed, where
-  // the holes belong if the sides register, and every setting the sheet was made
-  // with. Both pages carry it, so either scan stands on its own.
-  const rot2 = backPageRot(L);
-  const fmt = ps => ps.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
-  const frontPts = corners.map(([x, y]) => ({x: Tf.x(x), y: Tf.y(y)}));
-  const kd = inward(backPoint(L, {x: corners[0][0], y: corners[0][1]}));
-  const keyTxt = `SCAN KEY v3 | page ${L.W.toFixed(1)}x${L.H.toFixed(1)} ${s.orientation} | flip ${s.duplexFlip} | mirror ${L.mirrorX ? 'X' : 'Y'} | turn ${rot2} | marks ${fmt(pts.marks)} | holes ${fmt(pts.holes)} | front ${fmt(frontPts)} | dot ${kd.x.toFixed(2)},${kd.y.toFixed(2)} | fdot ${fdot.x.toFixed(2)},${fdot.y.toFixed(2)} | off ${front.offsetX.toFixed(2)},${front.offsetY.toFixed(2)} | back ${s.backOffsetX.toFixed(2)},${s.backOffsetY.toFixed(2)} | scale ${front.scaleX.toFixed(2)},${front.scaleY.toFixed(2)} | backscale ${s.backScaleX.toFixed(2)},${s.backScaleY.toFixed(2)} | rot ${front.printRotate.toFixed(3)},${s.backRotate.toFixed(3)}`;
-  const keyW = L.W - 20, keyLead = 2.8;
-  doc.setFontSize(6);
-  const keyTop = L.H - 7 - keyLead * (doc.splitTextToSize(keyTxt, keyW).length - 1);
-
-  // The pin ring. Its centre is the one point on the sheet that both pages agree
-  // on, and it sits at the page centre, where the scale settings have no effect -
-  // so this measures the offset on its own.
-  doc.setLineWidth(0.25);
-  doc.circle(Tf.x(cx), Tf.y(cy), Tf.w(6));
-  doc.setLineWidth(0.15);
-  doc.circle(Tf.x(cx), Tf.y(cy), Tf.w(3));
-  for (const [a, b, c, d] of [[-16, 0, -1, 0], [1, 0, 16, 0], [0, -16, 0, -1], [0, 1, 0, 16]])
-    doc.line(Tf.x(cx + a), Tf.y(cy + b), Tf.x(cx + c), Tf.y(cy + d));
-  doc.setLineWidth(0.12);
-  doc.circle(Tf.x(cx), Tf.y(cy), Tf.w(0.4));
-  doc.setFontSize(7.5);
-  doc.text('PIERCE THE CENTRE OF THIS RING', Tf.x(cx), Tf.y(cy - 20), {align:'center'});
-  doc.setFontSize(6.5);
-  doc.text('push the pin in from this side, so the hole shows on page 2', Tf.x(cx), Tf.y(cy + 23), {align:'center'});
-
-  const headW = L.W - 2 * (inset + 16);
-  const head1 = pdfText(doc, cx, 20, headW, 8, 4.2, 'center');
-  head1.write('DOUBLE-SIDED TEST  ·  PAGE 1, THE FRONT', {bold:true, size:12, lead:5.5});
-  head1.write(`${paper} ${s.orientation}  ·  flip on the ${s.duplexFlip === 'short' ? 'short' : 'long'} edge  ·  back-page offset now X ${signed(s.backOffsetX)} mm, Y ${signed(s.backOffsetY)} mm`, {size:7.5});
-  head1.write(`scale ${front.scaleX.toFixed(2)} / ${front.scaleY.toFixed(2)}%  ·  back-page scale ${s.backScaleX.toFixed(2)} / ${s.backScaleY.toFixed(2)}%  ·  printer offset X ${signed(front.offsetX)}, Y ${signed(front.offsetY)} mm  ·  rotation ${signed(front.printRotate)}\u00b0 print, ${signed(s.backRotate)}\u00b0 back`, {size:7});
-
-  const bodyW = Math.min(L.W - 32, 186), body1 = pdfText(doc, (L.W - bodyW) / 2, cy + 30, bodyW, 8, 4.5);
-  body1.write('PRINT PAGE 2 ON THE BACK OF THIS SHEET', {bold:true, size:9, lead:5.5});
-  body1.write('1   Print this page at Actual size / 100%, never "Fit to page". Use plain paper the first time, so that you can hold the sheet up to a light; check on your real stock at the end.');
-  body1.write(`2   Take the sheet out and turn it over ${t.axis}, looking at the printed side. ${t.keeps} Do not spin it any other way.`);
-  body1.write(`3   Put it back in the tray with the printed side facing the other way. ${feed.text}`);
-  body1.write('4   Print page 2 on the back of this same sheet, with the same settings.');
-  body1.write('5   To have the sheet measured rather than read by eye, pierce all four corner marks as well, from this side, anywhere inside the small ring. Then scan both sides whole. How squarely you pierce does not matter: the hole is measured against each side\u2019s own mark, so it cancels.');
-
-  doc.setTextColor(BLACK);
-  pdfText(doc, cx, keyTop, keyW, 6, keyLead, 'center').write(keyTxt, {size:6});
-
-  /* ---------- page 2, the back ---------- */
-  doc.addPage([L.W, L.H], wide ? 'l' : 'p');
-  const Tb = makeT(L, true);
-  // On a flip that mirrors top to bottom, the printer lays this side down head to
-  // foot against the front. The card export already cancels that with faceRot; this
-  // sheet has to cancel it too, or it reads upside down and the grid below it is
-  // read backwards. Marks keep their places; only their facing turns.
-  const f2 = rot2 === 180 ? -1 : 1;
-  const turned2 = backTurn(doc, L, true, true);
-  doc.setDrawColor(RED); doc.setFillColor(RED); doc.setTextColor(RED);
-  corners.forEach(([x, y], i) => {
-    const p = backPoint(L, {x, y});
-    square(Tb, p.x, p.y, 5, i + 1, rot2, 4.2);
-    doc.setLineWidth(0.12);
-    doc.circle(Tb.x(p.x), Tb.y(p.y), Tb.w(3.2));
-  });
-  // Corner 1 alone carries a solid dot, 14 mm in along the diagonal. Four marks on
-  // a rectangle look the same upside down; this one does not.
-  doc.circle(Tb.x(kd.x), Tb.y(kd.y), Tb.w(1.2), 'F');
-  doc.setLineWidth(0.25);
-  doc.circle(Tb.x(cx), Tb.y(cy), Tb.w(12));
-  drawReadGrid(doc, (dx, dy) => [Tb.x(cx + f2 * dx), Tb.y(cy + f2 * dy)], 1, {angle: rot2});
-  doc.setFontSize(7.5);
-  atext(doc, 'THE PIN HOLE LANDS IN HERE', Tb.x(cx), Tb.y(cy - f2 * 15.5), 'center', rot2);
-  doc.setFontSize(6.5);
-  atext(doc, 'one square = 1 mm', Tb.x(cx), Tb.y(cy + f2 * 18), 'center', rot2);
-
-  doc.setTextColor(BLACK); doc.setDrawColor(BLACK);
-  // Every block on this side is placed at its mirror position and turned, so the
-  // page occupies the same region of paper but faces the same way as the front.
-  const flipPt = (x, y) => rot2 ? [L.W - x, L.H - y] : [x, y];
-  const head2 = pdfText(doc, ...flipPt(cx, 20), headW, 8, 4.2, 'center', rot2);
-  head2.write('DOUBLE-SIDED TEST  ·  PAGE 2, THE BACK', {bold:true, size:12, lead:5.5});
-  head2.write('Read this side the same way up as the front. The red marks are printed on this side; the black ones are on the other side.', {size:7.5});
-
-  // A worked example, three times life size, because the real grid is 6 mm across.
-  doc.setDrawColor(RED);
-  const ex0 = {x: inset + 36, y: wide ? cy - 6 : 82};
-  const [exx, exy] = flipPt(ex0.x, ex0.y), ex = {x: exx, y: exy};
-  doc.setLineWidth(0.2);
-  drawReadGrid(doc, (dx, dy) => [ex.x + f2 * dx * 3, ex.y + f2 * dy * 3], 3, {font:7, angle: rot2});
-  doc.setDrawColor(BLACK); doc.setFillColor(BLACK);
-  doc.circle(ex.x + f2 * 1.5, ex.y - f2 * 3, 0.9, 'F');
-  doc.setLineWidth(0.25);
-  doc.circle(ex.x + f2 * 1.5, ex.y - f2 * 3, 2.2);
-  const cap = pdfText(doc, ...flipPt(ex0.x - 15, ex0.y + 23), 64, 7, 3.6, null, rot2);
-  cap.write('EXAMPLE, THREE TIMES LIFE SIZE', {bold:true, size:7, lead:4});
-  cap.write('This hole sits half a square to the right of 0 and one whole square above it.');
-  cap.write('Reading:  X = +0.5    Y = -1.0', {bold:true});
-
-  const col = wide ? {x:cx + 30, y:44, w:L.W - 16 - (cx + 30)} : {x:16, y:cy + 32, w:L.W - 32};
-  const body2 = pdfText(doc, ...flipPt(col.x, col.y), col.w, 8, 4.5, null, rot2);
-  body2.write('HOW TO READ IT', {bold:true, size:9, lead:5.5});
-  body2.write('1   Find where the centre of the ring on the front lands on this side. On plain paper, hold the sheet up to a light. On card stock, push a pin through the exact centre of that ring, from the front, and look at the hole from this side.');
-  body2.write('2   Read the hole against the ringed grid in the middle of this page. One square is 1 mm, and the short ticks on the centre lines are half a square.');
-  body2.write(`3   Those two numbers go straight into Align front and back, which does the arithmetic for you. By hand, ${rot2 ? 'SUBTRACT them from' : 'add them to'} the current values \u2014 this page is printed turned, so its grid runs the other way:`);
-  body2.gap(1);
-  // ASCII hyphen: U+2212 is not in the WinAnsi encoding jsPDF uses for Helvetica.
-  const op = rot2 ? '-' : '+';
-  body2.write(`Extra back-page offset X  =  ${signed(s.backOffsetX)}  ${op}  (the X you read)`, {indent:6, size:7.5});
-  body2.write(`Extra back-page offset Y  =  ${signed(s.backOffsetY)}  ${op}  (the Y you read)`, {indent:6, size:7.5});
-  body2.gap(1);
-  body2.write('4   Print the test again. Both readings should now be 0.');
-  body2.gap(2);
-  body2.write('If the hole is off the grid altogether, or the red squares are nowhere near the black ones, the sheet was turned over the wrong way. Switch Double-sided flip to the other edge, or turn the sheet the other way, and start again.', {size:7.5, lead:4});
-  body2.gap(1.5);
-  body2.write('The small red squares should sit centred inside the big black ones. If the middle reads 0 but the corners are visibly out, and out by different amounts at opposite corners, the backs are printing at a slightly different size: adjust Back-page scale X / Y.', {size:7.5, lead:4});
-  body2.gap(2);
-  body2.write('OR HAVE IT MEASURED', {bold:true, size:9, lead:5.5});
-  body2.write('Pierce all four corner marks from the front. Put a sheet of black paper behind the sheet and scan BOTH sides at 600 dpi or more, whole, with the paper the same way round each time. Hand over both files. Measured against its own side\u2019s mark in each scan, the hole cancels out, so it does not matter how squarely you pierced - only that it is the same hole.', {size:7.5, lead:4});
-
-  // Everything a reader of the scan needs that the scan cannot show, in page 2's
-  // own millimetres: where the four back marks were printed, and where the four
-  // holes would be if the two sides registered perfectly. A hole is the front's
-  // mark seen through the paper, so its ideal place is the front's printed
-  // position carried across by the same turn the back page gets.
-  doc.setTextColor(BLACK);
-  // The key wraps on a narrow page. Laid out from the bottom edge inwards in
-  // page 2's own frame, its last line clears the printer's margin whichever way
-  // the page is turned.
-  pdfText(doc, ...flipPt(cx, keyTop), keyW, 6, keyLead, 'center', rot2).write(keyTxt, {size:6});
-
-  if (turned2) backTurn(doc, L, false, true);
-  doc.save('double-sided-test.pdf');
+  duplexCardTestDoc(layout()).doc.save('double-sided-test.pdf');
+  toast('Double-sided test downloaded. Print page 1 at 100%, turn the sheet as Align front and back shows, and print page 2 on its back.', 8000);
 };
 // The duplex wizard. Three questions in order: is the sheet turned the right way,
 // print the test, type in the two numbers it gives you. The readings are a
@@ -9716,36 +9856,30 @@ function duplexFlipDiagram(L, mode, frontEdge) {
 function duplexReadSvg() {
   const g = 22, o = 14, cells = [];
   for (let n = -3; n <= 3; n++) {
-    cells.push(`<line x1="${o + (n + 3) * g}" y1="${o}" x2="${o + (n + 3) * g}" y2="${o + 6 * g}" stroke="${n ? '#55606f' : '#aab4c2'}" stroke-width="${n ? 1 : 2}"/>`);
-    cells.push(`<line x1="${o}" y1="${o + (n + 3) * g}" x2="${o + 6 * g}" y2="${o + (n + 3) * g}" stroke="${n ? '#55606f' : '#aab4c2'}" stroke-width="${n ? 1 : 2}"/>`);
+    cells.push(`<line x1="${o + (n + 3) * g}" y1="${o}" x2="${o + (n + 3) * g}" y2="${o + 6 * g}" stroke="${n ? '#3c3e43' : '#6c6f76'}" stroke-width="${n ? 1 : 2}"/>`);
+    cells.push(`<line x1="${o}" y1="${o + (n + 3) * g}" x2="${o + 6 * g}" y2="${o + (n + 3) * g}" stroke="${n ? '#3c3e43' : '#6c6f76'}" stroke-width="${n ? 1 : 2}"/>`);
     const t = n > 0 ? `+${n}` : String(n);
-    cells.push(`<text x="${o + (n + 3) * g}" y="${o - 5}" text-anchor="middle" font-size="11" fill="#a0aab9">${t}</text>`);
-    cells.push(`<text x="${o - 6}" y="${o + (n + 3) * g + 4}" text-anchor="end" font-size="11" fill="#a0aab9">${t}</text>`);
+    cells.push(`<text x="${o + (n + 3) * g}" y="${o - 5}" text-anchor="middle" font-size="11" fill="#a8abb2">${t}</text>`);
+    cells.push(`<text x="${o - 6}" y="${o + (n + 3) * g + 4}" text-anchor="end" font-size="11" fill="#a8abb2">${t}</text>`);
   }
   const hx = o + 3.5 * g, hy = o + 2 * g;
   return `<svg viewBox="0 0 430 180" role="img" aria-label="A pin hole half a square right of zero and one square above it reads X plus 0.5 and Y minus 1.0" style="width:100%;height:auto">
     ${cells.join('')}
-    <circle cx="${hx}" cy="${hy}" r="11" fill="none" stroke="#ad9ff2" stroke-width="2"/>
-    <circle cx="${hx}" cy="${hy}" r="4" fill="#ad9ff2"/>
-    <text x="192" y="46" font-size="12" fill="#edf0f5" font-weight="600">The pin hole</text>
-    <text x="192" y="66" font-size="12" fill="#a0aab9">half a square right of 0,</text>
-    <text x="192" y="82" font-size="12" fill="#a0aab9">one square above it</text>
-    <text x="192" y="108" font-size="13" fill="#ddd4ff" font-weight="600">X = +0.5   Y = -1.0</text>
-    <text x="192" y="128" font-size="11.5" fill="#a0aab9">Type those two numbers in.</text>
-    <text x="192" y="144" font-size="11.5" fill="#a0aab9">One square is 1 mm.</text>
+    <circle cx="${hx}" cy="${hy}" r="11" fill="none" stroke="#3daee9" stroke-width="2"/>
+    <circle cx="${hx}" cy="${hy}" r="4" fill="#3daee9"/>
+    <text x="192" y="46" font-size="12" fill="#ecedef" font-weight="600">The pin hole</text>
+    <text x="192" y="66" font-size="12" fill="#a8abb2">half a square right of 0,</text>
+    <text x="192" y="82" font-size="12" fill="#a8abb2">one square above it</text>
+    <text x="192" y="108" font-size="13" fill="#b8e5fa" font-weight="600">X = +0.5   Y = -1.0</text>
+    <text x="192" y="128" font-size="11.5" fill="#a8abb2">Enter those two numbers.</text>
+    <text x="192" y="144" font-size="11.5" fill="#a8abb2">One square is 1 mm.</text>
   </svg>`;
 }
 function openDuplexWizard(state = {}, backLabel = '') {
   const s = S.settings, L = layout();
   const draft = alignmentDrafts.get(alignmentDraftKey());
-  // On a turn that mirrors top to bottom, page 2 of the test prints turned, so its
-  // grid's axes point the other way and a reading must be subtracted, not added.
-  const rsgn = backPageRot(L) === 180 ? -1 : 1;
   const frontEdge = ['left', 'right', 'top', 'bottom'].includes(state.frontEdge) ? state.frontEdge : leadEdge(L);
   const inUnit = v => s.backOffsetUnit === 'in' ? `${(v / 25.4).toFixed(3)} in` : `${v.toFixed(2)} mm`;
-  // Re-opening the wizard carries the readings over, but an empty box reads back as
-  // NaN, which would put the word NaN in the input and leave it permanently invalid.
-  const keep = v => Number.isFinite(v) ? v : 0;
   const edgeOptionLabel = x => `${x[0].toUpperCase()}${x.slice(1)} edge (${paperEdgeName(x, L).split(' ')[1]} edge)`;
   const choice = ([mode, name]) => `<button type="button" class="duplex-choice${s.duplexFlip === mode ? ' on' : ''}" data-flip="${mode}" role="radio" aria-checked="${s.duplexFlip === mode}">
     <span class="duplex-choice-hd">${name}${s.duplexFlip === mode ? '<span class="tag">selected</span>' : ''}</span>
@@ -9769,61 +9903,112 @@ function openDuplexWizard(state = {}, backLabel = '') {
     </ol>
 
     <h4 class="wiz-h">3. Enter the readings</h4>
-    <p class="hint">Hold the sheet to a light. Where the front ring lands on the back grid gives you X and Y.</p>
+    <p class="hint">Push a pin through the centre of each ring from the front. On page 2, read where each hole sits on its grid: one square is 1 mm. Enter as many points as you measured. One point corrects the offset; points on cards far apart also correct the angle and the size.</p>
     <div class="duplex-read">${duplexReadSvg()}</div>
-    <div class="grid2" style="margin-top:10px">
-      <div class="field"><label for="duplexWizardX">X reading (mm)</label><input id="duplexWizardX" type="text" inputmode="decimal" value="${esc(keep(state.x))}"></div>
-      <div class="field"><label for="duplexWizardY">Y reading (mm)</label><input id="duplexWizardY" type="text" inputmode="decimal" value="${esc(keep(state.y))}"></div>
+    <div class="row" style="margin-top:10px;align-items:end">
+      <div class="field"><label for="duplexWizardCard">Card</label><select id="duplexWizardCard">${Array.from({length: L.per}, (_, i) => `<option value="${i + 1}">Card ${i + 1}</option>`).join('')}</select></div>
+      <button type="button" id="duplexWizardScanBtn" aria-describedby="duplexWizardScanHint">Read a scan of page 2…</button><input id="duplexWizardScan" type="file" accept="image/*" hidden>
     </div>
+    <p class="hint" id="duplexWizardScanHint">Pierce the points, put black paper behind the sheet, and scan page 2 whole at <span class="num">600</span> dpi or more. Read the scan before changing any setting: it is measured against the settings the test was printed with.</p>
+    <table class="duplex-points" id="duplexWizardPoints"><thead><tr><th scope="col">Point</th><th scope="col">X (mm)</th><th scope="col">Y (mm)</th></tr></thead><tbody></tbody></table>
+    <p class="hint" id="duplexWizardEntered" aria-live="polite"></p>
     <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
-    ${draft && ['backOffsetX','backOffsetY'].some(k => Object.hasOwn(draft,k)) ? '<p class="hint">Applying readings replaces your unapplied back offsets.</p>' : ''}
-    <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Apply readings</button><button id="duplexWizardZero">Reset back offsets</button></div>
+    ${draft && BACK_CAL_KEYS.some(k => Object.hasOwn(draft,k)) ? '<p class="hint">Applying readings replaces your unapplied back-page values.</p>' : ''}
+    <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Apply readings</button><button id="duplexWizardClear">Clear readings</button><button id="duplexWizardZero">Reset back alignment</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
-    <p class="hint">Print again. Both readings should be 0.</p>
+    <p class="hint">Print the test again. Every reading should be 0.</p>
   </div>`, backLabel);
   $('#modal').classList.add('duplex');
 
-  const reading = () => [$('#duplexWizardX').value.trim(), $('#duplexWizardY').value.trim()].map(v => v === '' ? NaN : Number(v));
+  const readings = state.readings instanceof Map ? state.readings : new Map();
+  const POINT_NAMES = {A: 'top left', B: 'top right', C: 'bottom left', D: 'bottom right', E: 'centre'};
+  const num = v => { const x = String(v ?? '').trim().replace(/−/g, '-').replace(',', '.'); return x === '' ? NaN : Number(x); };
+  const show = v => Number.isFinite(v) ? String(v) : '';
+  const entered = () => [...readings].filter(([, r]) => Number.isFinite(r.x) && Number.isFinite(r.y)).map(([id, r]) => ({id, x: r.x, y: r.y}));
+  const rows = () => {
+    const c = +$('#duplexWizardCard').value || 1;
+    $('#duplexWizardPoints tbody').innerHTML = DUPLEX_LETTERS.map(l => {
+      const id = `${c}${l}`, r = readings.get(id) || {};
+      return `<tr><th scope="row"><span class="num">${id}</span><span class="pt-name">${POINT_NAMES[l]}</span></th>
+        <td><input data-id="${id}" data-ax="x" type="text" inputmode="decimal" aria-label="${id} X reading in mm" value="${show(r.x)}"></td>
+        <td><input data-id="${id}" data-ax="y" type="text" inputmode="decimal" aria-label="${id} Y reading in mm" value="${show(r.y)}"></td></tr>`;
+    }).join('');
+  };
+  const FIT_LABEL = {backOffsetX: ['Back offset X', inUnit], backOffsetY: ['Back offset Y', inUnit],
+    backRotate: ['Back angle', v => `${v.toFixed(3)}°`], backScaleX: ['Back size X', v => `${v.toFixed(3)}%`], backScaleY: ['Back size Y', v => `${v.toFixed(3)}%`]};
+  let fit = null;
   const refresh = () => {
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 goes in ${esc(feed.back)} first.</b> ${esc(feed.text)}<br><span class="hint">Put the sheet back with the printed side facing the other way.</span>`;
-    const [x, y] = reading();
-    const ax = rsgn * x, ay = rsgn * y;
-    $('#duplexWizardSum').innerHTML = Number.isFinite(x) && Number.isFinite(y)
-      ? `Extra back-page offset: X ${esc(inUnit(s.backOffsetX))} ${ax < 0 ? '−' : '+'} ${esc(Math.abs(ax).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetX + ax))}</b> · Y ${esc(inUnit(s.backOffsetY))} ${ay < 0 ? '−' : '+'} ${esc(Math.abs(ay).toFixed(2))} mm = <b>${esc(inUnit(s.backOffsetY + ay))}</b>`
-      : 'Enter a number for both X and Y.';
+    const got = entered();
+    $('#duplexWizardEntered').innerHTML = got.length ? `<span class="num">${got.length}</span> point${got.length === 1 ? '' : 's'} entered: <span class="num">${esc(got.map(r => r.id).join(', '))}</span>.` : 'No readings entered yet.';
+    fit = got.length ? solveDuplexReadings(L, s, got) : null;
+    if (!fit || fit.error) { $('#duplexWizardSum').textContent = fit?.error || 'Enter X and Y for at least one point.'; return; }
+    const lines = fit.active.map(k => `${FIT_LABEL[k][0]}: <span class="num">${esc(FIT_LABEL[k][1](s[k]))}</span> → <b class="num">${esc(FIT_LABEL[k][1](fit.values[k]))}</b>`);
+    const off = fit.residuals.filter(r => Math.hypot(r.x, r.y) > 0.3).map(r => r.id);
+    const notes = [];
+    if (!fit.active.includes('backRotate')) notes.push('These points are close together, so they correct the offset only. Add points on cards far apart to correct the angle and the size as well.');
+    else if (!fit.active.includes('backScaleX') || !fit.active.includes('backScaleY')) notes.push(`Add points further apart ${!fit.active.includes('backScaleX') ? 'across the sheet' : 'up and down the sheet'} to correct the size in that direction too.`);
+    if (fit.points > 1) notes.push(`With these values every point lands within <span class="num">${fit.max.toFixed(2)}</span> mm (average <span class="num">${fit.rms.toFixed(2)}</span> mm).`);
+    if (off.length) notes.push(`${esc(off.join(', '))} ${off.length === 1 ? 'disagrees' : 'disagree'} with the rest by more than <span class="num">0.3</span> mm. Check ${off.length === 1 ? 'that reading' : 'those readings'}.`);
+    if (fit.shear !== null && Math.abs(fit.shear) >= 0.05) notes.push(`The back is also skewed by <span class="num">${fit.shear.toFixed(2)}</span>°: its sides are not square to each other. No setting can correct skew, so the values above are the closest square fit.`);
+    $('#duplexWizardSum').innerHTML = `${lines.join('<br>')}${notes.length ? `<br>${notes.join(' ')}` : ''}`;
   };
   $('#duplexWizardChoices').onclick = ev => {
     const b = ev.target.closest('[data-flip]');
     if (!b || b.dataset.flip === s.duplexFlip) return;
     s.duplexFlip = b.dataset.flip; S.activePreset = null; save(); renderAll();
-    const [x, y] = reading();
-    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, x, y});
+    // The readings belong to a sheet printed with the other flip.
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value});
   };
-  $('#duplexWizardFrontEdge').onchange = () => {
-    const [x, y] = reading();
-    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, x, y});
+  $('#duplexWizardFrontEdge').onchange = () => openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings});
+  $('#duplexWizardCard').onchange = rows;
+  $('#duplexWizardPoints').oninput = ev => {
+    const el = ev.target.closest('input[data-id]');
+    if (!el) return;
+    readings.set(el.dataset.id, {...readings.get(el.dataset.id), [el.dataset.ax]: num(el.value)});
+    refresh();
   };
-  $('#duplexWizardX').oninput = $('#duplexWizardY').oninput = refresh;
+  $('#duplexWizardScanBtn').onclick = () => $('#duplexWizardScan').click();
+  $('#duplexWizardScan').onchange = async ev => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    $('#duplexWizardStatus').textContent = 'Reading the scan…';
+    try {
+      const bmp = await createImageBitmap(file), c = document.createElement('canvas');
+      c.width = bmp.width; c.height = bmp.height;
+      const g = c.getContext('2d', {willReadFrequently: true}); g.drawImage(bmp, 0, 0);
+      const res = readDuplexScan(g.getImageData(0, 0, c.width, c.height), L, s);
+      if (res.error) { $('#duplexWizardStatus').textContent = res.error; return; }
+      for (const r of res.readings) readings.set(r.id, {x: r.x, y: r.y});
+      rows(); refresh();
+      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}.` : ''} Check the values, then apply.`;
+    } catch (e) {
+      $('#duplexWizardStatus').textContent = `The scan could not be read: ${e.message}`;
+    } finally { ev.target.value = ''; }
+  };
   $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
   $('#duplexWizardApply').onclick = () => {
-    const [x, y] = reading();
-    if (!Number.isFinite(x) || !Number.isFinite(y)) { $('#duplexWizardStatus').textContent = 'Enter a number for both X and Y.'; return; }
-    s.backOffsetX = +(s.backOffsetX + rsgn * x).toFixed(3); s.backOffsetY = +(s.backOffsetY + rsgn * y).toFixed(3); s.backOffsetRel = true;
-    clearBackOffsetDraft();
+    const applied = fit;
+    if (!applied || applied.error) { $('#duplexWizardStatus').textContent = 'Enter X and Y for at least one point.'; return; }
+    for (const k of applied.active) s[k] = applied.values[k];
+    s.backOffsetRel = true;
+    clearBackOffsetDraft(applied.active);
     noteCalibration('back', 'measured');
     S.activePreset = null; save(); renderAll();
-    $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
-    $('#duplexWizardStatus').textContent = `Saved. Extra back-page offset is now X ${inUnit(s.backOffsetX)}, Y ${inUnit(s.backOffsetY)}. Print the test again to check.`;
+    readings.clear(); rows(); refresh();
+    $('#duplexWizardStatus').textContent = `Saved. ${applied.active.map(k => `${FIT_LABEL[k][0]} ${FIT_LABEL[k][1](s[k])}`).join(', ')}. Print the test again to check.`;
   };
+  $('#duplexWizardClear').onclick = () => { readings.clear(); rows(); refresh(); $('#duplexWizardStatus').textContent = ''; };
   $('#duplexWizardZero').onclick = () => {
-    s.backOffsetX = 0; s.backOffsetY = 0; s.backOffsetRel = true;
-    clearBackOffsetDraft();
-    noteCalibration('back','none');
+    Object.assign(s, {backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100, backOffsetRel: true});
+    clearBackOffsetDraft(BACK_CAL_KEYS);
+    noteCalibration('back', 'none');
     S.activePreset = null; save(); renderAll();
-    $('#duplexWizardX').value = 0; $('#duplexWizardY').value = 0; refresh();
-    $('#duplexWizardStatus').textContent = 'Back-page correction cleared.';
+    refresh();
+    $('#duplexWizardStatus').textContent = 'Back-page alignment cleared.';
   };
+  rows();
   refresh();
 }
 $('#btnDuplexWizard').onclick = () => openDuplexWizard();
@@ -10868,11 +11053,10 @@ function syncAlignmentDraftStatus(dirty) {
   $('#alignmentDraftStatus').hidden = !dirty;
   $('#btnApplyAlignment').disabled = $('#btnResetAlignment').disabled = !dirty;
 }
-function clearBackOffsetDraft() {
+function clearBackOffsetDraft(keys = ['backOffsetX', 'backOffsetY']) {
   const key = alignmentDraftKey(), draft = alignmentDrafts.get(key);
   if (!draft) return;
-  delete draft.backOffsetX;
-  delete draft.backOffsetY;
+  for (const k of keys) delete draft[k];
   if (!Object.keys(draft).length) alignmentDrafts.delete(key);
 }
 const SETTINGS_PAGE_TITLES = {
@@ -11525,7 +11709,7 @@ function renderCutStatus() {
   $('#scmExportOptions').hidden = !L.scm;
   const templateHint = $('#scmTemplateHint');
   templateHint.textContent = L.scm
-    ? `The template sets card positions and registration marks. ${s.bleed} mm bleed · ${s.regInset} mm registration inset.`
+    ? `The template sets card positions and registration marks. ${+s.bleed.toFixed(2)} mm bleed · ${s.regInset} mm registration inset.`
     : scmTemplateFor(s, 'standard') || scmTemplateFor(s, 'borderless')
       ? 'Use the PDF and cut files from the same export.'
       : 'No stock template for this paper and card size. Use the PDF and cut files from the same export.';
@@ -11555,7 +11739,7 @@ function renderCutStatus() {
       if (!noConflict) why.push('cards overlap registration marks');
       if (!marksFit) why.push('registration marks extend off the PDF page');
       if (!noneOn) why.push('cut guides are on (should be None)');
-      if (s.bleed > 1) why.push(`bleed ${s.bleed} mm is too large for mark clearance`);
+      if (s.bleed > 1) why.push(`bleed ${+s.bleed.toFixed(2)} mm is too large for mark clearance`);
       cEl.innerHTML = `<div class="warn"><b>Check cutter setup:</b> ${why.join(', ')}.</div><div class="row" style="margin-top:6px"><button class="primary" id="cameoApply">Reset Cameo layout</button></div>`;
       const cb = $('#cameoApply');
       if (cb) cb.onclick = () => applyCameoLayout(s.scmTemplate === 'custom' && !s.scmCustomChosen ? 'standard' : s.scmTemplate);
@@ -11581,7 +11765,7 @@ function renderCutStatus() {
       if (cur.outline) list.push('full outlines');
       return list.length ? list.join(' and ') + ' enabled' : 'No guides will be printed';
     })();
-    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Ready to cut by hand</b> — ${guideDesc} (${s.bleed} mm bleed).</div>`
+    el.innerHTML = ok ? `<div class="cutter-status-pill">✓ <b>Ready to cut by hand</b> — ${guideDesc} (${+s.bleed.toFixed(2)} mm bleed).</div>`
       : `<div class="warn"><b>Check cut guides:</b>${!L.fits ? ' the card grid does not fit the page;' : ''}${s.bleed < (s.orientation === 'portrait' ? 0.75 : 1.5) ? ` bleed is ${s.bleed} mm; increase it for cutting clearance;` : ''}</div><div class="row" style="margin-top:6px"><button class="primary" id="cutApply">Reset rotary layout</button></div>`;
   }
   const b = $('#cutApply');
