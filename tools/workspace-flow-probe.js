@@ -350,7 +350,9 @@
     openMpcPicker({e:entry, i:0});
     const apply = $('#btnApplyCandidate');
     check(apply.disabled && apply.closest('.art-picker-footer') && !apply.closest('.bd'), 'Apply should stay in the footer outside the scrolling comparison.');
-    check($('#artSource-printings')?.getAttribute('aria-selected') === 'true' && $('#tabPanelCommunity').hidden, 'Printings should be selected with other sources hidden.');
+    check($('#artSource-community')?.getAttribute('aria-selected') === 'true' && $('#tabPanelPrintings').hidden && !$('#tabPanelCommunity').hidden, 'Community art should open first, with other sources hidden.');
+    click('#artSource-printings');
+    check($('#artSource-printings')?.getAttribute('aria-selected') === 'true' && $('#tabPanelCommunity').hidden, 'Choosing Scryfall printings should show it and hide the rest.');
     check(await waitFor(()=>visible('#btnRetrySf')) && $('#sfStatus')?.textContent.includes('could not load'), 'An unavailable source should show a retry beside its own results.');
     failSearch = false;
     click('#btnRetrySf');

@@ -4214,7 +4214,7 @@ async function openMpcPicker(target) {
   if (!isBack && target.side === 'back' && e?.faces.length > 1) faceIdx = 1;
   const face = () => isBack ? orderSharedBack() : e?.faces[faceIdx];
   const copyCount = target.copies?.reduce((n, x) => n + x.copies.length, 0);
-  const initialTab = isBack ? 'community' : (target.defaultTab || 'printings');
+  const initialTab = isBack ? 'community' : (target.defaultTab || 'community');
   const sourceTabs = [
     ['printings', 'Printings', 'tabPanelPrintings'],
     ['community', 'Community art', 'tabPanelCommunity'],

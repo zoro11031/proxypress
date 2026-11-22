@@ -6,6 +6,7 @@ A new workspace, Silhouette Card Maker output that matches Card Maker's own, and
 - **Silhouette Card Maker:** card positions, bleed, registration marks and the sheet label now match Card Maker's `create_pdf.py` on all 190 of its templates, including the single-row and single-column ones.
 - **Registration test page:** a one-page PDF with the registration marks and a faint outline of every card position, a solid line at the bleed edge and a dashed line at the safe area. Cut it on scrap paper: if the cuts are centred, each one falls between the two lines. The outlines are pure black, so a color laser prints them from black toner alone.
 - **Double-sided test:** prints your real layout on both sides with five pin points on every card and a 1 mm grid behind each. Enter as many readings as you like, or scan page 2 against black paper and Proxy Press reads every hole. It works out the back's offset, angle and size, reports any skew no setting can fix, and never changes the front.
+- **Artwork:** Change art opens on Community art, with Scryfall printings and your own files a tab away.
 - **Fixes:** cards from your own images no longer show a stray "#", and the card list's counts and layout summary are easier to read.
 
 ## Downloads
