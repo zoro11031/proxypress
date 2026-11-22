@@ -259,6 +259,7 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .queue-hd{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--s2)}
 .queue-title-row{display:flex;justify-content:space-between;align-items:baseline}
 .queue-title-row b{font-size:14px;font-weight:700;color:var(--text)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .queue-copies{font-size:12px;color:var(--muted)}
 .queue-status{font-size:12px;color:var(--muted)}
 .queue-sub-row{display:flex;gap:6px;align-items:center;margin:4px 0 6px}
@@ -973,7 +974,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #cardList .card>[data-act=select]{left:52px;top:8px}
 #cardList .card .queue-card-issues{grid-column:3/-1}
 #cardList .card .meta{font-family:var(--mono);font-size:12px}
-#cardList .card .meta .tag{font-family:system-ui,sans-serif}
+#cardList .card .meta .tag,#cardList .card .meta .meta-word{font-family:var(--display)}
 #cardList .card:hover{background:var(--fill)}
 #cardList .card.selected{background:var(--accent-wash);border-color:var(--line)}
 #cardList .card.selected::before,#cardList .card.selected::after{content:"";position:absolute;width:9px;height:9px;border:2px solid var(--accent);pointer-events:none}
@@ -1165,7 +1166,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           </div>
           <div class="queue-sub-row">
             <div id="queueReadyStatus" class="queue-status">0 fronts ready</div>
-            <button type="button" id="btnFilterNeedsArt" class="tag" style="background:rgb(var(--warning-rgb) / .12);color:var(--warning);cursor:pointer;border:0">Needs attention (<span id="countNeedsArt">0</span>)</button>
+            <button type="button" id="btnFilterNeedsArt" class="tag" style="background:rgb(var(--warning-rgb) / .12);color:var(--warning);cursor:pointer;border:0">Needs attention (<span id="countNeedsArt" class="num">0</span>)</button>
           </div>
         </div>
         <span id="deckCount" hidden></span><span id="deckHealth" hidden></span>
@@ -1785,7 +1786,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
     </div>
     <div class="inspector-summary">
       <div class="insp-row"><span id="inspPaperLabel" class="insp-lbl">Paper</span><button type="button" id="inspPaper" data-quick-setup="paper" aria-labelledby="inspPaperLabel inspPaper">Letter · Landscape</button></div>
-      <div class="insp-row"><span id="inspLayoutLabel" class="insp-lbl">Layout</span><button type="button" id="inspLayout" data-quick-setup="layout" aria-labelledby="inspLayoutLabel inspLayout">4 × 2 · 8 per sheet</button></div>
+      <div class="insp-row"><span id="inspLayoutLabel" class="insp-lbl">Layout</span><button type="button" id="inspLayout" data-quick-setup="layout" aria-labelledby="inspLayoutLabel inspLayout">4 × 2 · 8 cards</button></div>
       <div class="insp-row"><span id="inspSidesLabel" class="insp-lbl">Sides</span><button type="button" id="inspSides" data-quick-setup="sides" aria-labelledby="inspSidesLabel inspSides">Single-sided</button></div>
       <div class="insp-note" id="inspSidesNote" role="status" hidden><p>A double-faced card made this job double-sided.</p><div class="row"><button type="button" id="dfcKeep">Keep double-sided</button><button type="button" id="dfcSeparate">Print backs as separate cards</button></div></div>
       <div class="insp-row"><span id="inspCutLabel" class="insp-lbl">Cut</span><button type="button" id="inspCut" data-quick-setup="cutting" aria-labelledby="inspCutLabel inspCut">Cut by hand</button></div>
@@ -4097,9 +4098,10 @@ function queueIssueButtons(issues) {
     return `<button type="button" class="queue-issue-badge ${issue.type}" data-act="fix-issue" data-face="${issue.faceIdx}" data-side="${issue.side}" data-cardback="${!!issue.cardback}">${esc(action)}</button>`;
   }).join('');
 }
+function copyCountHtml(n) { return `<span class="num">${n}</span> cop${n === 1 ? 'y' : 'ies'}`; }
 function renderQueueStatus(issues,slots) {
   const n = issues.length;
-  $('#queueReadyStatus').textContent = n ? `${n} issue${n === 1 ? '' : 's'} · ${countAffectedCopies(issues,slots)} copies` : `${slots.length} fronts ready`;
+  $('#queueReadyStatus').innerHTML = n ? `<span class="num">${n}</span> issue${n === 1 ? '' : 's'} · ${copyCountHtml(countAffectedCopies(issues,slots))}` : `<span class="num">${slots.length}</span> front${slots.length === 1 ? '' : 's'} ready`;
   if (!n) S.filterNeedsArt = false;
   const filter = $('#btnFilterNeedsArt');
   filter.hidden = !n;
@@ -5275,7 +5277,7 @@ async function renderCards() {
   $('#deckFilter').hidden = !any;
   const allIssues = getPrintJobIssues();
   $('#deckHealth').innerHTML = allIssues.length ? `<span style="color:#ff9c95">${allIssues.length} need${allIssues.length === 1 ? 's' : ''} attention</span>` : '';
-  const qCopies = $('#queueCopyCount'); if (qCopies) qCopies.textContent = `${total} cop${total === 1 ? 'y' : 'ies'}`;
+  const qCopies = $('#queueCopyCount'); if (qCopies) qCopies.innerHTML = copyCountHtml(total);
   renderQueueStatus(allIssues,slots);
   if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet.</p>'; syncCardSelection(); return; }
   list.innerHTML = d.entries.map(e => {
@@ -5286,7 +5288,7 @@ async function renderCards() {
       <img data-act="art" alt="" src="${esc(thumbSrcSync(e.faces[0]))}" tabindex="0" role="button" aria-label="Change artwork for ${esc(e.name)}" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
       <div style="min-width:0;flex:1">
         <button type="button" class="nm" data-act="jump" title="${esc(e.name)}" aria-label="Show ${esc(e.name)} in ${S.mode === 'order' ? 'gallery' : 'preview'}">${esc(e.faces.length > 1 && !e.custom ? e.faces[0].name : e.name)}</button>
-        <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? 'Imported order' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom ? 'Custom image' : `${esc((e.set || '').toUpperCase())} #${esc(e.cn)}`}
+        <div class="meta">${e.faces.some(f => f.template) ? '<span class="tag">custom card</span> ' : ''}${e.mpc ? '<span class="meta-word">Imported order</span>' + (e.faces.some(f => !f.custom && !f.drive) ? '<span class="tag">needs image</span>' : '') : e.custom || (!e.set && e.faces.some(f => f.custom)) ? '<span class="meta-word">Custom image</span>' : e.set ? `${esc(e.set.toUpperCase())}${e.cn ? ` #${esc(e.cn)}` : ''}` : ''}
           ${!issues.length ? (e.faces.length > 1 ? '<span class="tag">DFC</span>' : '') : ''}${e.cornerColor ? `<span class="tag" style="display:inline-flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:50%;background:${esc(e.cornerColor)};display:inline-block"></span>corner</span>` : ''}</div>
       </div>
       <span class="copy-badge" style="font-size:12px;color:var(--muted);padding:0 4px">×${e.qty}</span>
@@ -5453,7 +5455,7 @@ $('#cardList').addEventListener('click', async ev => {
 $('#cardList').addEventListener('change', ev => {
   if (ev.target.dataset.act !== 'qty') return;
   const e = deck().entries.find(x => x.uid === ev.target.closest('.card').dataset.uid);
-  e.qty = Math.max(0, parseInt(ev.target.value) || 0); save(); renderStats(); renderPreview(); renderGuideTab(); refreshArtworkIssues(); $('#queueCopyCount').textContent=deck().entries.reduce((n,e)=>n+e.qty,0)+' copies';
+  e.qty = Math.max(0, parseInt(ev.target.value) || 0); save(); renderStats(); renderPreview(); renderGuideTab(); refreshArtworkIssues(); $('#queueCopyCount').innerHTML=copyCountHtml(deck().entries.reduce((n,e)=>n+e.qty,0));
 });
 $('#fileFace').onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ''; if (!f || !faceTarget) return;
@@ -7845,7 +7847,7 @@ function updateInspectorSummary(s = S.settings, L = layout(), slots = buildSlots
   if (inspPaper) inspPaper.textContent = `${paper} · ${s.orientation === 'landscape' ? 'Landscape' : 'Portrait'}`;
 
   const inspLayout = $('#inspLayout');
-  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} per sheet`;
+  if (inspLayout) inspLayout.textContent = `${L.cols} × ${L.rows} · ${L.per} card${L.per === 1 ? '' : 's'}`;
 
   const inspSides = $('#inspSides');
   const dfcNote = dfcMadeDuplex(s, slots);
