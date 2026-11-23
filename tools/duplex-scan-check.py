@@ -13,6 +13,7 @@ Needs gs, numpy, scipy and Pillow. Development tool; nothing ships it.
 
     tools/duplex-scan-check.py                     # Card Maker letter template, 600 dpi
     tools/duplex-scan-check.py --layout plain --dpi 300
+    tools/duplex-scan-check.py --layout plain --bleed 1 --calibrated   # thin bleed, back already set
 """
 import argparse, base64, json, math, os, subprocess, sys, tempfile
 
@@ -45,12 +46,21 @@ def main():
     ap.add_argument('--dpi', type=int, default=600)
     ap.add_argument('--skew', type=float, default=1.5, help='scanner turn, degrees')
     ap.add_argument('--bow', type=float, default=0.4, help='bow across the sheet, mm')
+    ap.add_argument('--bleed', type=float, help='bleed, mm (plain and short layouts)')
+    ap.add_argument('--calibrated', action='store_true', help='start from back settings that are already non-zero')
     a = ap.parse_args()
     g = dict(dx=0.8, dy=-0.55, rot=0.3, sx=1.0015, sy=0.999)
     with tempfile.TemporaryDirectory() as tmp:
+        extra = {}
+        if a.bleed is not None and a.layout != 'scm': extra['bleed'] = a.bleed
+        # A back that has been calibrated once already: readings are in the grid's
+        # own units, which the back's scale and turn now stretch and turn.
+        if a.calibrated: extra.update(backRotate=0.6, backScaleX=100.25, backScaleY=99.8, backOffsetX=0.4, backOffsetY=-0.3)
+        if extra: LAYOUTS[a.layout] = f"({{...{LAYOUTS[a.layout]}, ...{json.dumps(extra)}}})"
         sheet = run_probe(f"""(() => {{ S.settings = {LAYOUTS[a.layout]}; const L = layout(), s = S.settings;
           window.__probeArtifacts = {{pdf: duplexCardTestDoc(L, s).doc.output('datauristring'), f2: duplexReadSign(L), W: L.W, H: L.H,
-            pts: duplexCardPoints(L, s).map(p => ({{id: p.id, mark: p.mark, hole: p.hole}}))}}; return true; }})();""", tmp)
+            pts: duplexCardPoints(L, s).map(p => ({{id: p.id, mark: p.mark, hole: p.hole,
+              jx: duplexMarkAt(L, s, {{x: p.pre.x + 1, y: p.pre.y}}), jy: duplexMarkAt(L, s, {{x: p.pre.x, y: p.pre.y + 1}})}}))}}; return true; }})();""", tmp)
         pdf = os.path.join(tmp, 'sheet.pdf'); open(pdf, 'wb').write(base64.b64decode(sheet['pdf'].split(',', 1)[1]))
         png = os.path.join(tmp, 'p2.png')
         subprocess.run(['gs', '-q', '-dNOPAUSE', '-dBATCH', '-sDEVICE=png16m', f'-r{a.dpi}', '-dFirstPage=2', '-dLastPage=2',
@@ -70,7 +80,11 @@ def main():
         for p in sheet['pts']:
             hx, hy, rad = p['hole']['x'], p['hole']['y'], 0.35 * k
             d.ellipse([hx * k - rad, hy * k - rad, hx * k + rad, hy * k + rad], fill=(10, 10, 10))
-            mx, my = G(p['mark']['x'], p['mark']['y']); truth[p['id']] = (f2 * (hx - mx), f2 * (hy - my))
+            # The truth is the grid reading under the hole: the q with G(mark(q)) = hole,
+            # where mark() is the back's affine drawing of its grid.
+            m0 = np.array(G(p['mark']['x'], p['mark']['y']))
+            J = np.array([np.array(G(p['jx']['x'], p['jx']['y'])) - m0, np.array(G(p['jy']['x'], p['jy']['y'])) - m0]).T
+            q = np.linalg.solve(J, np.array([hx, hy]) - m0); truth[p['id']] = (f2 * q[0], f2 * q[1])
         P = np.asarray(img).astype(np.float32); pad = int(8 * k); H2, W2 = h + 2 * pad, w + 2 * pad
         YY, XX = np.mgrid[0:H2, 0:W2].astype(np.float32); th, s = math.radians(a.skew), 1.004
         X0 = XX - pad + a.bow * k * np.sin(math.pi * (YY - pad) / h); Y0 = YY - pad
@@ -88,7 +102,8 @@ def main():
           window.__probeArtifacts = {{res, fit}}; return true; }})();""", tmp, '600')
     rr, fit = res['res'], res['fit']
     if rr.get('error'): sys.exit('reader: ' + rr['error'])
-    errs = {x['id']: math.hypot(x['x'] - truth[x['id']][0], x['y'] - truth[x['id']][1]) for x in rr['readings']}
+    if os.environ.get("DEBUG"): [print(x, truth[x["id"]]) for x in rr["readings"]]
+    errs = {x["id"]: math.hypot(x['x'] - truth[x['id']][0], x['y'] - truth[x['id']][1]) for x in rr['readings']}
     worst = max(errs, key=errs.get)
     print(f"{a.layout} at {a.dpi} dpi, scan turned {a.skew} deg and bowed {a.bow} mm: read {len(rr['readings'])} of {len(truth)} points "
           f"(scan dpi seen as {rr['dpi']:.0f}); worst error {errs[worst]:.3f} mm at {worst}")

@@ -9533,9 +9533,13 @@ function duplexDotsAt(L, pre, s = S.settings) {
   const Tb = makeT(L, true, s), at = (x, y) => turnPt(L, {x: Tb.x(x), y: Tb.y(y)}, true, s);
   return [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => at(pre.x + a * DUPLEX_DOT, pre.y + b * DUPLEX_DOT));
 }
+// Card 1's extra dot sits 10 mm from grid 1A towards the middle of the card. A
+// grid A is near the top of its slot when the page mirrors left to right and near
+// the bottom otherwise; pointed outwards, the dot landed on the bleed outline.
+function duplexOrientDy(L) { return (L.mirrorX ? 1 : -1) * 2 * DUPLEX_DOT; }
 function duplexOrientDot(L, pre, s = S.settings) {
   const Tb = makeT(L, true, s);
-  return turnPt(L, {x: Tb.x(pre.x), y: Tb.y(pre.y - 2 * DUPLEX_DOT)}, true, s);
+  return turnPt(L, {x: Tb.x(pre.x), y: Tb.y(pre.y + duplexOrientDy(L))}, true, s);
 }
 // Reading convention: X to the right and Y downwards, looking at page 2 the
 // right way up, which is how its grid labels read. A page printed turned
@@ -9582,7 +9586,7 @@ function duplexCardTestDoc(L, s = S.settings) {
     drawReadGrid(doc, (dx, dy) => [Tb.x(x + f2 * dx), Tb.y(y + f2 * dy)], 1, {angle: rot2, font: 4.2});
     doc.setFillColor('#000000'); doc.setTextColor('#000000');
     for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) doc.circle(Tb.x(x + a * DUPLEX_DOT), Tb.y(y + b * DUPLEX_DOT), Tb.w(DUPLEX_DOT_R), 'F');
-    if (p.card === 0 && p.letter === 'A') doc.circle(Tb.x(x), Tb.y(y - 2 * DUPLEX_DOT), Tb.w(DUPLEX_DOT_R), 'F');
+    if (p.card === 0 && p.letter === 'A') doc.circle(Tb.x(x), Tb.y(y + duplexOrientDy(L)), Tb.w(DUPLEX_DOT_R), 'F');
     doc.setFontSize(6.5);
     atext(doc, p.id, Tb.x(x + f2 * 1.2), Tb.y(y + f2 * 7.6), null, rot2);
   }
@@ -9630,12 +9634,17 @@ function duplexShear(pairs) {
   const angle = Math.acos(Math.max(-1, Math.min(1, (a * b + c * e) / (Math.hypot(a, c) * Math.hypot(b, e)))));
   return 90 - angle * 180 / Math.PI;
 }
-// readings: [{id, x, y}] in the grid's own reading (X right, Y down, page 2 upright).
+// readings: [{id, x, y}] in the grid's own reading (X right, Y down, page 2 upright),
+// in the grid's own millimetres. The hole sits on the printed grid at that reading,
+// so the file point that printed under it is the grid drawn out to the reading -
+// through the back's current scale and turn, not just added to the mark. Moving
+// the grid's zero there makes the next sheet read zero with no approximation,
+// whatever the back settings already are.
 function solveDuplexReadings(L, s, readings) {
   const pts = new Map(duplexCardPoints(L, s).map(p => [p.id, p])), f2 = duplexReadSign(L);
   const used = readings.filter(r => pts.has(r.id) && Number.isFinite(r.x) && Number.isFinite(r.y)).map(r => {
     const p = pts.get(r.id);
-    return {id: r.id, pre: p.pre, from: p.mark, to: {x: p.mark.x + f2 * r.x, y: p.mark.y + f2 * r.y}, reading: r};
+    return {id: r.id, pre: p.pre, from: p.mark, to: duplexMarkAt(L, s, {x: p.pre.x + f2 * r.x, y: p.pre.y + f2 * r.y}), reading: r};
   });
   if (!used.length) return {error: 'Enter at least one reading.'};
   const xs = used.map(u => u.from.x), ys = used.map(u => u.from.y);
@@ -9664,7 +9673,9 @@ function solveDuplexReadings(L, s, readings) {
     values: Object.fromEntries(active.map(k => [k, +cur[k].toFixed(k === 'backRotate' ? 3 : 3)])),
     active, points: used.length, residuals: per,
     rms: Math.sqrt(dist.reduce((a, v) => a + v * v, 0) / dist.length), max: Math.max(...dist),
-    shear: duplexShear(used)
+    // Measured from the grid as drawn before the back's settings, so a back that is
+    // already turned and stretched unevenly does not read as sheared.
+    shear: duplexShear(used.map(u => ({from: u.pre, to: u.to})))
   };
 }
 
@@ -9754,7 +9765,8 @@ function readDuplexScan(img, L, s = S.settings) {
       if (!best || hits > best.hits) best = {hits, map};
     }
   }
-  if (!best) return {error: 'Card 1 could not be found: its read grid A has an extra dot above it. Scan page 2 whole.'};
+  const lost = {error: 'Card 1 could not be found: its read grid 1A has an extra dot 10 mm towards the middle of the card. Scan page 2 whole, flat, with black paper behind it.'};
+  if (!best) return lost;
   // One 10 mm vector fixes the turn only roughly; across a sheet that error, and
   // any bow, outgrows the match window. Refit the whole map from every square
   // matched so far, which pulls in the next ring of squares, until it settles.
@@ -9768,31 +9780,46 @@ function readDuplexScan(img, L, s = S.settings) {
     place = p => A.fwd(p.x, p.y);
     if (src.length === pts.length) break;
   }
-  const readings = [], missing = [];
+  // A wrong anchor still lines a few squares up by chance; the right one, refitted, lines up most of them.
+  if (pts.filter(p => nearestQuad(...place(p.mark))).length < Math.max(3, pts.length / 2)) return lost;
+  // Each hole is read in its own grid's units: the four dots are fitted from the
+  // grid's undrawn frame (pre), so the reading is the number printed on the grid
+  // under the hole, the same one a person reads by eye.
+  const readings = [], missing = [], R = Math.round(4.5 * ppm), D = DUPLEX_DOT;
   for (const p of pts) {
     const [px, py] = place(p.mark), q = nearestQuad(px, py);
     if (!q) { missing.push(p.id); continue; }
-    const dots = duplexDotsAt(L, p.pre, s), src = [], dst = [];
-    for (const dm of dots) {
+    const src = [], dst = [];
+    duplexDotsAt(L, p.pre, s).forEach((dm, k) => {
       const [ex, ey] = place(dm), hit = q.dots.reduce((a, b) => Math.hypot(b.x - ex, b.y - ey) < Math.hypot(a.x - ex, a.y - ey) ? b : a);
-      src.push([dm.x, dm.y]); dst.push([hit.x, hit.y]);
-    }
+      const [a, b] = [[-1, -1], [1, -1], [-1, 1], [1, 1]][k];
+      src.push([p.pre.x + a * D, p.pre.y + b * D]); dst.push([hit.x, hit.y]);
+    });
     const A = fitAffine(src, dst);
-    if (!A) { missing.push(p.id); continue; }
-    const back = invertAffine(A), [cx, cy] = A.fwd(p.mark.x, p.mark.y), R = Math.round(2.6 * ppm);
-    // The hole: dark in the green channel, inside the clear disc round the grid's zero.
-    let n = 0, sx = 0, sy = 0;
-    const x0 = Math.max(0, Math.round(cx - R)), x1 = Math.min(w - 1, Math.round(cx + R));
-    const y0 = Math.max(0, Math.round(cy - R)), y1 = Math.min(img.height - 1, Math.round(cy + R));
+    if (!A || new Set(dst.map(String)).size < 4) { missing.push(p.id); continue; }
+    const back = invertAffine(A), [cx, cy] = A.fwd(p.pre.x, p.pre.y);
+    // The hole: a whole, round patch dark in the green channel whose centre is
+    // within R of the grid's zero. The window reaches a millimetre past R so a
+    // hole near the edge is seen whole rather than clipped, which would pull its
+    // centre inwards; anything that runs off the window is a line, not a hole.
+    const P = R + Math.round(ppm);
+    const x0 = Math.max(0, Math.round(cx - P)), x1 = Math.min(w - 1, Math.round(cx + P));
+    const y0 = Math.max(0, Math.round(cy - P)), y1 = Math.min(img.height - 1, Math.round(cy + P));
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+    if (cw < 3 || ch < 3) { missing.push(p.id); continue; }
+    const sub = {width: cw, height: ch, data: new Uint8ClampedArray(cw * ch * 4)};
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-      if ((x - cx) ** 2 + (y - cy) ** 2 > R * R) continue;
       const i = (y * w + x) * 4;
-      if (data[i + 1] < 80 && data[i] < 120) { n++; sx += x; sy += y; }
+      sub.data[((y - y0) * cw + x - x0) * 4] = data[i + 1] < 80 && data[i] < 120 ? 255 : 0;
     }
-    const area = n / (ppm * ppm);
-    if (area < 0.03 || area > 3) { missing.push(p.id); continue; }
-    const [hx, hy] = back(sx / n, sy / n);
-    readings.push({id: p.id, x: +(f2 * (hx - p.mark.x)).toFixed(3), y: +(f2 * (hy - p.mark.y)).toFixed(3)});
+    const hole = darkComponents(sub, (d, i) => d[i] === 255).filter(c => {
+      const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, area = c.n / (ppm * ppm);
+      return c.x0 > 0 && c.y0 > 0 && c.x1 < cw - 1 && c.y1 < ch - 1 && area >= 0.03 && area <= 3
+        && bw / bh > 0.6 && bw / bh < 1.67 && Math.hypot(x0 + c.sx / c.n - cx, y0 + c.sy / c.n - cy) <= R;
+    }).reduce((a, b) => (!a || b.n > a.n ? b : a), null);
+    if (!hole) { missing.push(p.id); continue; }
+    const [hx, hy] = back(x0 + hole.sx / hole.n, y0 + hole.sy / hole.n);
+    readings.push({id: p.id, x: +(f2 * (hx - p.pre.x)).toFixed(3), y: +(f2 * (hy - p.pre.y)).toFixed(3)});
   }
   return {readings, missing, dpi: ppm * 25.4};
 }

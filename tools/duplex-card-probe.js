@@ -15,11 +15,15 @@
     const cx = L.W / 2, cy = L.H / 2, a = g.rot * Math.PI / 180, u = (p.x - cx) * g.sx, v = (p.y - cy) * g.sy;
     return {x: cx + u * Math.cos(a) - v * Math.sin(a) + g.dx + g.shear * v, y: cy + u * Math.sin(a) + v * Math.cos(a) + g.dy};
   };
+  // What a person reads off grid p: the grid number q under the hole, where the
+  // printer put grid point q at G(duplexMarkAt(q)). Both are affine, so solve it.
   const readingsFor = (L, s, g, ids) => {
     const f = duplexReadSign(L);
     return duplexCardPoints(L, s).filter(p => !ids || ids.includes(p.id)).map(p => {
-      const m = G(L, p.mark, g);
-      return {id: p.id, x: f * (p.hole.x - m.x), y: f * (p.hole.y - m.y)};
+      const at = (dx, dy) => G(L, duplexMarkAt(L, s, {x: p.pre.x + dx, y: p.pre.y + dy}), g);
+      const m = at(0, 0), ex = at(1, 0), ey = at(0, 1), a = ex.x - m.x, b = ey.x - m.x, c = ex.y - m.y, d = ey.y - m.y;
+      const u = p.hole.x - m.x, v = p.hole.y - m.y, det = a * d - b * c;
+      return {id: p.id, x: f * (d * u - b * v) / det, y: f * (-c * u + a * v) / det};
     });
   };
   try {
@@ -29,22 +33,34 @@
       cases.push({...DEFAULTS, pageSize: 'letter', orientation, duplexFlip, backOffsetRel: true});
     cases.push(cleanSettings({...DEFAULTS, pageSize: 'letter', cardPreset: 'mtg', ...scmSettings({...DEFAULTS, pageSize: 'letter', cardPreset: 'mtg'}, 'standard')}));
     cases.push(cleanSettings({...DEFAULTS, pageSize: 'a4', cardPreset: 'mtg', ...scmSettings({...DEFAULTS, pageSize: 'a4', cardPreset: 'mtg'}, 'borderless')}));
+    // The same cases again, printed through a back that was calibrated before.
+    for (const c of [...cases]) cases.push({...c, backRotate: 0.6, backScaleX: 100.25, backScaleY: 99.8, backOffsetX: 0.4, backOffsetY: -0.3});
+    const answers = new Map();
     for (const base of cases) {
       S.settings = {...base};
-      const L = layout(), tag = `${base.pageSize}/${base.orientation}/${base.duplexFlip}${L.scm ? '/scm ' + base.scmTemplate : ''}`;
+      const L = layout(), key = `${base.pageSize}/${base.orientation}/${base.duplexFlip}${L.scm ? '/scm ' + base.scmTemplate : ''}`;
+      const tag = key + (base.backRotate ? ' (calibrated)' : '');
       const holesBefore = JSON.stringify(duplexCardPoints(L, S.settings).map(p => p.hole));
       const fit = solveDuplexReadings(L, S.settings, readingsFor(L, S.settings, g));
       if (fit.error) { fails.push(`${tag}: ${fit.error}`); continue; }
       if (fit.active.length !== 5) fails.push(`${tag}: a full sheet should fit all five values, got ${fit.active}`);
       near(`${tag} fit is exact on a square transform`, fit.max, 0, 0.005);
       const after = {...S.settings, ...fit.values};
-      // Through the same printer, every back point now lands on its hole. One sheet
-      // only shows hole minus mark, never where the printer put the mark, so the
-      // correction is first order: a 0.35 degree, 0.2% back leaves under 0.02 mm,
-      // half a 600 dpi dot, and the next sheet takes that out too.
+      // Through the same printer, every back point now lands on its hole. Readings
+      // are grid numbers, so the target is exact; what is left is the printer's
+      // size-then-turn order, which no turn-then-size setting matches to the micron.
       let worst = 0;
       for (const p of duplexCardPoints(L, after)) { const m = G(L, p.mark, g); worst = Math.max(worst, Math.hypot(p.hole.x - m.x, p.hole.y - m.y)); }
-      near(`${tag} next sheet reads zero`, worst, 0, 0.025);
+      near(`${tag} next sheet reads zero`, worst, 0, 0.005);
+      // The answer is the printer's, not the starting point's.
+      if (!answers.has(key)) answers.set(key, fit.values);
+      else for (const [k, v] of Object.entries(answers.get(key))) near(`${tag} ${k} matches the uncalibrated fit`, fit.values[k], v, 0.002);
+      // Card 1's orientation dot is on the card, clear of every outline and dot.
+      const o = duplexOrientDot(L, duplexCardPoints(L, S.settings).find(p => p.id === '1A').pre, S.settings);
+      const B = slotBleed(L, S.settings), Tb = makeT(L, true, S.settings), inv = turnPt(L, o, false, S.settings), ox = (inv.x - Tb.x(0)) / Tb.w(1), oy = (inv.y - Tb.y(0)) / Tb.h(1);
+      const pb = slotPos(L, 0, true, S.settings);
+      if (!(ox > pb.x + B.x + REG_TEST_SAFE + 1 && ox < pb.x + B.x + L.cw - REG_TEST_SAFE - 1 && oy > pb.y + B.y + REG_TEST_SAFE + 1 && oy < pb.y + B.y + L.ch - REG_TEST_SAFE - 1))
+        fails.push(`${tag}: orientation dot is not inside card 1's safe area`);
       if (JSON.stringify(duplexCardPoints(L, after).map(p => p.hole)) !== holesBefore) fails.push(`${tag}: fitting the back moved the front`);
       if (fit.shear !== null && Math.abs(fit.shear) > 0.01) fails.push(`${tag}: no shear in the input, reported ${fit.shear}`);
       // One point: offset only, and it zeroes that point.
