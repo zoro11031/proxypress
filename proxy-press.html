@@ -10020,9 +10020,16 @@ function openDuplexWizard(state = {}, backLabel = '') {
       const g = c.getContext('2d', {willReadFrequently: true}); g.drawImage(bmp, 0, 0);
       const res = readDuplexScan(g.getImageData(0, 0, c.width, c.height), L, s);
       if (res.error) { $('#duplexWizardStatus').textContent = res.error; return; }
+      // The reader looks 4.5 mm round each grid's zero. A back further off than
+      // that reads nothing; a slightly turned one loses only its far corners, and
+      // the points it does read still give the right turn.
+      if (!res.readings.length) {
+        $('#duplexWizardStatus').textContent = `The grids were found but no pin holes. Check each hole goes right through and the scan has black paper behind the sheet. If the holes sit more than about 4 mm from their grids, read one card by eye, apply that, and print the test again.`;
+        return;
+      }
       for (const r of res.readings) readings.set(r.id, {x: r.x, y: r.y});
       rows(); refresh();
-      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}.` : ''} Check the values, then apply.`;
+      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}: a hole more than about 4 mm from its grid is not read. Apply these, print the test again, and the next scan reads them all.` : ''} Check the values, then apply.`;
     } catch (e) {
       $('#duplexWizardStatus').textContent = `The scan could not be read: ${e.message}`;
     } finally { ev.target.value = ''; }

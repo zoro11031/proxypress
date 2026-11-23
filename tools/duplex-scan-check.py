@@ -18,7 +18,7 @@ Needs gs, numpy, scipy and Pillow. Development tool; nothing ships it.
 import argparse, base64, json, math, os, subprocess, sys, tempfile
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,10 +46,15 @@ def main():
     ap.add_argument('--dpi', type=int, default=600)
     ap.add_argument('--skew', type=float, default=1.5, help='scanner turn, degrees')
     ap.add_argument('--bow', type=float, default=0.4, help='bow across the sheet, mm')
+    ap.add_argument('--dx', type=float, default=0.8, help="printer's shift of the back page across, mm")
+    ap.add_argument('--dy', type=float, default=-0.55, help="printer's shift of the back page down, mm")
+    ap.add_argument('--sx', type=float, default=1.0015, help="printer's size of the back page across")
+    ap.add_argument('--sy', type=float, default=0.999, help="printer's size of the back page down")
+    ap.add_argument('--rot', type=float, default=0.3, help="printer's turn of the back page, degrees")
     ap.add_argument('--bleed', type=float, help='bleed, mm (plain and short layouts)')
     ap.add_argument('--calibrated', action='store_true', help='start from back settings that are already non-zero')
     a = ap.parse_args()
-    g = dict(dx=0.8, dy=-0.55, rot=0.3, sx=1.0015, sy=0.999)
+    g = dict(dx=a.dx, dy=a.dy, rot=a.rot, sx=a.sx, sy=a.sy)
     with tempfile.TemporaryDirectory() as tmp:
         extra = {}
         if a.bleed is not None and a.layout != 'scm': extra['bleed'] = a.bleed
@@ -76,19 +81,46 @@ def main():
         X, Y = xx / k - g['dx'] - cx, yy / k - g['dy'] - cy
         sx = cx + (X * math.cos(r) + Y * math.sin(r)) / g['sx']; sy = cy + (-X * math.sin(r) + Y * math.cos(r)) / g['sy']
         printed = np.stack([ndimage.map_coordinates(page[..., c], [sy * k, sx * k], order=1, cval=255) for c in range(3)], -1)
-        img = Image.fromarray(printed.clip(0, 255).astype(np.uint8)); d = ImageDraw.Draw(img); truth = {}
+        truth = {}
+        # Where the raster puts a point at m mm is m*k plus some sub-pixel offset that
+        # depends on the renderer's pixel convention and the page's rounding. Measure
+        # it on the printed dots, whose places are known, and draw the holes the same
+        # way; guessing it put every hole up to a pixel off the print.
+        lum = page @ np.array([0.299, 0.587, 0.114], np.float32); offs = []
+        for p in sheet['pts']:
+            m, jx, jy = (np.array([p[q]['x'], p[q]['y']]) for q in ('mark', 'jx', 'jy'))
+            for sa, sb in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+                e = (m + 5 * sa * (jx - m) + 5 * sb * (jy - m)) * k; w9 = int(0.9 * k) + 2
+                ex, ey = int(round(e[0])), int(round(e[1])); win = lum[ey - w9:ey + w9 + 1, ex - w9:ex + w9 + 1]
+                wy, wx = np.nonzero(win < 110)
+                if len(wx) > 3: offs.append((ex - w9 + wx.mean() - e[0], ey - w9 + wy.mean() - e[1]))
+        off = np.mean(offs, axis=0); print(f'raster offset measured on {len(offs)} dots: {off[0]:+.3f}, {off[1]:+.3f} px')
+        # A hole lets through light in proportion to how much of each pixel it
+        # covers, the way a scanner sees it: 8 x 8 samples a pixel. Drawn with
+        # whole-pixel edges instead, its centre moved by up to half a pixel.
+        ss = (np.arange(8) + 0.5) / 8 - 0.5
         for p in sheet['pts']:
             hx, hy, rad = p['hole']['x'], p['hole']['y'], 0.35 * k
-            d.ellipse([hx * k - rad, hy * k - rad, hx * k + rad, hy * k + rad], fill=(10, 10, 10))
+            ox, oy = hx * k + off[0], hy * k + off[1]
+            x0, y0 = int(ox - rad) - 1, int(oy - rad) - 1; n = int(2 * rad) + 4
+            gy, gx = np.mgrid[0:n, 0:n].astype(np.float64)
+            sx_, sy_ = (gx[..., None, None] + x0 + ss[None, None, None, :]), (gy[..., None, None] + y0 + ss[None, None, :, None])
+            cov = (((sx_ - ox) ** 2 + (sy_ - oy) ** 2) <= rad * rad).mean(axis=(2, 3))
+            patch = printed[y0:y0 + n, x0:x0 + n]
+            patch[:] = patch * (1 - cov[..., None]) + 10 * cov[..., None]
             # The truth is the grid reading under the hole: the q with G(mark(q)) = hole,
             # where mark() is the back's affine drawing of its grid.
             m0 = np.array(G(p['mark']['x'], p['mark']['y']))
             J = np.array([np.array(G(p['jx']['x'], p['jx']['y'])) - m0, np.array(G(p['jy']['x'], p['jy']['y'])) - m0]).T
             q = np.linalg.solve(J, np.array([hx, hy]) - m0); truth[p['id']] = (f2 * q[0], f2 * q[1])
-        P = np.asarray(img).astype(np.float32); pad = int(8 * k); H2, W2 = h + 2 * pad, w + 2 * pad
-        YY, XX = np.mgrid[0:H2, 0:W2].astype(np.float32); th, s = math.radians(a.skew), 1.004
-        X0 = XX - pad + a.bow * k * np.sin(math.pi * (YY - pad) / h); Y0 = YY - pad
-        u, v = (X0 - w / 2) / s, (Y0 - h / 2) / s
+        # The scan canvas holds the whole turned sheet with 8 mm round it, at any skew.
+        th, s, pad = math.radians(a.skew), 1.004, int(8 * k)
+        W2 = int(s * (abs(w * math.cos(th)) + abs(h * math.sin(th)))) + 2 * pad
+        H2 = int(s * (abs(w * math.sin(th)) + abs(h * math.cos(th)))) + 2 * pad
+        P = printed.clip(0, 255).astype(np.float32)
+        YY, XX = np.mgrid[0:H2, 0:W2].astype(np.float32)
+        X0 = XX - W2 / 2 + a.bow * k * np.sin(math.pi * YY / H2); Y0 = YY - H2 / 2
+        u, v = X0 / s, Y0 / s
         scan = np.stack([ndimage.map_coordinates(P[..., c], [h / 2 - u * math.sin(th) + v * math.cos(th), w / 2 + u * math.cos(th) + v * math.sin(th)],
                                                  order=1, cval=255) for c in range(3)], -1)
         out = os.path.join(tmp, 'scan.png'); Image.fromarray(scan.clip(0, 255).astype(np.uint8)).save(out)
@@ -103,15 +135,22 @@ def main():
     rr, fit = res['res'], res['fit']
     if rr.get('error'): sys.exit('reader: ' + rr['error'])
     if os.environ.get("DEBUG"): [print(x, truth[x["id"]]) for x in rr["readings"]]
+    if not rr['readings']:
+        far = min(math.hypot(*truth[i]) for i in truth)
+        print(f"{a.layout}: no holes read; the nearest hole is {far:.2f} mm from its grid")
+        ok = far > 4.2; print('PASS (all beyond the 4.5 mm search)' if ok else 'FAIL'); return 0 if ok else 1
     errs = {x["id"]: math.hypot(x['x'] - truth[x['id']][0], x['y'] - truth[x['id']][1]) for x in rr['readings']}
     worst = max(errs, key=errs.get)
-    print(f"{a.layout} at {a.dpi} dpi, scan turned {a.skew} deg and bowed {a.bow} mm: read {len(rr['readings'])} of {len(truth)} points "
+    print(f"{a.layout} at {a.dpi} dpi, back printed shifted {a.dx:+g}/{a.dy:+g} mm, turned {a.rot} deg, sized {a.sx:g}/{a.sy:g}, scan turned {a.skew} deg and bowed {a.bow} mm: read {len(rr['readings'])} of {len(truth)} points "
           f"(scan dpi seen as {rr['dpi']:.0f}); worst error {errs[worst]:.3f} mm at {worst}")
-    if rr['missing']: print('missing:', ', '.join(rr['missing']))
+    # The reader looks 4.5 mm round each grid's zero: a hole further out is expected
+    # to be missing; one well inside that is a failure. Truth is in grid mm.
+    lost = [i for i in rr['missing'] if math.hypot(*truth[i]) < 4.2]
+    if rr['missing']: print('missing:', ', '.join(f"{i} ({math.hypot(*truth[i]):.1f} mm off)" for i in rr['missing']))
     print('fit:', json.dumps(fit['values']), f"residual max {fit['max']:.3f} mm")
     # Sub-pixel, not sub-micron: 0.05 mm, or three quarters of a scan pixel if that is coarser.
     bar = max(0.05, 0.75 * 25.4 / a.dpi)
-    ok = not rr['missing'] and errs[worst] < bar
+    ok = not lost and errs[worst] < bar
     print('PASS' if ok else 'FAIL'); return 0 if ok else 1
 
 
