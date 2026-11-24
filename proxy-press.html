@@ -613,6 +613,7 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .empty h2{margin:0 0 8px;font-size:18px;font-weight:600;letter-spacing:-.6px}
 .empty .hint{margin:0}
 .empty-add{display:none;margin-top:16px}
+body.preview-focus .empty-add{display:inline-flex}
 .pg.pg-empty{background:none;box-shadow:none;outline:1px dashed var(--field);outline-offset:0}
 .pg-empty svg.pg-slots{z-index:0}
 .pg-empty .pg-slots rect{fill:none;stroke:var(--hair);stroke-width:1}
@@ -1069,6 +1070,18 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
 @media(max-width:480px){header h1{font-size:0;gap:0}header h1 .logo{width:24px;height:24px}#modeSeg{grid-row:1;grid-column:2}.hzone-deck{grid-row:2}}
 @media(max-width:820px){body[data-mode=print] #stage{padding-left:26px}body[data-mode=print] .stage-controls{margin-left:-26px;padding-left:12px}#cardList .card{grid-template-columns:52px 30px minmax(0,1fr) 44px}#cardList .card .qty input{width:48px;min-height:44px}#cardList .card>[data-act=select]{left:58px}}
 .stage-controls{border-bottom-color:var(--line)}
+body:not(.has-cards,.print-settings-active) #btnReviewExport,
+body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
+#btnResumeImport{margin-bottom:var(--s3)}
+#btnFilterNeedsArt{background:var(--panel2);color:var(--warning);border:1px solid var(--line)}
+#btnFilterNeedsArt[aria-pressed=true]{background:rgb(var(--warning-rgb) / .12);border-color:var(--warning)}
+#deckFilterEmpty{padding-block:var(--s3)}
+#deckFilterEmpty p{margin:0 0 var(--s2)}
+@media(max-width:820px){
+  body:not(.has-cards,.print-settings-active) #workspaceBar{display:none}
+  body:not(.has-cards,.print-settings-active) main{margin-bottom:calc(64px + env(safe-area-inset-bottom))}
+  #mbar button.on{background:var(--accent-wash);color:var(--accent2);border-color:var(--accent)}
+}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 </style>
@@ -1091,6 +1104,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
           <button id="deckNew">New deck</button>
           <button id="deckRename">Rename deck</button>
           <button id="deckDup">Duplicate deck</button>
+          <button id="btnTokens" hidden>Add needed tokens</button>
           <button id="btnCopyList">Copy decklist</button><button id="projectFiles">Project files…</button>
           <button id="btnReplace">Replace from decklist…</button>
           <button id="btnUndoReplace" style="display:none">Undo deck replacement</button>
@@ -1121,7 +1135,6 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         <div class="import-go">
           <button id="btnImport" class="primary">Add to deck</button>
           <button id="btnAddInstead" hidden>Add instead</button>
-          <button id="btnTokens">Add needed tokens</button>
         </div>
         <div class="source-actions">
           <button id="btnLink" class="source-wide">Import from link or file…</button>
@@ -1149,6 +1162,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         </div>
       </details>
       <div id="importNote" aria-live="polite"></div>
+      <button type="button" id="btnResumeImport" hidden>Resume import</button>
       <input type="file" id="fileUpload" accept="image/*" multiple hidden>
       <input type="file" id="fileMpc" accept=".xml,text/xml,application/xml" multiple hidden>
       <input type="file" id="fileMpcImgs" accept="image/*" multiple hidden>
@@ -1161,12 +1175,12 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
             <b>Cards</b><span id="queueCopyCount" class="queue-copies">0 copies</span>
           </div>
           <div class="queue-actions">
-            <button type="button" id="btnAddCards" aria-controls="importDrawer" aria-expanded="false">Add cards</button><button type="button" id="btnMultiSelect" aria-pressed="false">Select</button><button type="button" id="btnResumeImport" hidden>Resume import</button>
+            <button type="button" id="btnAddCards" aria-controls="importDrawer" aria-expanded="false">Add cards</button><button type="button" id="btnMultiSelect" aria-pressed="false">Select copies</button>
             <button type="button" id="btnMpcAuto">Fill missing art</button>
           </div>
           <div class="queue-sub-row">
             <div id="queueReadyStatus" class="queue-status">0 fronts ready</div>
-            <button type="button" id="btnFilterNeedsArt" class="tag" style="background:rgb(var(--warning-rgb) / .12);color:var(--warning);cursor:pointer;border:0">Needs attention (<span id="countNeedsArt" class="num">0</span>)</button>
+            <button type="button" id="btnFilterNeedsArt" class="tag" aria-pressed="false">Filter art issues</button>
           </div>
         </div>
         <span id="deckCount" hidden></span><span id="deckHealth" hidden></span>
@@ -1174,7 +1188,10 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
       </div>
       <div id="cardSelection" hidden><span id="cardSelectionCount" class="hint" aria-live="polite"></span><div class="row"><button id="changeSelectedArt" class="primary">Change selected art…</button><button id="selectAllCopies">Select all copies</button><button id="clearCardSelection">Clear</button></div></div>
       <div class="cards" id="cardList"></div>
-      <p class="hint" id="deckFilterEmpty" hidden>No cards match your search.</p>
+      <div id="deckFilterEmpty" hidden>
+        <p class="hint" role="status">No cards match the current filters.</p>
+        <button type="button" id="btnClearDeckFilters">Clear filters</button>
+      </div>
       <details id="suggestionDrawer">
         <summary>Cards that go with this deck</summary>
         <button id="suggestionExplore">Explore suggestions</button>
@@ -1806,7 +1823,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
   <button type="button" id="quickSetupMore">More settings</button>
 </div>
 <footer id="workspaceBar">
-  <div class="bar-status" id="barStatus">Ready to export · 1 sheet · 2 PDF pages</div>
+  <div class="bar-status" id="barStatus"></div>
   <div class="bar-actions"><button type="button" id="toggleInspector" class="print-only" aria-controls="printSettingsView">Print settings</button><button type="button" id="btnReviewExport" class="primary">Review export</button></div>
 </footer>
 
@@ -4112,13 +4129,19 @@ function renderQueueStatus(issues,slots) {
   $('#queueReadyStatus').innerHTML = n ? `<span class="num">${n}</span> issue${n === 1 ? '' : 's'} · ${copyCountHtml(countAffectedCopies(issues,slots))}` : `<span class="num">${slots.length}</span> front${slots.length === 1 ? '' : 's'} ready`;
   if (!n) S.filterNeedsArt = false;
   const filter = $('#btnFilterNeedsArt');
+  const sharedBackOnly = n === 1 && issues[0].cardback;
   filter.hidden = !n;
-  filter.classList.toggle('active',!!S.filterNeedsArt);
-  filter.setAttribute('aria-pressed',String(!!S.filterNeedsArt));
-  $('#countNeedsArt').textContent = n;
+  filter.textContent = sharedBackOnly ? 'Choose a cardback' : 'Filter art issues';
+  if (sharedBackOnly) {
+    S.filterNeedsArt = false;
+    filter.removeAttribute('aria-pressed');
+  } else {
+    filter.setAttribute('aria-pressed', String(!!S.filterNeedsArt));
+  }
   $('#btnMpcAuto').hidden = !issues.some(issue=>!issue.cardback);
 }
 function refreshArtworkIssues() {
+  const wasFiltered = S.filterNeedsArt;
   const slots = buildSlots(deck(),queueSettings());
   for (const row of $$('#cardList .card')) {
     const entry = deck().entries.find(e=>e.uid === row.dataset.uid), status = $('.queue-card-issues',row); if (!entry || !status) continue;
@@ -4128,6 +4151,7 @@ function refreshArtworkIssues() {
     status.hidden = !issues.length;
   }
   renderQueueStatus(getPrintJobIssues(),slots);
+  if (wasFiltered) applyDeckFilter();
   applyDeckFilter();
 }
 async function retryArtworkIssue(issue) {
@@ -5306,7 +5330,7 @@ async function renderCards() {
   $('#deckHealth').innerHTML = allIssues.length ? `<span style="color:#ff9c95">${allIssues.length} need${allIssues.length === 1 ? 's' : ''} attention</span>` : '';
   const qCopies = $('#queueCopyCount'); if (qCopies) qCopies.innerHTML = copyCountHtml(total);
   renderQueueStatus(allIssues,slots);
-  if (!d.entries.length) { list.innerHTML = '<p class="hint">No cards yet.</p>'; syncCardSelection(); return; }
+  if (!any) { list.replaceChildren(); applyDeckFilter(); syncCardSelection(); return; }
   list.innerHTML = d.entries.map(e => {
     const issues = getCardIssues(e, slots, s);
     return `
@@ -5320,8 +5344,8 @@ async function renderCards() {
       </div>
       <span class="copy-badge" style="font-size:12px;color:var(--muted);padding:0 4px">×${e.qty}</span>
       <div class="ctl">
-        <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity"><button class="icon" data-act="inc" aria-label="More">+</button></div>
-        <button class="icon more" data-act="more" title="Card options" aria-label="Card options"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg></button>
+        <div class="qty"><button class="icon" data-act="dec" aria-label="Fewer">−</button><input type="number" min="0" value="${e.qty}" data-act="qty" aria-label="Quantity for ${esc(e.name)}"><button class="icon" data-act="inc" aria-label="More">+</button></div>
+        <button class="icon more" data-act="more" title="Card options" aria-label="Options for ${esc(e.name)}"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg></button>
       </div>
       <div class="queue-card-issues"${issues.length ? '' : ' hidden'}>${queueIssueButtons(issues)}</div>
     </div>`;
@@ -5340,17 +5364,25 @@ async function renderCards() {
 function applyDeckFilter() {
   const q = $('#deckFilter').hidden ? '' : $('#deckFilter').value.trim().toLowerCase();
   const rows = $$('#cardList .card');
-  const d = deck(), s = S.settings, slots = buildSlots();
+  const d = deck(), s = queueSettings();
+  const slots = S.filterNeedsArt ? buildSlots(d, s) : [];
   rows.forEach(r => {
-    const e = d.entries.find(x => x.uid === r.dataset.uid);
     const matchesSearch = !q || r.querySelector('.nm').title.toLowerCase().includes(q);
-    const issues = e ? getCardIssues(e, slots, s) : [];
-    const matchesNeedsArt = !S.filterNeedsArt || issues.length > 0;
+    const matchesNeedsArt = !S.filterNeedsArt || getCardIssues(d.entries.find(e => e.uid === r.dataset.uid), slots, s).length > 0;
     r.hidden = !matchesSearch || !matchesNeedsArt;
   });
   $('#deckFilterEmpty').hidden = !q && !S.filterNeedsArt ? true : rows.some(r => !r.hidden);
 }
 $('#deckFilter').oninput = applyDeckFilter;
+$('#btnClearDeckFilters').onclick = () => {
+  const search = $('#deckFilter');
+  search.value = '';
+  S.filterNeedsArt = false;
+  const filter = $('#btnFilterNeedsArt');
+  if (filter.hasAttribute('aria-pressed')) filter.setAttribute('aria-pressed', 'false');
+  applyDeckFilter();
+  search.focus();
+};
 function restoreDeckImport() {
   const current = deck(), draft = current.importDraft, textDraft = draft?.format !== 'order-xml' ? draft : null;
   $('#listIn').value = textDraft?.text || '';
@@ -5370,12 +5402,13 @@ function syncImportDrawer() {
   button.textContent = open ? 'Hide import' : 'Add cards';
   button.setAttribute('aria-expanded', String(open));
   const replace = !!draft?.replace;
+  $('#importDrawerSummary').textContent = replace ? 'Replace from decklist' : 'Add cards…';
   const resume = $('#btnResumeImport');
   resume.hidden = !draft?.text || (open && draft.format !== 'order-xml');
-  resume.textContent = replace ? 'Resume replacement' : 'Resume import';
+  resume.textContent = replace ? 'Resume replacement' : draft?.format === 'order-xml' ? 'Resume order import' : 'Resume import';
   $('#btnImport').textContent = replace ? 'Review replacement' : 'Add to deck';
   $('#btnAddInstead').hidden = !replace;
-  $('#btnTokens').hidden = replace;
+  $('#btnTokens').hidden = !deck()?.entries.length;
 }
 function openDeckImport() {
   if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
@@ -5399,7 +5432,7 @@ $('#btnAddInstead').onclick = () => {
   $('#listIn').focus();
 };
 $('#btnAddCards').onclick = () => { if ($('#importDrawer').open) $('#importDrawer').open = false; else openDeckImport(); syncImportDrawer(); };
-$('#btnMultiSelect').onclick = () => { S.multiSelect = !S.multiSelect; if (!S.multiSelect) selectedCopies.clear(); $('#btnMultiSelect').textContent = S.multiSelect ? 'Done' : 'Select'; $('#btnMultiSelect').setAttribute('aria-pressed', String(S.multiSelect)); syncCardSelection(); };
+$('#btnMultiSelect').onclick = () => { S.multiSelect = !S.multiSelect; if (!S.multiSelect) selectedCopies.clear(); $('#btnMultiSelect').textContent = S.multiSelect ? 'Done selecting' : 'Select copies'; $('#btnMultiSelect').setAttribute('aria-pressed', String(S.multiSelect)); syncCardSelection(); };
 $('#btnFilterNeedsArt').onclick = () => {
   const issues=getPrintJobIssues(),slots=buildSlots(deck(),queueSettings());
   if(issues.length===1 && issues[0].cardback)return openMpcPicker({cardback:true});
@@ -5407,6 +5440,14 @@ $('#btnFilterNeedsArt').onclick = () => {
   renderQueueStatus(issues,slots);applyDeckFilter();
 };
 $('#importDrawer').addEventListener('toggle', syncImportDrawer);
+$('#importDrawerSummary').addEventListener('click', ev => {
+  const drawer = $('#importDrawer');
+  if (!drawer.open || !deck()?.entries.length) return;
+  ev.preventDefault();
+  drawer.open = false;
+  syncImportDrawer();
+  $('#btnAddCards').focus();
+});
 $('#cardList').addEventListener('keydown', ev=>{if(ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)){ev.preventDefault();ev.target.click();}});
 async function revealQueueCard(entry) {
   if (!entry?.qty) return;
@@ -8711,8 +8752,7 @@ function syncProofViewButtons() {
 }
 function emptyWorkspaceHtml(order = false) {
   return `<div class="empty">
-    <h2>${order ? 'Add cards to your order' : 'Add cards to your deck'}</h2>
-    <p class="hint">Paste a decklist, import a link or upload images from the deck panel.</p>
+    <h2>${order ? 'No cards to order yet' : 'No cards to preview yet'}</h2>
     <button class="primary empty-add" data-start="paste">Add cards</button>
   </div>`;
 }

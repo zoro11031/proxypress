@@ -35,6 +35,17 @@
   renderAll();
   await drawPreview();
   check($('#previewSheetNav')?.hidden && $('#previewZoomControls')?.hidden, 'An empty preview should show import actions without sheet or zoom controls.');
+  check(!visible('#btnReviewExport') && visible('#btnImport') && $('#btnTokens').hidden, 'Import should be the primary action for an empty deck.');
+  if (innerWidth <= 820) setWorkspaceView('proof'); else setPreviewFocus(true);
+  await drawPreview();
+  check(visible('.empty-add'), 'The empty preview should offer Add cards when the card list is hidden.');
+  click('.empty-add');
+  check(document.activeElement === $('#listIn'), 'Add cards in the empty preview should focus the decklist.');
+  deck().importDraft = {format:'order-xml', text:'<order></order>'};
+  syncImportDrawer();
+  check(visible('#btnResumeImport') && $('#btnResumeImport').textContent === 'Resume order import', 'An order draft should be resumable from an empty deck.');
+  delete deck().importDraft;
+  syncImportDrawer();
   check($('#proofViewSeg').getAttribute('aria-label') === 'Preview side and guides', 'Screen-reader labels should call this Preview.');
   if (innerWidth > 820) {
     click('#toggleSidebar');
@@ -67,6 +78,15 @@
   deck().entries = [entry];
   renderAll();
   await drawPreview();
+  check(visible('#btnReviewExport') && !$('#btnTokens').hidden, 'Review and token actions should become available after adding cards.');
+  type('#deckFilter', 'no matching cards');
+  check(visible('#btnClearDeckFilters'), 'A search with no results should offer Clear filters.');
+  click('#btnClearDeckFilters');
+  check(!visible('#deckFilterEmpty') && visible('#cardList .card') && document.activeElement === $('#deckFilter'), 'Clearing filters should restore the card list and focus search.');
+  openDeckImport();
+  $('#importDrawerSummary').focus();
+  click('#importDrawerSummary');
+  check(!$('#importDrawer').open && document.activeElement === $('#btnAddCards'), 'Closing the import drawer should keep keyboard focus on its visible entry point.');
   const nextEntry = {...entry, uid:'workspace-next', qty:1};
   deck().entries.push(nextEntry);
   renderCards();
