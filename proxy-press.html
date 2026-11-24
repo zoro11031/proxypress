@@ -1236,7 +1236,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         <p id="scmTemplateHint" class="hint"></p>
         <div id="cameoStatus"></div>
         <div class="row" style="margin-top:10px"><button id="btnRegTestPdf" aria-describedby="regTestHint">Download registration test page</button></div>
-        <p class="hint" id="regTestHint">A PDF with the registration marks in the same place as on your print, and a faint outline of every card position: a thin solid line at the bleed edge and a dashed line at the safe area. The outlines are pure black, so a colour laser prints them from black toner alone. Print it on scrap paper and cut it. If the cutter finds the marks and the cuts are centred, each cut falls between the two lines with an even margin all round.</p>
+        <p class="hint" id="regTestHint">Print on scrap paper to test mark detection and cut alignment before cutting cards.</p>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
           <summary>Advanced cutting options</summary>
@@ -1244,7 +1244,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
             <div class="field full">
               <label for="scmSkip">Skip card positions</label>
               <input id="scmSkip" type="text" maxlength="120" pattern="[0-9, ]*" placeholder="e.g. 1, 5" aria-describedby="scmSkipHint">
-              <p class="hint" id="scmSkipHint">Count from 1 across each row on the mat. These spots stay empty on every sheet.</p>
+              <p class="hint" id="scmSkipHint">Positions to leave empty on every sheet (e.g. 1, 5).</p>
             </div>
             <div class="field">
               <label for="scmFit">Front image fit</label>
@@ -1265,7 +1265,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
             <div class="field full">
               <label for="scmLabel">Printed sheet label</label>
               <input id="scmLabel" type="text" maxlength="48" placeholder="Optional" aria-describedby="scmLabelHint">
-              <p class="hint" id="scmLabelHint">Each sheet is printed with its sheet number and cutting template along the edge, as Silhouette Card Maker does. Text entered here is added in front.</p>
+              <p class="hint" id="scmLabelHint">Text added before the sheet number along the edge.</p>
             </div>
           </div>
           <div id="cameoCustomRegistration">
@@ -1392,9 +1392,9 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
             </g>
           </svg>
           <ul class="tips hint" style="padding-left:18px">
-            <li><b>Bleed</b> (1) is the artwork beyond the cut edge.</li>
-            <li><b>Margin marks</b> (2) show where to cut across the sheet.</li>
-            <li><b>Corner marks</b> (3) show where each card ends.</li>
+            <li><b>1. Bleed:</b> artwork beyond the cut line.</li>
+            <li><b>2. Margin marks:</b> cuts across the sheet.</li>
+            <li><b>3. Corner marks:</b> card boundaries.</li>
           </ul>
         </details>
       </div>
@@ -1758,7 +1758,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
         </div>
         <div class="settings-section">
           <h3>Color adjustments</h3>
-          <p class="hint">Foil can make artwork look darker or duller. Raise brightness for dark prints or saturation for muted colors. Check with a test sheet.</p>
+          <p class="hint">Foil prints darker. Increase brightness or saturation, then test print.</p>
           <div id="colorSliders"></div>
           <div class="row" style="gap:8px;margin-top:12px">
             <button type="button" id="btnInspFoilPreview">Preview foil…</button>
@@ -3285,7 +3285,7 @@ function precacheStaples() {
   fetchCollection(missing.map(name => ({id:{name}}))).catch(() => {});
 }
 
-let deckUndo = null;
+let deckUndo = null, cardUndo = null;
 
 function captureDeckRevision(d) {
   if (!d) return null;
@@ -3389,12 +3389,19 @@ function showUnresolvedImport(staged) {
   }
 }
 
-function showImportNeedsReview(staged) {
-  openModal(`<div class="hd"><b>Deck changed during lookup</b><button data-close>Close</button></div>
-    <div class="bd">
-      <p class="hint">Return to the original deck and choose Resume import.</p>
-      <button class="primary" data-close>OK</button>
-    </div>`);
+function showImportNeedsReview(staged, target = deck()) {
+  const dName = target?.name || 'original deck';
+  toast('Deck changed during lookup.', 10000, {
+    label: `Switch to ${dName}`,
+    fn: () => {
+      if (target?.id && S.decks.some(d => d.id === target.id)) {
+        activateDeck(target.id);
+        save();
+        renderAll();
+        $('#btnResumeImport')?.click();
+      }
+    }
+  });
 }
 
 function reviewReplacement(target, staged, replace = true) {
@@ -3530,7 +3537,7 @@ async function importList(text, replace, correction = null) {
   const staged = await resolveDeckImport(text);
   const current = findDeck(target.id);
   if (!current || current.importDraft?.id !== command) return;
-  if (S.deckId !== target.id || !matchesRevision(current, target)) { showImportNeedsReview(staged); return; }
+  if (S.deckId !== target.id || !matchesRevision(current, target)) { showImportNeedsReview(staged, target); return; }
   if (!staged?.resolved.length) { showUnresolvedImport(staged); renderCards(); if (staged?.unresolved?.length) await suggestMissingCards(staged.unresolved, true); return; }
   for(const row of staged.rows || []){const draftRow=current.importDraft.rows?.find(item=>item.sourceLine===row.sourceLine && item.lineId===row.lineId);if(draftRow)draftRow.section=row.section || '';}
   // A clean add (every line found, no substitutions) goes straight in, with Undo; anything
@@ -3538,7 +3545,7 @@ async function importList(text, replace, correction = null) {
   const cleanAdd = !replace && !staged.unresolved?.length && !staged.fallbacks?.length && !$('#modal #linkIn');
   const before = cleanAdd ? structuredClone(current.entries) : null;
   if (!cleanAdd && !(await reviewReplacement(target, staged, !!replace))) return;
-  if (S.deckId !== target.id || current.importDraft?.id !== command || !matchesRevision(current, target)) { showImportNeedsReview(staged); return; }
+  if (S.deckId !== target.id || current.importDraft?.id !== command || !matchesRevision(current, target)) { showImportNeedsReview(staged, target); return; }
   if (replace) applyDeckReplacement(current, staged, {keepUndo:true});
   else {
     for (const entry of staged.resolved) {
@@ -3829,6 +3836,7 @@ async function uploadImages(files) {
 }
 async function removeImageIfUnused(key) {
   if (!key || imageLeases.has(key)) return;
+  if (cardUndo && cardUndo.entry?.faces?.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key)) return;
   if (deckUndo && (deckUndo.target?.cardback?.custom === key || deckUndo.target?.snapshot?.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key)))) return;
   const used = S.decks.some(d => d.printSettings?.backImage === key || d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key) || (S.frameSets || []).some(f => Object.values(f.images || {}).includes(key));
   if (!used) { await store.del('images', key); blobUrls.delete(key); }
@@ -4663,7 +4671,16 @@ async function openMpcPicker(target) {
     if (ev.target.id === 'mpcMaker') return openCardMaker({e, i:faceIdx, backLabel:'Back to artwork'});
     if (ev.target.dataset.removeArt) {
       const id = ev.target.dataset.removeArt;
-      if (!confirm('Remove this upload from shared art search? Saved decks keep their copies.')) return;
+      const ok = window.confirm !== nativeConfirm
+        ? window.confirm('Remove this upload from shared art search? Saved decks keep their copies.')
+        : await askConfirm({
+            title: 'Remove shared art',
+            message: 'Remove this upload from shared art search? Saved decks keep their copies.',
+            ok: 'Remove from search',
+            cancel: 'Keep in search',
+            danger: true
+          });
+      if (!ok) return;
       try { await shareRequest(`/art/${id}/delete`, {}); if (bd.isConnected) run(); }
       catch(err) { if (bd.isConnected) status(err.message); }
       return;
@@ -5136,7 +5153,17 @@ $('#deckDup').onclick = () => {
   c.entries.forEach(e => e.uid = uid()); S.decks.push(c); activateDeck(c.id); save(); renderAll();
 };
 $('#deckDel').onclick = async () => {
-  const d = deck(); if (!confirm(`Delete deck "${d.name}"? This cannot be undone.`)) return;
+  const d = deck();
+  const ok = window.confirm !== nativeConfirm
+    ? window.confirm(`Delete deck "${d.name}"? This cannot be undone.`)
+    : await askConfirm({
+        title: 'Delete deck',
+        message: `Delete "${d.name}"? This cannot be undone.`,
+        ok: 'Delete deck',
+        cancel: 'Keep deck',
+        danger: true
+      });
+  if (!ok) return;
   if (!abandonPrintSettings()) return;
   S.decks = S.decks.filter(x => x !== d);
   for (const e of d.entries) for (const f of e.faces) await removeImageIfUnused(f.custom);
@@ -5529,7 +5556,18 @@ $('#btnTokens').onclick = addTokens;
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
 const clearDeck = async () => {
-  const d = deck(); if (!d.entries.length || !confirm('Remove all cards from this deck?')) return;
+  const d = deck();
+  if (!d.entries.length) return;
+  const ok = window.confirm !== nativeConfirm
+    ? window.confirm('Remove all cards from this deck?')
+    : await askConfirm({
+        title: 'Remove all cards',
+        message: `Remove all cards from "${d.name}"?`,
+        ok: 'Remove cards',
+        cancel: 'Cancel',
+        danger: true
+      });
+  if (!ok) return;
   const keys = d.entries.flatMap(e => e.faces.map(f => f.custom)); d.entries = [];
   for (const k of keys) await removeImageIfUnused(k);
   save(); renderAll();
@@ -5639,9 +5677,31 @@ function askChoice({title, hint = '', choices}) {
     $('#modal [data-ask]')?.focus();
   });
 }
+const nativeConfirm = window.confirm;
+function askConfirm({title, message = '', ok = 'Continue', cancel = 'Cancel', danger = false}) {
+  if (typeof window.confirm === 'function' && window.confirm !== nativeConfirm) {
+    return Promise.resolve(Boolean(window.confirm(message || title)));
+  }
+  return askDialog(title, `${message ? `<p class="hint" style="margin-top:0">${esc(message)}</p>` : ''}
+    <div class="ask-actions">
+      <button type="button" class="${danger ? 'danger' : 'primary'}" id="askConfirmOk">${esc(ok)}</button>
+      <button type="button" id="askConfirmCancel" data-close>${esc(cancel)}</button>
+    </div>`, done => {
+    $('#askConfirmOk').onclick = () => done(true);
+    $('#askConfirmOk').focus();
+  }).then(v => !!v);
+}
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
 function closeModal(force = false) {
-  if (!$('#overlay').classList.contains('on') || (!force && modalBeforeClose && !modalBeforeClose())) return false;
+  if (!$('#overlay').classList.contains('on')) return false;
+  if (!force && modalBeforeClose) {
+    const res = modalBeforeClose();
+    if (res === false) return false;
+    if (res && typeof res.then === 'function') {
+      res.then(ok => { if (ok) closeModal(true); });
+      return false;
+    }
+  }
   const parent = modalParents.pop();
   modalBeforeClose = null; parkData();
   const after = modalAfterClose; modalAfterClose = null; if (after) after();
@@ -6555,9 +6615,19 @@ async function openCardMaker(target) {
   const bd = $('#modal .bd');
   const syncManaGrid = () => { const c = manaCounts(t.mana).c; $$('[data-mana]', bd).forEach(el => { el.value = c[el.dataset.mana] || ''; }); };
   symbolMap().then(map => $$('#ccManaGrid img[data-sym]', bd).forEach(im => { const u = map[im.dataset.sym]; if (!u) return; im.onerror = () => { im.onerror = null; im.src = u + (u.includes('?') ? '&' : '?') + 'cors'; }; im.src = u; }));
-  $('#ccManaAdv').onchange = ev => {
+  $('#ccManaAdv').onchange = async ev => {
     const adv = ev.target.checked;
-    if (!adv && !manaCounts(t.mana).simple && !confirm('The boxes can only hold plain symbols. Hybrid and Phyrexian symbols in this cost will be dropped. Switch anyway?')) { ev.target.checked = true; return; }
+    if (!adv && !manaCounts(t.mana).simple) {
+      const ok = window.confirm !== nativeConfirm
+        ? window.confirm('The boxes can only hold plain symbols. Hybrid and Phyrexian symbols in this cost will be dropped. Switch anyway?')
+        : await askConfirm({
+            title: 'Switch mana mode',
+            message: 'The symbol boxes only hold plain symbols. Hybrid and Phyrexian symbols will be dropped.',
+            ok: 'Drop special symbols',
+            cancel: 'Keep text mode'
+          });
+      if (!ok) { ev.target.checked = true; return; }
+    }
     S.manaAdv = adv; save();
     $('#ccManaGrid').hidden = adv; $('#ccManaText').hidden = !adv;
     if (adv) $('#ccManaText').value = t.mana || '';
@@ -6740,7 +6810,19 @@ async function openCardMaker(target) {
   };
   artModes();
   const initial = JSON.stringify(t);
-  modalBeforeClose = () => JSON.stringify(t) === initial || confirm('Discard your unsaved card changes?');
+  modalBeforeClose = () => {
+    if (JSON.stringify(t) === initial) return true;
+    if (window.confirm !== nativeConfirm) {
+      return window.confirm('Discard your unsaved card changes?');
+    }
+    return askConfirm({
+      title: 'Discard card changes',
+      message: 'Discard your unsaved card changes?',
+      ok: 'Discard changes',
+      cancel: 'Keep editing',
+      danger: true
+    });
+  };
   draw();
 }
 $('#btnMaker').onclick = () => openCardMaker({});
@@ -7017,7 +7099,26 @@ function openCtx(x, y, e, i, copy) {
     else if (c === 'allart') openMpcPicker({e, i, deckId:S.deckId, copies:same.map(x => ({uid:x.uid, copies:Array.from({length:x.qty}, (_, q) => q)}))});
     else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
     else if (c === 'maker') openCardMaker({e, i});
-    else if (c === 'del' && confirm(`Remove ${e.name}?`)) removeEntry(e);
+    else if (c === 'del') {
+      const d = deck(), idx = d.entries.indexOf(e), entryCopy = structuredClone(e);
+      cardUndo = { entry: entryCopy, deckId: d.id, index: idx };
+      removeEntry(e);
+      toast(`Removed ${e.name}.`, 6000, {
+        label: 'Undo',
+        fn: () => {
+          if (!cardUndo || cardUndo.deckId !== deck().id) return;
+          const cur = deck();
+          if (cardUndo.index >= 0 && cardUndo.index <= cur.entries.length) {
+            cur.entries.splice(cardUndo.index, 0, cardUndo.entry);
+          } else {
+            cur.entries.push(cardUndo.entry);
+          }
+          cardUndo = null;
+          cur.updated = Date.now();
+          save(); renderAll();
+        }
+      });
+    }
   };
 }
 function longPress(root, run) {
@@ -8125,9 +8226,25 @@ $('#printSettingsView').addEventListener('change', async ev => {
                     ['Back-page scale', 'backScaleX', 'backScaleY']]
         .filter(([, a, b]) => now[a] !== next[a] || now[b] !== next[b])
         .map(([label, a, b]) => `${label}: ${n(now[a])} / ${n(now[b])}  \u2192  ${n(next[a])} / ${n(next[b])}`);
-      if (rows.length && confirm(`The page turns on the paper, so the alignment numbers no longer point the same way. Turn them with it?\n\n${rows.join('\n')}\n\n`
-        + `The two rotations are angles about the page centre and do not change. Print the alignment sheet to check, and save the result as a profile so this sheet keeps its own set.`))
-        Object.assign(s, next);
+      if (rows.length) {
+        if (window.confirm !== nativeConfirm) {
+          if (window.confirm(`The page turns on the paper, so the alignment numbers no longer point the same way. Turn them with it?\n\n${rows.join('\n')}\n\n`
+            + `The two rotations are angles about the page centre and do not change. Print the alignment sheet to check, and save the result as a profile so this sheet keeps its own set.`))
+            Object.assign(s, next);
+        } else {
+          askConfirm({
+            title: 'Update alignment numbers?',
+            message: 'The page turns on the paper, so alignment numbers no longer point the same way. Turn them to match?',
+            ok: 'Turn alignment',
+            cancel: 'Keep numbers'
+          }).then(ok => {
+            if (ok) {
+              Object.assign(s, next);
+              renderSettings();
+            }
+          });
+        }
+      }
     }
   }
   if (k === 'cardPreset' && CARD_SIZES[t.value]) [s.cardW, s.cardH] = CARD_SIZES[t.value];
@@ -8150,7 +8267,7 @@ $('#printSettingsView').addEventListener('change', async ev => {
 $('#printSettingsView').addEventListener('toggle', ev => {
   if (ev.target.id === 'advDrawer') { S.advOpen = ev.target.open; save(); }
 }, true);
-$('#printSettingsView').addEventListener('click', ev => {
+$('#printSettingsView').addEventListener('click', async ev => {
   const chip = ev.target.closest('[data-color-profile]');
   if (chip) {
     const prof = chip.dataset.colorProfile;
@@ -8172,7 +8289,15 @@ $('#printSettingsView').addEventListener('click', ev => {
     S.activePreset = null; save(); renderSettings(); renderPresets(); renderPreview(); renderStats(); return;
   }
   if (ev.target.hasAttribute('data-advreset')) {
-    if (!confirm('Reset advanced layout and quality settings to defaults?')) return;
+    const ok = window.confirm !== nativeConfirm
+      ? window.confirm('Reset advanced layout and quality settings to defaults?')
+      : await askConfirm({
+          title: 'Reset advanced settings',
+          message: 'Reset advanced layout and quality settings to defaults?',
+          ok: 'Reset to defaults',
+          cancel: 'Keep current'
+        });
+    if (!ok) return;
     for (const k of ADV_KEYS) S.settings[k] = DEFAULTS[k];
     S.activePreset = null; save(); renderAll(); return;
   }
@@ -8196,7 +8321,17 @@ $('#printSettingsView').addEventListener('click', ev => {
   if (calDel) {
     const id = calDel.dataset.calDel;
     const p = S.calibrationProfiles.find(x => x.id === id);
-    if (!p || !confirm(`Delete alignment profile "${p.name}"?`)) return;
+    if (!p) return;
+    const ok = window.confirm !== nativeConfirm
+      ? window.confirm(`Delete alignment profile "${p.name}"?`)
+      : await askConfirm({
+          title: 'Delete alignment profile',
+          message: `Delete alignment profile "${p.name}"?`,
+          ok: 'Delete profile',
+          cancel: 'Keep profile',
+          danger: true
+        });
+    if (!ok) return;
     S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
     if ($('#calProfileSel')?.value === id) {
       $('#calProfileSel').value = ''; S.calibrationProfileId = null;
@@ -8295,12 +8430,22 @@ $('#calProfileSave').onclick = async () => {
   renderCalibrationProfiles(targetId);refreshCalibrationStatus();
   toast(`Saved profile "${name}".`);
 };
-$('#calProfileDelete').onclick = () => {
+$('#calProfileDelete').onclick = async () => {
   const id = $('#calProfileSel').value;
   if (!id) return toast('Choose a saved profile first.');
   if (BUILTIN_CAL_PROFILES.some(p => p.id === id)) return toast('Built-in starting points cannot be deleted.');
   const p = S.calibrationProfiles.find(x => x.id === id);
-  if (!p || !confirm(`Delete alignment profile "${p.name}"?`)) return;
+  if (!p) return;
+  const ok = window.confirm !== nativeConfirm
+    ? window.confirm(`Delete alignment profile "${p.name}"?`)
+    : await askConfirm({
+        title: 'Delete alignment profile',
+        message: `Delete alignment profile "${p.name}"?`,
+        ok: 'Delete profile',
+        cancel: 'Keep profile',
+        danger: true
+      });
+  if (!ok) return;
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
   $('#calProfileName').value = '';
   $('#calProfileSel').value = ''; S.calibrationProfileId = null;
@@ -8467,7 +8612,7 @@ async function saveCurrentPreset() {
   renderPresets();
   toast(`Saved preset "${p.name}".`);
 }
-function onPresetClick(ev) {
+async function onPresetClick(ev) {
   const saveBtn = ev.target.closest('#presetSave, #presetSaveCustom');
   if (saveBtn) {
     ev.stopPropagation();
@@ -8477,7 +8622,17 @@ function onPresetClick(ev) {
   const del = ev.target.closest('[data-del]');
   if (del) {
     const p = S.presets.find(x => x.id === del.dataset.del);
-    if (p && confirm(`Delete preset "${p.name}"?`)) {
+    if (!p) return;
+    const ok = window.confirm !== nativeConfirm
+      ? window.confirm(`Delete preset "${p.name}"?`)
+      : await askConfirm({
+          title: 'Delete preset',
+          message: `Delete preset "${p.name}"?`,
+          ok: 'Delete preset',
+          cancel: 'Keep preset',
+          danger: true
+        });
+    if (ok) {
       S.presets = S.presets.filter(x => x !== p);
       if (S.activePreset === p.id) S.activePreset = null;
       save(); renderAll();
@@ -9050,7 +9205,17 @@ async function exportPrintJob(job, withCut = false) {
     if (printJobKey() !== job.key) { renderGuideTab(); return toast('Artwork changed. Review the updated print files before downloading.'); }
   }
   const soft = slots.reduce((n, x) => n + [x.front, x.back].filter(f => f && isPreview(f) && f.png).length, 0);
-  if (soft && !confirm(`${soft} card image${soft === 1 ? ' is a Scryfall placeholder' : 's are Scryfall placeholders'}. They're low resolution and will print soft. Export anyway?`)) return;
+  if (soft) {
+    const ok = window.confirm !== nativeConfirm
+      ? window.confirm(`${soft} card image${soft === 1 ? ' is a Scryfall placeholder' : 's are Scryfall placeholders'}. They're low resolution and will print soft. Export anyway?`)
+      : await askConfirm({
+          title: 'Low-resolution artwork',
+          message: `${soft} card image${soft === 1 ? ' is a low-resolution placeholder' : 's are low-resolution placeholders'} and will print soft.`,
+          ok: 'Export anyway',
+          cancel: 'Review artwork'
+        });
+    if (!ok) return;
+  }
   const pages = sheets.map(sheet=>sheet.slots), hasBacks = job.hasBacks;
   const totalCards = slots.length;
   let totalFaces = 0;
@@ -9380,21 +9545,21 @@ function backStepsHtml(sheets) {
   const s = S.settings, L = layout(), t = duplexTurn(L), feed = duplexFeedInstruction(L, t.lead);
   const other = s.duplexFlip === 'short' ? 'long' : 'short';
   const wizard = '<button class="icon" data-duplex-wizard>Align front and back</button>';
-  const wrongWay = `<p class="hint">Backs upside down? ${L.scm ? 'Use long-edge flip with this template.' : `Try flipping on the ${other} edge.`}</p>`;
+  const wrongWay = `<p class="hint">Backs upside down? ${L.scm ? 'Use long-edge flip with this template.' : `Flip on the ${other} edge.`}</p>`;
   if (s.duplexMethod === 'auto') return `<ol class="steps">
-    <li>Open the PDF in a PDF app and print at <b>Actual size / 100%</b>.</li>
-    <li>Turn on double-sided printing and choose <b>flip on the ${s.duplexFlip} edge</b>. The sheet turns ${t.axis}.</li>
-    <li>Check the first sheet. If the backs are out of place, use ${wizard}.</li>
-  </ol>${wrongWay}<p class="hint">Use paper your printer supports for double-sided printing.</p>`;
+    <li>Print at <b>Actual size / 100%</b>.</li>
+    <li>Turn on two-sided printing and choose <b>flip on ${s.duplexFlip} edge</b> (${t.axis}).</li>
+    <li>Check alignment. If misaligned, use ${wizard}.</li>
+  </ol>${wrongWay}`;
   return `<ol class="steps">
-    <li>Print page 1 in a PDF app at <b>Actual size / 100%</b>.</li>
-    <li>Turn the sheet over <b>${t.axis}</b>, like ${t.lr ? 'a page in a book' : 'a calendar page'}. ${t.keeps}</li>
-    <li>Feed the <b>${esc(feed.back)}</b> in first, printed side facing the other way.</li>
-    <li>Print page 2 with the same settings.${sheets > 1 ? ' Repeat with pages 3 and 4, then 5 and 6, one sheet at a time.' : ''}</li>
-    <li>Check the first sheet. If the backs are out of place, use ${wizard}.</li>
+    <li>Print page 1 at <b>Actual size / 100%</b>.</li>
+    <li>Flip the sheet <b>${t.axis}</b> (${t.lr ? 'like a book page' : 'like a calendar page'}).</li>
+    <li>Feed the <b>${esc(feed.back)}</b> first, printed side reversed.</li>
+    <li>Print page 2.${sheets > 1 ? ' Repeat for remaining sheets.' : ''}</li>
+    <li>Check alignment. If misaligned, use ${wizard}.</li>
   </ol>
   ${wrongWay}
-  <details><summary>Which side will my printer print on?</summary><p>Mark one side of a blank sheet with a pencil, print the front test page, and see where the mark ends up.</p></details>`;
+  <details><summary>Which side prints first?</summary><p>Mark one side of scrap paper with a pencil, print a page, and see where the mark lands.</p></details>`;
 }
 
 $('#btnPdf').onclick = async () => {
@@ -9996,24 +10161,23 @@ function openDuplexWizard(state = {}, backLabel = '') {
 
     <h4 class="wiz-h">2. Print the test</h4>
     <ol class="steps">
-      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b> on the stock you will print cards on: the back drifts differently on card than on paper. A sheet of plain paper first is a cheap check that the flip is right.</li>
-      <li>Turn the sheet over as shown above and print page 2 on the back of it.</li>
-      <li>If the back is upside down, check the flip and try again.</li>
+      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b>.</li>
+      <li>Flip the sheet as shown above and print page 2 on the back.</li>
     </ol>
 
     <h4 class="wiz-h">3. Enter the readings</h4>
-    <p class="hint">Push a pin through the centre of each ring from the front. On page 2, read where each hole sits on its grid: one square is 1 mm. Enter as many points as you measured. One point corrects the offset; points on cards far apart also correct the angle and the size.</p>
+    <p class="hint">Push a pin through each ring center from page 1. Read where holes land on page 2 (1 square = 1 mm).</p>
     <div class="duplex-read">${duplexReadSvg()}</div>
     <div class="row" style="margin-top:10px;align-items:end">
       <div class="field"><label for="duplexWizardCard">Card</label><select id="duplexWizardCard">${Array.from({length: L.per}, (_, i) => `<option value="${i + 1}">Card ${i + 1}</option>`).join('')}</select></div>
       <button type="button" id="duplexWizardScanBtn" aria-describedby="duplexWizardScanHint">Read a scan of page 2…</button><input id="duplexWizardScan" type="file" accept="image/*" hidden>
     </div>
-    <p class="hint" id="duplexWizardScanHint">Pierce the points, put black paper behind the sheet, and scan page 2 whole at <span class="num">600</span> dpi or more. The holes are read, not light through the card, so thick black-core card works. Read the scan before changing any setting: it is measured against the settings the test was printed with.</p>
+    <p class="hint" id="duplexWizardScanHint">Pierce points, place black paper behind page 2, and scan at <span class="num">600</span> DPI or higher.</p>
     <table class="duplex-points" id="duplexWizardPoints"><thead><tr><th scope="col">Point</th><th scope="col">X (mm)</th><th scope="col">Y (mm)</th></tr></thead><tbody></tbody></table>
     <p class="hint" id="duplexWizardEntered" aria-live="polite"></p>
     <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
     ${L.scm ? `<details class="duplex-scm" id="duplexWizardScm"><summary>Card Maker offset</summary>
-      <p class="hint">Card Maker's <code>offset_pdf.py</code> takes whole steps of <span class="num">1/300</span> inch, X to the right and Y up as page 2 reads, and an angle clockwise. Proxy Press already puts the back offset in its own PDFs, so use these numbers only on PDFs made by <code>create_pdf.py</code>, never on top of a Proxy Press export.</p>
+      <p class="hint">Use these numbers only for external <code>create_pdf.py</code> files, not Proxy Press exports.</p>
       <div class="row" style="align-items:end">
         <div class="field"><label for="duplexScmX">X steps</label><input id="duplexScmX" type="text" inputmode="numeric"></div>
         <div class="field"><label for="duplexScmY">Y steps</label><input id="duplexScmY" type="text" inputmode="numeric"></div>
@@ -11129,16 +11293,43 @@ $('#fileBackup').onchange = ev => {
   if (file) return openPrintDeckFile(file, {fromBackup:true});
 };
 $('#resetSettings').onclick = () => {
-  if (!confirm('Return printer, layout, art-search, and preview settings to defaults? Your decks, artwork, and saved presets will stay saved.')) return;
-  S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings, backImage:S.settings.backImage};
-  S.printer = 'et2800'; S.printerByKind = {}; S.activePreset = null; S.mpc = {...MPC_DEFAULTS};
-  S.zoom = innerWidth <= 820 ? Math.max(1, Math.min(2.4, (innerWidth - 40) / layout().W)) : 2.4; S.showBacks = false; S.orderShowBacks = false; S.showCuts = false; S.advOpen = false;
-  $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks; $('#orderShowBacks').checked = false;
-  save(); renderAll(); toast('Settings returned to defaults.');
+  const proceed = () => {
+    S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings, backImage:S.settings.backImage};
+    S.printer = 'et2800'; S.printerByKind = {}; S.activePreset = null; S.mpc = {...MPC_DEFAULTS};
+    S.zoom = innerWidth <= 820 ? Math.max(1, Math.min(2.4, (innerWidth - 40) / layout().W)) : 2.4; S.showBacks = false; S.orderShowBacks = false; S.showCuts = false; S.advOpen = false;
+    $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks; $('#orderShowBacks').checked = false;
+    save(); renderAll(); toast('Settings returned to defaults.');
+  };
+  if (window.confirm !== nativeConfirm) {
+    if (window.confirm('Return printer, layout, art-search, and preview settings to defaults? Your decks, artwork, and saved presets will stay saved.')) {
+      proceed();
+    }
+  } else {
+    askConfirm({
+      title: 'Reset settings',
+      message: 'Return printer, layout, art-search, and preview settings to defaults? Your decks, artwork, and saved presets will stay saved.',
+      ok: 'Reset settings',
+      cancel: 'Keep current'
+    }).then(ok => { if (ok) proceed(); });
+  }
 };
-$('#wipe').onclick = async () => {
-  if (!confirm('Erase every deck, preset, setting and uploaded image stored by this page?')) return;
-  await store.clear(); location.reload();
+$('#wipe').onclick = () => {
+  const proceed = async () => {
+    await store.clear(); location.reload();
+  };
+  if (window.confirm !== nativeConfirm) {
+    if (window.confirm('Erase every deck, preset, setting and uploaded image stored by this page?')) {
+      proceed();
+    }
+  } else {
+    askConfirm({
+      title: 'Erase all local data',
+      message: 'Erase every deck, preset, setting, and uploaded image stored on this device? This cannot be undone.',
+      ok: 'Erase all data',
+      cancel: 'Cancel',
+      danger: true
+    }).then(ok => { if (ok) proceed(); });
+  }
 };
 async function renderStorage() {
   $('#signOut').hidden = !location.protocol.startsWith('http') || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
@@ -11435,7 +11626,25 @@ function openPrintSettings(page = 'layout', opener = document.activeElement, rev
 }
 
 function leavePrintSettings() {
-  if (alignmentDrafts.size && !confirm('Discard unapplied alignment changes?')) return false;
+  if (alignmentDrafts.size) {
+    if (window.confirm !== nativeConfirm) {
+      if (!window.confirm('Discard unapplied alignment changes?')) return false;
+    } else {
+      askConfirm({
+        title: 'Discard alignment changes?',
+        message: 'Discard unapplied alignment changes?',
+        ok: 'Discard changes',
+        cancel: 'Keep editing',
+        danger: true
+      }).then(ok => {
+        if (ok) {
+          alignmentDrafts.clear();
+          document.body.classList.remove('print-settings-active');
+        }
+      });
+      return false;
+    }
+  }
   alignmentDrafts.clear();
   document.body.classList.remove('print-settings-active');
   return true;
