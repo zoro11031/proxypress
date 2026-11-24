@@ -87,6 +87,68 @@
   $('#importDrawerSummary').focus();
   click('#importDrawerSummary');
   check(!$('#importDrawer').open && document.activeElement === $('#btnAddCards'), 'Closing the import drawer should keep keyboard focus on its visible entry point.');
+  const cardOptions = $('#cardList [data-act="more"]');
+  cardOptions.focus();
+  $('circle:nth-child(2)', cardOptions).dispatchEvent(new MouseEvent('click', {bubbles:true}));
+  check($('#ctx').classList.contains('on'), 'Clicking the center dot should open the card options menu.');
+  $('#ctx').dispatchEvent(new Event('scroll'));
+  check($('#ctx').classList.contains('on'), 'Scrolling inside card options should keep the menu open.');
+  closeCtx(true);
+  check(document.activeElement === cardOptions, 'Closing card options should return focus to its button.');
+  const touch = (type, target) => target.dispatchEvent(new PointerEvent(type, {
+    pointerType:'touch', pointerId:7, detail:type === 'click' ? 1 : 0, bubbles:true, cancelable:true
+  }));
+  touch('pointerdown', $('#cardList'));
+  await sleep(550);
+  touch('pointerup', $('#cardList'));
+  touch('click', cardOptions);
+  check($('#ctx').classList.contains('on'), 'Holding blank list space should leave the next click available.');
+  closeCtx(true);
+  const cardName = $('#cardList [data-act="jump"]');
+  touch('pointerdown', cardName);
+  await sleep(550);
+  touch('pointerup', cardName);
+  check($('#ctx').classList.contains('on') && !touch('click', cardName), 'A long press on a card should open its menu and consume the matching release click.');
+  closeCtx(true);
+
+  const deckCountBeforeConfirm = S.decks.length;
+  click('#deckDel');
+  check(document.activeElement === $('#askConfirmCancel'), 'A destructive confirmation should focus its safe action.');
+  click('#askConfirmCancel');
+  check(S.decks.length === deckCountBeforeConfirm, 'Keeping the deck should leave it intact.');
+  openTour();
+  $('[data-tour="next"]').focus();
+  click('[data-tour="next"]');
+  check(document.activeElement === $('#modalTitle') && $('#modalTitle').textContent === 'Add cards', 'Advancing the tour should focus the new step heading.');
+  closeModal();
+
+  const undoResolver = resolveDeckImport, undoAutofill = mpcAutofill;
+  const unedited = {...entry, uid:'undo-unedited', scryId:'undo-merge', qty:3, faces:structuredClone(entry.faces)};
+  const updated = {...entry, uid:'undo-updated', scryId:'undo-updated', qty:3, faces:structuredClone(entry.faces)};
+  const added = {...entry, uid:'undo-added', scryId:'undo-added', qty:1, faces:structuredClone(entry.faces)};
+  const edited = {...entry, uid:'undo-edited', scryId:'undo-edited', qty:1, faces:structuredClone(entry.faces)};
+  deck().entries.push(unedited, updated);
+  resolveDeckImport = async () => ({resolved:[{...unedited,qty:2},{...updated,qty:2},added,edited],unresolved:[],rows:[]});
+  mpcAutofill = async ({onArtApplied}) => {
+    const before = JSON.stringify(added);
+    added.faces[0].auto = true;
+    onArtApplied(added, before);
+  };
+  try {
+    await importList('1 Undo fixture', false);
+    entry.qty = 11;
+    updated.qty = 6;
+    edited.faces[0].name = 'Edited artwork';
+    click('#toastAction');
+    check(unedited.qty === 3 && !deck().entries.includes(added), 'Undo should reverse untouched import changes, including rows with automatic artwork.');
+    check(entry.qty === 11 && updated.qty === 6 && deck().entries.includes(edited), 'Undo should preserve later quantity and artwork edits.');
+  } finally {
+    resolveDeckImport = undoResolver;
+    mpcAutofill = undoAutofill;
+    entry.qty = 10;
+    deck().entries = [entry];
+    renderAll();
+  }
   const nextEntry = {...entry, uid:'workspace-next', qty:1};
   deck().entries.push(nextEntry);
   renderCards();
@@ -481,6 +543,16 @@
   if ($('#modalTitle')?.textContent !== 'Project files') closeModal();
   closeModal();
 
+  if (innerWidth <= 820) {
+    setWorkspaceView('cards');
+    if (!S.multiSelect) click('#btnMultiSelect');
+    click('#cardList [data-act="select"]');
+    check(visible('#changeSelectedArt'), 'Order mode should show bulk actions in the mobile Cards view.');
+    setWorkspaceView('proof');
+    check(visible('#changeSelectedArt') && $('#cardSelection').parentElement === $('#stage'), 'Order mode should carry bulk actions into the mobile Gallery.');
+    setWorkspaceView('cards');
+    click('#btnMultiSelect');
+  }
   deck().entries = [];
   renderAll();
   setWorkspaceView('proof');

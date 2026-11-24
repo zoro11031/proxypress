@@ -3560,15 +3560,24 @@ async function importList(text, replace, correction = null) {
   // A clean add (every line found, no substitutions) goes straight in, with Undo; anything
   // that replaces cards, swaps a printing or leaves lines behind is reviewed first.
   const cleanAdd = !replace && !staged.unresolved?.length && !staged.fallbacks?.length && !$('#modal #linkIn');
-  const before = cleanAdd ? structuredClone(current.entries) : null;
+  const importChanges = cleanAdd ? new Map() : null;
+  const added = staged.resolved.reduce((n, entry) => n + entry.qty, 0);
   if (!cleanAdd && !(await reviewReplacement(target, staged, !!replace))) return;
   if (S.deckId !== target.id || current.importDraft?.id !== command || !matchesRevision(current, target)) { showImportNeedsReview(staged, target); return; }
   if (replace) applyDeckReplacement(current, staged, {keepUndo:true});
   else {
     for (const entry of staged.resolved) {
       const existing = current.entries.find(e=>e.scryId === entry.scryId && e.scryFace === entry.scryFace && e.faces.length === entry.faces.length);
+      const changed = existing || entry;
+      if (importChanges && !importChanges.has(changed)) {
+        importChanges.set(changed, {previousQty:existing?.qty, appliedQty:0});
+      }
       if (existing) existing.qty += entry.qty; else current.entries.push(entry);
     }
+  }
+  for (const [entry, change] of importChanges || []) {
+    change.appliedQty = entry.qty;
+    if (change.previousQty === undefined) change.unchanged = JSON.stringify(entry);
   }
   const unresolved = staged.unresolved || [];
   let remaining = unresolved.map(row=>row.sourceLine || `${row.qty} ${row.name}${row.set ? ` (${row.set})${row.cn ? ' ' + row.cn : ''}` : ''}`).join('\n');
@@ -3580,11 +3589,35 @@ async function importList(text, replace, correction = null) {
   save(); renderAll();
   if (!remaining) focusNavigationTarget($('#btnAddCards'));
   if (!replace) {
-    const added = staged.resolved.reduce((n,e)=>n+e.qty,0), deckId = current.id;
-    toast(`Added ${added} ${added === 1 ? 'copy' : 'copies'} to ${current.name}.`, 8000, before ? {label:'Undo', fn:() => { const d = S.decks.find(x => x.id === deckId); if (!d) return; d.entries = before; d.updated = Date.now(); save(); renderAll(); }} : null);
-    mpcAutofill({auto:true});
+    toast(`Added ${added} ${added === 1 ? 'copy' : 'copies'} to ${current.name}.`, 8000,
+      importChanges ? {label:'Undo', fn:() => undoCardImport(current, importChanges)} : null);
+    mpcAutofill({auto:true, onArtApplied: importChanges && ((entry, before) => {
+      const change = importChanges.get(entry);
+      if (change?.unchanged === before) change.unchanged = JSON.stringify(entry);
+    })});
   }
   if (unresolved.length) suggestMissingCards(unresolved, true); else { activeMissingSuggestions = []; suggestMissingRun++; }
+}
+function undoCardImport(project, changes) {
+  if (findDeck(project.id) !== project) return;
+  const removed = new Set();
+  let keptEdits = false;
+  for (const entry of project.entries) {
+    const change = changes.get(entry);
+    if (!change) continue;
+    if (entry.qty !== change.appliedQty || change.unchanged && JSON.stringify(entry) !== change.unchanged) {
+      keptEdits = true;
+    } else if (change.previousQty === undefined) {
+      removed.add(entry);
+    } else {
+      entry.qty = change.previousQty;
+    }
+  }
+  project.entries = project.entries.filter(entry => !removed.has(entry));
+  project.updated = Date.now();
+  save(); renderAll();
+  for (const entry of removed) for (const face of entry.faces) removeImageIfUnused(face.custom);
+  toast(keptEdits ? 'Undid import. Kept cards you edited.' : 'Undid import.');
 }
 let suggestMissingRun = 0, activeMissingSuggestions = [];
 function replaceInListIn(origName, newName) {
@@ -4800,7 +4833,7 @@ async function openMpcPicker(target) {
 }
 
 const isPreview = f => !!f.lowRes || (!f.custom && !f.drive);
-async function mpcAutofill({auto = false} = {}) {
+async function mpcAutofill({auto = false, onArtApplied = null} = {}) {
   const d = deck(), targets = [];
   const active = () => S.deckId === d.id && deck() === d;
   const eligible = t => active() && d.entries.includes(t.e) && t.e.faces.includes(t.f) && isPreview(t.f) && !t.f.manual;
@@ -4814,7 +4847,11 @@ async function mpcAutofill({auto = false} = {}) {
       if (hit && eligible(t)) {
         const face = structuredClone(t.f); await useLocalFile(face, hit.file);
         if (!eligible(t)) { await removeImageIfUnused(face.custom); continue; }
-        Object.assign(t.f, face); if(t.e.scryId)await shareUploadedArt(t.e,t.e.faces.indexOf(t.f)); result.picked++; result.local++;
+        const before = onArtApplied && JSON.stringify(t.e);
+        Object.assign(t.f, face);
+        onArtApplied?.(t.e, before);
+        if (t.e.scryId) await shareUploadedArt(t.e, t.e.faces.indexOf(t.f));
+        result.picked++; result.local++;
       }
     }
     busy(false);
@@ -4838,7 +4875,15 @@ async function mpcAutofill({auto = false} = {}) {
       if (!eligible(t)) continue;
       const choices=hits(t).slice(0,40).filter(id=>t.q.cardType!=='TOKEN' || normName(mpcDetails.get(id)?.name).replace(/(?:^token | token$)/g,'')===normName(t.f.name).replace(/(?:^token | token$)/g,''));
       const c = mpcDetails.get(mpcRank(choices)[0]);
-      if (c) { const old = t.f.custom; delete t.f.custom; delete t.f.lowRes; Object.assign(t.f, mpcArt(c), {auto:true}); await removeImageIfUnused(old); result.picked++; } else result.missed.push(t.f.name);
+      if (c) {
+        const before = onArtApplied && JSON.stringify(t.e);
+        const old = t.f.custom;
+        delete t.f.custom; delete t.f.lowRes;
+        Object.assign(t.f, mpcArt(c), {auto:true});
+        onArtApplied?.(t.e, before);
+        await removeImageIfUnused(old);
+        result.picked++;
+      } else result.missed.push(t.f.name);
     }
     if (active()) { save(); renderAll(); }
     if (!auto && active()) toast(`High-res art picked for ${result.picked} of ${result.total}.` + autoSummary(result, true), result.missed.length ? 9000 : 4000);
@@ -5214,8 +5259,9 @@ function syncCardSelection() {
   if (selectionDeck !== S.deckId) { selectedCopies.clear(); selectionAnchor = null; selectionDeck = S.deckId; }
   const valid = new Set(deck().entries.flatMap(e => Array.from({length:e.qty}, (_, q) => copyKey(e, q))));
   selectedCopies = new Set([...selectedCopies].filter(k => valid.has(k)));
-  const bar = $('#cardSelection'), mobilePreview = innerWidth <= 820 && document.body.classList.contains('m-preview');
-  const stageBar = mobilePreview || S.mode === 'order' || !$('#tab-cards').classList.contains('on');
+  const bar = $('#cardSelection'), mobile = innerWidth <= 820;
+  const stageBar = mobile ? document.body.classList.contains('m-preview')
+    : S.mode === 'order' || document.body.classList.contains('preview-focus') || !$('#tab-cards').classList.contains('on');
   if (stageBar) { if (bar.parentElement !== $('#stage')) $('#pages').before(bar); }
   else if (bar.parentElement !== $('#cardList').parentElement) $('#cardList').before(bar);
   bar.hidden = !selectedCopies.size;
@@ -5474,7 +5520,8 @@ async function revealQueueCard(entry) {
 $('#cardList').addEventListener('click', async ev => {
   const row = ev.target.closest('.card'); if (!row) return;
   const entry = deck().entries.find(e => e.uid === row.dataset.uid);
-  const act = ev.target.dataset.act;
+  const control = ev.target.closest('[data-act]');
+  const act = control?.dataset.act;
   if (act === 'select' || ((ev.shiftKey || ev.ctrlKey || ev.metaKey) && !ev.target.closest('.qty'))) {
     syncCardSelection();
     if (ev.shiftKey) { selectCopy(entry, Math.max(0, entry.qty - 1), ev); return; }
@@ -5488,9 +5535,9 @@ $('#cardList').addEventListener('click', async ev => {
   else if (act === 'dec') e.qty = Math.max(0, e.qty - 1);
   else if (act === 'del') { await removeEntry(e); return; }
   else if (act === 'fix-issue') {
-    const faceIdx = +(ev.target.dataset.face || 0);
-    const side = ev.target.dataset.side || (faceIdx === 1 ? 'back' : 'front');
-    const issue = getCardIssues(e).find(issue=>issue.faceIdx === faceIdx && !!issue.cardback === (ev.target.dataset.cardback === 'true')) || {uid:e.uid,faceIdx,side,label:ev.target.textContent};
+    const faceIdx = +(control.dataset.face || 0);
+    const side = control.dataset.side || (faceIdx === 1 ? 'back' : 'front');
+    const issue = getCardIssues(e).find(issue=>issue.faceIdx === faceIdx && !!issue.cardback === (control.dataset.cardback === 'true')) || {uid:e.uid,faceIdx,side,label:control.textContent};
     const target = findIssueTarget(issue);
     if (target) {
       showSheet(target.sheetIndex, target.side);
@@ -5517,7 +5564,7 @@ $('#cardList').addEventListener('click', async ev => {
     $('#fileFace').click(); return;
   }
   else if (act === 'mpc') { openMpcPicker({e, i:0}); return; }
-  else if (act === 'more') { ev.stopPropagation(); const r = ev.target.getBoundingClientRect(); openCtx(r.left, r.bottom + 4, e, 0); return; }
+  else if (act === 'more') { ev.stopPropagation(); const r = control.getBoundingClientRect(); openCtx(r.left, r.bottom + 4, e, 0); return; }
   save(); renderAll();
 });
 $('#cardList').addEventListener('change', ev => {
@@ -5729,7 +5776,7 @@ function askConfirm({title, message = '', ok = 'Continue', cancel = 'Cancel', da
       <button type="button" id="askConfirmCancel" data-close>${esc(cancel)}</button>
     </div>`, done => {
     $('#askConfirmOk').onclick = () => done(true);
-    $('#askConfirmOk').focus();
+    $(danger ? '#askConfirmCancel' : '#askConfirmOk').focus();
   }).then(v => !!v);
 }
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
@@ -6889,12 +6936,14 @@ function openTour(at = 0) {
       ${tourStep ? '<button data-tour="back">Back</button>' : ''}<button class="primary" data-tour="next">${last ? 'Get started' : 'Next'}</button></div>`;
   const existing = $('#modal.narrow .tour');
   if (existing && $('#overlay').classList.contains('on')) {
-    $('#modal .hd b').textContent = step.title;
+    const title = $('#modal .hd b');
+    title.textContent = step.title;
     $('#modal .hd button').textContent = last ? 'Close' : 'Skip';
     $('#modal .bd.tour').innerHTML = contentHtml;
+    title.focus();
     return;
   }
-  openModal(`<div class="hd"><b>${step.title}</b><button data-close>${last ? 'Close' : 'Skip'}</button></div>
+  openModal(`<div class="hd"><b tabindex="-1">${step.title}</b><button data-close>${last ? 'Close' : 'Skip'}</button></div>
     <div class="bd tour">${contentHtml}</div>`);
   $('#modal').classList.add('narrow');
   $('#modal .bd').onclick = ev => {
@@ -7163,26 +7212,53 @@ function openCtx(x, y, e, i, copy) {
   };
 }
 function longPress(root, run) {
-  let timer = null, start = null;
+  let timer, start, pointerId, handledPointer;
+  const clearTimer = () => { clearTimeout(timer); timer = null; };
   root.addEventListener('pointerdown', ev => {
+    clearTimer();
+    handledPointer = undefined;
     if (ev.pointerType !== 'touch') return;
+    pointerId = ev.pointerId;
     start = [ev.clientX, ev.clientY];
-    timer = setTimeout(() => { timer = null; root.dataset.pressed = '1'; run(ev); }, 500);
+    timer = setTimeout(() => {
+      timer = null;
+      if (run(ev)) handledPointer = ev.pointerId;
+    }, 500);
   });
-  const cancel = ev => { if (timer && (!start || ev.type !== 'pointermove' || Math.hypot(ev.clientX - start[0], ev.clientY - start[1]) > 10)) { clearTimeout(timer); timer = null; } };
-  ['pointerup', 'pointercancel', 'pointermove'].forEach(t => root.addEventListener(t, cancel));
-  root.addEventListener('click', ev => { if (root.dataset.pressed) { ev.preventDefault(); ev.stopPropagation(); delete root.dataset.pressed; } }, true);
-  root.addEventListener('contextmenu', ev => { if (ev.pointerType === 'touch' || root.dataset.pressed) ev.preventDefault(); });
+  root.addEventListener('pointermove', ev => {
+    if (timer && ev.pointerId === pointerId && Math.hypot(ev.clientX - start[0], ev.clientY - start[1]) > 10) clearTimer();
+  });
+  root.addEventListener('pointerup', ev => { if (ev.pointerId === pointerId) clearTimer(); });
+  root.addEventListener('pointercancel', ev => {
+    if (ev.pointerId === pointerId) clearTimer();
+    if (ev.pointerId === handledPointer) handledPointer = undefined;
+  });
+  root.addEventListener('click', ev => {
+    if (handledPointer === undefined || ev.pointerId !== handledPointer || ev.detail === 0) return;
+    handledPointer = undefined;
+    ev.preventDefault();
+    ev.stopPropagation();
+  }, true);
+  root.addEventListener('contextmenu', ev => {
+    if (ev.pointerType === 'touch' || handledPointer !== undefined) ev.preventDefault();
+  });
 }
 longPress($('#cardList'), ev => {
   const row = ev.target.closest('.card'); if (!row || ev.target.closest('.ctl')) return;
-  const e = deck().entries.find(x => x.uid === row.dataset.uid); if (e) openCtx(ev.clientX, ev.clientY, e, 0);
+  const e = deck().entries.find(x => x.uid === row.dataset.uid);
+  if (!e) return;
+  openCtx(ev.clientX, ev.clientY, e, 0);
+  return true;
 });
 longPress($('#pages'), ev => {
   const im = ev.target.closest('img[data-uid]'); if (!im) return;
-  const e = deck().entries.find(x => x.uid === im.dataset.uid); if (e) openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face, im.dataset.copy === undefined ? undefined : +im.dataset.copy);
+  const e = deck().entries.find(x => x.uid === im.dataset.uid);
+  if (!e) return;
+  openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face, im.dataset.copy === undefined ? undefined : +im.dataset.copy);
+  return true;
 });
 $('#cardList').addEventListener('contextmenu', ev => {
+  if (ev.defaultPrevented) return;
   const row = ev.target.closest('.card'); if (!row) return;
   const e = deck().entries.find(x => x.uid === row.dataset.uid); if (!e) return;
   ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, 0);
@@ -7193,12 +7269,13 @@ $('#pages').addEventListener('click', ev => {
   if (ev.target.closest('.gal-cb')) openMpcPicker({cardback:true}); });
 $('#pages').addEventListener('keydown', ev => { if (ev.target.matches('img[data-copy]') && ['Enter', ' '].includes(ev.key)) { ev.preventDefault(); const e = deck().entries.find(e => e.uid === ev.target.dataset.uid); if (e) selectCopy(e, +ev.target.dataset.copy, ev); } });
 $('#pages').addEventListener('contextmenu', ev => {
+  if (ev.defaultPrevented) return;
   const im = ev.target.closest('img[data-uid]'); if (!im) return;
   const e = deck().entries.find(x => x.uid === im.dataset.uid); if (!e) return;
   ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face, im.dataset.copy === undefined ? undefined : +im.dataset.copy);
 });
 addEventListener('click', ev => { if (!ev.target.closest('#ctx')) closeCtx(); });
-addEventListener('scroll', closeCtx, true);
+addEventListener('scroll', ev => { if (ev.target !== $('#ctx')) closeCtx(true); }, true);
 addEventListener('blur', closeCtx);
 
 /* ---------- settings form ---------- */
@@ -8729,6 +8806,7 @@ function setPreviewFocus(on) {
   document.body.classList.toggle('preview-focus',on);
   $('#toggleSidebar').textContent = on ? 'Show card list' : 'Hide card list';
   $('#toggleSidebar').setAttribute('aria-expanded', String(!on));
+  syncCardSelection();
   if (S.zoomMode === 'fit') $('#zoomFit').click();
 }
 $('#toggleSidebar').onclick=()=>setPreviewFocus(!document.body.classList.contains('preview-focus'));
