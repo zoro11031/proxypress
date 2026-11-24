@@ -27,7 +27,7 @@ Choose **Add cards** to paste a decklist, import a Moxfield or Archidekt link, o
 2. Choose **Review export** and download the PDF.
 3. Print at **Actual size / 100%**.
 
-If the backs are off-centre, use **Alignment → Align front and back**. Its double-sided test prints your real layout on both sides with five pin points on every card. Push a pin through each point from the front and read where the hole lands on the 1 mm grid behind it, or scan page 2 against black paper and let Proxy Press read every hole. One point corrects the back's offset; points on cards far apart also correct its angle and size. The front is never changed.
+If the backs are off-centre, use **Alignment → Align front and back**. Its double-sided test prints your real layout on both sides with five pin points on every card. Push a pin through each point from the front and read where the hole lands on the 1 mm grid behind it, or scan page 2 against black paper and let Proxy Press read every hole. The holes are read, not light through the card, so it works on thick black-core stock; print it on the stock you will use, because the back drifts differently on card than on paper. One point corrects the back's offset; points on cards far apart also correct its angle and size. A scan reads a back up to about 8 mm off in one pass. The front is never changed. On Card Maker templates the wizard also shows the result as `offset_pdf.py --x_offset/--y_offset/--angle` values and takes Card Maker's own saved offset (`offset_data.json`).
 
 ### Silhouette cutters
 

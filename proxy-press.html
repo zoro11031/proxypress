@@ -9679,6 +9679,23 @@ function solveDuplexReadings(L, s, readings) {
   };
 }
 
+// Card Maker's own offset, as offset_pdf.py takes it and data/offset_data.json
+// saves it: whole steps of 1/300 inch and an angle in degrees, applied to every
+// back page - shifted by (-x, +y) image pixels, then turned clockwise by the
+// angle about the page centre (utilities.offset_images, upstream 0da09b7). On
+// a Card Maker template our page 2 is the same page, and the back is shifted
+// then turned about its centre too, so the two convert exactly: checked by
+// running upstream's offset_images on our page 2 and comparing every dot with
+// our own export at the converted values (161 dots, within 0.6 px at 300 ppi,
+// 2026-11-23). Card Maker has no size setting, so a back size is left out.
+const SCM_OFFSET_STEP = 25.4 / 300;
+function scmOffsetFromBack(s) {
+  return {x: Math.round(-s.backOffsetX / SCM_OFFSET_STEP), y: Math.round(s.backOffsetY / SCM_OFFSET_STEP), angle: +(+s.backRotate || 0).toFixed(2)};
+}
+function backFromScmOffset({x = 0, y = 0, angle = 0}) {
+  return {backOffsetX: +(-x * SCM_OFFSET_STEP).toFixed(3), backOffsetY: +(y * SCM_OFFSET_STEP).toFixed(3), backRotate: +(+angle).toFixed(3)};
+}
+
 // Reading a scan of page 2. Scan the back with black paper behind the sheet,
 // so each pin hole shows dark. The reader finds the black dots, groups them
 // into the 10 mm squares round each read grid, picks out card 1's square by
@@ -9733,13 +9750,18 @@ function readDuplexScan(img, L, s = S.settings) {
   }).map(c => ({x: c.sx / c.n, y: c.sy / c.n, d: (c.x1 - c.x0 + c.y1 - c.y0 + 2) / 2}));
   if (blobs.length < 4) return {error: 'No dots found. Scan page 2 whole, at 600 dpi or more, with black paper behind it.'};
   // Squares: four dots, sides equal and square to each other.
-  const near = (x, y, tol) => blobs.find(b => Math.hypot(b.x - x, b.y - y) < tol);
+  // The nearest dot of the same size: a pin hole close to a dot is smaller, and
+  // must not stand in for it.
+  const near = (x, y, tol, d) => blobs.reduce((best, b) => {
+    const r = Math.hypot(b.x - x, b.y - y);
+    return r < tol && Math.abs(b.d / d - 1) <= 0.3 && (!best || r < best.r) ? {b, r} : best;
+  }, null)?.b;
   const quads = new Map();
   blobs.forEach((a, ia) => blobs.forEach((b, ib) => {
     if (ia === ib) return;
     const vx = b.x - a.x, vy = b.y - a.y, side = Math.hypot(vx, vy);
     if (side < 6 * a.d || side > 16 * a.d || Math.abs(b.d / a.d - 1) > 0.3) return;
-    const tol = side * 0.12, c = near(a.x - vy, a.y + vx, tol), e = near(b.x - vy, b.y + vx, tol);
+    const tol = side * 0.12, c = near(a.x - vy, a.y + vx, tol, a.d), e = near(b.x - vy, b.y + vx, tol, a.d);
     if (!c || !e) return;
     const four = [a, b, c, e], key = four.map(q => blobs.indexOf(q)).sort((p, q) => p - q).join(',');
     if (!quads.has(key)) quads.set(key, {dots: four, x: four.reduce((t, q) => t + q.x, 0) / 4, y: four.reduce((t, q) => t + q.y, 0) / 4, side});
@@ -9765,7 +9787,7 @@ function readDuplexScan(img, L, s = S.settings) {
       if (!best || hits > best.hits) best = {hits, map};
     }
   }
-  const lost = {error: 'Card 1 could not be found: its read grid 1A has an extra dot 10 mm towards the middle of the card. Scan page 2 whole, flat, with black paper behind it.'};
+  const lost = {error: 'Card 1 could not be found: its read grid 1A has an extra dot 10 mm towards the middle of the card. Scan page 2 whole, flat, with black paper behind it. If the pin holes landed on the black dots, the back is about 7 mm off: read one card by eye, apply that, and print the test again.'};
   if (!best) return lost;
   // One 10 mm vector fixes the turn only roughly; across a sheet that error, and
   // any bow, outgrows the match window. Refit the whole map from every square
@@ -9782,6 +9804,40 @@ function readDuplexScan(img, L, s = S.settings) {
   }
   // A wrong anchor still lines a few squares up by chance; the right one, refitted, lines up most of them.
   if (pts.filter(p => nearestQuad(...place(p.mark))).length < Math.max(3, pts.length / 2)) return lost;
+  // A back far off. Card Maker's answer to an offset past its grid is to print a
+  // pre-offset sheet and add the two readings; a scan can find it in one go. Every
+  // round dark spot that is not a dot votes for how far it sits from the grids
+  // round it, in the scan's own millimetres; the pin holes all agree, so the vote
+  // with most support is the back's common shift, and each hole is then looked
+  // for round its grid's zero moved by that much. Within 8 mm, because grids are
+  // at least 18 mm apart: further out a hole is as near another grid as its own.
+  // Only the squares matched to a grid are dots. Four round spots can square up by
+  // chance: card 1's hole at its grid's zero, two of the grid's dots and the
+  // orientation dot make a square turned 45 degrees, and the hole is not a dot.
+  const dotSet = new Set(pts.flatMap(p => nearestQuad(...place(p.mark))?.dots || []));
+  const [o0x, o0y] = place(duplexOrientDot(L, anchorPt.pre, s));
+  const loose = blobs.filter(b => !dotSet.has(b) && Math.hypot(b.x - o0x, b.y - o0y) >= ppm);
+  let shift = [0, 0];
+  if (loose.length >= 3) {
+    const votes = [];
+    for (const p of pts) {
+      const [px, py] = place(p.mark);
+      for (const b of loose) { const vx = (b.x - px) / ppm, vy = (b.y - py) / ppm; if (Math.hypot(vx, vy) <= 8) votes.push([vx, vy]); }
+    }
+    let bestV = null;
+    for (const v of votes) {
+      const n = votes.filter(u => Math.hypot(u[0] - v[0], u[1] - v[1]) <= 1.5).length;
+      if (!bestV || n > bestV.n) bestV = {v, n};
+    }
+    if (bestV && bestV.n >= Math.max(3, pts.length * 0.3)) {
+      const near = votes.filter(u => Math.hypot(u[0] - bestV.v[0], u[1] - bestV.v[1]) <= 1.5);
+      const m = [near.reduce((a, u) => a + u[0], 0) / near.length, near.reduce((a, u) => a + u[1], 0) / near.length];
+      // A small shift is read from the grid's zero as before; the search reaches 4.5 mm.
+      if (Math.hypot(...m) > 2.5) shift = m;
+    }
+  }
+  const [ox, oy] = place(duplexOrientDot(L, anchorPt.pre, s)), orient = blobs.find(b => Math.hypot(b.x - ox, b.y - oy) < ppm);
+  const dotsAt = orient ? [...dotSet, orient] : [...dotSet];
   // Each hole is read in its own grid's units: the four dots are fitted from the
   // grid's undrawn frame (pre), so the reading is the number printed on the grid
   // under the hole, the same one a person reads by eye.
@@ -9797,7 +9853,7 @@ function readDuplexScan(img, L, s = S.settings) {
     });
     const A = fitAffine(src, dst);
     if (!A || new Set(dst.map(String)).size < 4) { missing.push(p.id); continue; }
-    const back = invertAffine(A), [cx, cy] = A.fwd(p.pre.x, p.pre.y);
+    const back = invertAffine(A), [gx, gy] = A.fwd(p.pre.x, p.pre.y), cx = gx + shift[0] * ppm, cy = gy + shift[1] * ppm;
     // The hole: a whole, round patch dark in the green channel whose centre is
     // within R of the grid's zero. The window reaches a millimetre past R so a
     // hole near the edge is seen whole rather than clipped, which would pull its
@@ -9814,14 +9870,17 @@ function readDuplexScan(img, L, s = S.settings) {
     }
     const hole = darkComponents(sub, (d, i) => d[i] === 255).filter(c => {
       const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, area = c.n / (ppm * ppm);
+      const mx = x0 + c.sx / c.n, my = y0 + c.sy / c.n, fill = c.n / (bw * bh);
+      // Round and solid, so a letter is not taken for it, and not one of the dots.
       return c.x0 > 0 && c.y0 > 0 && c.x1 < cw - 1 && c.y1 < ch - 1 && area >= 0.03 && area <= 3
-        && bw / bh > 0.6 && bw / bh < 1.67 && Math.hypot(x0 + c.sx / c.n - cx, y0 + c.sy / c.n - cy) <= R;
+        && bw / bh > 0.75 && bw / bh < 1.33 && fill > 0.55 && Math.hypot(mx - cx, my - cy) <= R
+        && !dotsAt.some(d => Math.hypot(d.x - mx, d.y - my) < 0.6 * ppm);
     }).reduce((a, b) => (!a || b.n > a.n ? b : a), null);
     if (!hole) { missing.push(p.id); continue; }
     const [hx, hy] = back(x0 + hole.sx / hole.n, y0 + hole.sy / hole.n);
     readings.push({id: p.id, x: +(f2 * (hx - p.pre.x)).toFixed(3), y: +(f2 * (hy - p.pre.y)).toFixed(3)});
   }
-  return {readings, missing, dpi: ppm * 25.4};
+  return {readings, missing, dpi: ppm * 25.4, shift: Math.hypot(...shift) ? shift : null};
 }
 
 $('#btnDuplexTest').onclick = () => {
@@ -9937,7 +9996,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
 
     <h4 class="wiz-h">2. Print the test</h4>
     <ol class="steps">
-      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b>. Use plain paper.</li>
+      <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b> on the stock you will print cards on: the back drifts differently on card than on paper. A sheet of plain paper first is a cheap check that the flip is right.</li>
       <li>Turn the sheet over as shown above and print page 2 on the back of it.</li>
       <li>If the back is upside down, check the flip and try again.</li>
     </ol>
@@ -9949,10 +10008,20 @@ function openDuplexWizard(state = {}, backLabel = '') {
       <div class="field"><label for="duplexWizardCard">Card</label><select id="duplexWizardCard">${Array.from({length: L.per}, (_, i) => `<option value="${i + 1}">Card ${i + 1}</option>`).join('')}</select></div>
       <button type="button" id="duplexWizardScanBtn" aria-describedby="duplexWizardScanHint">Read a scan of page 2…</button><input id="duplexWizardScan" type="file" accept="image/*" hidden>
     </div>
-    <p class="hint" id="duplexWizardScanHint">Pierce the points, put black paper behind the sheet, and scan page 2 whole at <span class="num">600</span> dpi or more. Read the scan before changing any setting: it is measured against the settings the test was printed with.</p>
+    <p class="hint" id="duplexWizardScanHint">Pierce the points, put black paper behind the sheet, and scan page 2 whole at <span class="num">600</span> dpi or more. The holes are read, not light through the card, so thick black-core card works. Read the scan before changing any setting: it is measured against the settings the test was printed with.</p>
     <table class="duplex-points" id="duplexWizardPoints"><thead><tr><th scope="col">Point</th><th scope="col">X (mm)</th><th scope="col">Y (mm)</th></tr></thead><tbody></tbody></table>
     <p class="hint" id="duplexWizardEntered" aria-live="polite"></p>
     <p class="hint" id="duplexWizardSum" aria-live="polite"></p>
+    ${L.scm ? `<details class="duplex-scm" id="duplexWizardScm"><summary>Card Maker offset</summary>
+      <p class="hint">Card Maker's <code>offset_pdf.py</code> takes whole steps of <span class="num">1/300</span> inch, X to the right and Y up as page 2 reads, and an angle clockwise. Proxy Press already puts the back offset in its own PDFs, so use these numbers only on PDFs made by <code>create_pdf.py</code>, never on top of a Proxy Press export.</p>
+      <div class="row" style="align-items:end">
+        <div class="field"><label for="duplexScmX">X steps</label><input id="duplexScmX" type="text" inputmode="numeric"></div>
+        <div class="field"><label for="duplexScmY">Y steps</label><input id="duplexScmY" type="text" inputmode="numeric"></div>
+        <div class="field"><label for="duplexScmA">Angle (°)</label><input id="duplexScmA" type="text" inputmode="decimal"></div>
+      </div>
+      <div class="row" style="margin-top:8px"><button type="button" id="duplexScmUse">Use these</button><button type="button" id="duplexScmLoadBtn">Load offset_data.json…</button><input id="duplexScmLoad" type="file" accept=".json,application/json" hidden></div>
+      <p class="hint" id="duplexScmNow"></p>
+    </details>` : ''}
     ${draft && BACK_CAL_KEYS.some(k => Object.hasOwn(draft,k)) ? '<p class="hint">Applying readings replaces your unapplied back-page values.</p>' : ''}
     <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Apply readings</button><button id="duplexWizardClear">Clear readings</button><button id="duplexWizardZero">Reset back alignment</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
@@ -9992,8 +10061,50 @@ function openDuplexWizard(state = {}, backLabel = '') {
     if (fit.points > 1) notes.push(`With these values every point lands within <span class="num">${fit.max.toFixed(2)}</span> mm (average <span class="num">${fit.rms.toFixed(2)}</span> mm).`);
     if (off.length) notes.push(`${esc(off.join(', '))} ${off.length === 1 ? 'disagrees' : 'disagree'} with the rest by more than <span class="num">0.3</span> mm. Check ${off.length === 1 ? 'that reading' : 'those readings'}.`);
     if (fit.shear !== null && Math.abs(fit.shear) >= 0.05) notes.push(`The back is also skewed by <span class="num">${fit.shear.toFixed(2)}</span>°: its sides are not square to each other. No setting can correct skew, so the values above are the closest square fit.`);
-    $('#duplexWizardSum').innerHTML = `${lines.join('<br>')}${notes.length ? `<br>${notes.join(' ')}` : ''}`;
+    let cm = '';
+    if (L.scm) {
+      const o = scmOffsetFromBack({...s, ...fit.values});
+      cm = `<br>In Card Maker: <code class="num">offset_pdf.py --x_offset ${o.x} --y_offset ${o.y} --angle ${o.angle}</code>${fit.active.some(k => k.startsWith('backScale')) ? ' (it has no size setting)' : ''}`;
+    }
+    $('#duplexWizardSum').innerHTML = `${lines.join('<br>')}${notes.length ? `<br>${notes.join(' ')}` : ''}${cm}`;
   };
+  const scmNow = () => {
+    if (!L.scm) return;
+    const o = scmOffsetFromBack(s);
+    $('#duplexScmNow').innerHTML = `Now set: <code class="num">--x_offset ${o.x} --y_offset ${o.y} --angle ${o.angle}</code>.`;
+  };
+  if (L.scm) {
+    const useScm = (o, from) => {
+      const vals = backFromScmOffset(o);
+      Object.assign(s, vals, {backScaleX: 100, backScaleY: 100}); s.backOffsetRel = true;
+      clearBackOffsetDraft([...Object.keys(vals), 'backScaleX', 'backScaleY']);
+      noteCalibration('back', 'measured');
+      S.activePreset = null; save(); renderAll(); scmNow(); refresh();
+      $('#duplexWizardStatus').textContent = `Saved the Card Maker offset ${from}: back offset ${inUnit(s.backOffsetX)} by ${inUnit(s.backOffsetY)}, angle ${s.backRotate.toFixed(2)}°, size 100% (Card Maker has no size setting). Print the test again to check.`;
+    };
+    $('#duplexScmUse').onclick = () => {
+      const x = num($('#duplexScmX').value), y = num($('#duplexScmY').value), a = num($('#duplexScmA').value);
+      if (![x, y].every(Number.isInteger) || !(Number.isFinite(a) || $('#duplexScmA').value.trim() === '')) {
+        $('#duplexWizardStatus').textContent = 'Enter whole numbers for X and Y steps, and the angle in degrees (blank is 0).'; return;
+      }
+      useScm({x, y, angle: Number.isFinite(a) ? a : 0}, 'you entered');
+    };
+    $('#duplexScmLoadBtn').onclick = () => $('#duplexScmLoad').click();
+    $('#duplexScmLoad').onchange = async ev => {
+      const f = ev.target.files?.[0]; if (!f) return;
+      try {
+        const j = JSON.parse(await f.text());
+        if (!Number.isInteger(j.x_offset) || !Number.isInteger(j.y_offset) || (j.angle_offset != null && !Number.isFinite(j.angle_offset))) throw new Error('it has no whole x_offset and y_offset');
+        $('#duplexScmX').value = j.x_offset; $('#duplexScmY').value = j.y_offset; $('#duplexScmA').value = j.angle_offset ?? 0;
+        useScm({x: j.x_offset, y: j.y_offset, angle: j.angle_offset ?? 0}, `from ${f.name}`);
+      } catch (e) {
+        $('#duplexWizardStatus').textContent = `That file is not a Card Maker offset: ${e.message}.`;
+      } finally { ev.target.value = ''; }
+    };
+    const o = scmOffsetFromBack(s);
+    $('#duplexScmX').value = o.x; $('#duplexScmY').value = o.y; $('#duplexScmA').value = o.angle;
+    scmNow();
+  }
   $('#duplexWizardChoices').onclick = ev => {
     const b = ev.target.closest('[data-flip]');
     if (!b || b.dataset.flip === s.duplexFlip) return;
@@ -10024,12 +10135,13 @@ function openDuplexWizard(state = {}, backLabel = '') {
       // that reads nothing; a slightly turned one loses only its far corners, and
       // the points it does read still give the right turn.
       if (!res.readings.length) {
-        $('#duplexWizardStatus').textContent = `The grids were found but no pin holes. Check each hole goes right through and the scan has black paper behind the sheet. If the holes sit more than about 4 mm from their grids, read one card by eye, apply that, and print the test again.`;
+        $('#duplexWizardStatus').textContent = `The grids were found but no pin holes. Check each hole goes right through and the scan has black paper behind the sheet. If the holes sit more than about 8 mm from their grids, read one card by eye, apply that, and print the test again.`;
         return;
       }
       for (const r of res.readings) readings.set(r.id, {x: r.x, y: r.y});
       rows(); refresh();
-      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}: a hole more than about 4 mm from its grid is not read. Apply these, print the test again, and the next scan reads them all.` : ''} Check the values, then apply.`;
+      const far = res.shift ? ` The back was about ${Math.round(Math.hypot(...res.shift))} mm off, past the grids, so these readings are a first pass: apply them and print the test again for the exact values.` : '';
+      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}. Apply these, print the test again, and the next scan reads them all.` : ''}${far} Check the values, then apply.`;
     } catch (e) {
       $('#duplexWizardStatus').textContent = `The scan could not be read: ${e.message}`;
     } finally { ev.target.value = ''; }
@@ -10043,7 +10155,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     clearBackOffsetDraft(applied.active);
     noteCalibration('back', 'measured');
     S.activePreset = null; save(); renderAll();
-    readings.clear(); rows(); refresh();
+    readings.clear(); rows(); refresh(); if (L.scm) scmNow();
     $('#duplexWizardStatus').textContent = `Saved. ${applied.active.map(k => `${FIT_LABEL[k][0]} ${FIT_LABEL[k][1](s[k])}`).join(', ')}. Print the test again to check.`;
   };
   $('#duplexWizardClear').onclick = () => { readings.clear(); rows(); refresh(); $('#duplexWizardStatus').textContent = ''; };
@@ -10052,7 +10164,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     clearBackOffsetDraft(BACK_CAL_KEYS);
     noteCalibration('back', 'none');
     S.activePreset = null; save(); renderAll();
-    refresh();
+    refresh(); if (L.scm) scmNow();
     $('#duplexWizardStatus').textContent = 'Back-page alignment cleared.';
   };
   rows();
