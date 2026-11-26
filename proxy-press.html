@@ -379,7 +379,7 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 #busy.on{display:flex}
 #busy .bar{width:280px;height:6px;background:var(--panel2);border-radius:var(--r-sm);overflow:hidden}
 #busy .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width var(--motion-quick) var(--ease-out)}
-#toast{cursor:pointer;position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:9px 14px;border-radius:var(--r-md);display:none;z-index:70;max-width:90vw;box-shadow:var(--elevation);animation:toastIn var(--motion-panel) var(--ease-out)}
+#toast{cursor:pointer;position:fixed;bottom:calc(64px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:9px 14px;border-radius:var(--r-md);display:none;z-index:70;max-width:90vw;box-shadow:var(--elevation);animation:toastIn var(--motion-panel) var(--ease-out)}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 #drop{position:fixed;inset:0;border:3px dashed var(--accent);background:rgb(var(--accent-rgb) / .08);display:none;z-index:40;align-items:center;justify-content:center;font-size:18px;pointer-events:none}
 #drop.on{display:flex}
@@ -604,7 +604,7 @@ body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:non
 .deckbar .menu summary{display:flex;align-items:center;justify-content:center;min-width:var(--ctl);min-height:var(--ctl)}
 .menu summary:hover{border-color:var(--field)}
 .menu summary::-webkit-details-marker{display:none}
-.menu-list{position:absolute;z-index:60;top:calc(100% + 4px);right:0;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:4px;box-shadow:var(--elevation);animation:menuIn .12s cubic-bezier(.16,1,.3,1)}
+.menu-list{position:absolute;z-index:48;top:calc(100% + 4px);right:0;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:4px;box-shadow:var(--elevation);animation:menuIn .12s cubic-bezier(.16,1,.3,1)}
 @keyframes menuIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .menu-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:var(--r-md);padding:7px 10px;transition:background .12s,color .12s}
 .menu-list button:hover{background:var(--panel2)}
@@ -1175,7 +1175,7 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
             <b>Cards</b><span id="queueCopyCount" class="queue-copies">0 copies</span>
           </div>
           <div class="queue-actions">
-            <button type="button" id="btnAddCards" aria-controls="importDrawer" aria-expanded="false">Add cards</button><button type="button" id="btnMultiSelect" aria-pressed="false">Select copies</button>
+            <button type="button" id="btnAddCards" aria-controls="importDrawer" aria-expanded="true">Add cards</button><button type="button" id="btnMultiSelect" aria-pressed="false">Select copies</button>
             <button type="button" id="btnMpcAuto">Fill missing art</button>
           </div>
           <div class="queue-sub-row">
@@ -1383,8 +1383,8 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
         <details class="adv" id="rotarySpecsDrawer" style="margin-top:10px">
           <summary>Guide key</summary>
 
-          <svg viewBox="0 0 340 200" style="width:100%;height:auto;background:#fff;border-radius:8px;margin:8px 0 6px" role="img" aria-label="Two cards side by side on the sheet: the bleed strip between them, the margin ticks in the page margin, and the corner marks at each card corner">
-            <rect width="340" height="200" fill="#fff"/>
+          <svg viewBox="0 0 340 200" style="width:100%;height:auto;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-md);margin:8px 0 6px" role="img" aria-label="Two cards side by side on the sheet: the bleed strip between them, the margin ticks in the page margin, and the corner marks at each card corner">
+            <rect width="340" height="200" fill="#18232e"/>
             <rect x="42" y="56" width="128" height="144" fill="#9ab4d4"/><rect x="170" y="56" width="128" height="144" fill="#d6b995"/>
             <rect x="54" y="68" width="104" height="132" fill="#3d5a80"/><rect x="182" y="68" width="104" height="132" fill="#7a5c3d"/>
             <g stroke="#111" stroke-width="1.4">
@@ -1554,9 +1554,9 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
       <b id="workspaceTitle" style="display:none">Untitled deck</b>
       <span id="previewSummary" style="display:none"></span>
       <div class="seg proof-views print-only" id="proofViewSeg" role="group" aria-label="Preview side and guides" hidden>
-        <button type="button" id="btnProofFront" class="on">Front</button>
-        <button type="button" id="btnProofBack">Back</button>
-        <button type="button" id="btnProofGuides">Guides</button>
+        <button type="button" id="btnProofFront" class="on" aria-pressed="true">Front</button>
+        <button type="button" id="btnProofBack" aria-pressed="false">Back</button>
+        <button type="button" id="btnProofGuides" aria-pressed="false">Guides</button>
       </div>
     </div>
     <div class="toolbar">
@@ -1596,11 +1596,11 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
       </div>
     </div>
     <nav class="settings-nav-tabs" role="tablist" aria-label="Print settings tabs">
-      <button type="button" role="tab" id="tabNav-layout" data-settings-page="layout" class="active" aria-selected="true">Layout</button>
-      <button type="button" role="tab" id="tabNav-printer" data-settings-page="printer" aria-selected="false">Printer</button>
-      <button type="button" role="tab" id="tabNav-alignment" data-settings-page="alignment" aria-selected="false">Alignment</button>
-      <button type="button" role="tab" id="tabNav-color" data-settings-page="color" aria-selected="false">Color</button>
-      <button type="button" role="tab" id="tabNav-cutting" data-settings-page="cutting" aria-selected="false">Cutting</button>
+      <button type="button" role="tab" id="tabNav-layout" data-settings-page="layout" aria-controls="settingsPage-layout" class="active" aria-selected="true">Layout</button>
+      <button type="button" role="tab" id="tabNav-printer" data-settings-page="printer" aria-controls="settingsPage-printer" aria-selected="false">Printer</button>
+      <button type="button" role="tab" id="tabNav-alignment" data-settings-page="alignment" aria-controls="settingsPage-alignment" aria-selected="false">Alignment</button>
+      <button type="button" role="tab" id="tabNav-color" data-settings-page="color" aria-controls="settingsPage-color" aria-selected="false">Color</button>
+      <button type="button" role="tab" id="tabNav-cutting" data-settings-page="cutting" aria-controls="settingsPage-cutting" aria-selected="false">Cutting</button>
     </nav>
     </div>
 
@@ -1755,13 +1755,13 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
           <p class="hint">Save alignment for a printer and paper size.</p>
           <div class="row" style="gap:8px;flex-wrap:wrap;margin:8px 0">
             <input id="calProfileName" type="text" placeholder="Profile name (e.g. Canon cardstock)" style="flex:1;min-width:200px" aria-label="Profile name">
-            <button type="button" id="calProfileSave" class="primary">Save profile</button>
+            <button type="button" id="calProfileSave">Save profile</button>
             <button type="button" id="calProfileNew">+ New profile</button>
             <button type="button" id="calProfileDelete" class="danger">Delete</button>
           </div>
           <select id="calProfileSel" style="display:none"></select>
           <div id="calProfileCards"></div>
-          <p class="hint" id="calProfileStatus" style="margin:4px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
+          <p class="hint" id="calProfileStatus" role="status" aria-live="polite" style="margin:4px 0 0;font-style:italic;color:var(--accent2);min-height:16px"></p>
         </div>
 
         <div class="grid2" id="calForm" style="display:none"></div>
@@ -2086,7 +2086,7 @@ const store = (() => {
     async set(n, k, v) { await op(n, 'readwrite', s => s.put(v, k)); if (!ok) mem[n].set(k, v); if (n === 'images') imageRevisions.set(k, (imageRevisions.get(k) || 0) + 1); },
     async del(n, k) { await op(n, 'readwrite', s => s.delete(k)); if (!ok) mem[n].delete(k); if (n === 'images') imageRevisions.set(k, (imageRevisions.get(k) || 0) + 1); },
     async keys(n) { const v = await op(n, 'readonly', s => s.getAllKeys()); return ok ? v : [...mem[n].keys()]; },
-    async clear() { for (const n of ['kv','images']) await op(n, 'readwrite', s => s.clear()); mem.kv.clear(); mem.images.clear(); imageRevisions.clear(); artValidationCache.clear(); artValidationBySource.clear(); },
+    async clear() { for (const n of ['kv','images']) await op(n, 'readwrite', s => s.clear()); mem.kv.clear(); mem.images.clear(); imageRevisions.clear(); artValidationCache.clear(); artValidationBySource.clear(); for (const u of blobUrls.values()) { try { URL.revokeObjectURL(u); } catch {} } blobUrls.clear(); },
     get persistent() { return ok; }
   };
 })();
@@ -2163,7 +2163,7 @@ async function customUrl(key) {
   if (!blobUrls.has(key)) {
     const b = await store.get('images', key);
     if (!b) return null;
-    blobUrls.set(key, URL.createObjectURL(b));
+    if (!blobUrls.has(key)) blobUrls.set(key, URL.createObjectURL(b));
   }
   return blobUrls.get(key);
 }
@@ -2180,7 +2180,7 @@ function loadImage(src) {
     const timer = setTimeout(()=>{ i.src = ''; imgCache.delete(src); rej(new Error('Image source timed out')); },12000);
     i.onload = () => { clearTimeout(timer); res(i); }; i.onerror = () => { clearTimeout(timer); imgCache.delete(src); rej(new Error('Image failed: ' + src)); };
     i.src = src;
-  }), 8);
+  }), 24);
   return imgCache.get(src);
 }
 async function faceSrc(face, hi, settings = S.settings) {
@@ -2334,7 +2334,8 @@ function settingsSig(s = S.settings) {
     s.customSrcBleed, s.duplexFlip, s.silhouette, s.scmTemplate, s.scmFit, s.scmFitBack, s.scmCrop, s.scmCropBack].join(',');
 }
 async function previewUrl(face, rot = 0, settings = S.settings, back = false) {
-  const key = (face.custom || face.drive || face.normal || face.png || face.scryArt || face.name) + '|' + settingsSig(settings) + '|' + rot + '|' + back + '|' + (face.srcBleed ?? '');
+  const rev = face.custom ? (imageRevisions.get(face.custom) || 0) : '';
+  const key = (face.custom || face.drive || face.normal || face.png || face.scryArt || face.name) + '|' + rev + '|' + settingsSig(settings) + '|' + rot + '|' + back + '|' + (face.srcBleed ?? '');
   if (previewCache.has(key)) return previewCache.get(key);
   try {
     const sess = sessionStorage.getItem('pp_p_' + key);
@@ -2345,7 +2346,11 @@ async function previewUrl(face, rot = 0, settings = S.settings, back = false) {
       const u = (await renderFace(face, 110, false, rot, settings, back)).toDataURL('image/jpeg', 0.85);
       try { sessionStorage.setItem('pp_p_' + key, u); const keys = Object.keys(sessionStorage).filter(key=>key.startsWith('pp_p_')); for (const old of keys.slice(0,Math.max(0,keys.length-24))) sessionStorage.removeItem(old); } catch { try { for (const cachedKey of Object.keys(sessionStorage)) if (cachedKey.startsWith('pp_p_')) sessionStorage.removeItem(cachedKey); sessionStorage.setItem('pp_p_' + key, u); } catch {} }
       return u;
-    } catch { const u = await faceSrc(face, false, settings); return u ? 'raw:' + u : null; }
+    } catch {
+      previewCache.delete(key);
+      const u = await faceSrc(face, false, settings);
+      return u ? 'raw:' + u : null;
+    }
   })();
   boundedCacheSet(previewCache,key,p,96);
   return p;
@@ -3195,23 +3200,29 @@ function paginate(slots, per) { const p = []; for (let i = 0; i < slots.length; 
 
 /* ---------- Scryfall ---------- */
 const SF = 'https://api.scryfall.com';
-let lastCall = 0, sfRelay = true;
+let lastCall = 0, sfRelay = true, sfQueue = Promise.resolve();
 async function sf(url, opts = {}) {
   // The server keeps a cache of card data; without it, ask Scryfall directly.
+  const signal = opts.signal || (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined);
   if (sfRelay && url.startsWith(SF)) {
     let j = null;
     try {
-      const r = await fetch(serverPath('/sf' + url.slice(SF.length)), {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
+      const r = await fetch(serverPath('/sf' + url.slice(SF.length)), {...opts, signal, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
       if (/json/.test(r.headers.get('Content-Type') || '')) j = await r.json();
       if (j && (r.ok || j.object === 'error')) { if (j.object === 'error') { const err=new Error(j.details);err.status=j.status||r.status;throw err; } return j; }
       if (r.status === 404 || r.status === 401) sfRelay = false;
     } catch (err) { if (j) throw err; sfRelay = false; }
   }
-  const wait = 110 - (Date.now() - lastCall); if (wait > 0) await sleep(wait);
-  lastCall = Date.now();
-  const r = await fetch(url, {...opts, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
-  const j = await r.json();
-  if (!r.ok && j.object === 'error') { const err=new Error(j.details);err.status=r.status;throw err; }
+  sfQueue = (typeof sfQueue === 'undefined' ? Promise.resolve() : sfQueue).then(async () => {
+    const wait = 110 - (Date.now() - lastCall); if (wait > 0) await sleep(wait);
+    lastCall = Date.now();
+  });
+  await sfQueue;
+  const r = await fetch(url, {...opts, signal, headers:{'Accept':'application/json', ...(opts.body ? {'Content-Type':'application/json'} : {})}});
+  let j = null;
+  try { j = await r.json(); } catch {}
+  if (!r.ok) { const err = new Error(j?.details || `Scryfall returned HTTP ${r.status}`); err.status = r.status; throw err; }
+  if (!j) throw new Error('Scryfall returned an invalid response');
   return j;
 }
 function toEntry(card, qty, tokenFace = null) {
@@ -3248,7 +3259,10 @@ function parseList(text) {
     line = line.replace(/(\s+#!?\S+)+\s*$/, '').replace(/\s+\*[A-Za-z]+\*/g, '');
     const m = line.match(/^(?:(\d+)\s*[xX]?\s+)?(.+?)(?:\s+[\(\[]([A-Za-z0-9]{2,6})[\)\]](?:\s+([A-Za-z0-9\-★☆]+))?)?\s*$/);
     if (!m) continue;
-    out.push({sourceLine, lineId:'line-' + lineIndex, section, qty:+(m[1] || 1), name:m[2].replace(/\s*\/\/?\s*/g, m[2].includes('/') ? ' // ' : ''), set:m[3]?.toLowerCase(), cn:m[4]});
+    const rawQty = m[1] === undefined ? 1 : +m[1];
+    if (!Number.isFinite(rawQty) || rawQty <= 0) continue;
+    const qty = Math.min(999, Math.floor(rawQty));
+    out.push({sourceLine, lineId:'line-' + lineIndex, section, qty, name:m[2].replace(/\s*\/\/?\s*/g, m[2].includes('/') ? ' // ' : ''), set:m[3]?.toLowerCase(), cn:m[4]});
   }
   return out;
 }
@@ -3531,7 +3545,7 @@ function undoDeckReplacement() {
   const current = findDeck(deckUndo.deckId);
   if (!current) return;
   current.entries = JSON.parse(JSON.stringify(deckUndo.target.snapshot));
-  if (deckUndo.target.cardback) current.cardback = JSON.parse(JSON.stringify(deckUndo.target.cardback));
+  current.cardback = deckUndo.target.cardback ? JSON.parse(JSON.stringify(deckUndo.target.cardback)) : null;
   current.updated = Date.now();
   deckUndo = null;
   const undoBtn = $('#btnUndoReplace');
@@ -3889,7 +3903,12 @@ async function removeImageIfUnused(key) {
   if (cardUndo && cardUndo.entry?.faces?.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key)) return;
   if (deckUndo && (deckUndo.target?.cardback?.custom === key || deckUndo.target?.snapshot?.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key)))) return;
   const used = S.decks.some(d => d.printSettings?.backImage === key || d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key) || (S.frameSets || []).some(f => Object.values(f.images || {}).includes(key));
-  if (!used) { await store.del('images', key); blobUrls.delete(key); }
+  if (!used) {
+    await store.del('images', key);
+    const oldUrl = blobUrls.get(key);
+    if (oldUrl) { try { URL.revokeObjectURL(oldUrl); } catch {} }
+    blobUrls.delete(key);
+  }
 }
 
 /* ---------- MPC Autofill ---------- */
@@ -3965,17 +3984,19 @@ async function attachMpcImages(files) {
   const base = n => n.replace(/\.[a-z0-9]{2,5}$/i, '').toLowerCase();
   busy(true, 'Matching images…');
   let matched = 0; const done = new Map();
-  for (const face of faces) {
-    const file = imgs.find(f => face.drive && f.name.includes(face.drive))
-      || imgs.find(f => face.file && f.name.toLowerCase() === face.file.toLowerCase())
-      || imgs.find(f => face.file && base(f.name) === base(face.file));
-    if (!file) continue;
-    if (!done.has(file)) done.set(file, await storeImage(file));
-    const old = face.custom; face.custom = done.get(file); face.srcBleed ??= MPC_BLEED;
-    if (old && old !== face.custom) await removeImageIfUnused(old);
-    matched++;
-  }
-  busy(false); save(); renderAll();
+  try {
+    for (const face of faces) {
+      const file = imgs.find(f => face.drive && f.name.includes(face.drive))
+        || imgs.find(f => face.file && f.name.toLowerCase() === face.file.toLowerCase())
+        || imgs.find(f => face.file && base(f.name) === base(face.file));
+      if (!file) continue;
+      if (!done.has(file)) done.set(file, await storeImage(file));
+      const old = face.custom; face.custom = done.get(file); face.srcBleed ??= MPC_BLEED;
+      if (old && old !== face.custom) await removeImageIfUnused(old);
+      matched++;
+    }
+  } finally { busy(false); }
+  save(); renderAll();
   toast(`Matched ${matched} of ${faces.length} images.`, 5000);
 }
 async function checkFaces(slots) {
@@ -4019,7 +4040,8 @@ function mpcBase() {
 async function mpcApi(path, body) {
   const base = await mpcBase();
   if (!base) throw new Error('MPC_OFFLINE');
-  const r = await fetch(base + path, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {});
+  const signal = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined;
+  const r = await fetch(base + path, body ? {method:'POST', signal, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {signal});
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.message || j.name || 'HTTP ' + r.status);
   return j;
@@ -4097,12 +4119,14 @@ $('#fileLocalDir').onchange = async ev => {
   if (!localIndex.length) return toast('No PNG, JPG or WebP images found in that folder.');
   busy(true, 'Matching images from your folder…');
   let replaced = 0;
-  for (const e of deck().entries) if (!e.mpc) for (const f of e.faces) {
-    if (!f.auto || f.custom) continue;
-    const hit = localSearch(f.name).find(x => x.key === normName(f.name));
-    if (hit) { await useLocalFile(f, hit.file); if(e.scryId)await shareUploadedArt(e,e.faces.indexOf(f)); replaced++; }
-  }
-  busy(false); if (replaced) { save(); renderAll(); }
+  try {
+    for (const e of deck().entries) if (!e.mpc) for (const f of e.faces) {
+      if (!f.auto || f.custom) continue;
+      const hit = localSearch(f.name).find(x => x.key === normName(f.name));
+      if (hit) { await useLocalFile(f, hit.file); if(e.scryId)await shareUploadedArt(e,e.faces.indexOf(f)); replaced++; }
+    }
+  } finally { busy(false); }
+  if (replaced) { save(); renderAll(); }
   const auto = await mpcAutofill({auto:true});
   toast(`Indexed ${localIndex.length} images.` + (replaced ? ` Used ${replaced} folder image${replaced === 1 ? '' : 's'} in place of automatic picks.` : '') + autoSummary(auto), 7000);
 };
@@ -4528,7 +4552,7 @@ async function openMpcPicker(target) {
       const item = cand.item;
       let key;
       try {
-        const response = await fetch(`/art/${item.id}/image`); if (!response.ok) throw new Error('This upload is no longer available.');
+        const response = await fetch(serverPath(`/art/${item.id}/image`)); if (!response.ok) throw new Error('This upload is no longer available.');
         const blob = await response.blob(); if (!blob.size || blob.size > 20*1048576 || !blob.type.startsWith('image/')) throw new Error('This upload could not be opened.');
         if (!pickerActive() || chosenRun !== revision) return;
         key = await storeImage(blob); if (!pickerActive() || chosenRun !== revision) return;
@@ -4548,10 +4572,11 @@ async function openMpcPicker(target) {
     } else if (cand.type === 'community') {
       const card = cand.item;
       if (isBack) {
-        const old = S.settings.backImage;
+        const old = S.settings.backImage, oldBack = deck().cardback?.custom;
         deck().cardback = {name:'Card back', ...mpcArt(card)};
         S.settings.backImage = null;
         await removeImageIfUnused(old);
+        if (oldBack && oldBack !== old) await removeImageIfUnused(oldBack);
       } else {
         await applyArtChoice(target, chosenFace, async f => {
           const old = f.custom;
@@ -4648,7 +4673,7 @@ async function openMpcPicker(target) {
       try {
         const result = await shareRequest('/art?q=' + encodeURIComponent(query) + '&kind=' + kind); if (!active()) return;
         sharedHits = result.art || [];
-        find('#sharedArt').innerHTML = sharedHits.map(c => `<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-pressed="false" aria-label="Preview uploaded ${esc(c.face)} artwork"><img loading="lazy" src="/art/${esc(c.id)}/thumb" alt=""><figcaption>${esc(c.face)}<br>Uploaded here · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join('');
+        find('#sharedArt').innerHTML = sharedHits.map(c => `<figure data-instance="${esc(c.id)}" tabindex="0" role="button" aria-pressed="false" aria-label="Preview uploaded ${esc(c.face)} artwork"><img loading="lazy" src="${esc(serverPath('/art/' + c.id + '/thumb'))}" alt=""><figcaption>${esc(c.face)}<br>Uploaded here · ${(c.size/1048576).toFixed(1)} MB<br><button class="icon danger" data-remove-art="${esc(c.id)}">Remove upload</button></figcaption></figure>`).join('');
         localStatus.textContent = localHits.length || sharedHits.length ? '' : noLocalArt;
       } catch { if (active()) localStatus.textContent = 'Shared uploads could not load.'; }
     })());
@@ -4842,19 +4867,20 @@ async function mpcAutofill({auto = false, onArtApplied = null} = {}) {
   if (!targets.length) { if (!auto) toast('Every card already has high-res or custom art.'); return result; }
   if (localIndex.length) {
     busy(true, 'Matching images from your folder…');
-    for (const t of targets) {
-      const hit = localSearch(t.f.name).find(x => x.key === normName(t.f.name));
-      if (hit && eligible(t)) {
-        const face = structuredClone(t.f); await useLocalFile(face, hit.file);
-        if (!eligible(t)) { await removeImageIfUnused(face.custom); continue; }
-        const before = onArtApplied && JSON.stringify(t.e);
-        Object.assign(t.f, face);
-        onArtApplied?.(t.e, before);
-        if (t.e.scryId) await shareUploadedArt(t.e, t.e.faces.indexOf(t.f));
-        result.picked++; result.local++;
+    try {
+      for (const t of targets) {
+        const hit = localSearch(t.f.name).find(x => x.key === normName(t.f.name));
+        if (hit && eligible(t)) {
+          const face = structuredClone(t.f); await useLocalFile(face, hit.file);
+          if (!eligible(t)) { await removeImageIfUnused(face.custom); continue; }
+          const before = onArtApplied && JSON.stringify(t.e);
+          Object.assign(t.f, face);
+          onArtApplied?.(t.e, before);
+          if (t.e.scryId) await shareUploadedArt(t.e, t.e.faces.indexOf(t.f));
+          result.picked++; result.local++;
+        }
       }
-    }
-    busy(false);
+    } finally { busy(false); }
     targets.splice(0, targets.length, ...targets.filter(t => isPreview(t.f)));
     if (result.local) { save(); renderAll(); }
     if (!targets.length) return result;
@@ -4899,7 +4925,7 @@ function autoSummary(r, missedOnly = false) {
   const list = n => n.slice(0, 5).join(', ') + (n.length > 5 ? '…' : '');
   const fromFolder = r.local ? ` Used ${r.local} image${r.local === 1 ? '' : 's'} from your folder.` : '';
   if (r.offline) return fromFolder + ` ${r.local ? 'The rest show' : 'Showing'} Scryfall placeholders (not print quality). Online art is picked automatically when the page runs from the server or Docker container.`;
-  if (r.error) return fromFolder + ' Art search failed, so Scryfall placeholders are shown (not print quality). Try "Auto fill art" again shortly.';
+  if (r.error) return fromFolder + ' Art search failed, so Scryfall placeholders are shown (not print quality). Try "Fill missing art" again shortly.';
   const missed = r.missed.length ? ` No high-res art found for ${list(r.missed)}, so ${r.missed.length === 1 ? 'it uses a' : 'they use'} Scryfall placeholder${r.missed.length === 1 ? '' : 's'}.` : '';
   return missedOnly ? fromFolder + missed : ` High-res art picked for ${r.picked} of ${r.total}.` + fromFolder + missed;
 }
@@ -4993,7 +5019,7 @@ function reviewOrderExport(order, withImages, proceed) {
 
 async function exportMpcXml(reviewed = false, snapshot = null) {
   const order = snapshot || buildMpcOrder(false,structuredClone(deck()),{...S.settings});
-  if (!order.slot) return toast(order.uploads.length ? 'The basic order file leaves out uploaded images and custom cards. Download the full order (.zip) instead.' : 'No cards with high-res art yet. Use "Auto fill art" or "Change art" first.', 6000);
+  if (!order.slot) return toast(order.uploads.length ? 'The basic order file leaves out uploaded images and custom cards. Download the full order (.zip) instead.' : 'No cards with high-res art yet. Use "Fill missing art" or "Change art" first.', 6000);
   if (!reviewed && reviewOrderExport(order, false, () => exportMpcXml(true,order))) return;
   busy(true, 'Preparing order…');
   const info = await mpcCardInfo(order);
@@ -5028,7 +5054,7 @@ function makeZip(files) {
 
 async function exportMpcZip(reviewed = false, snapshot = null) {
   const order = snapshot || buildMpcOrder(true,structuredClone(deck()),{...S.settings});
-  if (!order.slot) return toast('No cards with high-res or uploaded art yet. Use "Auto fill art" or "Change art" first.', 6000);
+  if (!order.slot) return toast('No cards with high-res or uploaded art yet. Use "Fill missing art" or "Change art" first.', 6000);
   if (!reviewed && reviewOrderExport(order, true, () => exportMpcZip(true,order))) return false;
   const all = [...order.fronts.values(), ...order.backs.values(), ...(order.cardback ? [order.cardback] : [])];
   const unique = [...new Map(all.map(c => [c.f.custom || c.f.drive, c])).values()];
@@ -5235,9 +5261,14 @@ $('#deckDel').onclick = async () => {
   if (!ok) return;
   if (!abandonPrintSettings()) return;
   S.decks = S.decks.filter(x => x !== d);
-  for (const e of d.entries) for (const f of e.faces) await removeImageIfUnused(f.custom);
   if (!S.decks.length) S.decks.push({id:uid(), name:'My deck', entries:[], updated:Date.now()});
   activateDeck(S.decks[0].id); save(); renderAll();
+  const orphanKeys = new Set([d.cardback?.custom, d.printSettings?.backImage]);
+  for (const e of d.entries) for (const f of e.faces) {
+    orphanKeys.add(f.custom);
+    if (f.template) { orphanKeys.add(f.template.artKey); orphanKeys.add(f.template.frameKey); orphanKeys.add(f.template.popKey); }
+  }
+  for (const key of orphanKeys) if (key) await removeImageIfUnused(key);
 };
 
 /* ---------- UI: card list ---------- */
@@ -5726,6 +5757,7 @@ function openModal(html, backLabel = '') {
     const after = modalAfterClose; modalAfterClose = null; if (after) after();
     modalBeforeClose = null;
   }
+  $$('details.menu[open]').forEach(el => { el.open = false; });
   $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex', 'ask'); $('#overlay').classList.add('on');
   const parent = modalParents.at(-1), back = $('#modal .hd [data-close]');
   if (parent && back) back.textContent = '← ' + parent.backLabel;
@@ -5733,11 +5765,12 @@ function openModal(html, backLabel = '') {
   modalFocusable()[0]?.focus();
 }
 // In-app replacements for prompt(): a dialog that resolves to the entered text, or to null on Cancel/Close.
-function askDialog(head, body, wire) {
+function askDialog(head, body, wire, headerCancel = 'Cancel') {
   return new Promise(resolve => {
     let settled = false;
     const done = v => { if (settled) return; settled = true; modalAfterClose = null; closeModal(true); resolve(v); };
-    openModal(`<div class="hd"><b>${esc(head)}</b><button data-close>Cancel</button></div><div class="bd ask">${body}</div>`,
+    const closeBtn = headerCancel ? `<button data-close>${esc(headerCancel)}</button>` : '';
+    openModal(`<div class="hd"><b>${esc(head)}</b>${closeBtn}</div><div class="bd ask">${body}</div>`,
       $('#overlay').classList.contains('on') ? 'Back' : '');
     $('#modal').classList.add('narrow', 'ask');
     modalAfterClose = () => { if (!settled) { settled = true; resolve(null); } };
@@ -5777,7 +5810,7 @@ function askConfirm({title, message = '', ok = 'Continue', cancel = 'Cancel', da
     </div>`, done => {
     $('#askConfirmOk').onclick = () => done(true);
     $(danger ? '#askConfirmCancel' : '#askConfirmOk').focus();
-  }).then(v => !!v);
+  }, '').then(v => !!v);
 }
 $('#toast').onclick = () => { $('#toast').style.display = 'none'; };
 function closeModal(force = false) {

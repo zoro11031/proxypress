@@ -8,7 +8,7 @@ COPY assets/vendor/jspdf.umd.min.js ./runtime-assets/vendor/jspdf.umd.min.js
 COPY assets/studio3/ ./runtime-assets/studio3/
 COPY assets/vendor/fonts/ ./runtime-assets/vendor/fonts/
 
-RUN adduser -D -H -u 10001 proxypress && mkdir -p cache && chown -R proxypress cache assets
+RUN adduser -D -H -u 10001 proxypress && mkdir -p cache && chown -R proxypress cache
 USER proxypress
 
 ENV HOST=0.0.0.0 \
@@ -17,5 +17,7 @@ ENV HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8642
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/healthz', timeout=4)"
 
 CMD ["python3", "proxy-press-server.py"]

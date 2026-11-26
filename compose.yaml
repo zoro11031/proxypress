@@ -13,6 +13,8 @@ services:
       SHARE_STORAGE_MB: "${SHARE_STORAGE_MB:-20480}"
       SHARE_DECK_MB: "${SHARE_DECK_MB:-1024}"
     read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./assets:/app/assets:ro,z
       - cache:/app/cache

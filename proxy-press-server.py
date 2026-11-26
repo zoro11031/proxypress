@@ -174,17 +174,29 @@ if PUBLIC_URL:
         sys.exit("PUBLIC_URL must have a valid port")
 
 
+_share_db_ready = False
+_share_db_init_lock = threading.Lock()
+
+
 @contextlib.contextmanager
 def share_db():
+    global _share_db_ready
     os.makedirs(CACHE, exist_ok=True)
     db = sqlite3.connect(os.path.join(CACHE, "shares.sqlite3"), timeout=30)
     try:
         db.execute("PRAGMA foreign_keys=ON")
+        db.execute("PRAGMA busy_timeout=5000")
+        if not _share_db_ready:
+            with _share_db_init_lock:
+                if not _share_db_ready:
+                    db.execute("PRAGMA journal_mode=WAL")
+                    with db:
+                        db.execute("CREATE TABLE IF NOT EXISTS shares (id TEXT PRIMARY KEY, created INTEGER NOT NULL, document TEXT)")
+                        db.execute("CREATE TABLE IF NOT EXISTS share_images (hash TEXT PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL)")
+                        db.execute("CREATE TABLE IF NOT EXISTS share_refs (share TEXT REFERENCES shares(id) ON DELETE CASCADE, image TEXT REFERENCES share_images(hash), PRIMARY KEY(share,image))")
+                        db.execute("CREATE TABLE IF NOT EXISTS instance_art (id INTEGER PRIMARY KEY, image TEXT REFERENCES share_images(hash), thumb TEXT REFERENCES share_images(hash), card TEXT NOT NULL, oracle TEXT NOT NULL, name TEXT NOT NULL, face TEXT NOT NULL, kind TEXT NOT NULL, search TEXT NOT NULL, bleed REAL NOT NULL, created INTEGER NOT NULL, UNIQUE(image,oracle,face))")
+                    _share_db_ready = True
         with db:
-            db.execute("CREATE TABLE IF NOT EXISTS shares (id TEXT PRIMARY KEY, created INTEGER NOT NULL, document TEXT)")
-            db.execute("CREATE TABLE IF NOT EXISTS share_images (hash TEXT PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL)")
-            db.execute("CREATE TABLE IF NOT EXISTS share_refs (share TEXT REFERENCES shares(id) ON DELETE CASCADE, image TEXT REFERENCES share_images(hash), PRIMARY KEY(share,image))")
-            db.execute("CREATE TABLE IF NOT EXISTS instance_art (id INTEGER PRIMARY KEY, image TEXT REFERENCES share_images(hash), thumb TEXT REFERENCES share_images(hash), card TEXT NOT NULL, oracle TEXT NOT NULL, name TEXT NOT NULL, face TEXT NOT NULL, kind TEXT NOT NULL, search TEXT NOT NULL, bleed REAL NOT NULL, created INTEGER NOT NULL, UNIQUE(image,oracle,face))")
             yield db
     finally:
         db.close()
@@ -298,6 +310,28 @@ def cache_mem(key, t, body):
         mem_size[0] += size
 
 
+def _prune_disk_cache(now):
+    try:
+        entries = []
+        for n in os.listdir(CACHE):
+            if not n.endswith(".json"):
+                continue
+            p = os.path.join(CACHE, n)
+            try:
+                entries.append((os.path.getmtime(p), p))
+            except OSError:
+                continue
+        entries.sort()
+        for idx, (m, p) in enumerate(entries):
+            if now - m > CARD_TTL or len(entries) - idx > DISK_CACHE_FILES:
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+    except OSError:
+        pass
+
+
 def cache_put(key, body):
     t = time.time()
     cache_mem(key, t, body)
@@ -314,10 +348,7 @@ def cache_put(key, body):
             if due:
                 disk_pruned[0] = t
         if due:
-            files = sorted((os.path.getmtime(p), p) for p in (os.path.join(CACHE, n) for n in os.listdir(CACHE) if n.endswith((".json", ".tmp"))))
-            for n, (m, p) in enumerate(files):
-                if t - m > CARD_TTL or len(files) - n > DISK_CACHE_FILES:
-                    os.remove(p)
+            threading.Thread(target=_prune_disk_cache, args=(t,), daemon=True).start()
     except OSError:
         pass
 
@@ -336,7 +367,11 @@ def scryfall(path, body=None):
         with urllib.request.urlopen(req, timeout=60) as r:
             return r.status, json.loads(r.read(MAX_UPSTREAM))
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read(64 * 1024) or b"{}")
+        raw = e.read(64 * 1024) or b"{}"
+        try:
+            return e.code, json.loads(raw)
+        except ValueError:
+            return e.code, {"object": "error", "details": f"Scryfall returned HTTP {e.code}"}
 
 
 def ident_key(i):
@@ -440,7 +475,8 @@ def page_response(host, https, preview_tags_fn):
     etag = f'"{hashlib.sha256(body).hexdigest()[:16]}"'
     res = (body, csp, etag)
     with page_lock:
-        page_cache.clear()
+        if len(page_cache) >= 8:
+            page_cache.pop(next(iter(page_cache)))
         page_cache[key] = res
     return res
 
@@ -474,7 +510,12 @@ class Server(http.server.ThreadingHTTPServer):
         if not self.slots.acquire(blocking=False):
             self.shutdown_request(request)
             return
-        super().process_request(request, client_address)
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self.slots.release()
+            self.shutdown_request(request)
+            raise
 
     def process_request_thread(self, request, client_address):
         try:
@@ -488,20 +529,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "ProxyPress"
     sys_version = ""
 
+    def behind_proxy(self):
+        try:
+            return ipaddress.ip_address(self.client_address[0]).is_private
+        except ValueError:
+            return False
+
     def client_ip(self):
         peer = self.client_address[0]
-        try:
-            behind_proxy = ipaddress.ip_address(peer).is_private
-        except ValueError:
-            behind_proxy = False
-        if not behind_proxy:
+        if not self.behind_proxy():
             return peer
         cf = self.headers.get("CF-Connecting-IP", "").strip()
         forwarded = self.headers.get("X-Forwarded-For", "").split(",")[0].strip()
         return cf or forwarded or peer
 
     def https(self):
-        return self.headers.get("X-Forwarded-Proto") == "https"
+        return self.behind_proxy() and self.headers.get("X-Forwarded-Proto") == "https"
 
     def send(self, status, body, ctype, extra=()):
         etag = next((v for k, v in extra if k == "ETag"), None)
@@ -619,7 +662,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return self.share_json(409, {"message": "This link is already ready. Create a new link to share changes."})
                 if upload:
                     mime = self.headers.get("Content-Type", "").split(";")[0].lower()
-                    if not body or mime not in ("image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/bmp", "image/svg+xml"):
+                    if not body or not art_image(mime, body):
                         return self.share_json(400, {"message": "Please choose valid card artwork."})
                     digest = hashlib.sha256(body).hexdigest()
                     linked = db.execute("SELECT 1 FROM share_refs WHERE share=? AND image=?", (token, digest)).fetchone()
@@ -779,6 +822,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except ValueError:
             length = -1
         if not 0 <= length <= 4096:
+            self.close_connection = True
             return self.send(413, b"Too large", "text/plain")
         given = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", "replace")).get("password", [""])[0]
         if hmac.compare_digest(given.encode(), PASSWORD.encode()):
@@ -800,6 +844,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except ValueError:
                 length = -1
             if not 0 <= length <= MAX_BODY:
+                self.close_connection = True
                 return self.send(413, b'{"name":"Too large","message":"Request body too large"}', "application/json")
             body = self.rfile.read(length)
         key = "mpc:" + method + ":" + path + ":" + hashlib.sha256(body or b"").hexdigest()
@@ -825,15 +870,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def deck(self):
         url = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("u", [""])[0].strip()
-        m = re.match(r"https?://(?:www\.)?(moxfield|archidekt)\.com/decks/([A-Za-z0-9_-]{1,40})", url)
+        m = re.match(r"https?://(?:www\.)?(moxfield|archidekt)\.com/decks/([A-Za-z0-9_-]{1,40})(?:[/?#]|$)", url)
         if not m:
             return self.send(400, b'{"message":"Paste a Moxfield or Archidekt deck link"}', "application/json")
-        key = "deck:v2:" + url
+        site, deck_id = m.groups()
+        key = f"deck:v2:{site}:{deck_id}"
         hit = cache_get(key, DECK_TTL)
         if hit is not None:
             body = hit.encode() if isinstance(hit, str) else json.dumps(hit).encode()
             return self.send(200, body, "application/json", [("Cache-Control", "private, max-age=300")])
-        site, deck_id = m.groups()
         api = f"https://api2.moxfield.com/v2/decks/all/{deck_id}" if site == "moxfield" else f"https://archidekt.com/api/decks/{deck_id}/"
         try:
             with urllib.request.urlopen(urllib.request.Request(api, headers={"Accept": "application/json", "User-Agent": "ProxyPress/1.0"}), timeout=30) as r:
@@ -923,7 +968,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(404, b'{"object":"error","details":"Not relayed"}', "application/json")
             try:
                 length = int(self.headers.get("Content-Length") or 0)
-                ids = json.loads(self.rfile.read(length)).get("identifiers") if 0 < length <= MAX_BODY else None
+            except ValueError:
+                length = -1
+            if not 0 < length <= MAX_BODY:
+                self.close_connection = True
+                return self.send(413 if length > MAX_BODY else 400, b'{"object":"error","details":"Bad identifiers"}', "application/json")
+            try:
+                ids = json.loads(self.rfile.read(length)).get("identifiers")
             except (ValueError, AttributeError):
                 ids = None
             if not isinstance(ids, list) or not 0 < len(ids) <= 75 or not all(isinstance(i, dict) for i in ids):
@@ -982,10 +1033,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if route == "/og.png" and os.path.isfile(OG_IMAGE):
             with open(OG_IMAGE, "rb") as f:
                 return self.send(200, f.read(), "image/png", [("Cache-Control", "public, max-age=86400"), ("Cross-Origin-Resource-Policy", "cross-origin")])
-        if route == "/logout":
-            return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax")])
         if route == "/assets/manifest.json" or route.startswith("/assets/"):
             return self.serve_asset(route)
+        if route == "/logout":
+            return self.send(303, b"", "text/plain", [("Location", "/"), ("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax")])
         public = self.public_share(route) if route.startswith("/share/") else None
         if public is False:
             return
@@ -1019,7 +1070,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if name == "index.json":
                 return self.send(200, body, "application/json", [("ETag", etag), ("Cache-Control", "private, max-age=86400")])
             return self.send(200, body, "image/svg+xml", [("ETag", etag), ("Cache-Control", "private, max-age=2592000, immutable"), ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")])
-        if route.startswith("/assets/"):
+        if route == "/assets/manifest.json" or route.startswith("/assets/"):
             return self.serve_asset(route)
         if route in ("/", "/proxy-press.html"):
             body, csp, etag = page_response(self.headers.get("Host", ""), self.https(), self.preview_tags)

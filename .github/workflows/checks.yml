@@ -1,5 +1,7 @@
 name: workspace checks
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -25,6 +27,7 @@ jobs:
           python3 -m py_compile proxy-press-server.py
           node tools/desktop-server-check.js
           node tools/release-check.js
+          node tools/electron-offline-check.js
           python3 tools/deck-relay-check.py
           python3 tools/suggestions-check.py
           python3 tools/art-check.py

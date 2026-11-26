@@ -4,13 +4,14 @@ try {
   ({ app, BrowserWindow, shell, Menu, protocol, net } = require('electron'));
 } catch {}
 const http = require('node:http');
-const https = require('node:https');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const url = require('node:url');
-const MAX_BODY = 256 * 1024, MAX_UPSTREAM = 20 * 1024 * 1024;
+const MAX_BODY = 256 * 1024, MAX_UPSTREAM = 20 * 1024 * 1024, MAX_CACHE_FILES = 5000;
 const MPC_PATHS = new Set(['2/editorSearch/', '2/cards/', '2/sources/', '2/cardbacks/', '2/languages/', '2/DFCPairs/']);
+let lastCachePrune = 0;
+let sfQueue = Promise.resolve();
+let sfLastCall = 0;
 
 async function readUpstream(response, limit = MAX_UPSTREAM) {
   const chunks = []; let size = 0;
@@ -103,9 +104,11 @@ function assetManifest() {
   if (fs.existsSync(frameDir) && fs.statSync(frameDir).isDirectory()) {
     for (const name of fs.readdirSync(frameDir)) {
       const d = path.join(frameDir, name);
-      if (fs.statSync(d).isDirectory() && fs.existsSync(path.join(d, 'style'))) {
+      const stylePath = path.join(d, 'style');
+      if (fs.statSync(d).isDirectory() && fs.existsSync(stylePath)) {
         const files = fs.readdirSync(d).filter(f => fs.statSync(path.join(d, f)).isFile()).sort();
-        frames.push({ name, files });
+        const style = fs.readFileSync(stylePath, 'utf8');
+        frames.push({ name, files, style });
       }
     }
     frames.sort((a, b) => a.name.localeCompare(b.name));
@@ -117,8 +120,12 @@ function safeAssetPath(reqRoute) {
   let rel;
   try { rel = decodeURIComponent(reqRoute.slice('/assets/'.length)); } catch { return null; }
   if (rel.includes('\0')) return null;
-  const full = path.resolve(path.join(assetsDir, rel));
-  if (!full.startsWith(path.resolve(assetsDir) + path.sep) || !fs.existsSync(full) || !fs.statSync(full).isFile()) {
+  let rootReal, full;
+  try {
+    rootReal = fs.realpathSync(assetsDir);
+    full = fs.realpathSync(path.join(assetsDir, rel));
+  } catch { return null; }
+  if (!full.startsWith(rootReal + path.sep) || !fs.statSync(full).isFile()) {
     return null;
   }
   const ext = path.extname(full).toLowerCase();
@@ -130,12 +137,12 @@ function cacheKey(key) {
   return path.join(cacheDir, crypto.createHash('sha256').update(key).digest('hex') + '.json');
 }
 
-function cacheGet(key) {
+function cacheGet(key, ttlSec = 3 * 86400) {
   try {
     const f = cacheKey(key);
     if (fs.existsSync(f)) {
       const [ts, data] = JSON.parse(fs.readFileSync(f, 'utf8'));
-      if (Date.now() / 1000 - ts < 3 * 86400) return data;
+      if (Date.now() / 1000 - ts < ttlSec) return data;
     }
   } catch {}
   return null;
@@ -143,13 +150,50 @@ function cacheGet(key) {
 
 function cachePut(key, data) {
   try {
+    const now = Date.now() / 1000;
     const f = cacheKey(key);
-    fs.writeFileSync(f, JSON.stringify([Date.now() / 1000, data]), 'utf8');
+    const tmp = `${f}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify([now, data]), 'utf8');
+    fs.renameSync(tmp, f);
+    if (now - lastCachePrune > 3600) {
+      lastCachePrune = now;
+      try {
+        const files = fs.readdirSync(cacheDir)
+          .filter(n => n.endsWith('.json'))
+          .map(n => {
+            const p = path.join(cacheDir, n);
+            try { return { p, m: fs.statSync(p).mtimeMs / 1000 }; } catch { return null; }
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.m - b.m);
+        for (let i = 0; i < files.length; i++) {
+          if (now - files[i].m > 14 * 86400 || files.length - i > MAX_CACHE_FILES) {
+            try { fs.unlinkSync(files[i].p); } catch {}
+          }
+        }
+      } catch {}
+    }
   } catch {}
+}
+
+function waitSfSlot() {
+  sfQueue = sfQueue.then(async () => {
+    const wait = 100 - (Date.now() - sfLastCall);
+    if (wait > 0 && typeof setTimeout === 'function') await new Promise(r => setTimeout(r, wait));
+    sfLastCall = Date.now();
+  });
+  return sfQueue;
 }
 
 async function handleMpc(req, res, method, reqPath, body) {
   const targetUrl = 'https://mpcfill.com' + reqPath.slice('/mpc'.length);
+  const bodyHash = crypto.createHash('sha256').update(body || Buffer.alloc(0)).digest('hex');
+  const cKey = `mpc:${method}:${reqPath}:${bodyHash}`;
+  const hit = cacheGet(cKey, 3 * 86400);
+  if (hit !== null) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(req.method === 'HEAD' ? undefined : hit);
+  }
   try {
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -166,11 +210,11 @@ async function handleMpc(req, res, method, reqPath, body) {
       body: body && body.length ? body : undefined
     });
     const data = await readUpstream(upstream);
+    if (upstream.status === 200) cachePut(cKey, data.toString('utf8'));
     res.writeHead(upstream.status, {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
+      'Content-Type': 'application/json'
     });
-    res.end(Buffer.from(data));
+    res.end(req.method === 'HEAD' ? undefined : Buffer.from(data));
   } catch (err) {
     res.writeHead(502, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ name: 'Relay error', message: 'Could not reach mpcfill.com' }));
@@ -179,12 +223,15 @@ async function handleMpc(req, res, method, reqPath, body) {
 
 async function handleSf(req, res, method, reqPath, body) {
   const targetUrl = 'https://api.scryfall.com' + reqPath.slice('/sf'.length);
-  const cacheHit = method === 'GET' ? cacheGet('sf:' + targetUrl) : null;
+  const bodyHash = method === 'POST' ? ':' + crypto.createHash('sha256').update(body || Buffer.alloc(0)).digest('hex') : '';
+  const cKey = `sf:${method}:${targetUrl}${bodyHash}`;
+  const cacheHit = cacheGet(cKey, 3 * 86400);
   if (cacheHit) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(cacheHit);
+    return res.end(req.method === 'HEAD' ? undefined : cacheHit);
   }
   try {
+    await waitSfSlot();
     const headers = {
       'User-Agent': 'ProxyPress/1.0',
       'Accept': 'application/json'
@@ -198,14 +245,14 @@ async function handleSf(req, res, method, reqPath, body) {
       body: body && body.length ? body : undefined
     });
     const text = (await readUpstream(upstream)).toString('utf8');
-    if (method === 'GET' && upstream.status === 200) {
-      cachePut('sf:' + targetUrl, text);
+    if (upstream.status === 200) {
+      cachePut(cKey, text);
     }
     // Same as the Python relay: an empty result is a 200 carrying Scryfall's error object.
     let status = upstream.status;
     if (status === 404) { try { if (JSON.parse(text).object === 'error') status = 200; } catch {} }
     res.writeHead(status, { 'Content-Type': 'application/json' });
-    res.end(text);
+    res.end(req.method === 'HEAD' ? undefined : text);
   } catch (err) {
     res.writeHead(502, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ message: 'Could not reach Scryfall' }));
@@ -243,10 +290,14 @@ async function handleSym(req, res, reqPath) {
         res.writeHead(upstream.status);
         return res.end('Not found');
       }
-      const svg = (await readUpstream(upstream)).toString('utf8');
+      const svg = (await readUpstream(upstream, 256 * 1024)).toString('utf8');
+      if (!svg.includes('<svg')) {
+        res.writeHead(502);
+        return res.end('Invalid symbol SVG');
+      }
       cachePut('sym:' + name, svg);
       res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
-      return res.end(svg);
+      return res.end(req.method === 'HEAD' ? undefined : svg);
     }
   } catch (err) {
     res.writeHead(502);
@@ -326,83 +377,88 @@ function startServer(port = 0) {
     const server = http.createServer(async (req, res) => {
       const parsed = new URL(req.url, 'http://127.0.0.1');
       const reqPath = parsed.pathname;
+      const isRead = req.method === 'GET' || req.method === 'HEAD';
 
-      if (req.method === 'GET' && (reqPath === '/' || reqPath === '/proxy-press.html')) {
+      if (isRead && (reqPath === '/' || reqPath === '/proxy-press.html')) {
         try {
           const html = fs.readFileSync(htmlFile, 'utf8');
           res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
             'Content-Security-Policy': pageCsp(html)
           });
-          return res.end(html);
+          return res.end(req.method === 'HEAD' ? undefined : html);
         } catch (e) {
           res.writeHead(500);
           return res.end('Error loading proxy-press.html: ' + e.message);
         }
       }
 
-      if (req.method === 'GET' && reqPath === '/og.png') {
+      if (isRead && reqPath === '/og.png') {
         if (fs.existsSync(ogImage)) {
           res.writeHead(200, { 'Content-Type': 'image/png' });
-          return res.end(fs.readFileSync(ogImage));
+          return res.end(req.method === 'HEAD' ? undefined : fs.readFileSync(ogImage));
         }
         res.writeHead(404);
         return res.end('Not found');
       }
 
-      if (req.method === 'GET' && reqPath === '/assets/manifest.json') {
+      if (isRead && reqPath === '/assets/manifest.json') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify(assetManifest()));
+        return res.end(req.method === 'HEAD' ? undefined : JSON.stringify(assetManifest()));
       }
 
-      if (req.method === 'GET' && reqPath.startsWith('/assets/')) {
+      if (isRead && reqPath.startsWith('/assets/')) {
         const found = safeAssetPath(reqPath);
         if (!found) {
           res.writeHead(404);
           return res.end('Asset not found');
         }
         res.writeHead(200, { 'Content-Type': found.ctype, 'Cache-Control': 'public, max-age=86400' });
-        return res.end(fs.readFileSync(found.full));
+        return res.end(req.method === 'HEAD' ? undefined : fs.readFileSync(found.full));
       }
 
-      if (req.method === 'GET' && reqPath.startsWith('/sym/')) {
-        if (!/^(index\.json|[A-Za-z0-9_-]+\.svg)$/.test(reqPath.slice(5))) {
+      if (isRead && reqPath.startsWith('/sym/')) {
+        if (!/^(index\.json|[A-Z0-9]{1,12}\.svg)$/.test(reqPath.slice(5))) {
           res.writeHead(404); return res.end('Not found');
         }
         return handleSym(req, res, reqPath);
       }
 
-      if (req.method === 'GET' && reqPath === '/deck') {
+      if (isRead && reqPath === '/deck') {
         return handleDeck(req, res, parsed);
       }
-      if (req.method === 'GET' && reqPath.startsWith('/suggest/')) return handleSuggestions(res, reqPath.slice(9));
+      if (isRead && reqPath.startsWith('/suggest/')) return handleSuggestions(res, reqPath.slice(9));
 
-      if (req.method === 'GET' && reqPath === '/healthz') {
+      if (isRead && reqPath === '/healthz') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        return res.end('ok');
+        return res.end(req.method === 'HEAD' ? undefined : 'ok');
       }
 
       if (reqPath.startsWith('/sf/') || reqPath.startsWith('/mpc/')) {
-        if (!['GET', 'POST'].includes(req.method)) { res.writeHead(405); return res.end('Method not allowed'); }
+        if (!['GET', 'HEAD', 'POST'].includes(req.method)) { res.writeHead(405); return res.end('Method not allowed'); }
         const sfRoute = reqPath.slice(3);
         const allowed = reqPath.startsWith('/mpc/') ? MPC_PATHS.has(reqPath.slice(5)) : req.method === 'POST'
-          ? sfRoute === '/cards/collection' : /^\/cards\/(named|search|[0-9a-f-]{36})$|^\/symbology$/.test(sfRoute);
+          ? sfRoute === '/cards/collection' : /^\/cards\/(named|search|autocomplete|[0-9a-f-]{36})$|^\/symbology$/.test(sfRoute);
         if (!allowed) { res.writeHead(404); return res.end('Endpoint not relayed'); }
         const route = reqPath + parsed.search;
-        if (req.method === 'GET') {
+        if (isRead) {
           return reqPath.startsWith('/sf/') ? handleSf(req, res, 'GET', route) : handleMpc(req, res, 'GET', route);
         }
-        const chunks = []; let size = 0;
+        const chunks = []; let size = 0; let aborted = false;
+        req.on('error', () => { aborted = true; });
         req.on('data', c => {
+          if (aborted) return;
           size += c.length;
           if (size > MAX_BODY) {
-            if (!res.writableEnded) { res.writeHead(413); res.end('Request body too large'); }
+            aborted = true;
+            if (!res.writableEnded) { res.writeHead(413, { 'Connection': 'close' }); res.end('Request body too large'); }
+            if (typeof req.destroy === 'function') req.destroy();
             return;
           }
           chunks.push(c);
         });
         req.on('end', async () => {
-          if (size > MAX_BODY) return;
+          if (aborted || size > MAX_BODY) return;
           const body = Buffer.concat(chunks);
           if (reqPath.startsWith('/sf/')) {
             await handleSf(req, res, req.method, route, body);
@@ -426,17 +482,13 @@ function startServer(port = 0) {
 
 if (app) {
   let mainWindow = null;
+  let srv = null;
 
   app.whenReady().then(async () => {
     if (process.platform === 'win32') {
       app.setAppUserModelId('io.github.zoro11031.proxypress');
     }
-    let srv;
-    try {
-      srv = await startServer(8642).catch(() => startServer(0));
-    } catch (e) {
-      srv = await startServer(0);
-    }
+    srv = await startServer(8642).catch(() => startServer(0));
 
     const rendererOrigin = 'http://127.0.0.1:8642';
     protocol.handle('http', request => {
@@ -572,6 +624,13 @@ if (app) {
         mainWindow.loadURL(rendererOrigin + '/?desktop=1');
       }
     });
+  });
+
+  app.on('before-quit', () => {
+    if (srv?.server) {
+      try { srv.server.close(); } catch {}
+      srv = null;
+    }
   });
 
   app.on('window-all-closed', () => {
