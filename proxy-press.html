@@ -9940,6 +9940,7 @@ function duplexCardTestDoc(L, s = S.settings) {
     for (const [a, b, c, e] of [[-4.5, 0, -2.2, 0], [2.2, 0, 4.5, 0], [0, -4.5, 0, -2.2], [0, 2.2, 0, 4.5]])
       doc.line(Tf.x(x + a), Tf.y(y + b), Tf.x(x + c), Tf.y(y + e));
     doc.circle(Tf.x(x), Tf.y(y), Tf.w(1.6));
+    doc.circle(Tf.x(x), Tf.y(y), Tf.w(0.2), 'F');
     doc.setFontSize(6.5);
     doc.text(p.id, Tf.x(x + 2.6), Tf.y(y - 2.6));
   }
