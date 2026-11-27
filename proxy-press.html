@@ -442,11 +442,16 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 }
 .mana-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .mana-grid[hidden]{display:none}
-.mana-grid .mg{display:grid;grid-template-columns:22px 1fr;grid-template-rows:auto auto;gap:2px 6px;align-items:center;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-md);padding:5px 7px}
-.mana-grid .mg img, .mana-grid .mg-generic{grid-row:1 / 3;width:22px;height:22px}
-.mana-grid .mg-generic{display:flex;align-items:center;justify-content:center;border-radius:50%;background:#cac5c0;color:#111;font-weight:700;font-size:14px}
-.mana-grid .mg span:not(.mg-generic){font-size:12px;color:var(--muted)}
-.mana-grid .mg input{padding:2px 4px;width:100%;min-height:0;border:0;background:none;font-size:14px}
+.mana-grid .mg{display:grid;grid-template-columns:24px 1fr;grid-template-rows:auto auto;gap:1px 6px;align-items:center;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-md);padding:5px 7px;transition:border-color .15s,background .15s}
+.mana-grid .mg:hover{border-color:var(--field)}
+.mana-grid .mg.has{border-color:rgb(var(--accent-rgb) / .55);background:rgb(var(--accent-rgb) / .08)}
+.mana-grid .mg-btn{grid-row:1 / 3;padding:0;min-height:0;width:24px;height:24px;border:0;background:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .12s}
+.mana-grid .mg-btn:hover{transform:scale(1.1)}
+.mana-grid .mg-btn:active{transform:scale(.94)}
+.mana-grid .mg img, .mana-grid .mg-generic{width:22px;height:22px;display:block}
+.mana-grid .mg-generic{display:flex;align-items:center;justify-content:center;border-radius:50%;background:#cac5c0;color:#111;font-weight:700;font-size:13px}
+.mana-grid .mg span:not(.mg-generic){font-size:11px;color:var(--muted);line-height:1.1}
+.mana-grid .mg input{padding:1px 2px;width:100%;min-height:0;border:0;background:none;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 @media (max-width:820px){.mana-grid{grid-template-columns:repeat(2,1fr)}}
 #listIn.compact{min-height:0;height:66px;transition:height .15s}
 #listIn.compact:focus, #listIn.compact:not(:placeholder-shown){height:150px}
@@ -601,12 +606,95 @@ table.specs-tbl th{color:var(--muted);font-weight:500;width:42%}
 .tour-dots i{width:8px;height:8px;border-radius:50%;background:var(--line);transition:width .25s ease,background-color .25s ease}
 .tour-dots i.on{background:var(--accent);width:20px;border-radius:4px}
 @media (max-width:820px){.tour-modes{grid-template-columns:1fr}}
-.cc{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
-.cc>div:first-child{position:sticky;top:0}
+.modal.cc-modal{width:min(1060px,calc(100vw - 32px));max-height:calc(100vh - 36px)}
+.modal.cc-modal .bd{padding:0;overflow:hidden;display:flex;min-height:0}
+.cc{display:grid;grid-template-columns:auto minmax(0,1fr);flex:1;min-height:0;width:100%}
+.cc-stage{display:flex;flex-direction:column;align-items:center;padding:16px 18px;background:var(--sunk);border-right:1px solid var(--line);overflow:auto;min-height:0}
+.cc-canvas-wrap{position:relative;border-radius:var(--r-md);line-height:0;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.cc-canvas-wrap.empty canvas{cursor:pointer}
+.cc-canvas-wrap.dragover{outline:2px dashed var(--accent);outline-offset:4px}
+.cc-drop-overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(12,26,36,.78);color:var(--accent2);font-weight:600;font-size:15px;border-radius:var(--r-md);pointer-events:none;border:2px dashed var(--accent)}
+.cc-canvas-wrap.dragover .cc-drop-overlay{display:flex}
 .cc canvas{display:block;border-radius:var(--r-md);cursor:grab;touch-action:none;max-width:100%;height:auto}
 .cc canvas:active{cursor:grabbing}
-.cc textarea{min-height:90px;font-family:inherit;font-size:14px}
-@media (max-width:820px){.cc{grid-template-columns:1fr}.cc>div:first-child{position:static}}
+.cc canvas:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.cc-stage-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;flex-wrap:wrap;width:100%}
+.cc-stage-bar button{min-height:28px;padding:3px 9px;font-size:12px}
+.cc-stage-bar button.on{border-color:var(--accent);background:rgb(var(--accent-rgb) / .14);color:var(--accent2)}
+.cc-stage-zoom{display:inline-flex;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);padding:1px}
+.cc-stage-zoom button{border:0;background:none;min-height:24px;padding:0 7px;font-size:13px;font-weight:600}
+.cc-stage-zoom button:hover{background:var(--panel2)}
+.cc-stage-zoom span{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+.cc-legend{display:flex;justify-content:center;gap:10px;font-size:11px;margin-top:6px;flex-wrap:wrap}
+.cc-legend[hidden]{display:none}
+.cc-stage-foot{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:8px;width:100%}
+.cc-stage-foot .check{font-size:12px;color:var(--muted);justify-content:center}
+.cc-panel{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.cc-lookup{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.cc-ac-wrap{position:relative;flex:1 1 180px;min-width:0}
+.cc-ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--panel);border:1px solid var(--field);border-radius:var(--r-md);box-shadow:var(--elevation);max-height:220px;overflow:auto;padding:4px}
+.cc-ac-list[hidden]{display:none}
+.cc-ac-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:var(--r-sm);padding:6px 10px;min-height:0;font-size:13px;color:var(--text);justify-content:flex-start}
+.cc-ac-list button:hover,.cc-ac-list button.on{background:rgb(var(--accent-rgb) / .16);color:var(--accent2)}
+.cc-lookup-meta{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.cc-lookup-meta select{flex:1 1 160px;font-size:13px}
+.cc-lookup-meta[hidden]{display:none}
+.cc-tabs{display:flex;gap:2px;padding:6px 16px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.cc-tabs button{border:0;border-bottom:2px solid transparent;border-radius:var(--r-sm) var(--r-sm) 0 0;background:none;color:var(--muted);padding:8px 14px;min-height:36px;font-weight:500;font-size:13px;gap:6px}
+.cc-tabs button:hover{color:var(--text);background:var(--fill)}
+.cc-tabs button.on{color:var(--accent2);border-bottom-color:var(--accent);font-weight:600}
+.cc-tabs .cc-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+.cc-tabs .cc-dot[hidden]{display:none}
+.cc-scroll{flex:1;overflow:auto;padding:14px 16px 18px;min-height:0}
+.cc-pane[hidden]{display:none}
+.cc-sec{margin-bottom:16px}
+.cc-sec:last-child{margin-bottom:0}
+.cc-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.cc-sec-hd label,.cc-sec-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0}
+.cc-drop{display:flex;align-items:center;gap:12px;padding:12px;background:var(--sunk);border:1px dashed var(--field);border-radius:var(--r-md);transition:border-color .15s,background .15s}
+.cc-drop.has-art{border-style:solid;border-color:var(--line)}
+.cc-drop.dragover{border-color:var(--accent);background:rgb(var(--accent-rgb) / .1)}
+.cc-drop-thumb{width:46px;height:46px;border-radius:var(--r-sm);object-fit:cover;background:var(--panel2);border:1px solid var(--line);flex:0 0 auto}
+.cc-drop-thumb[hidden]{display:none}
+.cc-drop-info{flex:1;min-width:0}
+.cc-drop-title{font-size:13px;font-weight:600;color:var(--text);margin:0}
+.cc-drop-sub{font-size:12px;color:var(--muted);margin:2px 0 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cc-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:999px;font-size:11px;font-weight:600;background:var(--panel2);color:var(--muted)}
+.cc-badge.ok{background:rgb(var(--ok-rgb) / .15);color:var(--ok)}
+.cc-badge.warn{background:rgb(var(--warning-rgb) / .16);color:var(--warning)}
+.cc-zoom-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.cc-zoom-row input[type=range]{flex:1;min-width:0}
+.cc-zoom-val{font-family:var(--mono);font-size:12px;color:var(--accent2);min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+.cc-swatches{display:flex;flex-wrap:wrap;gap:5px}
+.cc-swatch{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;min-height:30px;font-size:12px;border-radius:var(--r-md);background:var(--sunk);border:1px solid var(--line);color:var(--text)}
+.cc-swatch:hover{border-color:var(--field)}
+.cc-swatch.on{border-color:var(--accent);background:rgb(var(--accent-rgb) / .14);color:var(--accent2);font-weight:600}
+.cc-swatch i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,.22);flex:0 0 auto}
+.cc-pills{display:flex;flex-wrap:wrap;gap:5px}
+.cc-pill{padding:5px 10px;min-height:30px;font-size:12px;border-radius:var(--r-md);background:var(--sunk);border:1px solid var(--line);color:var(--text)}
+.cc-pill:hover:not(:disabled){border-color:var(--field)}
+.cc-pill.on{border-color:var(--accent);background:rgb(var(--accent-rgb) / .14);color:var(--accent2);font-weight:600}
+.cc-pill:disabled{opacity:.38;cursor:not-allowed}
+.cc-row2{display:grid;grid-template-columns:1fr 124px;gap:10px}
+.cc-symbar{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.cc-symbar button{min-height:24px;padding:2px 6px;font-size:11px;font-family:var(--mono);background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text)}
+.cc-symbar button:hover{border-color:var(--accent);color:var(--accent2)}
+.cc textarea{min-height:54px;font-family:inherit;font-size:14px;line-height:1.45}
+.cc textarea#cc-text{min-height:92px}
+.cc-pane[data-cc-pane="text"] .cc-sec-hd label{text-transform:none;letter-spacing:0;font-weight:500;font-size:13px;color:var(--muted)}
+.cc .field{margin-bottom:10px}
+.cc .field:last-child{margin-bottom:0}
+.cc-frame-row{display:flex;gap:6px;align-items:center}
+.cc-frame-row select{flex:1;min-width:0}
+@media (max-width:860px){
+  .modal.cc-modal{width:100vw;max-height:100dvh;height:100dvh}
+  .modal.cc-modal .bd{overflow:auto;display:block}
+  .cc{grid-template-columns:1fr}
+  .cc-stage{border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+  .cc-panel{overflow:visible}
+  .cc-scroll{overflow:visible}
+  .cc-row2{grid-template-columns:1fr}
+}
 body[data-mode=print] .order-only, body[data-mode=order] .print-only{display:none !important}
 .seg{display:inline-flex;border:1px solid var(--field);border-radius:var(--r-md);overflow:hidden;background:var(--sunk)}
 .seg button{border:0;border-radius:0;background:none;color:var(--muted);padding:6px 12px;transition:background .15s,color .15s}
@@ -5928,7 +6016,7 @@ function openModal(html, backLabel = '') {
     modalBeforeClose = null;
   }
   $$('details.menu[open]').forEach(el => { el.open = false; });
-  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex', 'ask'); $('#overlay').classList.add('on');
+  $('#modal').innerHTML = html; $('#modal').classList.remove('narrow', 'duplex', 'ask', 'cc-modal'); $('#overlay').classList.add('on');
   const parent = modalParents.at(-1), back = $('#modal .hd [data-close]');
   if (parent && back) back.textContent = '← ' + parent.backLabel;
   labelModal();
@@ -6937,7 +7025,7 @@ async function openCardMaker(target) {
   let e = target.e || null;
   const i = target.i || 0, face = e?.faces[i];
   busy(true, 'Loading card text…');
-  let sets, named, setStyle, primary, more, fallback, lastStyle, t, missingFrame, pwSet, isPw, isMore;
+  let sets, named, setStyle, primary, more, fallback, lastStyle, t, missingFrame, pwSet, isPw;
   try {
     sets = allSets(); named = n => sets.find(f => f.name === n); setStyle = f => f && 'set:' + f.id;
     primary = FRAME_PRIMARY.map(named).filter(Boolean); more = sets.filter(f => !FRAME_PRIMARY.includes(f.name)).sort((a, b) => frameLabel(a).localeCompare(frameLabel(b)));
@@ -6949,91 +7037,259 @@ async function openCardMaker(target) {
     if (sets.length && (t.style === 'modern' || t.style === 'retro')) t.style = setStyle(named(t.style === 'modern' ? 'magic-new' : 'magic-old')) || fallback;
     pwSet = named('magic-m15-planeswalker'); isPw = ty => /Planeswalker/.test(ty || '');
     if (!face?.template) { if (pwSet && isPw(t.type)) t.style = setStyle(pwSet); else if (setOf(t)?.layout.pw) t.style = fallback; }
-    isMore = more.some(f => t.style === 'set:' + f.id);
   } finally { busy(false); }
-  let art = null;
-  if (t.artKey) { const u = await customUrl(t.artKey); if (u) art = await loadImage(u).catch(() => null); }
-  const F = [['name', 'Name'], ['skin', 'Nickname'], ['mana', 'Mana cost'], ['type', 'Type line'], ['text', 'Rules text'], ['flavor', 'Flavor text'], ['pt', 'Power / toughness'], ['artist', 'Artist credit']];
+  let art = null, artSrc = '';
+  if (t.artKey) { const u = await customUrl(t.artKey); if (u) { art = await loadImage(u).catch(() => null); if (art) artSrc = u; } }
+  const CC_SWATCH = {auto:'conic-gradient(#f2ebd5,#89b8e6,#5a5458,#d9755a,#76b081,#d8b658,#f2ebd5)', W:'#f0e8cf', U:'#5c9fd6', B:'#51494d', R:'#d46448', G:'#4d9960', M:'#d4b357', C:'#a5afb6', L:'#a68e6b'};
+  const CC_COLOR_SHORT = {auto:'Auto', W:'White', U:'Blue', B:'Black', R:'Red', G:'Green', M:'Gold', C:'Colorless', L:'Land'};
+  const ART_MODES = [['normal', 'Normal'], ['extended', 'Extended'], ['borderless', 'Borderless'], ['full', 'Full art'], ['textless', 'Textless']];
+  const STAMPS = [['', 'None'], ['oval', 'Oval'], ['ub', 'Universes Beyond']];
+  const SYM_BTNS = ['{W}', '{U}', '{B}', '{R}', '{G}', '{C}', '{1}', '{X}', '{T}', '—', '•'];
+  const manaColors = s => [...'WUBRG'].filter(c => new RegExp(`\\{[^}]*${c}[^}]*\\}`, 'i').test(s || ''));
   const opts = (k, list) => `<select data-cc="${k}" aria-label="${({selfRef:'Name in rules text', skinBar:'Nickname bar', aliasFont:'Real name font', stamp:'Stamp'})[k] || k}">${list.map(([v, n]) => `<option value="${v}" ${(t[k] || '') === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
-  const skinField = () => `<div class="field full"><label for="cc-skin">Nickname</label><input id="cc-skin" type="text" data-cc="skin" value="${esc(t.skin || '')}" placeholder="Optional, e.g. Godzilla, King of the Monsters">
-    <div class="row" id="ccSkinOpts" style="margin-top:6px;flex-wrap:wrap;gap:6px" ${isSkinned(t) ? '' : 'hidden'}>
+  const skinField = () => `<div class="field"><label for="cc-skin">Nickname (alt title)</label><input id="cc-skin" type="text" data-cc="skin" value="${esc(t.skin || '')}" placeholder="Optional, e.g. Godzilla, King of the Monsters">
+    <div class="row" id="ccSkinOpts" style="margin-top:8px;flex-wrap:wrap;gap:6px" ${isSkinned(t) ? '' : 'hidden'}>
       ${opts('selfRef', [['', 'Rules text: real name'], ['skin', 'Rules text: nickname'], ['dual', 'Rules text: both']])}
       ${opts('skinBar', [['', 'Name bar: auto'], ['ikoria', 'Name bar: smoked'], ['dracula', 'Name bar: ornate'], ['retro', 'Name bar: retro']])}
       ${opts('aliasFont', [['', 'Italic'], ['caps', 'Spaced capitals']])}
       <input type="text" data-cc="skinShort" value="${esc(t.skinShort || '')}" placeholder="Short nickname" style="width:140px" aria-label="Short nickname"></div></div>`;
   const mc = manaCounts(t.mana), manaAdv = !mc.simple || !!S.manaAdv;
-  const manaField = () => `<div class="field full"><label>Mana cost</label>
-    <div class="mana-grid" id="ccManaGrid" ${manaAdv ? 'hidden' : ''}>${MANA_KEYS.map(([k, label]) => `<label class="mg" title="${label}">
-      ${k === 'N' ? '<span class="mg-generic">#</span>' : `<img data-sym="{${k}}" crossorigin="anonymous" alt="" width="22" height="22">`}<span>${label}</span>
-      <input type="number" min="0" max="20" inputmode="numeric" data-mana="${k}" value="${mc.c[k] || ''}" placeholder="0" aria-label="${label}"></label>`).join('')}</div>
+  const manaField = () => `<div class="field"><div class="cc-sec-hd"><label>Mana cost</label><button type="button" class="icon" id="ccManaClear" ${t.mana ? '' : 'hidden'} style="min-height:24px;padding:1px 8px;font-size:11px">Clear</button></div>
+    <div class="mana-grid" id="ccManaGrid" ${manaAdv ? 'hidden' : ''}>${MANA_KEYS.map(([k, label]) => `<div class="mg${mc.c[k] ? ' has' : ''}" data-mg="${k}" title="${label} (click icon to +1, right-click to −1)">
+      <button type="button" class="mg-btn" data-mana-bump="${k}" aria-label="Add ${label} mana">${k === 'N' ? '<span class="mg-generic">#</span>' : `<img data-sym="{${k}}" crossorigin="anonymous" alt="" width="22" height="22">`}</button><span>${label}</span>
+      <input type="number" min="0" max="20" inputmode="numeric" data-mana="${k}" value="${mc.c[k] || ''}" placeholder="0" aria-label="${label}"></div>`).join('')}</div>
     <input type="text" id="ccManaText" value="${esc(t.mana || '')}" placeholder="e.g. 2UU, XR, W/U or {2}{U}{U}" ${manaAdv ? '' : 'hidden'} aria-label="Mana cost">
-    <label class="check" style="margin-top:6px"><input type="checkbox" id="ccManaAdv" ${manaAdv ? 'checked' : ''}> Type it instead (hybrid, Phyrexian, split costs)</label></div>`;
-  const textField = ([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label for="cc-${k}">${label}</label>${k === 'text' || k === 'flavor' ? `<textarea id="cc-${k}" data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input id="cc-${k}" type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`;
-  openModal(`<div class="hd"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name ? esc(t.name) + ' · custom card' : 'Custom card'}</b><div class="row" style="flex-wrap:nowrap"><button id="ccExportPng" ${art ? '' : 'disabled title="Choose artwork first"'}>Export PNG</button><button class="primary" id="ccSave" ${art ? '' : 'disabled title="Choose artwork first"'}>Save card</button><button data-close>Close</button></div></div>
+    <label class="check" style="margin-top:6px"><input type="checkbox" id="ccManaAdv" ${manaAdv ? 'checked' : ''}> Type cost directly (hybrid, Phyrexian, split)</label></div>`;
+  const styleOptions = () => {
+    const std = primary.length
+      ? `<optgroup label="Standard frames">${primary.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')}</optgroup>`
+      : `<option value="modern" ${t.style === 'modern' ? 'selected' : ''}>Modern (basic)</option><option value="retro" ${t.style === 'retro' ? 'selected' : ''}>Retro (basic)</option>`;
+    const extra = more.length ? `<optgroup label="More frames">${more.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')}</optgroup>` : '';
+    return `${std}${extra}<option value="custom" ${t.style === 'custom' ? 'selected' : ''}>My frame image…</option>`;
+  };
+  const titleText = () => { const n = (t.skin || t.name || '').trim(); return n ? `${n} · Custom card` : 'Custom card'; };
+  const hasExtras = () => isSkinned(t) || !!t.stamp || Object.values(S.ccFonts || {}).some(Boolean);
+  const curArtMode = t.artMode || (t.fullArt ? 'full' : 'normal');
+  openModal(`<div class="hd"><b id="ccTitle" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(titleText())}</b><div class="row" style="flex-wrap:nowrap"><button id="ccExportPng" ${art ? '' : 'disabled title="Choose artwork first"'}>Export PNG</button><button class="primary" id="ccSave" ${art ? '' : 'disabled title="Choose artwork first"'}>Save card</button><button data-close>Close</button></div></div>
     <div class="bd"><div class="cc">
-      <div><canvas id="ccCanvas" aria-label="Card preview"></canvas>
-        <div class="row" style="justify-content:center;font-size:11px;gap:12px;margin:4px 0 2px;flex-wrap:wrap">
-          <span style="color:#38bdf8;font-weight:600">···· Bleed (2.75×3.75″)</span>
-          <span style="color:#f97316;font-weight:600">━ ━ Trim cut (2.5×3.5″)</span>
-          <span style="color:#c084fc;font-weight:600">╍ ╍ Safe zone</span>
+      <div class="cc-stage">
+        <div class="cc-canvas-wrap${art ? '' : ' empty'}" id="ccCanvasWrap">
+          <canvas id="ccCanvas" tabindex="0" aria-label="Card preview. Drag to pan art, scroll to zoom, or drop an image file."></canvas>
+          <div class="cc-drop-overlay">Drop artwork here</div>
         </div>
-        <p class="hint">Drag to move the art. Scroll to zoom.</p>
-        <label class="check" style="justify-content:center;font-size:12px;margin-top:6px"><input type="checkbox" id="ccPngBleed" checked> Include print bleed in PNG export</label>
+        <div class="cc-stage-bar">
+          <button type="button" id="ccShowGuides" class="on" aria-pressed="true" title="Toggle bleed, trim, and safe zone lines">Guides</button>
+          <div class="cc-stage-zoom" aria-label="Art zoom">
+            <button type="button" id="ccZoomOut" aria-label="Zoom out">−</button>
+            <span id="ccStageZoomVal">${Math.round((t.zoom || 1) * 100)}%</span>
+            <button type="button" id="ccZoomIn" aria-label="Zoom in">+</button>
+            <button type="button" id="ccStageReset" title="Reset art position and zoom">Fit</button>
+          </div>
+        </div>
+        <div class="cc-legend" id="ccLegend">
+          <span style="color:#38bdf8;font-weight:600">···· Bleed</span>
+          <span style="color:#f97316;font-weight:600">━ ━ Trim</span>
+          <span style="color:#c084fc;font-weight:600">╍ ╍ Safe</span>
+        </div>
+        <div class="cc-stage-foot">
+          <label class="check"><input type="checkbox" id="ccPngBleed" checked> Include print bleed in PNG export</label>
+          <p class="hint" id="ccStatus" role="status" style="margin:0;text-align:center">${art ? 'Drag art to pan · Scroll to zoom · Ctrl+V to paste' : 'Drop, paste (Ctrl+V), or click the card to add art'}</p>
+        </div>
       </div>
-      <div>
-        <h3>Card lookup &amp; art</h3>
-        <div class="field" style="margin-bottom:10px"><label for="ccLookup">Start from a real card (optional)</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Load card text</button></div>
-          <select id="ccSet" style="margin-top:6px" aria-label="Printing" hidden></select><select id="ccFace" style="margin-top:6px" aria-label="Card face" hidden></select><p class="hint">Loads the card text and colors. Your chosen art stays in place.</p></div>
-        <div class="row" style="margin-bottom:8px"><button class="${art ? '' : 'primary'}" id="ccArt">${art ? 'Change art…' : 'Choose your art…'}</button><input type="file" id="ccFile" accept="image/*" hidden></div>
-        <h3>Card text</h3>
-        <div class="grid2">${F.filter(([k]) => !['skin', 'artist'].includes(k)).map(textField).join('')}</div>
-        <h3>Art &amp; frame</h3>
-        ${missingFrame ? '<p class="warn">This card’s frame set is unavailable here. Saving with the preview frame will replace its original frame.</p>' : ''}
-        ${sets.length ? '' : '<p class="hint">Basic frames are available. Load a frame set below for more styles.</p>'}
-        <div class="grid2">
-          <div class="field"><label for="ccZoom">Art zoom</label><input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}"><button class="icon" id="ccArtReset">Reset position &amp; zoom</button></div>
-          <div class="field"><label for="ccColor">Frame color</label><select id="ccColor">${CC_COLORS.map(([v, n]) => `<option value="${v}" ${v === (t.color || 'auto') ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-          <div class="field"><label for="ccStyle">Frame</label><select id="ccStyle">${primary.length
-              ? primary.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')
-              : `<option value="modern" ${t.style === 'modern' ? 'selected' : ''}>Modern (basic)</option><option value="retro" ${t.style === 'retro' ? 'selected' : ''}>Retro (basic)</option>`}
-              <option value="custom" ${t.style === 'custom' ? 'selected' : ''}>My frame image</option>
-              <option value="more" ${isMore ? 'selected' : ''} hidden>From More frames</option></select>
-            ${more.length ? `<select id="ccMore" style="margin-top:6px" aria-label="More frames"><option value="">More frames…</option>${more.map(f => `<option value="set:${esc(f.id)}" ${t.style === 'set:' + f.id ? 'selected' : ''}>${esc(frameLabel(f))}</option>`).join('')}</select>` : ''}
-            <div class="row" style="margin-top:4px"><button class="icon" id="ccSetBtn">Load frame set…</button><input type="file" id="ccSetDir" webkitdirectory multiple hidden></div></div>
-          <div class="field"><label for="ccArtMode">Art style</label><select id="ccArtMode">${[['normal', 'Normal'], ['extended', 'Extended art'], ['borderless', 'Borderless'], ['full', 'Full art (text on art)'], ['textless', 'Textless']]
-              .map(([v, n]) => `<option value="${v}" ${(t.artMode || (t.fullArt ? 'full' : 'normal')) === v ? 'selected' : ''}>${n}</option>`).join('')}</select>
-            <div class="row" id="ccPopRow" style="margin-top:6px" ${(t.artMode || 'normal') === 'normal' ? 'hidden' : ''}><button class="icon" id="ccPopBtn">${t.popKey ? 'Change cutout…' : 'Upload art cutout…'}</button><button class="icon" id="ccPopClear" ${t.popKey ? '' : 'hidden'}>Remove</button><input type="file" id="ccPopFile" accept="image/png,image/webp" hidden></div></div>
-          <div class="field"><label>Stamp</label>${opts('stamp', [['', 'None'], ['oval', 'Oval'], ['ub', 'Universes Beyond']])}</div>
-          <div class="field full" id="ccFrameRow" ${t.style === 'custom' ? '' : 'hidden'}><label>Frame image</label><div class="row"><button class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame…' : 'Upload frame…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp,image/svg+xml,.svg" hidden></div>
-            <p class="hint">Use a card-sized PNG or SVG with a transparent area for the art.</p></div>
+      <div class="cc-panel">
+        <div class="cc-lookup">
+          <div class="row" style="flex-wrap:nowrap">
+            <div class="cc-ac-wrap">
+              <input type="text" id="ccLookup" placeholder="Autofill from a real card (e.g. Demonic Tutor)…" autocomplete="off" aria-label="Search real card to autofill text" aria-autocomplete="list" aria-controls="ccAcList">
+              <div class="cc-ac-list" id="ccAcList" role="listbox" hidden></div>
+            </div>
+            <input type="text" id="ccNum" placeholder="#" title="Optional collector number" style="width:54px;flex:0 0 54px" aria-label="Collector number (optional)">
+            <button id="ccFill">Load</button>
+          </div>
+          <div class="cc-lookup-meta" id="ccLookupMeta" hidden>
+            <select id="ccSet" aria-label="Printing" hidden></select>
+            <select id="ccFace" aria-label="Card face" hidden></select>
+          </div>
         </div>
-        <details class="adv"><summary>Nickname &amp; artist credit</summary><div class="grid2">${skinField()}${textField(['artist', 'Artist credit'])}</div></details>
-        <details class="adv"><summary>Fonts</summary><div id="ccFontList"></div>
-          <input type="file" id="ccFontFile" accept=".ttf,.otf,.woff,.woff2" hidden><input type="file" id="ccFontMulti" accept=".ttf,.otf,.woff,.woff2" multiple hidden></details>
-        <p class="hint" id="ccStatus" role="status">${art ? '' : 'Choose an art image before saving.'}</p>
+        <div class="cc-tabs" role="tablist" aria-label="Card editor sections">
+          <button type="button" role="tab" data-cc-tab="art" class="on" aria-selected="true">Art &amp; Frame <span class="cc-dot" id="ccDotArt" ${art ? 'hidden' : ''}></span></button>
+          <button type="button" role="tab" data-cc-tab="text" aria-selected="false">Card Text</button>
+          <button type="button" role="tab" data-cc-tab="extras" aria-selected="false">Extras <span class="cc-dot" id="ccDotExtras" ${hasExtras() ? '' : 'hidden'}></span></button>
+        </div>
+        <div class="cc-scroll">
+          <div class="cc-pane" data-cc-pane="art" role="tabpanel">
+            <div class="cc-sec">
+              <div class="cc-sec-hd"><span class="cc-sec-title">Artwork</span></div>
+              <div class="cc-drop${art ? ' has-art' : ''}" id="ccArtDrop">
+                <img class="cc-drop-thumb" id="ccArtThumb" src="${esc(artSrc)}" alt="" ${artSrc ? '' : 'hidden'}>
+                <div class="cc-drop-info">
+                  <p class="cc-drop-title" id="ccArtTitle">${art ? 'Artwork loaded' : 'Add your artwork'}</p>
+                  <p class="cc-drop-sub" id="ccArtMeta">${art ? `${art.naturalWidth} × ${art.naturalHeight} px` : 'Drop an image, paste with Ctrl+V, or browse'}</p>
+                </div>
+                <button type="button" class="${art ? '' : 'primary'}" id="ccArt">${art ? 'Change art…' : 'Choose art…'}</button>
+                <input type="file" id="ccFile" accept="image/*" hidden>
+              </div>
+              <div class="cc-zoom-row">
+                <label for="ccZoom" style="font-size:12px;color:var(--muted);margin:0;white-space:nowrap">Zoom</label>
+                <input type="range" id="ccZoom" min="1" max="4" step="0.01" value="${t.zoom || 1}">
+                <span class="cc-zoom-val" id="ccZoomVal">${Math.round((t.zoom || 1) * 100)}%</span>
+                <button type="button" class="icon" id="ccArtReset">Reset</button>
+              </div>
+            </div>
+            <div class="cc-sec">
+              <div class="cc-sec-hd"><label for="ccStyle">Frame</label><button type="button" class="icon" id="ccSetBtn" style="min-height:26px;padding:2px 8px;font-size:12px">Load MSE folder…</button></div>
+              ${missingFrame ? '<p class="warn" style="margin:0 0 8px">Original frame set unavailable here; saving will use the selected frame.</p>' : ''}
+              ${sets.length ? '' : '<p class="hint" style="margin:0 0 8px">Basic frames loaded. Add an MSE frame folder for more styles.</p>'}
+              <div class="cc-frame-row"><select id="ccStyle">${styleOptions()}</select><input type="file" id="ccSetDir" webkitdirectory multiple hidden></div>
+              <div class="field" id="ccFrameRow" style="margin-top:8px" ${t.style === 'custom' ? '' : 'hidden'}>
+                <div class="row"><button type="button" class="icon" id="ccFrameBtn">${t.frameKey ? 'Change frame image…' : 'Upload frame image…'}</button><input type="file" id="ccFrameFile" accept="image/png,image/webp,image/svg+xml,.svg" hidden></div>
+                <p class="hint" style="margin:4px 0 0">Card-sized PNG or SVG with a transparent art window.</p>
+              </div>
+            </div>
+            <div class="cc-sec">
+              <div class="cc-sec-hd"><label for="ccColor">Frame color</label></div>
+              <div class="cc-swatches" id="ccSwatches" role="radiogroup" aria-label="Frame color">${CC_COLORS.map(([v, n]) => `<button type="button" class="cc-swatch${v === (t.color || 'auto') ? ' on' : ''}" data-cc-color="${v}" title="${esc(n)}" aria-checked="${v === (t.color || 'auto')}" role="radio"><i style="background:${CC_SWATCH[v]}"></i>${CC_COLOR_SHORT[v]}</button>`).join('')}</div>
+              <select id="ccColor" hidden>${CC_COLORS.map(([v, n]) => `<option value="${v}" ${v === (t.color || 'auto') ? 'selected' : ''}>${n}</option>`).join('')}</select>
+            </div>
+            <div class="cc-sec">
+              <div class="cc-sec-hd"><label for="ccArtMode">Art style</label></div>
+              <div class="cc-pills" id="ccArtModePills" role="radiogroup" aria-label="Art style">${ART_MODES.map(([v, n]) => `<button type="button" class="cc-pill${v === curArtMode ? ' on' : ''}" data-cc-mode="${v}" aria-checked="${v === curArtMode}" role="radio">${n}</button>`).join('')}</div>
+              <select id="ccArtMode" hidden>${ART_MODES.map(([v, n]) => `<option value="${v}" ${v === curArtMode ? 'selected' : ''}>${n}</option>`).join('')}</select>
+              <div class="row" id="ccPopRow" style="margin-top:8px" ${curArtMode === 'normal' ? 'hidden' : ''}><button type="button" class="icon" id="ccPopBtn">${t.popKey ? 'Change pop-out cutout…' : 'Upload pop-out cutout…'}</button><button type="button" class="icon" id="ccPopClear" ${t.popKey ? '' : 'hidden'}>Remove</button><input type="file" id="ccPopFile" accept="image/png,image/webp" hidden></div>
+            </div>
+          </div>
+          <div class="cc-pane" data-cc-pane="text" role="tabpanel" hidden>
+            <div class="field"><label for="cc-name">Name</label><input id="cc-name" type="text" data-cc="name" value="${esc(t.name || '')}" placeholder="Card name"></div>
+            ${manaField()}
+            <div class="cc-row2">
+              <div class="field"><label for="cc-type">Type line</label><input id="cc-type" type="text" data-cc="type" value="${esc(t.type || '')}" placeholder="e.g. Legendary Creature — Wizard"></div>
+              <div class="field"><label for="cc-pt">P/T · Loyalty</label><input id="cc-pt" type="text" data-cc="pt" value="${esc(t.pt || '')}" placeholder="e.g. 2/2"></div>
+            </div>
+            <div class="field">
+              <div class="cc-sec-hd"><label for="cc-text">Rules text</label><div class="cc-symbar" id="ccSymBar" aria-label="Insert symbol">${SYM_BTNS.map(s => `<button type="button" data-ins="${esc(s)}" title="Insert ${esc(s)}">${esc(s)}</button>`).join('')}</div></div>
+              <textarea id="cc-text" data-cc="text" rows="5" placeholder="Use {W}, {U}, {B}, {R}, {G}, {1}, {T} for symbols">${esc(t.text || '')}</textarea>
+            </div>
+            <div class="field"><label for="cc-flavor">Flavor text</label><textarea id="cc-flavor" data-cc="flavor" rows="2" placeholder="Optional italic flavor quote">${esc(t.flavor || '')}</textarea></div>
+            <div class="field"><label for="cc-artist">Artist credit</label><input id="cc-artist" type="text" data-cc="artist" value="${esc(t.artist || '')}" placeholder="Illustrator name"></div>
+          </div>
+          <div class="cc-pane" data-cc-pane="extras" role="tabpanel" hidden>
+            <div class="cc-sec">${skinField()}</div>
+            <div class="cc-sec">
+              <div class="cc-sec-hd"><span class="cc-sec-title">Holo stamp</span></div>
+              <div class="cc-pills" id="ccStampPills" role="radiogroup" aria-label="Holo stamp">${STAMPS.map(([v, n]) => `<button type="button" class="cc-pill${(t.stamp || '') === v ? ' on' : ''}" data-cc-stamp="${v}" aria-checked="${(t.stamp || '') === v}" role="radio">${n}</button>`).join('')}</div>
+              <div hidden>${opts('stamp', STAMPS)}</div>
+            </div>
+            <div class="cc-sec">
+              <div class="cc-sec-hd"><span class="cc-sec-title">Custom fonts</span></div>
+              <div id="ccFontList"></div>
+              <input type="file" id="ccFontFile" accept=".ttf,.otf,.woff,.woff2" hidden><input type="file" id="ccFontMulti" accept=".ttf,.otf,.woff,.woff2" multiple hidden>
+            </div>
+          </div>
+        </div>
       </div>
     </div></div>`, target.backLabel);
-  const cv = $('#ccCanvas'), K = 6.2, ratio = devicePixelRatio || 1;
+  $('#modal').classList.add('cc-modal');
+  const cv = $('#ccCanvas'), K = 5.8, ratio = devicePixelRatio || 1;
   cv.style.width = `${(63 + 2 * MPC_BLEED) * K}px`;
-  let n = 0;
+  let n = 0, showGuides = true;
   const draw = async () => { const me = ++n;
     try {
       const c = await renderCustomCard({...t}, art, K * ratio); if (me !== n || !cv.isConnected) return; cv.width = c.width; cv.height = c.height;
       const g = cv.getContext('2d'), s = K * ratio, b = MPC_BLEED * s; g.drawImage(c, 0, 0);
-      g.fillStyle = 'rgba(20,20,24,.55)'; g.beginPath(); g.rect(0, 0, cv.width, cv.height); g.roundRect(b, b, 63 * s, 88 * s, 3 * s); g.fill('evenodd');
-      g.lineWidth = 1.5 * ratio; g.strokeStyle = '#38bdf8'; g.setLineDash([2 * ratio, 3 * ratio]);
-      g.strokeRect(0.5, 0.5, cv.width - 1, cv.height - 1);
-      g.lineWidth = 1.5 * ratio; g.strokeStyle = '#f97316'; g.setLineDash([6 * ratio, 3 * ratio]);
-      g.beginPath(); g.roundRect(b, b, 63 * s, 88 * s, 3 * s); g.stroke();
-      const safe = 3.0 * s;
-      g.lineWidth = 1.2 * ratio; g.strokeStyle = '#c084fc'; g.setLineDash([4 * ratio, 2 * ratio, 1 * ratio, 2 * ratio]);
-      g.beginPath(); g.roundRect(b + safe, b + safe, (63 - 6) * s, (88 - 6) * s, 1.5 * s); g.stroke();
-      g.setLineDash([]);
+      if (showGuides) {
+        g.fillStyle = 'rgba(20,20,24,.55)'; g.beginPath(); g.rect(0, 0, cv.width, cv.height); g.roundRect(b, b, 63 * s, 88 * s, 3 * s); g.fill('evenodd');
+        g.lineWidth = 1.5 * ratio; g.strokeStyle = '#38bdf8'; g.setLineDash([2 * ratio, 3 * ratio]);
+        g.strokeRect(0.5, 0.5, cv.width - 1, cv.height - 1);
+        g.lineWidth = 1.5 * ratio; g.strokeStyle = '#f97316'; g.setLineDash([6 * ratio, 3 * ratio]);
+        g.beginPath(); g.roundRect(b, b, 63 * s, 88 * s, 3 * s); g.stroke();
+        const safe = 3.0 * s;
+        g.lineWidth = 1.2 * ratio; g.strokeStyle = '#c084fc'; g.setLineDash([4 * ratio, 2 * ratio, 1 * ratio, 2 * ratio]);
+        g.beginPath(); g.roundRect(b + safe, b + safe, (63 - 6) * s, (88 - 6) * s, 1.5 * s); g.stroke();
+        g.setLineDash([]);
+      }
     } catch (err) { if (me === n && cv.isConnected) $('#ccStatus').textContent = 'Preview failed: ' + err.message; }
   };
-  const bd = $('#modal .bd');
-  const syncManaGrid = () => { const c = manaCounts(t.mana).c; $$('[data-mana]', bd).forEach(el => { el.value = c[el.dataset.mana] || ''; }); };
+  const bd = $('#modal .bd'), ccTitleEl = $('#modal .hd b');
+  const syncTitle = () => { if (ccTitleEl) ccTitleEl.textContent = titleText(); };
+  const syncDots = () => {
+    $('#ccDotArt').hidden = !!art;
+    $('#ccDotExtras').hidden = !hasExtras();
+  };
+  const syncZoomUI = () => {
+    const z = t.zoom || 1, pct = `${Math.round(z * 100)}%`;
+    $('#ccZoom').value = z;
+    $('#ccZoomVal').textContent = pct;
+    $('#ccStageZoomVal').textContent = pct;
+  };
+  const syncArtCard = (src = artSrc) => {
+    const drop = $('#ccArtDrop'), wrap = $('#ccCanvasWrap'), thumb = $('#ccArtThumb');
+    drop.classList.toggle('has-art', !!art);
+    wrap.classList.toggle('empty', !art);
+    if (art && src) { thumb.src = src; thumb.hidden = false; } else thumb.hidden = true;
+    $('#ccArtTitle').textContent = art ? 'Artwork loaded' : 'Add your artwork';
+    if (art) {
+      const minDim = Math.min(art.naturalWidth, art.naturalHeight);
+      const badge = minDim >= 750 ? '<span class="cc-badge ok">Print ready</span>' : minDim < 500 ? '<span class="cc-badge warn">Low res</span>' : '<span class="cc-badge">Medium res</span>';
+      $('#ccArtMeta').innerHTML = `${art.naturalWidth} × ${art.naturalHeight} px ${badge}`;
+    } else {
+      $('#ccArtMeta').textContent = 'Drop an image, paste with Ctrl+V, or browse';
+    }
+    $('#ccArt').textContent = art ? 'Change art…' : 'Choose art…';
+    $('#ccArt').classList.toggle('primary', !art);
+    $('#ccSave').disabled = !art; if (art) $('#ccSave').removeAttribute('title'); else $('#ccSave').title = 'Choose artwork first';
+    $('#ccExportPng').disabled = !art; if (art) $('#ccExportPng').removeAttribute('title'); else $('#ccExportPng').title = 'Choose artwork first';
+    $('#ccStatus').textContent = art ? 'Drag art to pan · Scroll to zoom · Ctrl+V to paste' : 'Drop, paste (Ctrl+V), or click the card to add art';
+    syncDots();
+  };
+  syncArtCard();
+  // Tabs
+  const switchTab = id => {
+    $$('[data-cc-tab]', bd).forEach(b => { const on = b.dataset.ccTab === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    $$('[data-cc-pane]', bd).forEach(p => { p.hidden = p.dataset.ccPane !== id; });
+  };
+  $$('[data-cc-tab]', bd).forEach(b => { b.onclick = () => switchTab(b.dataset.ccTab); });
+  // Print guides toggle
+  $('#ccShowGuides').onclick = () => {
+    showGuides = !showGuides;
+    $('#ccShowGuides').classList.toggle('on', showGuides);
+    $('#ccShowGuides').setAttribute('aria-pressed', showGuides);
+    $('#ccLegend').hidden = !showGuides;
+    draw();
+  };
+  // Mana grid & quick controls
+  const syncManaGrid = () => {
+    const c = manaCounts(t.mana).c;
+    $$('[data-mana]', bd).forEach(el => {
+      const v = c[el.dataset.mana] || 0;
+      el.value = v || '';
+      el.closest('.mg')?.classList.toggle('has', v > 0);
+    });
+    $('#ccManaClear').hidden = !(t.mana && t.mana.trim());
+  };
+  const applyManaFromGrid = () => {
+    const c = {};
+    $$('[data-mana]', bd).forEach(el => {
+      const n = Math.max(0, Math.min(20, parseInt(el.value) || 0));
+      if (n) c[el.dataset.mana] = n;
+      el.closest('.mg')?.classList.toggle('has', n > 0);
+    });
+    t.mana = manaFromCounts(c);
+    t.colors = manaColors(t.mana);
+    $('#ccManaClear').hidden = !t.mana;
+    draw();
+  };
   symbolMap().then(map => $$('#ccManaGrid img[data-sym]', bd).forEach(im => { const u = map[im.dataset.sym]; if (!u) return; im.onerror = () => { im.onerror = null; im.src = u + (u.includes('?') ? '&' : '?') + 'cors'; }; im.src = u; }));
+  $$('[data-mana-bump]', bd).forEach(btn => {
+    const bump = delta => {
+      const inp = $(`[data-mana="${btn.dataset.manaBump}"]`, bd);
+      const next = Math.max(0, Math.min(20, (parseInt(inp.value) || 0) + delta));
+      inp.value = next || '';
+      applyManaFromGrid();
+    };
+    btn.onclick = () => bump(1);
+    btn.oncontextmenu = ev => { ev.preventDefault(); bump(-1); };
+  });
+  $('#ccManaClear').onclick = () => { t.mana = ''; t.colors = []; $('#ccManaText').value = ''; syncManaGrid(); draw(); };
   $('#ccManaAdv').onchange = async ev => {
     const adv = ev.target.checked;
     if (!adv && !manaCounts(t.mana).simple) {
@@ -7050,32 +7306,76 @@ async function openCardMaker(target) {
     S.manaAdv = adv; save();
     $('#ccManaGrid').hidden = adv; $('#ccManaText').hidden = !adv;
     if (adv) $('#ccManaText').value = t.mana || '';
-    else { t.mana = manaFromCounts(manaCounts(t.mana).c); syncManaGrid(); draw(); }
+    else { t.mana = manaFromCounts(manaCounts(t.mana).c); t.colors = manaColors(t.mana); syncManaGrid(); draw(); }
   };
-  $('#ccManaText').addEventListener('change', ev => { ev.target.value = t.mana = normalizeMana(ev.target.value); draw(); });
+  $('#ccManaText').addEventListener('change', ev => { ev.target.value = t.mana = normalizeMana(ev.target.value); t.colors = manaColors(t.mana); $('#ccManaClear').hidden = !t.mana; draw(); });
+  // Rules text quick symbol insert
+  $('#ccSymBar').onclick = ev => {
+    const btn = ev.target.closest('[data-ins]'); if (!btn) return;
+    const ta = $('#cc-text'), tok = btn.dataset.ins, a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? ta.value.length;
+    ta.value = ta.value.slice(0, a) + tok + ta.value.slice(b);
+    ta.focus(); ta.setSelectionRange(a + tok.length, a + tok.length);
+    t.text = ta.value; draw();
+  };
   bd.addEventListener('input', ev => {
-    if (ev.target.dataset.mana) {
-      const c = {}; $$('[data-mana]', bd).forEach(el => { const n = Math.max(0, Math.min(20, parseInt(el.value) || 0)); if (n) c[el.dataset.mana] = n; });
-      t.mana = manaFromCounts(c); return draw();
-    }
-    if (ev.target.id === 'ccManaText') { t.mana = normalizeMana(ev.target.value); return draw(); }
+    if (ev.target.dataset.mana) return applyManaFromGrid();
+    if (ev.target.id === 'ccManaText') { t.mana = normalizeMana(ev.target.value); t.colors = manaColors(t.mana); $('#ccManaClear').hidden = !t.mana; return draw(); }
     const k = ev.target.dataset.cc;
-    if (k) { t[k] = ev.target.value; if (k === 'skin') $('#ccSkinOpts').hidden = !isSkinned(t); }
-    else if (ev.target.id === 'ccZoom') t.zoom = +ev.target.value;
+    if (k) {
+      t[k] = ev.target.value;
+      if (k === 'skin') { $('#ccSkinOpts').hidden = !isSkinned(t); syncTitle(); syncDots(); }
+      else if (k === 'name') syncTitle();
+      else if (k === 'stamp') syncDots();
+    } else if (ev.target.id === 'ccZoom') { t.zoom = +ev.target.value; syncZoomUI(); }
     else return;
     draw();
   });
-  $('#ccColor').onchange = ev => { t.color = ev.target.value; draw(); };
-  const artModes = () => { const isSet = !!setOf(t), pw = !!setOf(t)?.layout.pw; $$('#ccArtMode option', bd).forEach(o => { o.disabled = pw ? !(o.value === 'normal' || o.value === 'borderless') : !isSet && !(o.value === 'normal' || (o.value === 'full' && t.style === 'modern')); }); if ($('#ccArtMode').selectedOptions[0]?.disabled) { $('#ccArtMode').value = 'normal'; t.artMode = 'normal'; t.fullArt = false; } $('#ccPopRow').hidden = (t.artMode || 'normal') === 'normal'; };
-  $('#ccArtMode').onchange = ev => { t.artMode = ev.target.value; t.fullArt = t.artMode === 'full'; t.ox = t.oy = 0; $('#ccPopRow').hidden = t.artMode === 'normal'; draw(); };
+  // Color swatches synced with #ccColor
+  const syncColorUI = () => {
+    const cur = t.color || 'auto';
+    $('#ccColor').value = cur;
+    $$('[data-cc-color]', bd).forEach(b => { const on = b.dataset.ccColor === cur; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  };
+  $('#ccColor').onchange = ev => { t.color = ev.target.value; syncColorUI(); draw(); };
+  $('#ccSwatches').onclick = ev => {
+    const b = ev.target.closest('[data-cc-color]'); if (!b) return;
+    t.color = b.dataset.ccColor; syncColorUI(); draw();
+  };
+  // Art modes synced with #ccArtMode
+  const artModes = () => {
+    const isSet = !!setOf(t), pw = !!setOf(t)?.layout.pw;
+    $$('#ccArtMode option', bd).forEach(o => {
+      const dis = pw ? !(o.value === 'normal' || o.value === 'borderless') : !isSet && !(o.value === 'normal' || (o.value === 'full' && t.style === 'modern'));
+      o.disabled = dis;
+      const pill = $(`[data-cc-mode="${o.value}"]`, bd);
+      if (pill) pill.disabled = dis;
+    });
+    if ($('#ccArtMode').selectedOptions[0]?.disabled) { $('#ccArtMode').value = 'normal'; t.artMode = 'normal'; t.fullArt = false; }
+    const cur = t.artMode || (t.fullArt ? 'full' : 'normal');
+    $('#ccArtMode').value = cur;
+    $$('[data-cc-mode]', bd).forEach(b => { const on = b.dataset.ccMode === cur; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    $('#ccPopRow').hidden = cur === 'normal';
+  };
+  $('#ccArtMode').onchange = ev => { t.artMode = ev.target.value; t.fullArt = t.artMode === 'full'; t.ox = t.oy = 0; artModes(); draw(); };
+  $('#ccArtModePills').onclick = ev => {
+    const b = ev.target.closest('[data-cc-mode]'); if (!b || b.disabled) return;
+    $('#ccArtMode').value = b.dataset.ccMode;
+    $('#ccArtMode').onchange({target:$('#ccArtMode')});
+  };
+  // Stamp pills synced with [data-cc="stamp"]
+  $('#ccStampPills').onclick = ev => {
+    const b = ev.target.closest('[data-cc-stamp]'); if (!b) return;
+    const v = b.dataset.ccStamp; t.stamp = v;
+    const sel = $('[data-cc="stamp"]', bd); if (sel) sel.value = v;
+    $$('[data-cc-stamp]', bd).forEach(el => { const on = el.dataset.ccStamp === v; el.classList.toggle('on', on); el.setAttribute('aria-checked', on); });
+    syncDots(); draw();
+  };
   $('#ccPopBtn').onclick = () => $('#ccPopFile').click();
-  $('#ccPopFile').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; t.popKey = await storeImage(f); $('#ccPopBtn').textContent = 'Change pop-out…'; $('#ccPopClear').hidden = false; draw(); };
-  bd.addEventListener('click', ev => { if (ev.target.id === 'ccPopClear') { delete t.popKey; ev.target.hidden = true; $('#ccPopBtn').textContent = 'Pop-out layer…'; draw(); } });
-  $('#ccMore')?.addEventListener('change', ev => { if (!ev.target.value) return; $('#ccStyle').value = 'more'; $('#ccStyle').onchange({target:{value:ev.target.value}, fromMore:true}); });
+  $('#ccPopFile').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; t.popKey = await storeImage(f); $('#ccPopBtn').textContent = 'Change pop-out cutout…'; $('#ccPopClear').hidden = false; draw(); };
+  bd.addEventListener('click', ev => { if (ev.target.id === 'ccPopClear') { delete t.popKey; ev.target.hidden = true; $('#ccPopBtn').textContent = 'Upload pop-out cutout…'; draw(); } });
   $('#ccStyle').onchange = ev => {
-    if (ev.target.value === 'more') return;
-    if (!ev.fromMore && $('#ccMore')) $('#ccMore').value = '';
-    t.style = ev.target.value; S.ccStyle = t.style; save(); artModes(); $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw(); };
+    t.style = ev.target.value; S.ccStyle = t.style; save(); artModes(); $('#ccFrameRow').hidden = t.style !== 'custom'; t.ox = t.oy = 0; draw();
+  };
   $('#ccFrameBtn').onclick = () => $('#ccFrameFile').click();
   $('#ccSetBtn').onclick = () => $('#ccSetDir').click();
   $('#ccSetDir').onchange = async ev => {
@@ -7101,14 +7401,14 @@ async function openCardMaker(target) {
   };
   $('#ccFrameFile').onchange = async ev => {
     const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
-    t.frameKey = await storeImage(f); $('#ccFrameBtn').textContent = 'Change frame…'; draw();
+    t.frameKey = await storeImage(f); $('#ccFrameBtn').textContent = 'Change frame image…'; draw();
   };
   let fontSlot = null;
   const fontList = () => {
-    $('#ccFontList').innerHTML = `<p class="hint" style="margin-top:8px">Uploaded fonts replace the built-in fonts.</p>
-      <div class="row" style="margin-bottom:6px"><button class="icon primary" data-fontmulti>Load font files…</button><span class="hint">Files are matched by name.</span></div>
+    $('#ccFontList').innerHTML = `<div class="row" style="margin-bottom:8px"><button type="button" class="icon primary" data-fontmulti>Load font files…</button><span class="hint" style="margin:0">Matched automatically by filename.</span></div>
       <table class="drv">${CC_SLOTS.map(([slot, label]) => `<tr><th>${label}</th><td>${S.ccFonts?.[slot] ? esc(S.ccFontNames?.[slot] || 'Your font') : serverFonts[slot] ? esc(serverFonts[slot].name) + ' <span class="tag">server</span>' : slot === 'rrules' && (S.ccFonts?.rules || serverFonts.rules) ? 'Plantin' : 'Free font'}
-        <button class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
+        <button type="button" class="icon" data-font="${slot}">Load…</button>${S.ccFonts?.[slot] ? ` <button type="button" class="icon" data-fontclear="${slot}">Reset</button>` : ''}</td></tr>`).join('')}</table>`;
+    syncDots();
   };
   fontList();
   $('#ccFontList').onclick = async ev => {
@@ -7139,39 +7439,122 @@ async function openCardMaker(target) {
     S.ccFonts = {...S.ccFonts, [fontSlot]:await storeImage(f)}; S.ccFontNames = {...S.ccFontNames, [fontSlot]:f.name};
     await removeImageIfUnused(old); save(); fontList(); draw();
   };
-  $('#ccArt').onclick = () => $('#ccFile').click();
-  $('#ccFile').onchange = async ev => {
-    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  // Unified artwork loader (file picker, drag-drop, Ctrl+V paste)
+  const applyArtFile = async f => {
+    if (!f) return;
     const u = URL.createObjectURL(f);
     try {
       const next = await loadImage(u);
       if (!cv.isConnected) return;
       t.artKey = await storeImage(f); art = next;
-      $('#ccArtReset').click(); $('#ccArt').textContent = 'Change art…'; $('#ccArt').classList.remove('primary');
-      $('#ccSave').disabled = false; $('#ccSave').removeAttribute('title');
-      $('#ccExportPng').disabled = false; $('#ccExportPng').removeAttribute('title');
-      $('#ccStatus').textContent = '';
+      artSrc = await customUrl(t.artKey) || '';
+      t.zoom = 1; t.ox = t.oy = 0; syncZoomUI();
+      syncArtCard(artSrc);
+      draw();
     } catch { if (cv.isConnected) $('#ccStatus').textContent = 'Could not open that image. Choose a PNG, JPEG or WebP image.'; }
     finally { URL.revokeObjectURL(u); }
   };
-  $('#ccArtReset').onclick = () => { t.zoom = 1; t.ox = t.oy = 0; $('#ccZoom').value = 1; draw(); };
+  $('#ccArt').onclick = () => $('#ccFile').click();
+  $('#ccFile').onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; await applyArtFile(f); };
+  // Drag & drop onto preview canvas or Art dropzone
+  const wireDrop = el => {
+    let depth = 0;
+    el.addEventListener('dragenter', ev => { if (ev.dataTransfer?.types?.includes('Files')) { ev.preventDefault(); depth++; el.classList.add('dragover'); } });
+    el.addEventListener('dragover', ev => { if (ev.dataTransfer?.types?.includes('Files')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; } });
+    el.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) el.classList.remove('dragover'); });
+    el.addEventListener('drop', async ev => {
+      ev.preventDefault(); depth = 0; el.classList.remove('dragover');
+      const f = [...(ev.dataTransfer?.files || [])].find(x => x.type.startsWith('image/'));
+      if (f) await applyArtFile(f);
+    });
+  };
+  wireDrop($('#ccCanvasWrap')); wireDrop($('#ccArtDrop'));
+  // Paste image from clipboard anywhere while modal is open
+  const onPaste = ev => {
+    if (!cv.isConnected) { window.removeEventListener('paste', onPaste); return; }
+    const item = [...(ev.clipboardData?.items || [])].find(it => it.type.startsWith('image/'));
+    if (!item) return;
+    const f = item.getAsFile();
+    if (f) { ev.preventDefault(); applyArtFile(f); toast('Pasted artwork from clipboard.'); }
+  };
+  window.addEventListener('paste', onPaste);
+  // Zoom & pan controls
+  const setZoom = z => { t.zoom = Math.max(1, Math.min(4, Math.round(z * 100) / 100)); syncZoomUI(); draw(); };
+  $('#ccArtReset').onclick = () => { t.zoom = 1; t.ox = t.oy = 0; syncZoomUI(); draw(); };
+  $('#ccStageReset').onclick = () => $('#ccArtReset').click();
+  $('#ccZoomIn').onclick = () => setZoom((t.zoom || 1) + 0.15);
+  $('#ccZoomOut').onclick = () => setZoom((t.zoom || 1) - 0.15);
   const slack = () => {
     if (!art) return [0, 0];
     const [, , bw, bh] = ccGeom(t).art, s = Math.max(bw / art.naturalWidth, bh / art.naturalHeight) * (t.zoom || 1);
     return [(art.naturalWidth * s - bw) / 2, (art.naturalHeight * s - bh) / 2];
   };
-  let drag = null;
-  cv.onpointerdown = ev => { drag = {x:ev.clientX, y:ev.clientY}; cv.setPointerCapture(ev.pointerId); };
+  let drag = null, moved = false;
+  cv.onpointerdown = ev => { drag = {x:ev.clientX, y:ev.clientY}; moved = false; cv.setPointerCapture(ev.pointerId); };
   cv.onpointermove = ev => {
-    if (!drag) return;
+    if (!drag || !art) return;
+    if (Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) > 2) moved = true;
     const [mx, my] = slack(), scale = cv.clientWidth / (63 + 2 * MPC_BLEED);
     if (mx > 0) t.ox = Math.max(-1, Math.min(1, (t.ox || 0) - (ev.clientX - drag.x) / scale / mx));
     if (my > 0) t.oy = Math.max(-1, Math.min(1, (t.oy || 0) - (ev.clientY - drag.y) / scale / my));
     drag = {x:ev.clientX, y:ev.clientY}; draw();
   };
-  cv.onpointerup = cv.onpointercancel = () => { drag = null; };
-  cv.onwheel = ev => { ev.preventDefault(); t.zoom = Math.max(1, Math.min(4, (t.zoom || 1) * (1 - ev.deltaY * 0.0015))); $('#ccZoom').value = t.zoom; draw(); };
+  cv.onpointerup = cv.onpointercancel = () => { if (drag && !moved && !art) $('#ccFile').click(); drag = null; };
+  cv.ondblclick = () => { if (art) $('#ccArtReset').click(); };
+  cv.onwheel = ev => { ev.preventDefault(); setZoom((t.zoom || 1) * (1 - ev.deltaY * 0.0015)); };
+  cv.onkeydown = ev => {
+    if (!art) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#ccFile').click(); } return; }
+    const step = ev.shiftKey ? 0.12 : 0.04;
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); t.ox = Math.max(-1, (t.ox || 0) + step); draw(); }
+    else if (ev.key === 'ArrowRight') { ev.preventDefault(); t.ox = Math.min(1, (t.ox || 0) - step); draw(); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); t.oy = Math.max(-1, (t.oy || 0) + step); draw(); }
+    else if (ev.key === 'ArrowDown') { ev.preventDefault(); t.oy = Math.min(1, (t.oy || 0) - step); draw(); }
+    else if (ev.key === '+' || ev.key === '=') { ev.preventDefault(); setZoom((t.zoom || 1) + 0.1); }
+    else if (ev.key === '-' || ev.key === '_') { ev.preventDefault(); setZoom((t.zoom || 1) - 0.1); }
+    else if (ev.key === '0') { ev.preventDefault(); $('#ccArtReset').click(); }
+  };
+  // Scryfall autocomplete & lookup
+  const acList = $('#ccAcList');
+  let acTimer = null, acSeq = 0, acIdx = -1, acItems = [];
+  const closeAc = () => { acList.hidden = true; acItems = []; acIdx = -1; };
+  const renderAc = () => {
+    if (!acItems.length) return closeAc();
+    acList.innerHTML = acItems.map((name, idx) => `<button type="button" role="option" data-ac="${idx}" class="${idx === acIdx ? 'on' : ''}">${esc(name)}</button>`).join('');
+    acList.hidden = false;
+  };
+  $('#ccLookup').addEventListener('input', () => {
+    clearTimeout(acTimer);
+    const q = $('#ccLookup').value.trim();
+    if (q.length < 2) return closeAc();
+    const mySeq = ++acSeq;
+    acTimer = setTimeout(async () => {
+      try {
+        const j = await sf(`${SF}/cards/autocomplete?q=${encodeURIComponent(q)}`);
+        if (mySeq !== acSeq || !cv.isConnected || document.activeElement !== $('#ccLookup')) return;
+        acItems = (j.data || []).slice(0, 8); acIdx = -1; renderAc();
+      } catch { if (mySeq === acSeq) closeAc(); }
+    }, 220);
+  });
+  acList.addEventListener('mousedown', ev => {
+    const b = ev.target.closest('[data-ac]'); if (!b) return;
+    ev.preventDefault();
+    $('#ccLookup').value = acItems[+b.dataset.ac];
+    closeAc();
+    $('#ccFill').click();
+  });
+  $('#ccLookup').addEventListener('blur', () => setTimeout(closeAc, 120));
+  $('#ccLookup').onkeydown = ev => {
+    if (!acList.hidden && acItems.length) {
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); acIdx = (acIdx + 1) % acItems.length; return renderAc(); }
+      if (ev.key === 'ArrowUp') { ev.preventDefault(); acIdx = (acIdx - 1 + acItems.length) % acItems.length; return renderAc(); }
+      if (ev.key === 'Escape') { ev.preventDefault(); return closeAc(); }
+      if (ev.key === 'Enter' && acIdx >= 0) { ev.preventDefault(); $('#ccLookup').value = acItems[acIdx]; closeAc(); return $('#ccFill').click(); }
+    }
+    if (ev.key === 'Enter') { closeAc(); $('#ccFill').click(); }
+  };
+  $('#ccNum').onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); };
   $('#ccFill').onclick = async () => {
+    closeAc();
     const q = $('#ccLookup').value.trim(), num = $('#ccNum').value.trim();
     if (!q) return toast('Type a card name.');
     const fill = $('#ccFill'), lookup = $('#ccLookup'), printing = $('#ccSet');
@@ -7189,9 +7572,9 @@ async function openCardMaker(target) {
       if (!num && !regular(c)) { const r = prints.find(regular); if (r) { c = r; fillFrom(c); } }
       if (!cv.isConnected) return;
       printing.innerHTML = prints.map(p => `<option value="${esc(p.id)}" ${p.id === c.id ? 'selected' : ''}>${esc(p.set_name)} (${esc(p.set.toUpperCase())}) · #${esc(p.collector_number)} · ${esc((p.released_at || '').slice(0, 4))}</option>`).join('');
-      $('#ccSet').hidden = false; ccPrints = prints;
+      $('#ccSet').hidden = false; $('#ccLookupMeta').hidden = false; ccPrints = prints;
     } catch (err) { if (cv.isConnected) toast('Card not found: ' + err.message, 5000); }
-    finally { fill.disabled = false; fill.textContent = 'Load card text'; }
+    finally { fill.disabled = false; fill.textContent = 'Load'; }
   };
   let ccPrints = [], ccCard = null, ccFaceIndex = i;
   $('#ccSet').onchange = ev => { const c = ccPrints.find(p => p.id === ev.target.value); if (c) { fillFrom(c); $('#ccNum').value = c.collector_number; } };
@@ -7201,16 +7584,16 @@ async function openCardMaker(target) {
     ccFaceIndex = Math.min(ccFaceIndex, Math.max(0, faces.length - 1));
     $('#ccFace').hidden = !faces.length;
     $('#ccFace').innerHTML = faces.map((f, j) => `<option value="${j}" ${j === ccFaceIndex ? 'selected' : ''}>${esc(f.name)}</option>`).join('');
+    $('#ccLookupMeta').hidden = $('#ccSet').hidden && $('#ccFace').hidden;
     Object.assign(t, fromScryfall(c, faces.length ? ccFaceIndex : null));
     const want = pwSet && isPw(t.type) ? setStyle(pwSet) : setOf(t)?.layout.pw ? fallback : null;
     if (want && want !== t.style && [...$('#ccStyle').options].some(o => o.value === want)) { $('#ccStyle').value = want; $('#ccStyle').onchange({target:$('#ccStyle')}); }
     $$('[data-cc]', bd).forEach(el => { el.value = t[el.dataset.cc] || ''; });
-    $('#ccManaText').value = t.mana || ''; syncManaGrid();
+    $('#ccManaText').value = t.mana || ''; syncManaGrid(); syncTitle(); syncColorUI();
     if (!manaCounts(t.mana).simple && !$('#ccManaAdv').checked) { $('#ccManaAdv').checked = true; $('#ccManaGrid').hidden = true; $('#ccManaText').hidden = false; }
     draw();
   };
   $('#ccFace').onchange = ev => { ccFaceIndex = +ev.target.value; if (ccCard) fillFrom(ccCard); };
-  ['#ccLookup', '#ccNum'].forEach(id => { $(id).onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); }; });
   $('#ccExportPng').onclick = async () => {
     if (!art) return toast('Choose your art first.');
     const includeBleed = $('#ccPngBleed')?.checked !== false;
@@ -7244,6 +7627,7 @@ async function openCardMaker(target) {
   };
   artModes();
   const initial = JSON.stringify(t);
+  modalAfterClose = () => { clearTimeout(acTimer); window.removeEventListener('paste', onPaste); };
   modalBeforeClose = () => {
     if (JSON.stringify(t) === initial) return true;
     if (window.confirm !== nativeConfirm) {

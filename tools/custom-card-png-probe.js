@@ -166,6 +166,46 @@
       const shDarkBottom = sample(cvDark)(bCx, bTop + d + d * 0.045);
       check('borderless {B} keeps black drop shadow below bottom', shDarkBottom < 20, `lum=${shDarkBottom.toFixed(1)}`);
     }
+
+    // 5. Verify overhauled Card Maker workbench interactions.
+    await openCardMaker({});
+    check('Card Maker opens on Art & Frame tab', $('[data-cc-tab="art"]').classList.contains('on') && !$('[data-cc-pane="art"]').hidden && $('[data-cc-pane="text"]').hidden);
+    // Guides toggle hides/shows legend cleanly.
+    check('Print guides start enabled', $('#ccShowGuides').classList.contains('on') && !$('#ccLegend').hidden);
+    $('#ccShowGuides').click();
+    check('Print guides toggle hides legend', !$('#ccShowGuides').classList.contains('on') && $('#ccLegend').hidden);
+    // Color swatch syncs #ccColor.
+    $('[data-cc-color="U"]').click();
+    check('Color swatch updates #ccColor', $('#ccColor').value === 'U' && $('[data-cc-color="U"]').classList.contains('on'));
+    // Art mode pill syncs #ccArtMode.
+    $('[data-cc-mode="borderless"]').click();
+    check('Art mode pill updates #ccArtMode', $('#ccArtMode').value === 'borderless' && $('[data-cc-mode="borderless"]').classList.contains('on'));
+    // Stage zoom controls update #ccZoom and readout.
+    $('#ccZoomIn').click();
+    check('Stage zoom-in updates zoom and readout', +$('#ccZoom').value > 1.1 && $('#ccStageZoomVal').textContent === $('#ccZoomVal').textContent, $('#ccStageZoomVal').textContent);
+    $('#ccStageReset').click();
+    check('Stage Fit resets zoom to 100%', $('#ccZoom').value === '1' && $('#ccStageZoomVal').textContent === '100%');
+    // Switch to Card Text tab, test live header title, mana bump/clear, and rules symbol insert.
+    $('[data-cc-tab="text"]').click();
+    check('Card Text tab reveals text pane', !$('[data-cc-pane="text"]').hidden && $('[data-cc-pane="art"]').hidden);
+    $('#cc-name').value = 'Demonic Tutor';
+    $('#cc-name').dispatchEvent(new Event('input', {bubbles: true}));
+    check('Modal header title updates live with card name', $('#modal .hd b').textContent.includes('Demonic Tutor'), $('#modal .hd b').textContent);
+    $('[data-mana-bump="N"]').click();
+    $('[data-mana-bump="B"]').click();
+    check('Mana icon clicks bump counts and reveal Clear', $('[data-mana="N"]').value === '1' && $('[data-mana="B"]').value === '1' && !$('#ccManaClear').hidden);
+    $('#ccManaClear').click();
+    check('Mana Clear resets counts', $('[data-mana="N"]').value === '' && $('[data-mana="B"]').value === '' && $('#ccManaClear').hidden);
+    $('#cc-text').value = 'Add ';
+    $('#cc-text').setSelectionRange(4, 4);
+    $('#ccSymBar [data-ins="{B}"]').click();
+    check('Rules symbol bar inserts token at cursor', $('#cc-text').value === 'Add {B}', $('#cc-text').value);
+    // Switch to Extras tab and test stamp pills.
+    $('[data-cc-tab="extras"]').click();
+    check('Extras tab reveals extras pane', !$('[data-cc-pane="extras"]').hidden);
+    $('[data-cc-stamp="oval"]').click();
+    check('Stamp pill updates stamp and activates Extras dot', $('[data-cc="stamp"]').value === 'oval' && !$('#ccDotExtras').hidden);
+    closeModal(true);
   } catch (err) {
     fails.push('threw: ' + (err.stack || err));
   } finally {
