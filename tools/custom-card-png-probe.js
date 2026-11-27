@@ -130,6 +130,42 @@
     check('bulk export downloads zip', downloads.length === 1 && downloads[0].name.endsWith('- custom cards.zip') && downloads[0].type === 'application/zip' && downloads[0].size > 1000, JSON.stringify(downloads.map(x => ({name: x.name, type: x.type, size: x.size}))));
     const zipText = new TextDecoder('latin1').decode(await downloads[0].blob.arrayBuffer());
     check('zip contains deduplicated PNG filenames', zipText.includes('Test Pony.png') && zipText.includes('Test Pony (2).png'));
+
+    // 4. Verify custom card mana symbol drop shadow wraps cleanly below the bottom of {B},
+    //    appears on borderless/dark frames, and preserves aspect ratio for wide symbols like {100}.
+    await loadServerAssets();
+    const m15 = allSets().find(s => s.name === 'magic-m15');
+    if (m15) {
+      const k = 20, b = MPC_BLEED;
+      const cvB = await renderCustomCard({style: 'set:' + m15.id, name: 'Demonic Tutor', mana: '{1}{B}', type: 'Sorcery', text: 'Search.', color: 'B'}, null, k);
+      const ctxB = cvB.getContext('2d');
+      const d = Math.min(3.4, (m15.layout.cost.h || 22) * 88 / m15.h * 0.8);
+      const right = m15.layout.cost.right * 63 / m15.w;
+      const cy = ((m15.layout.cost.top || 0) + (m15.layout.cost.h || 22) / 2) * 88 / m15.h;
+      const bCx = right - d / 2, bTop = cy - d / 2 - d * 0.04;
+      const sample = (cv) => {
+        const data = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+        return (xMm, yMm) => {
+          const i = (Math.round((b + yMm) * k) * cv.width + Math.round((b + xMm) * k)) * 4;
+          return (data[i] + data[i + 1] + data[i + 2]) / 3;
+        };
+      };
+      const pxB = sample(cvB);
+      // Directly under bottom center of {B} (+0.045*d below circle bottom) and around bottom-right
+      // (+0.28*d right, where circle ends at +0.914*d and shadow extends to +0.979*d) must be dark shadow;
+      // far left of {B} (-0.06*d past left edge) must be clear title bar, not overgrown left shadow.
+      const shBottom = pxB(bCx, bTop + d + d * 0.045);
+      const shBottomRight = pxB(bCx + d * 0.28, bTop + d * 0.945);
+      const farLeft = pxB(right - d - d * 0.06, bTop + d / 2);
+      check('{B} mana shadow sits cleanly below bottom center', shBottom < 40, `lum=${shBottom.toFixed(1)}`);
+      check('{B} mana shadow wraps around bottom-right', shBottomRight < 40, `lum=${shBottomRight.toFixed(1)}`);
+      check('{B} mana shadow does not bulge far left into neighbor', farLeft > 140, `lum=${farLeft.toFixed(1)}`);
+
+      // Borderless M15 should also draw the drop shadow (not disable it via !light).
+      const cvDark = await renderCustomCard({style: 'set:' + m15.id, artMode: 'borderless', name: 'Demonic Tutor', mana: '{1}{B}', type: 'Sorcery', text: 'Search.', color: 'B'}, null, k);
+      const shDarkBottom = sample(cvDark)(bCx, bTop + d + d * 0.045);
+      check('borderless {B} keeps black drop shadow below bottom', shDarkBottom < 20, `lum=${shDarkBottom.toFixed(1)}`);
+    }
   } catch (err) {
     fails.push('threw: ' + (err.stack || err));
   } finally {

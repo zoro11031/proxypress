@@ -6351,13 +6351,24 @@ async function renderCustomCard(t, art, k) {
     const pat = x.createPattern(noiseCanvas(seed, cells), 'repeat'); pat.setTransform(new DOMMatrix().scale(scale));
     x.save(); rr(...rect, r); x.clip(); x.globalCompositeOperation = 'overlay'; x.globalAlpha = alpha; x.fillStyle = pat; x.fillRect(...rect); x.restore();
   };
-  const sym = (tok, X, Y, d, shadow) => {
-    if (shadow) { x.fillStyle = 'rgba(0,0,0,.85)'; x.beginPath(); x.arc(X + d / 2 - d * 0.07, Y + d / 2 + d * 0.09, d / 2, 0, Math.PI * 2); x.fill(); }
+  const symW = (tok, d) => {
     const im = syms.get(tok);
-    if (im) return x.drawImage(im, X, Y, d, d);
+    return im && im.naturalHeight ? d * (im.naturalWidth / im.naturalHeight) : d;
+  };
+  const sym = (tok, X, Y, d, shadow) => {
+    const im = syms.get(tok), w = symW(tok, d), sx = -d * 0.028, sy = d * 0.085;
+    if (im) {
+      if (shadow) {
+        x.save(); x.shadowColor = '#000'; x.shadowBlur = 0; x.shadowOffsetX = sx * k; x.shadowOffsetY = sy * k;
+        x.drawImage(im, X, Y, w, d); x.restore();
+      } else x.drawImage(im, X, Y, w, d);
+      return w;
+    }
+    if (shadow) { x.fillStyle = '#000'; x.beginPath(); x.arc(X + d / 2 + sx, Y + d / 2 + sy, d / 2, 0, Math.PI * 2); x.fill(); }
     x.fillStyle = '#cac5c0'; x.beginPath(); x.arc(X + d / 2, Y + d / 2, d / 2, 0, Math.PI * 2); x.fill();
     x.fillStyle = '#111'; x.font = `700 ${d * 0.62}px ${CC_FONT.name}`; x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText(tok.slice(1, -1), X + d / 2, Y + d / 2); x.textAlign = 'left';
+    return d;
   };
   const fit = (str, X, cy, maxW, size, font, ink, shadow) => {
     let fs = size; x.font = `${font.w} ${fs}px ${font.f}`;
@@ -6388,9 +6399,16 @@ async function renderCustomCard(t, art, k) {
     x.drawImage(off, ...rect);
   };
   const manaRow = (right, cy, d, shadow) => {
+    const items = [];
     for (const tok of ((t.mana || '').match(/\{[^}]+\}|\/\//g) || []).reverse()) {
-      if (tok === '//') { x.font = `700 ${d * 0.8}px ${CC_FONT.name}`; const w = x.measureText(' // ').width; right -= w; x.fillStyle = ink(); x.textBaseline = 'middle'; x.fillText(' // ', right, cy); continue; }
-      right -= d; sym(tok, right, cy - d / 2, d, shadow); right -= d * 0.1;
+      if (tok === '//') { x.font = `700 ${d * 0.8}px ${CC_FONT.name}`; const w = x.measureText(' // ').width; right -= w; items.push({tok, x:right}); continue; }
+      const w = symW(tok, d);
+      right -= w; items.push({tok, x:right}); right -= d * 0.095;
+    }
+    const y = cy - d / 2 - (shadow ? d * 0.04 : 0);
+    for (const it of items.reverse()) {
+      if (it.tok === '//') { x.font = `700 ${d * 0.8}px ${CC_FONT.name}`; x.fillStyle = ink(); x.textBaseline = 'middle'; x.fillText(' // ', it.x, cy); }
+      else sym(it.tok, it.x, y, d, shadow);
     }
     return right;
   };
@@ -6542,8 +6560,8 @@ async function renderCustomCard(t, art, k) {
     ink = () => rgb(L.name.font, light ? '#fff' : '#111');
     let right = 57.5;
     // Future Sight stacks the cost down the left edge of the art.
-    if (L.cost?.vertical) [...(t.mana || '').matchAll(/\{[^}]+\}/g)].forEach((m, i) => { const d = 27 * 63 / set.w; sym(m[0], 59 * 63 / set.w - d / 2, (74 + i * 30) * 88 / set.h, d, true); });
-    else if (L.cost?.right != null) right = manaRow(L.cost.right * 63 / set.w, ((L.cost.top || 0) + (L.cost.h || 22) / 2) * 88 / set.h, Math.min(3.4, (L.cost.h || 22) * 88 / set.h * 0.78), !light);
+    if (L.cost?.vertical) [...(t.mana || '').matchAll(/\{[^}]+\}/g)].forEach((m, i) => { const d = 27 * 63 / set.w; sym(m[0], 59 * 63 / set.w - symW(m[0], d) / 2, (74 + i * 30) * 88 / set.h, d, true); });
+    else if (L.cost?.right != null) right = manaRow(L.cost.right * 63 / set.w, ((L.cost.top || 0) + (L.cost.h || 22) / 2) * 88 / set.h, Math.min(3.4, (L.cost.h || 22) * 88 / set.h * 0.8), true);
     const nb = R(L.name.box), nameInk = rgb(L.name.font, light ? '#fff' : '#111');
     const skinned = isSkinned(t), titleSpec = skinned ? {...E.title, order:'size', min:Math.min(E.title.min, 8.5), sx:0.84, floor:8, floorSx:0.84} : E.title;
     if (nb) fitLine(skinned ? t.skin.trim() : t.name || '', nb[0], nb[1] + nb[3] / 2, Math.min(nb[2], right - nb[0] - 0.8), titleSpec, nameInk, shadowFor(nameInk));
@@ -6704,7 +6722,7 @@ async function renderCustomCard(t, art, k) {
         for (const tok of word.match(/\{[^}]+\}|[^{]+/g) || []) {
           if (tok.startsWith('(') && !p.italic) italic = true;
           const isSym = /^\{[^}]+\}$/.test(tok);
-          let tw; if (isSym) tw = sd; else { x.font = rf(italic, fs); tw = x.measureText(tok).width; }
+          let tw; if (isSym) tw = symW(tok, sd); else { x.font = rf(italic, fs); tw = x.measureText(tok).width; }
           parts.push({tok, italic, w:tw, glue:parts.length > 0, gap:parts.length ? (isSym && parts.at(-1).sym ? sd * 0.06 : fs * 0.03) : 0, sym:isSym});
           if (tok.endsWith(')') && !p.italic) italic = false;
         }

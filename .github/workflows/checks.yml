@@ -22,12 +22,17 @@ jobs:
           mkdir -p "$RUNNER_TEMP/proxypress-bin"
           ln -s "$browser_binary" "$RUNNER_TEMP/proxypress-bin/chromium"
           echo "$RUNNER_TEMP/proxypress-bin" >> "$GITHUB_PATH"
+      - name: Build unpacked desktop app
+        working-directory: electron
+        run: |
+          npm ci
+          npm run pack
       - name: Server and release checks
         run: |
           python3 -m py_compile proxy-press-server.py
           node tools/desktop-server-check.js
           node tools/release-check.js
-          node tools/electron-offline-check.js
+          xvfb-run -a node tools/electron-offline-check.js
           python3 tools/deck-relay-check.py
           python3 tools/suggestions-check.py
           python3 tools/art-check.py

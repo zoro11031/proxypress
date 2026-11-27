@@ -14,7 +14,9 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const watchdog=setTimeout(()=>{console.error('FAIL Electron offline check timed out');cleanup();process.exit(1);},120000);
   try{
     if(process.argv.includes('--collision')){collision=http.createServer((req,res)=>{foreignRequests++;res.writeHead(503);res.end('Foreign service');});await new Promise((resolve,reject)=>{collision.once('error',reject);collision.listen(8642,'127.0.0.1',resolve);});}
-    app=spawn(binary,['--headless','--disable-gpu','--remote-debugging-port=9479',`--user-data-dir=${profile}/browser`],{env:{...process.env,XDG_CONFIG_HOME:profile+'/config',XDG_CACHE_HOME:profile+'/cache'},stdio:['ignore','pipe','pipe']});
+    const args=['--headless','--disable-gpu','--remote-debugging-port=9479',`--user-data-dir=${profile}/browser`];
+    if(process.env.CI)args.unshift('--no-sandbox');
+    app=spawn(binary,args,{env:{...process.env,XDG_CONFIG_HOME:profile+'/config',XDG_CACHE_HOME:profile+'/cache'},stdio:['ignore','pipe','pipe']});
     app.on('error',err=>{log+=err.message;});for(const channel of [app.stdout,app.stderr])channel.on('data',data=>{log=(log+data).slice(-5000);});
     let page;
     for(let i=0;i<150;i++){try{page=(await (await fetch('http://127.0.0.1:9479/json/list')).json()).find(p=>p.type==='page'&&p.url.startsWith('http://127.0.0.1:'));if(page)break;}catch{}await sleep(100);}
