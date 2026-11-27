@@ -97,6 +97,44 @@
     eq('sides notice cleared after choosing', $('#inspSidesNote').hidden, true);
     eq('job is single-sided after separate choice', $('#inspSides').textContent, 'Single-sided');
 
+    // 9. Verify missing-art thumbnail placeholder (never broken empty src)
+    eq('missing-art thumb returns inline svg placeholder', thumbSrcSync({}).startsWith('data:image/svg+xml,'), true);
+
+    // 10. Verify Add Cards live decklist summary, Clear button, and Quick Add single card
+    openDeckImport();
+    $('#listIn').value = '4 Lightning Bolt\n1 Sol Ring (CMM) 410';
+    $('#listIn').dispatchEvent(new Event('input', {bubbles: true}));
+    eq('live decklist summary counts 5 cards', $('#listInCount').textContent, '5 cards');
+    eq('clear button visible when listIn has text', $('#btnClearListIn').hidden, false);
+    $('#listIn').value = 'https://moxfield.com/decks/abc123';
+    $('#listIn').dispatchEvent(new Event('input', {bubbles: true}));
+    eq('live decklist summary detects Moxfield link', $('#listInCount').textContent, 'Moxfield link');
+    $('#btnClearListIn').click();
+    eq('clear button empties listIn and hides pill', $('#listIn').value === '' && $('#listInCount').hidden, true);
+
+    const origSf = sf;
+    try {
+      sf = async () => ({id: 'bolt-id', name: 'Lightning Bolt', set: 'lea', collector_number: '161', image_uris: {png: samplePng, normal: samplePng}, type_line: 'Instant', color_identity: ['R']});
+      await quickAddSingleCard('Lightning Bolt', 2);
+      const bolt = d.entries.find(x => x.scryId === 'bolt-id');
+      eq('quickAddSingleCard adds requested copies', bolt?.qty, 2);
+    } finally { sf = origSf; }
+
+    // 11. Verify Community Art comparison displays reported card.dpi (e.g. 810 DPI), not thumbnail ~108 DPI
+    const fakeId = 'fake-mpc-810dpi-id';
+    mpcDetails.set(fakeId, {identifier: fakeId, name: 'Toxic Deluge (b)', sourceName: 'WillieTanner', dpi: 810, size: 5800000});
+    openMpcPicker({e: d.entries[0], i: 0});
+    await sleep(60);
+    const commGrid = $('#mpcGrid');
+    if (commGrid) {
+      commGrid.innerHTML = `<figure data-id="${fakeId}" aria-pressed="false"><img src="${samplePng}" alt=""><figcaption>Toxic Deluge (b)</figcaption></figure>`;
+      commGrid.querySelector('figure').click();
+      await sleep(60);
+      const dpiTxt = $('#cmpCandidateDpi')?.textContent || '';
+      eq('community art comparison shows 810 DPI without Low resolution warning', dpiTxt.includes('810 DPI') && !/Low resolution/i.test(dpiTxt), true);
+    }
+    closeModal(true);
+
     if (fails.length) return {failed: fails};
     return true;
   } catch (err) {

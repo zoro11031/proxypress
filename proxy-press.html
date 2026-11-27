@@ -167,11 +167,29 @@ h3+.hint{margin-top:-6px}
   background-image:linear-gradient(var(--grid-major) 1px,transparent 1px),linear-gradient(90deg,var(--grid-major) 1px,transparent 1px),linear-gradient(var(--grid-minor) 1px,transparent 1px),linear-gradient(90deg,var(--grid-minor) 1px,transparent 1px);
   background-size:var(--grid-big,50px) var(--grid-big,50px),var(--grid-big,50px) var(--grid-big,50px),var(--grid-small,10px) var(--grid-small,10px),var(--grid-small,10px) var(--grid-small,10px);
   background-position:var(--mat-x,0) var(--mat-y,0)}
-.import-panel{margin-top:8px}
-.import-panel textarea{min-height:120px;padding:9px 10px}
+.import-panel{margin-top:4px}
+.quick-add-box{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.quick-add-box>label{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
+.quick-add-row{display:flex;gap:5px;align-items:stretch}
+.quick-add-row .cc-ac-wrap{flex:1 1 auto;min-width:0}
+.quick-add-row #quickAddQty{width:38px;flex:0 0 38px;text-align:center;padding:6px 2px;font-family:var(--mono);font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
+.quick-add-row #quickAddQty::-webkit-outer-spin-button,.quick-add-row #quickAddQty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.quick-add-row #btnQuickAdd{flex:0 0 auto;min-width:34px;padding:0 10px;font-size:16px;font-weight:700;color:var(--accent2);border-color:rgb(var(--accent-rgb) / .4);background:rgb(var(--accent-rgb) / .1)}
+.quick-add-row #btnQuickAdd:hover{background:rgb(var(--accent-rgb) / .2);border-color:var(--accent)}
+.list-hd{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 6px}
+.list-hd label{font-size:13px;font-weight:600;margin:0}
+.list-hd-right{display:flex;align-items:center;gap:6px;margin-left:auto}
+.list-count{font-size:11px;font-family:var(--mono);color:var(--accent2);background:rgb(var(--accent-rgb) / .12);border:1px solid rgb(var(--accent-rgb) / .3);border-radius:999px;padding:1px 7px;white-space:nowrap}
+.list-count[hidden]{display:none}
+#btnClearListIn{min-height:22px;padding:0 6px;font-size:11px;color:var(--muted);border-color:transparent;background:none}
+#btnClearListIn:hover{color:var(--text);background:var(--panel2);border-color:var(--line)}
+.import-panel textarea{min-height:108px;padding:9px 10px}
 .import-panel #listIn.compact{min-height:0}
 .import-panel .import-go{display:flex;gap:var(--s2);margin-top:var(--s2)}
-.import-panel .import-go button{flex:1;font-size:12px}
+.import-panel .import-go button{flex:1;font-size:13px}
+.import-dropzone{margin-top:8px;padding:16px 14px;border:1px dashed var(--field);border-radius:var(--r-md);background:var(--sunk);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;transition:border-color .15s,background .15s}
+.import-dropzone.dragover{border-color:var(--accent);background:rgb(var(--accent-rgb) / .1)}
+.import-src-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 /* The decklist box is the way in; everything else that can add cards is one
    quiet row under it, behind a hairline, so it never competes with the paste. */
 .source-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s1);margin:var(--s3) 0 0;padding-top:var(--s3);border-top:1px solid var(--hair)}
@@ -721,8 +739,11 @@ body.preview-focus .empty-add{display:inline-flex}
 .pg-empty .lbl{right:0;white-space:normal}
 .pg-empty .lbl .n{font-variant-numeric:tabular-nums;white-space:nowrap}
 .pg-empty .empty{position:absolute;inset:0;z-index:1;width:auto;margin:0;padding:16px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.pg-empty .empty .hint{max-width:34ch}
-@media (max-width:820px){.empty-add{display:inline-flex}}
+.pg-empty .empty .hint{max-width:38ch}
+.empty-shortcuts{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:12px}
+.empty-shortcuts button{min-height:30px;padding:4px 10px;font-size:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+.empty-shortcuts button:hover{color:var(--text);border-color:var(--field);background:var(--panel2)}
+@media (max-width:820px){.empty-add{display:inline-flex}.empty-shortcuts{display:none}}
 .gal{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
 .gal .tile{position:relative;display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:6px}
 .gal img{display:block;border-radius:4%/3%;background:#000;cursor:context-menu}
@@ -941,16 +962,24 @@ body.print-settings-active #printSettingsView{display:flex!important}
 #modeSeg button:focus-visible{outline-offset:-2px}
 @media(max-width:820px){#modeSeg button{min-height:var(--ctl);padding-inline:8px;white-space:normal}}
 #modeSeg button.on{background:var(--accent-wash);color:var(--accent2);box-shadow:inset 0 0 0 1px rgb(var(--accent-rgb) / .23)}
-#saveStatus{font-size:12px;color:var(--muted)}
-#tab-cards{padding:16px;overflow:auto}
+#saveStatus{font-size:12px;color:var(--muted);padding-left:8px;margin-left:2px;border-left:1px solid var(--hair);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#saveStatus.is-saved::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block}
+#tab-cards{padding:14px 16px 16px;overflow:auto}
 .queue-hd,.queue-title-row,.queue-sub-row{min-width:0}
-.queue-title-row,.queue-sub-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-.queue-title-row>b{font-size:18px;letter-spacing:-.02em;margin-right:auto}
-.queue-actions{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
-.queue-actions #btnAddCards{color:var(--accent2)}
-.queue-sub-row{padding:5px 0 8px}
+.queue-title-row,.queue-sub-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px}
+.queue-title-row>b{font-size:17px;letter-spacing:-.02em;margin-right:auto}
+.queue-actions{display:flex;gap:6px;margin:8px 0 6px}
+.queue-actions #btnAddCards{flex:1 1 auto;color:var(--accent2);border-color:rgb(var(--accent-rgb) / .38);background:rgb(var(--accent-rgb) / .08);font-weight:600}
+.queue-actions #btnAddCards:hover{background:rgb(var(--accent-rgb) / .16);border-color:var(--accent)}
+.queue-actions #btnMultiSelect{flex:0 0 auto}
+.queue-sub-row{padding:4px 0 8px}
+.queue-sub-row.has-issues{padding:8px 9px;margin:2px 0 8px;border-radius:var(--r-md);background:rgb(var(--warning-rgb) / .07);border:1px solid rgb(var(--warning-rgb) / .28);flex-direction:column;align-items:stretch;gap:6px}
+.queue-sub-row.has-issues .queue-status{color:var(--warning);font-weight:600}
+.queue-issue-actions{display:flex;gap:6px;flex-wrap:wrap}
+.queue-issue-actions button{flex:1 1 auto;min-height:28px;padding:3px 8px;font-size:12px}
 .queue-copies,.queue-status{font-size:12px;color:var(--muted)}
-.queue-sub-row .tag{min-height:32px}
+.queue-sub-row .tag{min-height:28px}
+#workspaceBar .bar-status.has-issues{color:var(--warning)}
 .queue-card-issues{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:4px}
 .queue-card-issues button{min-height:28px;white-space:normal;font-size:12px;line-height:1.3;justify-content:flex-start;text-align:left;max-width:100%;overflow-wrap:anywhere}
 #cardList .card{border-color:transparent;background:transparent;border-bottom:1px solid var(--hair);border-radius:var(--r-md);padding-block:8px}
@@ -1081,8 +1110,9 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #pages img[data-uid].dragging{opacity:.42}
 #pages img[data-uid].drop-before{box-shadow:-4px 0 0 0 var(--accent)}
 #pages img[data-uid].drop-after{box-shadow:4px 0 0 0 var(--accent)}
+#cardList .card img{border:1px solid var(--hair)}
 #cardList .card .qty{order:-1;background:none;border:0}
-#cardList .card .qty input{width:38px;font:700 14px var(--mono);text-align:left;padding:0 4px;border:1px solid transparent;border-radius:var(--r-sm)}
+#cardList .card .qty input{width:34px;font:700 13px var(--mono);text-align:center;padding:0 2px;background:var(--sunk);border:1px solid var(--hair);border-radius:var(--r-sm)}
 #cardList .card .qty input:hover{border-color:var(--field)}
 #cardList .card .qty input:focus{border-color:var(--focus);background:var(--sunk)}
 #cardList .card>[data-act=select]{left:68px;top:8px}
@@ -1161,7 +1191,7 @@ body.print-settings-active #toggleInspector{display:none}
 #mbar button{flex-direction:column;gap:0;line-height:1.2}
 .copy-selection-mark{border:0;border-radius:0;box-shadow:none;color:transparent}
 header h1 span{margin-left:-4px}
-#workspaceInspector .insp-row{grid-template-columns:64px minmax(0,1fr)}
+#workspaceInspector .insp-row{grid-template-columns:68px minmax(0,1fr)}
 #workspaceInspector .insp-row button{padding:6px 6px}
 /* Flat on the mat: no box inside a box. */
 .custom-presets-wrap{border:0;border-top:1px solid var(--hair);border-radius:0;background:none;padding:12px 0 0}
@@ -1230,7 +1260,7 @@ body:not(.has-cards) #btnXml{background:var(--panel2);border-color:var(--line);c
         </div>
       </details>
     </div>
-    <span class="stats" id="stats"></span><span id="saveStatus" role="status">Saved</span><button id="retrySave" hidden>Retry save</button>
+    <span class="stats" id="stats"></span><span id="saveStatus" class="is-saved" role="status">Saved</span><button id="retrySave" hidden>Retry save</button>
   </div>
   <div class="hzone hzone-act">
     <button id="btnHelp" class="icon round" title="Help" aria-label="Help"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4"/><circle cx="8" cy="11.6" r=".5"/></svg></button>
@@ -1247,8 +1277,25 @@ body:not(.has-cards) #btnXml{background:var(--panel2);border-color:var(--line);c
       <details class="adv" id="importDrawer" open style="margin-top:0;margin-bottom:var(--s3)">
         <summary id="importDrawerSummary" style="font-weight:600">Add cards…</summary>
         <div class="import-panel">
-        <label for="listIn">Paste a decklist</label>
-        <textarea id="listIn" placeholder="4 Lightning Bolt&#10;1 Sol Ring (CMM) 410"></textarea>
+        <div class="quick-add-box">
+          <label for="quickAddCard">Quick add a card</label>
+          <div class="quick-add-row">
+            <div class="cc-ac-wrap">
+              <input type="text" id="quickAddCard" placeholder="Card name…" autocomplete="off" aria-autocomplete="list" aria-controls="quickAddAc">
+              <div class="cc-ac-list" id="quickAddAc" role="listbox" hidden></div>
+            </div>
+            <input type="number" id="quickAddQty" min="1" max="99" value="1" aria-label="Copies to add" title="Copies to add">
+            <button type="button" id="btnQuickAdd" title="Add card to deck" aria-label="Add card to deck">+</button>
+          </div>
+        </div>
+        <div class="list-hd">
+          <label for="listIn">Paste a decklist</label>
+          <div class="list-hd-right">
+            <span id="listInCount" class="list-count" hidden></span>
+            <button type="button" id="btnClearListIn" hidden>Clear</button>
+          </div>
+        </div>
+        <textarea id="listIn" placeholder="4 Lightning Bolt&#10;1 Sol Ring (CMM) 410&#10;Or paste a Moxfield / Archidekt link"></textarea>
         <div class="import-go">
           <button id="btnImport" class="primary">Add to deck</button>
           <button id="btnAddInstead" hidden>Add instead</button>
@@ -1293,11 +1340,13 @@ body:not(.has-cards) #btnXml{background:var(--panel2);border-color:var(--line);c
           </div>
           <div class="queue-actions">
             <button type="button" id="btnAddCards" aria-controls="importDrawer" aria-expanded="true">Add cards</button><button type="button" id="btnMultiSelect" aria-pressed="false">Select copies</button>
-            <button type="button" id="btnMpcAuto">Fill missing art</button>
           </div>
-          <div class="queue-sub-row">
+          <div class="queue-sub-row" id="queueSubRow">
             <div id="queueReadyStatus" class="queue-status">0 fronts ready</div>
-            <button type="button" id="btnFilterNeedsArt" class="tag" aria-pressed="false">Filter art issues</button>
+            <div class="queue-issue-actions" id="queueIssueActions" hidden>
+              <button type="button" id="btnMpcAuto">Fill missing art</button>
+              <button type="button" id="btnFilterNeedsArt" class="tag" aria-pressed="false">Filter art issues</button>
+            </div>
           </div>
         </div>
         <span id="deckCount" hidden></span><span id="deckHealth" hidden></span>
@@ -2217,14 +2266,14 @@ function save(immediate = false) {
   rememberProjectSetup();
   clearTimeout(saveTimer);
   const generation = ++saveGeneration;
-  $('#saveStatus').textContent = 'Saving…';
+  $('#saveStatus').textContent = 'Saving…'; $('#saveStatus').classList.remove('is-saved');
   const flush = async () => {
     const d = deck(); if (d) d.updated = Date.now();
     const entries = [['decks', structuredClone(S.decks)], ['ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, calibrationProfiles:S.calibrationProfiles, calibrationProfileId:S.calibrationProfileId, foilColorDefaults:S.foilColorDefaults, zoom:S.zoom, zoomMode:S.zoomMode, orderDensity:S.orderDensity, showBacks:S.showBacks, proofViewVersion:1, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle}], ['presets', structuredClone(S.presets)]];
     const snapshot = structuredClone(entries);
     saveQueue = saveQueue.catch(() => {}).then(() => store.commit(snapshot));
-    try { await saveQueue; if (generation === saveGeneration) { $('#saveStatus').textContent = 'Saved'; $('#retrySave').hidden=true; } }
-    catch { if (generation === saveGeneration) { $('#saveStatus').textContent = 'Save failed'; $('#retrySave').hidden=false; } }
+    try { await saveQueue; if (generation === saveGeneration) { $('#saveStatus').textContent = 'Saved'; $('#saveStatus').classList.add('is-saved'); $('#retrySave').hidden=true; } }
+    catch { if (generation === saveGeneration) { $('#saveStatus').textContent = 'Save failed'; $('#saveStatus').classList.remove('is-saved'); $('#retrySave').hidden=false; } }
   };
   if (immediate) flush();
   else saveTimer = setTimeout(flush, 250);
@@ -2314,13 +2363,14 @@ async function faceSrc(face, hi, settings = S.settings) {
     : `https://img.mpcautofill.com/${face.drive}-large-google_drive`;
   return hi ? (face.png || face.scryArt || face.normal) : (face.normal || face.scryArt || face.png);
 }
+const MISSING_THUMB_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 50"><rect width="36" height="50" rx="3" fill="#17181a"/><rect x="3.5" y="3.5" width="29" height="43" rx="2" fill="none" stroke="#3c3e43" stroke-width="1.2" stroke-dasharray="3 2"/><rect x="7" y="9" width="22" height="16" rx="1" fill="#232427" stroke="#3c3e43" stroke-width="1"/><path d="M9 23l5-5 4 3 3-2 6 4" fill="none" stroke="#6c6f76" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="31" x2="29" y2="31" stroke="#3c3e43" stroke-width="1.4" stroke-linecap="round"/><line x1="7" y1="36" x2="22" y2="36" stroke="#3c3e43" stroke-width="1.4" stroke-linecap="round"/></svg>')}`;
 function thumbSrcSync(face) {
-  if (!face) return '';
-  if (face.custom) return blobUrls.get(face.custom) || '';
+  if (!face) return MISSING_THUMB_SVG;
+  if (face.custom) return blobUrls.get(face.custom) || MISSING_THUMB_SVG;
   if (face.normal?.startsWith('data:') || face.normal?.startsWith('blob:')) return face.normal;
   if (face.png?.startsWith('data:') || face.png?.startsWith('blob:')) return face.png;
   if (face.drive) return `https://img.mpcautofill.com/${face.drive}-small-google_drive`;
-  return face.normal || face.scryArt || '';
+  return face.normal || face.scryArt || MISSING_THUMB_SVG;
 }
 async function thumbSrc(face) {
   if (!face) return '';
@@ -4322,7 +4372,11 @@ function renderQueueStatus(issues,slots) {
   } else {
     filter.setAttribute('aria-pressed', String(!!S.filterNeedsArt));
   }
-  $('#btnMpcAuto').hidden = !issues.some(issue=>!issue.cardback);
+  const hasCardIssues = issues.some(issue => !issue.cardback);
+  $('#btnMpcAuto').hidden = !hasCardIssues;
+  const subRow = $('#queueSubRow'), actWrap = $('#queueIssueActions');
+  if (subRow) subRow.classList.toggle('has-issues', n > 0);
+  if (actWrap) actWrap.hidden = !n;
 }
 function refreshArtworkIssues() {
   const wasFiltered = S.filterNeedsArt;
@@ -4610,34 +4664,40 @@ async function openMpcPicker(target) {
     cand.el.setAttribute('aria-pressed', 'true');
     find('#cmpCandidateEmpty').style.display = 'none';
     const cImg = find('#cmpCandidateImg');
-    cImg.src = cand.thumb || cand.url;
+    cImg.src = cand.previewUrl || cand.thumb || cand.url;
     cImg.style.display = 'block';
     find('#cmpCandidateCrop .card-trim-overlay').style.display = 'block';
     applyButton.disabled = false;
     status(`${cand.name} · ${cand.sourceName}`);
     const meta = find('#cmpCandidateMeta');
-    meta.innerHTML = `<b>${esc(cand.name)}</b><span>${esc(cand.sourceName)}</span><span id="cmpCandidateDpi">Checking resolution…</span>`;
-    const img = new Image();
-    img.onload = () => {
-      if (!pickerActive() || selectedCandidate !== cand) return;
-      const w = img.naturalWidth, h = img.naturalHeight;
-      const s = S.settings;
-      const isMpcRatio = Math.abs((w / h) - (2.75 / 3.75)) < 0.012;
-      const sb = cand.srcBleed ?? (cand.drive || isMpcRatio ? MPC_BLEED : (cand.custom ? s.customSrcBleed : 0));
-      const dpi = Math.round(Math.min((w / (s.cardW + 2 * sb)) * 25.4, (h / (s.cardH + 2 * sb)) * 25.4));
-      const dpiEl = find('#cmpCandidateDpi');
-      if (dpiEl) {
-        if (dpi >= 300) dpiEl.innerHTML = `<b style="color:var(--ok)">~${dpi} DPI</b>`;
-        else if (dpi < 200) dpiEl.innerHTML = `<b style="color:#ff9c95">~${dpi} DPI (Low resolution)</b>`;
-        else dpiEl.innerHTML = `~${dpi} DPI`;
-      }
+    const formatDpi = (dpi, approx) => {
+      const lbl = `${approx ? '~' : ''}${Math.round(dpi)} DPI`;
+      if (dpi >= 300) return `<b style="color:var(--ok)">${lbl}</b>`;
+      if (dpi < 200) return `<b style="color:#ff9c95">${lbl} (Low resolution)</b>`;
+      return lbl;
     };
-    img.onerror = () => {
-      if (!pickerActive() || selectedCandidate !== cand) return;
-      const dpiEl = find('#cmpCandidateDpi');
-      if (dpiEl) dpiEl.textContent = 'Resolution unknown';
-    };
-    img.src = cand.fullUrl || cand.png || cand.thumb || cand.url;
+    if (cand.dpi) {
+      meta.innerHTML = `<b>${esc(cand.name)}</b><span>${esc(cand.sourceName)}</span><span id="cmpCandidateDpi">${formatDpi(cand.dpi, false)}</span>`;
+    } else {
+      meta.innerHTML = `<b>${esc(cand.name)}</b><span>${esc(cand.sourceName)}</span><span id="cmpCandidateDpi">Checking resolution…</span>`;
+      const img = new Image();
+      img.onload = () => {
+        if (!pickerActive() || selectedCandidate !== cand) return;
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const s = S.settings;
+        const isMpcRatio = Math.abs((w / h) - (2.75 / 3.75)) < 0.012;
+        const sb = cand.srcBleed ?? (cand.drive || isMpcRatio ? MPC_BLEED : (cand.custom ? s.customSrcBleed : 0));
+        const dpi = Math.round(Math.min((w / (s.cardW + 2 * sb)) * 25.4, (h / (s.cardH + 2 * sb)) * 25.4));
+        const dpiEl = find('#cmpCandidateDpi');
+        if (dpiEl) dpiEl.innerHTML = formatDpi(dpi, true);
+      };
+      img.onerror = () => {
+        if (!pickerActive() || selectedCandidate !== cand) return;
+        const dpiEl = find('#cmpCandidateDpi');
+        if (dpiEl) dpiEl.textContent = 'Resolution unknown';
+      };
+      img.src = cand.fullUrl || cand.png || cand.thumb || cand.url;
+    }
     showComparison(true);
   }
 
@@ -4945,10 +5005,12 @@ async function openMpcPicker(target) {
       type: 'community',
       el: fig,
       item: card,
+      drive: card.identifier,
+      dpi: card.dpi || 0,
       name: card.name,
       sourceName: `Community art · ${card.sourceName}`,
-      thumb: `https://img.mpcautofill.com/${esc(card.identifier)}-small-google_drive`,
-      fullUrl: `https://img.mpcautofill.com/${esc(card.identifier)}-small-google_drive`,
+      thumb: `https://img.mpcautofill.com/${encodeURIComponent(card.identifier)}-small-google_drive`,
+      fullUrl: `https://img.mpcautofill.com/${encodeURIComponent(card.identifier)}-large-google_drive`,
       srcBleed: MPC_BLEED
     });
   });
@@ -5648,6 +5710,20 @@ $('#btnResumeImport').onclick = () => {
   $('#listIn').value = draft.text;
   openDeckImport();
 };
+function updateListInSummary() {
+  const pill = $('#listInCount'), clearBtn = $('#btnClearListIn'), text = ($('#listIn')?.value || '').trim();
+  if (clearBtn) clearBtn.hidden = !text;
+  if (!pill) return;
+  if (!text) { pill.hidden = true; pill.textContent = ''; return; }
+  if (/^https?:\/\/(www\.)?moxfield\.com\/decks\//i.test(text)) pill.textContent = 'Moxfield link';
+  else if (/^https?:\/\/(www\.)?archidekt\.com\/decks\//i.test(text)) pill.textContent = 'Archidekt link';
+  else if (/^(<\?xml[^>]*>\s*)?<order[\s>]/i.test(text)) pill.textContent = 'Order XML';
+  else {
+    const rows = parseList(text), copies = rows.reduce((n, r) => n + (r.qty || 1), 0);
+    pill.textContent = rows.length ? `${copies} ${copies === 1 ? 'card' : 'cards'}` : '';
+  }
+  pill.hidden = !pill.textContent;
+}
 function syncImportDrawer() {
   const open = $('#importDrawer').open, draft = deck()?.importDraft;
   const button = $('#btnAddCards');
@@ -5660,6 +5736,7 @@ function syncImportDrawer() {
   resume.textContent = replace ? 'Resume replacement' : draft?.format === 'order-xml' ? 'Resume order import' : 'Resume import';
   $('#btnImport').textContent = replace ? 'Review replacement' : 'Add to deck';
   $('#btnAddInstead').hidden = !replace;
+  updateListInSummary();
   $('#btnTokens').hidden = !deck()?.entries.length;
   const customPngBtn = $('#btnExportCustomPngs');
   if (customPngBtn) {
@@ -5681,6 +5758,93 @@ $('#listIn').addEventListener('input', () => {
   syncImportDrawer();
   save();
 });
+$('#listIn').addEventListener('keydown', ev => {
+  if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') { ev.preventDefault(); $('#btnImport').click(); }
+});
+$('#btnClearListIn').onclick = () => {
+  $('#listIn').value = '';
+  const replace = !!deck().importDraft?.replace;
+  deck().importDraft = replace ? makeImportDraft('', true) : null;
+  $('#importNote').replaceChildren();
+  syncImportDrawer(); save(); $('#listIn').focus();
+};
+async function quickAddSingleCard(name, qty = 1) {
+  const q = (name || '').trim();
+  const count = Math.max(1, Math.min(99, parseInt(qty) || 1));
+  if (!q) { $('#quickAddCard')?.focus(); return; }
+  const btn = $('#btnQuickAdd'), inp = $('#quickAddCard');
+  if (btn) btn.disabled = true;
+  const current = deck();
+  try {
+    let card;
+    try { card = await sf(`${SF}/cards/named?exact=${encodeURIComponent(q)}`); }
+    catch { card = await sf(`${SF}/cards/named?fuzzy=${encodeURIComponent(q)}`); }
+    if (S.deckId !== current.id) return;
+    const entry = toEntry(card, count);
+    const existing = current.entries.find(e => e.scryId === entry.scryId && e.scryFace === entry.scryFace && e.faces.length === entry.faces.length);
+    const target = existing || entry;
+    const changes = new Map([[target, {previousQty:existing?.qty, appliedQty:0}]]);
+    if (existing) existing.qty += entry.qty; else current.entries.push(entry);
+    const ch = changes.get(target);
+    ch.appliedQty = target.qty;
+    if (ch.previousQty === undefined) ch.unchanged = JSON.stringify(target);
+    save(); renderAll();
+    if (inp) { inp.value = ''; inp.focus(); }
+    if ($('#quickAddQty')) $('#quickAddQty').value = '1';
+    toast(`Added ${count} × ${entry.name}.`, 7000, {label:'Undo', fn:() => undoCardImport(current, changes)});
+    mpcAutofill({auto:true, onArtApplied:(ent, before) => {
+      const c = changes.get(ent);
+      if (c?.unchanged === before) c.unchanged = JSON.stringify(ent);
+    }});
+  } catch (err) {
+    toast(`Card not found: ${q}`, 5000);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+(() => {
+  const inp = $('#quickAddCard'), qty = $('#quickAddQty'), btn = $('#btnQuickAdd'), list = $('#quickAddAc');
+  if (!inp || !list) return;
+  let timer = null, seq = 0, idx = -1, items = [];
+  const close = () => { list.hidden = true; items = []; idx = -1; };
+  const render = () => {
+    if (!items.length) return close();
+    list.innerHTML = items.map((n, i) => `<button type="button" role="option" data-qac="${i}" class="${i === idx ? 'on' : ''}">${esc(n)}</button>`).join('');
+    list.hidden = false;
+  };
+  inp.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = inp.value.trim();
+    if (q.length < 2) return close();
+    const my = ++seq;
+    timer = setTimeout(async () => {
+      try {
+        const j = await sf(`${SF}/cards/autocomplete?q=${encodeURIComponent(q)}`);
+        if (my !== seq || document.activeElement !== inp) return;
+        items = (j.data || []).slice(0, 8); idx = -1; render();
+      } catch { if (my === seq) close(); }
+    }, 200);
+  });
+  list.addEventListener('mousedown', ev => {
+    const b = ev.target.closest('[data-qac]'); if (!b) return;
+    ev.preventDefault();
+    const chosen = items[+b.dataset.qac];
+    close();
+    quickAddSingleCard(chosen, qty?.value);
+  });
+  inp.addEventListener('blur', () => setTimeout(close, 120));
+  inp.addEventListener('keydown', ev => {
+    if (!list.hidden && items.length) {
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); idx = (idx + 1) % items.length; return render(); }
+      if (ev.key === 'ArrowUp') { ev.preventDefault(); idx = (idx - 1 + items.length) % items.length; return render(); }
+      if (ev.key === 'Escape') { ev.preventDefault(); return close(); }
+      if (ev.key === 'Enter' && idx >= 0) { ev.preventDefault(); const chosen = items[idx]; close(); return quickAddSingleCard(chosen, qty?.value); }
+    }
+    if (ev.key === 'Enter') { ev.preventDefault(); close(); quickAddSingleCard(inp.value, qty?.value); }
+  });
+  if (qty) qty.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); close(); quickAddSingleCard(inp.value, qty.value); } });
+  if (btn) btn.onclick = () => { close(); quickAddSingleCard(inp.value, qty?.value); };
+})();
 $('#btnAddInstead').onclick = () => {
   const text = $('#listIn').value;
   deck().importDraft = text.trim() ? makeImportDraft(text) : null;
@@ -5897,9 +6061,15 @@ $('#importNote').addEventListener('click', async ev => {
 });
 $('#btnLink').onclick = () => {
   openModal(`<div class="hd"><b>Import deck</b><button data-close>Close</button></div><div class="bd">
-    <label for="linkIn">Moxfield or Archidekt link</label><div class="row" style="margin-top:6px"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0" placeholder="https://moxfield.com/decks/…"><button id="importLinkSubmit" class="primary">Import link</button></div>
+    <label for="linkIn">Paste a deck link</label><div class="row" style="margin-top:6px"><input type="text" id="linkIn" inputmode="url" style="flex:1;min-width:0" placeholder="https://moxfield.com/decks/… or archidekt.com/decks/…"><button id="importLinkSubmit" class="primary">Import link</button></div>
+    <div class="import-src-tags"><span class="tag">Moxfield</span><span class="tag">Archidekt</span></div>
     <div id="importLinkError" role="status" class="hint"></div>
-    <h3>From your computer</h3><button id="importLocal">Choose file…</button><p class="hint">Shared deck or backup JSON, text decklist, or order XML.</p></div>`);
+    <h3 style="margin-top:16px">From your computer</h3>
+    <div class="import-dropzone" id="importDropZone">
+      <button id="importLocal">Choose file…</button>
+      <p class="hint" style="margin:0">Or drop a file here · Shared deck JSON, text decklist (.txt, .dec, .csv), or order XML</p>
+    </div></div>`);
+  $('#modal').classList.add('narrow');
   $('#importLinkSubmit').onclick = async ev => {
     const button = ev.currentTarget, error = $('#importLinkError');
     let v = $('#linkIn').value.trim();
@@ -5916,6 +6086,22 @@ $('#btnLink').onclick = () => {
   };
   $('#linkIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') $('#importLinkSubmit').click(); });
   $('#importLocal').onclick = () => $('#filePrintDeck').click();
+  const dz = $('#importDropZone');
+  if (dz) {
+    let depth = 0;
+    dz.addEventListener('dragenter', ev => { if (ev.dataTransfer?.types?.includes('Files')) { ev.preventDefault(); depth++; dz.classList.add('dragover'); } });
+    dz.addEventListener('dragover', ev => { if (ev.dataTransfer?.types?.includes('Files')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; } });
+    dz.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) dz.classList.remove('dragover'); });
+    dz.addEventListener('drop', ev => {
+      ev.preventDefault(); depth = 0; dz.classList.remove('dragover');
+      const f = ev.dataTransfer?.files?.[0];
+      if (!f) return;
+      const dt = new DataTransfer(); dt.items.add(f);
+      $('#filePrintDeck').files = dt.files;
+      $('#filePrintDeck').dispatchEvent(new Event('change', {bubbles:true}));
+      closeModal(true);
+    });
+  }
   $('#linkIn').focus();
 };
 $('#btnTokens').onclick = addTokens;
@@ -9653,7 +9839,13 @@ function syncProofViewButtons() {
 function emptyWorkspaceHtml(order = false) {
   return `<div class="empty">
     <h2>${order ? 'No cards to order yet' : 'No cards to preview yet'}</h2>
+    <p class="hint">Search a card, paste a decklist, or drop card images anywhere on this window.</p>
     <button class="primary empty-add" data-start="paste">Add cards</button>
+    <div class="empty-shortcuts">
+      <button type="button" data-start="link">Import link or file…</button>
+      <button type="button" data-start="upload">Upload images…</button>
+      <button type="button" data-start="maker">Create a card…</button>
+    </div>
   </div>`;
 }
 // With no cards, the sheet still lies on the mat: its outline, rulers and empty card slots at fit scale.
@@ -10364,6 +10556,7 @@ function renderGuideTab() {
     const warnings = order.skipped.length || order.noBack.length || !order.cardback && backs < order.slot || order.slot > 612;
     $('#barStatus').textContent = !deck().entries.length ? 'Add cards to start an order.'
       : `${!order.slot ? 'Fix artwork issues' : warnings ? 'Review warnings' : 'Ready to export'} · ${order.slot} card${order.slot === 1 ? '' : 's'} in order`;
+    $('#barStatus').classList.toggle('has-issues', !!deck().entries.length && (!order.slot || !!warnings));
     return;
   }
   const job = buildPrintJob(), s = job.settings, L = job.layout;
@@ -10412,6 +10605,7 @@ function renderGuideTab() {
     refreshArtworkIssues();
     const sheetStatus = scope.value === 'current' ? `Sheet ${exportSheetIndex() + 1} of ${job.sheets.length}` : `${pre.stats.sheets} sheet${pre.stats.sheets === 1 ? '' : 's'}`;
     $('#barStatus').textContent = !job.sheets.length ? 'Add cards to start printing.' : `${pre.errors.length ? 'Fix print issues' : pre.warnings.length ? 'Review warnings' : 'Ready to export'} · ${sheetStatus}${job.hasBacks ? ' · 2 passes' : ''} · print at 100%`;
+    $('#barStatus').classList.toggle('has-issues', !!job.sheets.length && !!(pre.errors.length || pre.warnings.length));
     if (pre.errors.length) {
       review.innerHTML = `<div class="warn" style="border-color:var(--danger)"><b>Fix before downloading</b><ul class="review-issues">${pre.errors.map(reviewIssueActions).join('')}</ul></div>`;
       $('#btnExportPdfTab').disabled = true;
@@ -13517,6 +13711,7 @@ $('#pages').addEventListener('click', ev => {
   const start = ev.target.closest('[data-start]'); if (!start) return;
   if (start.dataset.start === 'paste') openDeckImport();
   else if (start.dataset.start === 'upload') $('#btnUpload').click();
+  else if (start.dataset.start === 'maker') openCardMaker({});
   else $('#btnLink').click();
 });
 function applyMode() {
