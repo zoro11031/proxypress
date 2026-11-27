@@ -358,6 +358,13 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .duplex-base-opts .check{margin:0;align-items:flex-start;color:var(--text);font-size:12px}
 .duplex-base-opts .check input{margin-top:2px}
 .duplex-test-note{margin:6px 0 0}
+.duplex-pass-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.duplex-pass-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sunk);color:var(--muted);font-size:12px;font-weight:500}
+.duplex-pass-pill.on{border-color:var(--accent);background:rgb(var(--accent-rgb) / .12);color:var(--text);font-weight:600}
+.duplex-pass-pill.done{border-color:rgb(var(--ok-rgb, 74 222 128) / .45);color:var(--ok,#4ade80)}
+.duplex-toner-opt{margin:8px 0 0;align-items:flex-start;color:var(--text);font-size:12px}
+.duplex-toner-opt input{margin-top:2px}
+.duplex-verified{color:var(--ok,#4ade80);font-weight:600}
 @keyframes scrim-in{from{background-color:transparent}}
 @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .modal .hd{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
@@ -973,13 +980,25 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 .pg img.selected,.tile img.selected{outline:0;box-shadow:none}
 /* The card list reads as a decklist: count first, ruled rows, a double-ruled total. */
 #cardList{gap:0}
-#cardList .card{grid-template-columns:44px 26px minmax(0,1fr) 32px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:6px 0;min-height:46px}
+#cardList .card{grid-template-columns:16px 40px 26px minmax(0,1fr) 32px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:6px 0;min-height:46px}
+#cardList .card .drag-handle{order:-2;width:16px;min-width:16px;min-height:32px;padding:0;border:0;background:none;color:var(--muted);cursor:grab;opacity:.55;display:inline-flex;align-items:center;justify-content:center}
+#cardList .card .drag-handle:hover,#cardList .card .drag-handle:focus-visible{opacity:1;color:var(--text)}
+#cardList .card .drag-handle:active{cursor:grabbing}
+#cardList .card .drag-handle[disabled]{visibility:hidden;pointer-events:none}
+#cardList .card.dragging{opacity:.4}
+#cardList .card.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+#cardList .card.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+#pages img[data-uid][draggable="true"]{cursor:grab}
+#pages img[data-uid][draggable="true"]:active{cursor:grabbing}
+#pages img[data-uid].dragging{opacity:.42}
+#pages img[data-uid].drop-before{box-shadow:-4px 0 0 0 var(--accent)}
+#pages img[data-uid].drop-after{box-shadow:4px 0 0 0 var(--accent)}
 #cardList .card .qty{order:-1;background:none;border:0}
-#cardList .card .qty input{width:40px;font:700 14px var(--mono);text-align:left;padding:0 4px;border:1px solid transparent;border-radius:var(--r-sm)}
+#cardList .card .qty input{width:38px;font:700 14px var(--mono);text-align:left;padding:0 4px;border:1px solid transparent;border-radius:var(--r-sm)}
 #cardList .card .qty input:hover{border-color:var(--field)}
 #cardList .card .qty input:focus{border-color:var(--focus);background:var(--sunk)}
-#cardList .card>[data-act=select]{left:52px;top:8px}
-#cardList .card .queue-card-issues{grid-column:3/-1}
+#cardList .card>[data-act=select]{left:68px;top:8px}
+#cardList .card .queue-card-issues{grid-column:4/-1}
 #cardList .card .meta{font-family:var(--mono);font-size:12px}
 #cardList .card .meta .tag,#cardList .card .meta .meta-word{font-family:var(--display)}
 #cardList .card:hover{background:var(--fill)}
@@ -987,7 +1006,7 @@ body[data-mode=order] .gal .tile .qty{bottom:unset;top:14px;right:14px}
 #cardList .card.selected::before,#cardList .card.selected::after{content:"";position:absolute;width:9px;height:9px;border:2px solid var(--accent);pointer-events:none}
 #cardList .card.selected::before{left:-6px;top:-1px;border-right:0;border-bottom:0}
 #cardList .card.selected::after{right:-6px;bottom:-1px;border-left:0;border-top:0}
-.deck-total{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:baseline;padding:8px 0 4px;margin-top:-1px;border-top:3px double var(--text);font-weight:700}
+.deck-total{display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:baseline;padding:8px 0 4px;margin-top:-1px;border-top:3px double var(--text);font-weight:700}
 .deck-total b{font:700 14px var(--mono)}
 .deck-total span:last-child{color:var(--muted);font:12px var(--mono);font-weight:400}
 /* The inspector is a job ticket: labels left, values in tabular mono. */
@@ -1074,7 +1093,7 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
   #btnSettings{padding-inline:8px}
 }
 @media(max-width:480px){header h1{font-size:0;gap:0}header h1 .logo{width:24px;height:24px}#modeSeg{grid-row:1;grid-column:2}.hzone-deck{grid-row:2}}
-@media(max-width:820px){body[data-mode=print] #stage{padding-left:26px}body[data-mode=print] .stage-controls{margin-left:-26px;padding-left:12px}#cardList .card{grid-template-columns:52px 30px minmax(0,1fr) 44px}#cardList .card .qty input{width:48px;min-height:44px}#cardList .card>[data-act=select]{left:58px}}
+@media(max-width:820px){body[data-mode=print] #stage{padding-left:26px}body[data-mode=print] .stage-controls{margin-left:-26px;padding-left:12px}#cardList .card{grid-template-columns:22px 46px 30px minmax(0,1fr) 44px}#cardList .card .drag-handle{width:22px;min-width:22px;min-height:44px}#cardList .card .qty input{width:46px;min-height:44px}#cardList .card>[data-act=select]{left:74px}}
 .stage-controls{border-bottom-color:var(--line)}
 body:not(.has-cards,.print-settings-active) #btnReviewExport,
 body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
@@ -2243,10 +2262,14 @@ function sampleBorder(img) {
   } catch { return '#000'; }
 }
 
-function filterFor(s) {
+function isSharedBackSlot(slot, back) {
+  return !!(back && slot?.back && slot.bi == null);
+}
+function filterFor(s, opt = {}) {
   const f = [];
   if (s.brightness !== 100) f.push(`brightness(${s.brightness}%)`);
-  if (s.saturation !== 100) f.push(`saturate(${s.saturation}%)`);
+  const sat = opt.sharedCardback && s.saturation > 100 ? 100 : s.saturation;
+  if (sat !== 100) f.push(`saturate(${sat}%)`);
   if (s.contrast && s.contrast !== 100) f.push(`contrast(${s.contrast}%)`);
   return f.join(' ');
 }
@@ -2269,7 +2292,7 @@ function scmArtworkPlacement(iw, ih, s, sourceBleed, back) {
   const w = Math.min(iw, (cw+2*ex)*sx), h = Math.min(ih, (ch+2*ey)*sy);
   return {src:[(iw-w)/2,(ih-h)/2,w,h], dst:[B.x-ex,B.y-ey,cw+2*ex,ch+2*ey], ex, ey};
 }
-async function renderFace(face, dpi, hi, rot = 0, settings = S.settings, back = false) {
+async function renderFace(face, dpi, hi, rot = 0, settings = S.settings, back = false, sharedCardback = false) {
   const s = {...settings};
   const url = await faceSrc(face, hi, s);
   if (!url) throw new Error(`No image for "${face.name}"`);
@@ -2281,7 +2304,7 @@ async function renderFace(face, dpi, hi, rot = 0, settings = S.settings, back = 
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   if (!borderCache.has(img)) borderCache.set(img, sampleBorder(img));
   if (cornerLumCache.has(img)) { face._cornerLum = cornerLumCache.get(img); boundedCacheSet(sourceCornerLum, artworkKey(face), face._cornerLum, 512); }
-  const filter = filterFor(s);
+  const filter = filterFor(s, {sharedCardback});
   if (filter) x.filter = filter;
   x.fillStyle = s.bleedMode === 'black' ? '#000000' : borderCache.get(img); x.fillRect(0, 0, W, H);
   const iw = img.naturalWidth, ih = img.naturalHeight;
@@ -2343,9 +2366,9 @@ function settingsSig(s = S.settings) {
   return [s.cardW, s.cardH, s.bleed, ...Object.values(cardBleed(s)), s.bleedMode, s.brightness, s.saturation, s.contrast, s.foilTint,
     s.customSrcBleed, s.duplexFlip, s.silhouette, s.scmTemplate, s.scmFit, s.scmFitBack, s.scmCrop, s.scmCropBack].join(',');
 }
-async function previewUrl(face, rot = 0, settings = S.settings, back = false) {
+async function previewUrl(face, rot = 0, settings = S.settings, back = false, sharedCardback = false) {
   const rev = face.custom ? (imageRevisions.get(face.custom) || 0) : '';
-  const key = (face.custom || face.drive || face.normal || face.png || face.scryArt || face.name) + '|' + rev + '|' + settingsSig(settings) + '|' + rot + '|' + back + '|' + (face.srcBleed ?? '');
+  const key = (face.custom || face.drive || face.normal || face.png || face.scryArt || face.name) + '|' + rev + '|' + settingsSig(settings) + '|' + rot + '|' + back + '|' + (sharedCardback ? 'cb' : '') + '|' + (face.srcBleed ?? '');
   if (previewCache.has(key)) return previewCache.get(key);
   try {
     const sess = sessionStorage.getItem('pp_p_' + key);
@@ -2353,7 +2376,7 @@ async function previewUrl(face, rot = 0, settings = S.settings, back = false) {
   } catch {}
   const p = (async () => {
     try {
-      const u = (await renderFace(face, 110, false, rot, settings, back)).toDataURL('image/jpeg', 0.85);
+      const u = (await renderFace(face, 110, false, rot, settings, back, sharedCardback)).toDataURL('image/jpeg', 0.85);
       try { sessionStorage.setItem('pp_p_' + key, u); const keys = Object.keys(sessionStorage).filter(key=>key.startsWith('pp_p_')); for (const old of keys.slice(0,Math.max(0,keys.length-24))) sessionStorage.removeItem(old); } catch { try { for (const cachedKey of Object.keys(sessionStorage)) if (cachedKey.startsWith('pp_p_')) sessionStorage.removeItem(cachedKey); sessionStorage.setItem('pp_p_' + key, u); } catch {} }
       return u;
     } catch {
@@ -5408,6 +5431,41 @@ $('#selectAllCopies').onclick = () => {
   deck().entries.filter(e => names.has(normName(e.name))).forEach(e => { for (let q = 0; q < e.qty; q++) selectedCopies.add(copyKey(e, q)); });
   syncCardSelection();
 };
+const CARD_DRAG_MIME = 'application/x-proxypress-card';
+let dragCardUid = null;
+function moveDeckEntry(fromUid, toIndex) {
+  const d = deck(), entries = d?.entries || [];
+  const fromIdx = entries.findIndex(e => e.uid === fromUid);
+  if (fromIdx < 0 || entries.length < 2) return false;
+  const clamped = Math.max(0, Math.min(entries.length - 1, toIndex));
+  if (clamped === fromIdx) return false;
+  const [moved] = entries.splice(fromIdx, 1);
+  entries.splice(clamped, 0, moved);
+  save(); renderAll();
+  return true;
+}
+function moveDeckEntryRelative(fromUid, targetUid, after = false) {
+  const d = deck(), entries = d?.entries || [];
+  if (!fromUid || !targetUid || fromUid === targetUid) return false;
+  const fromIdx = entries.findIndex(e => e.uid === fromUid);
+  const rawTarget = entries.findIndex(e => e.uid === targetUid);
+  if (fromIdx < 0 || rawTarget < 0) return false;
+  let toIdx = rawTarget + (after ? 1 : 0);
+  if (fromIdx < toIdx) toIdx--;
+  return moveDeckEntry(fromUid, toIdx);
+}
+function stepDeckEntry(uid, delta) {
+  const d = deck(), entries = d?.entries || [];
+  const rows = $$('#cardList .card').filter(r => !r.hidden);
+  if (rows.length > 1 && rows.length < entries.length) {
+    const pos = rows.findIndex(r => r.dataset.uid === uid);
+    const nextPos = pos + delta;
+    if (pos < 0 || nextPos < 0 || nextPos >= rows.length) return false;
+    return moveDeckEntryRelative(uid, rows[nextPos].dataset.uid, delta > 0);
+  }
+  const idx = entries.findIndex(e => e.uid === uid);
+  return idx >= 0 ? moveDeckEntry(uid, idx + delta) : false;
+}
 let faceTarget = null;
 async function renderCards() {
   const d = deck(), list = $('#cardList'), s = queueSettings(), slots = buildSlots(d,s);
@@ -5429,10 +5487,12 @@ async function renderCards() {
   const qCopies = $('#queueCopyCount'); if (qCopies) qCopies.innerHTML = copyCountHtml(total);
   renderQueueStatus(allIssues,slots);
   if (!any) { list.replaceChildren(); applyDeckFilter(); syncCardSelection(); return; }
+  const canReorder = d.entries.length > 1;
   list.innerHTML = d.entries.map(e => {
     const issues = getCardIssues(e, slots, s);
     return `
-    <div class="card" data-uid="${esc(e.uid)}">
+    <div class="card" data-uid="${esc(e.uid)}"${canReorder ? ' draggable="true"' : ''}>
+      <button type="button" class="icon drag-handle" data-act="drag" aria-label="Reorder ${esc(e.name)}. Drag or press Up and Down arrows." title="Drag to reorder (or press ↑ / ↓)"${canReorder ? '' : ' disabled'}><svg class="ico" viewBox="0 0 12 16" width="12" height="16" aria-hidden="true"><circle cx="4" cy="3.5" r="1.2"/><circle cx="8" cy="3.5" r="1.2"/><circle cx="4" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="4" cy="12.5" r="1.2"/><circle cx="8" cy="12.5" r="1.2"/></svg></button>
       <input type="checkbox" data-act="select" aria-label="Select copies of ${esc(e.name)}" hidden>
       <img data-act="art" alt="" src="${esc(thumbSrcSync(e.faces[0]))}" tabindex="0" role="button" aria-label="Change artwork for ${esc(e.name)}" title="${e.faces[0]?.template ? 'Edit custom card' : e.custom && !e.mpc ? 'Replace image' : 'Click to change art'}">
       <div style="min-width:0;flex:1">
@@ -5552,7 +5612,70 @@ $('#importDrawerSummary').addEventListener('click', ev => {
   syncImportDrawer();
   $('#btnAddCards').focus();
 });
-$('#cardList').addEventListener('keydown', ev=>{if(ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)){ev.preventDefault();ev.target.click();}});
+$('#cardList').addEventListener('keydown', ev => {
+  if (ev.target.matches('img[data-act="art"]') && ['Enter',' '].includes(ev.key)) { ev.preventDefault(); ev.target.click(); return; }
+  const row = ev.target.closest('.card');
+  if (!row) return;
+  const uid = row.dataset.uid;
+  const onHandle = ev.target.matches('[data-act="drag"]');
+  const altMove = ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.target.closest('input, textarea, select');
+  if (!onHandle && !altMove) return;
+  if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(ev.key)) return;
+  if (!onHandle && !['ArrowUp', 'ArrowDown'].includes(ev.key)) return;
+  ev.preventDefault();
+  const moved = ev.key === 'ArrowUp' ? stepDeckEntry(uid, -1)
+    : ev.key === 'ArrowDown' ? stepDeckEntry(uid, 1)
+    : ev.key === 'Home' ? moveDeckEntry(uid, 0)
+    : moveDeckEntry(uid, deck().entries.length - 1);
+  if (moved) {
+    const sel = onHandle ? `[data-uid="${CSS.escape(uid)}"] [data-act="drag"]` : `[data-uid="${CSS.escape(uid)}"] [data-act="jump"]`;
+    $(`#cardList ${sel}`)?.focus();
+  }
+});
+(() => {
+  const list = $('#cardList');
+  const clearDrop = () => $$('#cardList .card.drop-before, #cardList .card.drop-after').forEach(r => r.classList.remove('drop-before', 'drop-after'));
+  list.addEventListener('dragstart', ev => {
+    const row = ev.target.closest('.card[draggable="true"]');
+    if (!row || ev.target.closest('input, textarea, select')) { ev.preventDefault(); return; }
+    dragCardUid = row.dataset.uid;
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData(CARD_DRAG_MIME, dragCardUid);
+    ev.dataTransfer.setData('text/plain', dragCardUid);
+    row.classList.add('dragging');
+  });
+  list.addEventListener('dragover', ev => {
+    if (!dragCardUid && !ev.dataTransfer?.types?.includes(CARD_DRAG_MIME)) return;
+    const row = ev.target.closest('.card');
+    if (!row || row.dataset.uid === dragCardUid) { clearDrop(); return; }
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    const r = row.getBoundingClientRect();
+    const after = ev.clientY >= r.top + r.height / 2;
+    clearDrop();
+    row.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  list.addEventListener('dragleave', ev => {
+    if (!list.contains(ev.relatedTarget)) clearDrop();
+  });
+  list.addEventListener('drop', ev => {
+    const fromUid = dragCardUid || ev.dataTransfer?.getData(CARD_DRAG_MIME);
+    if (!fromUid) return;
+    const row = ev.target.closest('.card');
+    ev.preventDefault();
+    ev.stopPropagation();
+    const after = row ? ev.clientY >= row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2 : false;
+    clearDrop();
+    $$('#cardList .card.dragging').forEach(r => r.classList.remove('dragging'));
+    dragCardUid = null;
+    if (row && row.dataset.uid !== fromUid) moveDeckEntryRelative(fromUid, row.dataset.uid, after);
+  });
+  list.addEventListener('dragend', () => {
+    clearDrop();
+    $$('#cardList .card.dragging').forEach(r => r.classList.remove('dragging'));
+    dragCardUid = null;
+  });
+})();
 async function revealQueueCard(entry) {
   if (!entry?.qty) return;
   const order = S.mode === 'order', project = S.deckId;
@@ -5587,7 +5710,7 @@ $('#cardList').addEventListener('click', async ev => {
     all.forEach(k => remove ? selectedCopies.delete(k) : selectedCopies.add(k)); selectionAnchor = all[0]; syncCardSelection(); return;
   }
   if (act === 'jump') return revealQueueCard(entry);
-  if (!act || act === 'qty') return;
+  if (!act || act === 'qty' || act === 'drag') return;
   const d = deck(), e = d.entries.find(x => x.uid === row.dataset.uid);
   if (act === 'inc') e.qty++;
   else if (act === 'dec') e.qty = Math.max(0, e.qty - 1);
@@ -7384,6 +7507,8 @@ function openCtx(x, y, e, i, copy) {
   const target = selected && selected.copies.some(x => x.uid === e.uid && (copy === undefined || x.copies.includes(copy))) ? {...selected, e, i} : copy === undefined ? {e, i} : {e, i, deckId:S.deckId, copies:[{uid:e.uid, copies:[copy]}]};
   const count = target.copies?.reduce((n, x) => n + x.copies.length, 0);
   const same = deck().entries.filter(x => normName(x.name) === normName(e.name)), allCount = same.reduce((n, x) => n + x.qty, 0);
+  const entryIdx = cardback ? -1 : deck().entries.findIndex(x => x.uid === e.uid);
+  const canMoveUp = entryIdx > 0, canMoveDown = entryIdx >= 0 && entryIdx < deck().entries.length - 1;
   m.innerHTML = cardback
     ? `<div class="ttl">Card back</div><button data-c="back" role="menuitem">Change cardback…</button>`
     : `<div class="ttl">${esc(e.faces[i]?.name || e.name)}</div>
@@ -7394,6 +7519,8 @@ function openCtx(x, y, e, i, copy) {
        <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
        ${e.faces[i]?.template ? '<button data-c="exportpng" role="menuitem">Export PNG</button>' : ''}
        <button data-c="upload" role="menuitem">${e.scryId && instanceArtAvailable()?'Upload &amp; share image…':'Upload image…'}</button>
+       ${canMoveUp ? '<button data-c="moveup" role="menuitem">Move up</button>' : ''}
+       ${canMoveDown ? '<button data-c="movedown" role="menuitem">Move down</button>' : ''}
        <button data-c="del" class="danger" role="menuitem">Remove card</button>`;
   ctxReturnFocus = document.activeElement;
   m.classList.add('on');
@@ -7412,6 +7539,8 @@ function openCtx(x, y, e, i, copy) {
     else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
     else if (c === 'maker') openCardMaker({e, i});
     else if (c === 'exportpng') exportCustomFacePng(e, i);
+    else if (c === 'moveup') stepDeckEntry(e.uid, -1);
+    else if (c === 'movedown') stepDeckEntry(e.uid, 1);
     else if (c === 'del') { removeEntryWithUndo(e); }
   };
 }
@@ -7478,6 +7607,50 @@ $('#pages').addEventListener('contextmenu', ev => {
   const e = deck().entries.find(x => x.uid === im.dataset.uid); if (!e) return;
   ev.preventDefault(); openCtx(ev.clientX, ev.clientY, e, im.dataset.face === 'back' ? 'back' : +im.dataset.face, im.dataset.copy === undefined ? undefined : +im.dataset.copy);
 });
+(() => {
+  const pages = $('#pages');
+  const clearDrop = () => $$('#pages img.drop-before, #pages img.drop-after').forEach(im => im.classList.remove('drop-before', 'drop-after'));
+  pages.addEventListener('dragstart', ev => {
+    const im = ev.target.closest('img[data-uid][draggable="true"]');
+    if (!im) return;
+    dragCardUid = im.dataset.uid;
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData(CARD_DRAG_MIME, dragCardUid);
+    ev.dataTransfer.setData('text/plain', dragCardUid);
+    im.classList.add('dragging');
+  });
+  pages.addEventListener('dragover', ev => {
+    if (!dragCardUid && !ev.dataTransfer?.types?.includes(CARD_DRAG_MIME)) return;
+    const im = ev.target.closest('img[data-uid][draggable="true"]');
+    if (!im || im.dataset.uid === dragCardUid) { clearDrop(); return; }
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    const r = im.getBoundingClientRect();
+    const after = ev.clientX >= r.left + r.width / 2;
+    clearDrop();
+    im.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  pages.addEventListener('dragleave', ev => {
+    if (!pages.contains(ev.relatedTarget)) clearDrop();
+  });
+  pages.addEventListener('drop', ev => {
+    const fromUid = dragCardUid || ev.dataTransfer?.getData(CARD_DRAG_MIME);
+    if (!fromUid) return;
+    const im = ev.target.closest('img[data-uid][draggable="true"]');
+    ev.preventDefault();
+    ev.stopPropagation();
+    const after = im ? ev.clientX >= im.getBoundingClientRect().left + im.getBoundingClientRect().width / 2 : false;
+    clearDrop();
+    $$('#pages img.dragging').forEach(el => el.classList.remove('dragging'));
+    dragCardUid = null;
+    if (im && im.dataset.uid !== fromUid) moveDeckEntryRelative(fromUid, im.dataset.uid, after);
+  });
+  pages.addEventListener('dragend', () => {
+    clearDrop();
+    $$('#pages img.dragging').forEach(el => el.classList.remove('dragging'));
+    dragCardUid = null;
+  });
+})();
 addEventListener('click', ev => { if (!ev.target.closest('#ctx')) closeCtx(); });
 addEventListener('scroll', ev => { if (ev.target !== $('#ctx')) closeCtx(true); }, true);
 addEventListener('blur', closeCtx);
@@ -7709,8 +7882,8 @@ function applyFoilToneModel(srcCanvas, params = {}) {
   return out;
 }
 
-async function renderPrintColors(face, settings = S.settings, dpi = 300) {
-  const s = {...S.settings,...settings}, rendered = await renderFace(face,dpi,true,0,s), k=dpi/25.4;
+async function renderPrintColors(face, settings = S.settings, dpi = 300, sharedCardback = false) {
+  const s = {...S.settings,...settings}, rendered = await renderFace(face,dpi,true,0,s,false,sharedCardback), k=dpi/25.4;
   const canvas=document.createElement('canvas'); canvas.width=Math.round(s.cardW*k); canvas.height=Math.round(s.cardH*k);
   const B=cardBleed(s);canvas.getContext('2d').drawImage(rendered,Math.round(B.x*k),Math.round(B.y*k),canvas.width,canvas.height,0,0,canvas.width,canvas.height);
   return canvas;
@@ -7805,9 +7978,10 @@ async function openFoilToneModal() {
   const bd = $('#modal .bd');
   let currentArtCvs = null;
 
+  const sharedBack = isSharedBackSlot(activeSlot, S.showBacks);
   let artGeneration=0;
   async function updateArt() {
-    const generation=++artGeneration, rendered=await renderPrintColors(face,{...S.settings},150);
+    const generation=++artGeneration, rendered=await renderPrintColors(face,{...S.settings},150,sharedBack);
     if(generation!==artGeneration || !bd.isConnected)return;
     currentArtCvs=rendered;
     const artCvs = $('#foilArtCvs', bd);
@@ -9150,7 +9324,7 @@ async function drawPreview() {
   page.forEach((slot, i) => {
     const face = back ? slot.back : slot.front; if (!face) return;
     const p = slotPos(L, i, back, s), im = document.createElement('img');
-    im.dataset.uid = slot.e.uid; im.dataset.copy = slot.copy; im.draggable = false; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${slot.e.name}, copy ${slot.copy + 1}`); im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
+    im.dataset.uid = slot.e.uid; im.dataset.copy = slot.copy; im.draggable = !back && job.project.entries.length > 1; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', `Select ${slot.e.name}, copy ${slot.copy + 1}`); im.dataset.face = back ? slot.bi ?? 'back' : slot.fi;
     Object.assign(im.style, {left:T.x(p.x)*z + 'px', top:T.y(p.y)*z + 'px', width:T.w(L.sw)*z + 'px', height:T.h(L.sh)*z + 'px'});
     const rot = faceRot(L, back);
     if (isPreview(face)) {
@@ -9164,7 +9338,7 @@ async function drawPreview() {
     el.appendChild(placeholder);
     im.onload = () => { if (gen === previewGen) placeholder.remove(); };
     im.onerror = () => { if (gen === previewGen) { placeholder.textContent = 'Artwork unavailable'; im.setAttribute('aria-label',`Artwork unavailable: ${slot.e.name}, copy ${slot.copy+1}`); } };
-    el.appendChild(im); jobs.push(previewUrl(face, rot, s, back).then(u => {
+    el.appendChild(im); jobs.push(previewUrl(face, rot, s, back, isSharedBackSlot(slot, back)).then(u => {
       if (gen !== previewGen) return;
       if (!u) { placeholder.textContent = 'Missing artwork'; im.setAttribute('aria-label',`Missing artwork: ${slot.e.name}, copy ${slot.copy+1}`); return; }
       if (u.startsWith('raw:')) {
@@ -9239,7 +9413,7 @@ async function drawGallery(gen, wrap, z) {
   const grid=document.createElement('div');grid.className='gal';
   for(const e of d.entries){if(!e.qty||!e.faces.length)continue;for(let copy=0;copy<e.qty;copy++){
     const tile=document.createElement('div');tile.className='tile';const back=!!S.orderShowBacks,face=back ? e.faces[1] || (e.faces.length===1 ? cb : null) : e.faces[0],faceIndex=back ? e.faces.length>1?1:'back' : 0;
-    const im=document.createElement('img');im.width=630;im.height=880;im.loading='lazy';im.decoding='async';im.alt=face?.name || (e.faces.length>1?'Missing back artwork':'Shared back not chosen');im.dataset.uid=e.uid;im.dataset.copy=copy;im.dataset.face=faceIndex;im.draggable=false;im.tabIndex=0;im.setAttribute('role','button');im.setAttribute('aria-label',`Select ${e.name}, copy ${copy+1}, ${back?'back':'front'}`);
+    const im=document.createElement('img');im.width=630;im.height=880;im.loading='lazy';im.decoding='async';im.alt=face?.name || (e.faces.length>1?'Missing back artwork':'Shared back not chosen');im.dataset.uid=e.uid;im.dataset.copy=copy;im.dataset.face=faceIndex;im.draggable=d.entries.length>1;im.tabIndex=0;im.setAttribute('role','button');im.setAttribute('aria-label',`Select ${e.name}, copy ${copy+1}, ${back?'back':'front'}`);
     if(face&&(face.custom||face.drive||face.png||face.normal||face.scryArt)){thumbnail(face).then(u=>{if(gen===previewGen&&u)im.src=u;});tile.appendChild(im);}else{const empty=document.createElement(back&&e.faces.length===1?'div':'button');empty.className='noback';empty.style.aspectRatio='63/88';empty.textContent=back?(e.faces.length>1?'Missing back artwork':'Shared cardback'):'Missing front artwork';if(!(back&&e.faces.length===1)){empty.dataset.orderIssue=e.uid;empty.dataset.orderFace=back?'1':'0';empty.dataset.orderCopy=copy;}tile.appendChild(empty);}
     tile.insertAdjacentHTML('beforeend',`<span class="tile-name" title="${esc(e.name)}">${esc(e.name)}</span>${e.qty>1?`<span class="qty">${copy+1} / ${e.qty}</span>`:''}`);grid.appendChild(tile);
   }}
@@ -9573,13 +9747,13 @@ async function exportPrintJob(job, withCut = false) {
   try {
     const doc = newDoc(L), cache = new Map(); let rendered = 0, first = true;
     const regInk = regInkBoxes(regMarks(L,s));
-    const renderedFace = async (face, rot, back) => {
-      const key = artworkKey(face) + '|' + rot + '|' + back;
-      if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot, s, back)).toDataURL('image/jpeg', s.jpeg/100)});
+    const renderedFace = async (face, rot, back, sharedBack = false) => {
+      const key = artworkKey(face) + '|' + rot + '|' + back + '|' + (sharedBack ? 'cb' : '');
+      if (!cache.has(key)) cache.set(key, {alias:'c' + cache.size, data:(await renderFace(face, s.dpi, true, rot, s, back, sharedBack)).toDataURL('image/jpeg', s.jpeg/100)});
       return cache.get(key);
     };
-    const addFace = async (face, x, y, w, h, rot, back) => {
-      const c = await renderedFace(face, rot, back);
+    const addFace = async (face, x, y, w, h, rot, back, sharedBack = false) => {
+      const c = await renderedFace(face, rot, back, sharedBack);
       doc.addImage(c.data, 'JPEG', x, y, w, h, c.alias, 'NONE');
     };
     for (const [pageIdx, page] of pages.entries()) {
@@ -9589,7 +9763,7 @@ async function exportPrintJob(job, withCut = false) {
         first = false;
         const T = makeT(L, back, s);
         const turned = backTurn(doc, L, true, back, s);
-        for (const slot of page) { const face = back ? slot.back : slot.front; if (face) await renderedFace(face, faceRot(L, back), back); }
+        for (const slot of page) { const face = back ? slot.back : slot.front; if (face) await renderedFace(face, faceRot(L, back), back, isSharedBackSlot(slot, back)); }
         const glines = back ? [] : guideLines(L, page, s);
         const underLines = glines.filter(l => !l[6]), overLines = glines.filter(l => l[6]);
         if (!back && underLines.length) {
@@ -9604,7 +9778,7 @@ async function exportPrintJob(job, withCut = false) {
           const side = hasBacks ? (back ? ' (back)' : ' (front)') : '';
           busyProgress(rendered / (totalFaces || 1), `Preparing card ${cardNum} of ${totalCards}${side}…`);
           const p = slotPos(L, i, back, s);
-          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back), back);
+          await addFace(face, T.x(p.x), T.y(p.y), T.w(L.sw), T.h(L.sh), faceRot(L, back), back, isSharedBackSlot(page[i], back));
           await sleep(0);
         }
         if (!back) {
@@ -10069,7 +10243,8 @@ function duplexBackBaselineText(s = S.settings) {
   return parts.join(', ');
 }
 
-function duplexCardTestDoc(L, s = S.settings) {
+function duplexCardTestDoc(L, s = S.settings, opt = {}) {
+  const tonerLoad = !!opt.tonerLoad;
   const doc = newDoc(L), pts = duplexCardPoints(L, s), rot2 = backPageRot(L), f2 = duplexReadSign(L);
   const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L);
   const B = slotBleed(L, s), skeleton = (T, x, y) => {
@@ -10081,12 +10256,31 @@ function duplexCardTestDoc(L, s = S.settings) {
       doc.setLineDashPattern([], 0);
     }
   };
+  // Optional toner load simulates real full-bleed card toner laydown (border + interior)
+  // so laser fuser heat, curl, and duplex roller traction match an actual card sheet.
+  const drawTonerCard = (T, x, y) => {
+    doc.setFillColor('#1c1c1c');
+    doc.rect(T.x(x), T.y(y), T.w(L.sw), T.h(L.sh), 'F');
+    if (L.cw > 2 * REG_TEST_SAFE && L.ch > 2 * REG_TEST_SAFE) {
+      doc.setFillColor('#333a44');
+      doc.rect(T.x(x + B.x + REG_TEST_SAFE), T.y(y + B.y + REG_TEST_SAFE), T.w(L.cw - 2 * REG_TEST_SAFE), T.h(L.ch - 2 * REG_TEST_SAFE), 'F');
+    }
+  };
   /* page 1, the front: pierce targets */
   let turned = backTurn(doc, L, true, false, s);
+  if (tonerLoad) {
+    for (let i = 0; i < L.per; i++) { const p = slotPos(L, i, false, s); drawTonerCard(Tf, p.x, p.y); }
+  }
   doc.setTextColor('#000000'); doc.setFillColor('#000000');
   for (let i = 0; i < L.per; i++) { const p = slotPos(L, i, false, s); skeleton(Tf, p.x, p.y); }
   for (const p of pts) {
     const {x, y} = p.front;
+    if (tonerLoad) {
+      // Clean white window around each pierce crosshair and its label.
+      doc.setFillColor('#ffffff');
+      doc.circle(Tf.x(x), Tf.y(y), Tf.w(7.4), 'F');
+      doc.setFillColor('#000000');
+    }
     doc.setDrawColor('#000000'); doc.setLineWidth(0.15);
     for (const [a, b, c, e] of [[-4.5, 0, -2.2, 0], [2.2, 0, 4.5, 0], [0, -4.5, 0, -2.2], [0, 2.2, 0, 4.5]])
       doc.line(Tf.x(x + a), Tf.y(y + b), Tf.x(x + c), Tf.y(y + e));
@@ -10097,9 +10291,10 @@ function duplexCardTestDoc(L, s = S.settings) {
   }
   if (turned) backTurn(doc, L, false, false, s);
   doc.setFontSize(6.5);
+  doc.setTextColor('#000000');
   const note = 'DOUBLE-SIDED TEST, PAGE 1. Print at 100%. Turn the sheet over as Align front and back shows and print page 2 on its back. Pierce each ringed point from this side.';
   if (L.y0 >= 4) doc.text(note, L.W / 2, Math.min(L.y0 - 1.2, 4), {align: 'center', maxWidth: L.W - 20});
-  const baseStamp = `Back baseline baked into this test: ${duplexBackBaselineText(s)}`;
+  const baseStamp = `Back baseline baked into this test: ${duplexBackBaselineText(s)}${tonerLoad ? ' · toner-matched' : ''}`;
   const botGap = L.H - (L.y0 + L.gh);
   const botY = botGap >= 8 ? Math.min(L.H - 5.5, Math.max(L.y0 + L.gh + 3.5, L.H - botGap / 2)) : Math.min(L.H - 2.2, L.y0 + L.gh + 3.5);
   if (botGap >= 4) doc.text(baseStamp, L.W / 2, botY, {align: 'center', maxWidth: L.W - 20});
@@ -10107,14 +10302,30 @@ function duplexCardTestDoc(L, s = S.settings) {
   /* page 2, the back: read grids, the dots round them, and the card skeletons */
   doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
   turned = backTurn(doc, L, true, true, s);
+  if (tonerLoad) {
+    for (let i = 0; i < L.per; i++) { const p = slotPos(L, i, true, s); drawTonerCard(Tb, p.x, p.y); }
+  }
   for (let i = 0; i < L.per; i++) { const p = slotPos(L, i, true, s); skeleton(Tb, p.x, p.y); }
+  const oDy = duplexOrientDy(L);
   for (const p of pts) {
     const {x, y} = p.pre;
+    if (tonerLoad) {
+      // Generous pure-white knockout window covering the ±5 mm corner dots,
+      // ±5.5 mm local scan luminance window, grid label, and 1A's orientation dot.
+      const padX = 7.0;
+      let yLo = 7.0, yHi = 7.0;
+      if (f2 > 0) yHi = Math.max(yHi, 9.2); else yLo = Math.max(yLo, 9.2);
+      if (p.card === 0 && p.letter === 'A') {
+        if (oDy > 0) yHi = Math.max(yHi, oDy + 2.2); else yLo = Math.max(yLo, -oDy + 2.2);
+      }
+      doc.setFillColor('#ffffff');
+      doc.rect(Tb.x(x - padX), Tb.y(y - yLo), Tb.w(padX * 2), Tb.h(yLo + yHi), 'F');
+    }
     doc.setDrawColor(DUPLEX_GRID_CYAN); doc.setTextColor(DUPLEX_GRID_CYAN);
     drawReadGrid(doc, (dx, dy) => [Tb.x(x + f2 * dx), Tb.y(y + f2 * dy)], 1, {angle: rot2, font: 4.2});
     doc.setFillColor('#000000'); doc.setTextColor('#000000');
     for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) doc.circle(Tb.x(x + a * DUPLEX_DOT), Tb.y(y + b * DUPLEX_DOT), Tb.w(DUPLEX_DOT_R), 'F');
-    if (p.card === 0 && p.letter === 'A') doc.circle(Tb.x(x), Tb.y(y + duplexOrientDy(L)), Tb.w(DUPLEX_DOT_R), 'F');
+    if (p.card === 0 && p.letter === 'A') doc.circle(Tb.x(x), Tb.y(y + oDy), Tb.w(DUPLEX_DOT_R), 'F');
     doc.setFontSize(6.5);
     atext(doc, p.id, Tb.x(x + f2 * 1.2), Tb.y(y + f2 * 7.6), null, rot2);
   }
@@ -10127,7 +10338,7 @@ function duplexCardTestDoc(L, s = S.settings) {
   } else if (botGap >= 4) {
     doc.text(baseStamp, L.W / 2, botY, {align: 'center', maxWidth: L.W - 20});
   }
-  return {doc, points: pts};
+  return {doc, points: pts, tonerLoad};
 }
 
 // Fitting the back to the readings. A reading is where the hole sits on its
@@ -10176,13 +10387,17 @@ function duplexShear(pairs) {
 // through the back's current scale and turn, not just added to the mark. Moving
 // the grid's zero there makes the next sheet read zero with no approximation,
 // whatever the back settings already are.
-function solveDuplexReadings(L, s, readings) {
+function solveDuplexReadings(L, s, readings, opt = {}) {
+  const pass2 = !!opt.pass2;
   const pts = new Map(duplexCardPoints(L, s).map(p => [p.id, p])), f2 = duplexReadSign(L);
   const used = readings.filter(r => pts.has(r.id) && Number.isFinite(r.x) && Number.isFinite(r.y)).map(r => {
     const p = pts.get(r.id);
     return {id: r.id, pre: p.pre, from: p.mark, to: duplexMarkAt(L, s, {x: p.pre.x + f2 * r.x, y: p.pre.y + f2 * r.y}), reading: r};
   });
   if (!used.length) return {error: 'Enter at least one reading.'};
+  const rawDist = used.map(u => Math.hypot(u.reading.x, u.reading.y));
+  const rawRms = Math.sqrt(rawDist.reduce((a, v) => a + v * v, 0) / rawDist.length);
+  const rawMax = Math.max(...rawDist);
   const xs = used.map(u => u.from.x), ys = used.map(u => u.from.y);
   const spanX = Math.max(...xs) - Math.min(...xs), spanY = Math.max(...ys) - Math.min(...ys);
   // Perpendicular RMS spread from the best-fit line through the points (mm).
@@ -10194,8 +10409,9 @@ function solveDuplexReadings(L, s, readings) {
   const disc = Math.sqrt(Math.max(0, (sxx - syy) * (sxx - syy) + 4 * sxy * sxy));
   const perpSpread = Math.sqrt(Math.max(0, (sxx + syy - disc) / 2) / used.length);
   const twoD = used.length >= 3 && perpSpread >= 8;
-  let active = ['backOffsetX', 'backOffsetY'];
-  if (Math.hypot(spanX, spanY) >= 20) active.push('backRotate');
+  const rigidKeys = ['backOffsetX', 'backOffsetY'];
+  if (Math.hypot(spanX, spanY) >= 20) rigidKeys.push('backRotate');
+  let active = [...rigidKeys];
   let collinear = false;
   if (twoD) {
     if (spanX >= 30) active.push('backScaleX');
@@ -10208,6 +10424,11 @@ function solveDuplexReadings(L, s, readings) {
     collinear = true;
   }
   const resid = params => used.flatMap(u => { const m = duplexMarkAt(L, {...s, ...params}, u.pre); return [u.to.x - m.x, u.to.y - m.y]; });
+  const rmsOf = r => {
+    let sum = 0;
+    for (let i = 0; i < r.length; i += 2) sum += r[i] * r[i] + r[i + 1] * r[i + 1];
+    return Math.sqrt(sum / (r.length / 2));
+  };
   const runFit = (activeKeys, weights = null) => {
     const cur = Object.fromEntries(Object.keys(DUPLEX_FIT_STEP).map(k => [k, s[k]]));
     let converged = true;
@@ -10225,51 +10446,83 @@ function solveDuplexReadings(L, s, readings) {
     }
     return converged ? cur : null;
   };
-  let cur = runFit(active);
-  if (!cur && active.length > 3) {
-    active = active.filter(k => !k.startsWith('backScale'));
-    cur = runFit(active);
-  }
-  if (!cur && active.length > 2) {
-    active = ['backOffsetX', 'backOffsetY'];
-    cur = runFit(active);
-  }
-  if (!cur) return {error: 'Could not fit these readings. Check that the points are entered for the right cards.'};
   // Robust outlier isolation when 1+ gross typos/misreads (>0.5 mm) distort OLS.
   // Only adopted when downweighting/omitting outliers collapses the majority's error
   // (so a uniformly sheared sheet keeps its standard least-squares fit).
-  if (used.length >= 4) {
-    const r0 = resid(cur), d0 = used.map((_, i) => Math.hypot(r0[2 * i], r0[2 * i + 1]));
-    const medOf = arr => { const t = [...arr].sort((a, b) => a - b); return t[t.length >> 1]; };
-    const med0 = medOf(d0), max0 = Math.max(...d0);
-    if (max0 > 0.5) {
-      let bestRobust = cur, bestMed = med0;
-      // Leave-one-out check handles high-leverage single outliers even at N=4..12.
-      if (used.length <= 20) {
-        for (let drop = 0; drop < used.length; drop++) {
-          const w = used.map((_, i) => i === drop ? 0 : 1);
-          const cand = runFit(active, w);
-          if (!cand) continue;
-          const rc = resid(cand), dc = used.map((_, i) => Math.hypot(rc[2 * i], rc[2 * i + 1]));
-          const mc = medOf(dc);
-          if (mc < bestMed * 0.5 && mc < 0.2) { bestRobust = cand; bestMed = mc; }
+  const fitRobust = activeKeys => {
+    let cur = runFit(activeKeys);
+    if (!cur) return null;
+    if (used.length >= 4) {
+      const r0 = resid(cur), d0 = used.map((_, i) => Math.hypot(r0[2 * i], r0[2 * i + 1]));
+      const medOf = arr => { const t = [...arr].sort((a, b) => a - b); return t[t.length >> 1]; };
+      const med0 = medOf(d0), max0 = Math.max(...d0);
+      if (max0 > 0.5) {
+        let bestRobust = cur, bestMed = med0;
+        // Leave-one-out check handles high-leverage single outliers even at N=4..12.
+        if (used.length <= 20) {
+          for (let drop = 0; drop < used.length; drop++) {
+            const w = used.map((_, i) => i === drop ? 0 : 1);
+            const cand = runFit(activeKeys, w);
+            if (!cand) continue;
+            const rc = resid(cand), dc = used.map((_, i) => Math.hypot(rc[2 * i], rc[2 * i + 1]));
+            const mc = medOf(dc);
+            if (mc < bestMed * 0.5 && mc < 0.2) { bestRobust = cand; bestMed = mc; }
+          }
         }
+        // Tukey-like IRLS handles multiple outliers on larger point sets.
+        let irls = bestRobust;
+        for (let pass = 0; pass < 6; pass++) {
+          const rp = resid(irls), dp = used.map((_, i) => Math.hypot(rp[2 * i], rp[2 * i + 1]));
+          const w = dp.map(d => d <= 0.3 ? 1 : Math.pow(0.3 / d, 2));
+          const next = runFit(activeKeys, w);
+          if (!next) break;
+          irls = next;
+        }
+        const ri = resid(irls), di = used.map((_, i) => Math.hypot(ri[2 * i], ri[2 * i + 1]));
+        const mi = medOf(di);
+        if (mi < bestMed && mi < 0.2) { bestRobust = irls; bestMed = mi; }
+        if (bestRobust !== cur && bestMed < med0 * 0.5 && bestMed < 0.2) cur = bestRobust;
       }
-      // Tukey-like IRLS handles multiple outliers on larger point sets.
-      let irls = bestRobust;
-      for (let pass = 0; pass < 6; pass++) {
-        const rp = resid(irls), dp = used.map((_, i) => Math.hypot(rp[2 * i], rp[2 * i + 1]));
-        const w = dp.map(d => d <= 0.3 ? 1 : Math.pow(0.3 / d, 2));
-        const next = runFit(active, w);
-        if (!next) break;
-        irls = next;
-      }
-      const ri = resid(irls), di = used.map((_, i) => Math.hypot(ri[2 * i], ri[2 * i + 1]));
-      const mi = medOf(di);
-      if (mi < bestMed && mi < 0.2) { bestRobust = irls; bestMed = mi; }
-      if (bestRobust !== cur && bestMed < med0 * 0.5 && bestMed < 0.2) cur = bestRobust;
     }
+    return cur;
+  };
+  let scaleLocked = false;
+  let cur = null;
+  if (pass2 && active.some(k => k.startsWith('backScale'))) {
+    // Pass 2 rigid-first refinement: Pass 1 already measured sheet scale, so hold
+    // backScaleX/Y steady and solve the rigid (X, Y, angle) residual unless Pass 2
+    // demonstrates a genuine scale shift (e.g. thermal shrinkage under toner load).
+    const curRigid = fitRobust(rigidKeys);
+    const curFull = fitRobust(active);
+    if (curRigid && curFull) {
+      const rmsRigid = rmsOf(resid(curRigid)), rmsFull = rmsOf(resid(curFull));
+      const maxScaleDelta = Math.max(Math.abs(curFull.backScaleX - s.backScaleX), Math.abs(curFull.backScaleY - s.backScaleY));
+      if (rmsRigid - rmsFull >= 0.05 && rmsRigid > 0.18 && maxScaleDelta >= 0.04) {
+        cur = curFull;
+      } else {
+        cur = curRigid;
+        active = [...rigidKeys];
+        scaleLocked = true;
+      }
+    } else if (curRigid) {
+      cur = curRigid;
+      active = [...rigidKeys];
+      scaleLocked = true;
+    } else {
+      cur = curFull;
+    }
+  } else {
+    cur = fitRobust(active);
   }
+  if (!cur && active.length > 3) {
+    active = active.filter(k => !k.startsWith('backScale'));
+    cur = fitRobust(active);
+  }
+  if (!cur && active.length > 2) {
+    active = ['backOffsetX', 'backOffsetY'];
+    cur = fitRobust(active);
+  }
+  if (!cur) return {error: 'Could not fit these readings. Check that the points are entered for the right cards.'};
   if (!Number.isFinite(cur.backOffsetX) || !Number.isFinite(cur.backOffsetY)
     || Math.abs(cur.backOffsetX) > 40 || Math.abs(cur.backOffsetY) > 40
     || Math.abs(cur.backRotate) > 20 || cur.backScaleX < 80 || cur.backScaleX > 120 || cur.backScaleY < 80 || cur.backScaleY > 120) {
@@ -10279,7 +10532,9 @@ function solveDuplexReadings(L, s, readings) {
   const dist = per.map(p => Math.hypot(p.x, p.y));
   return {
     values: Object.fromEntries(active.map(k => [k, +cur[k].toFixed(3)])),
+    deltas: Object.fromEntries(active.map(k => [k, +(cur[k] - s[k]).toFixed(3)])),
     active, points: used.length, residuals: per, collinear,
+    pass2, scaleLocked, rawRms, rawMax, verified: rawMax <= 0.25 && rawRms <= 0.15,
     rms: Math.sqrt(dist.reduce((a, v) => a + v * v, 0) / dist.length), max: Math.max(...dist),
     // Measured from the grid as drawn before the back's settings, so a back that is
     // already turned and stretched unevenly does not read as sheared.
@@ -10354,7 +10609,7 @@ function readDuplexScan(img, L, s = S.settings) {
   const totalPx = w * h, stride = Math.max(1, Math.floor(totalPx / 8000)), sampleLum = [];
   for (let p = 0; p < totalPx; p += stride) sampleLum.push(lum(data, p * 4));
   sampleLum.sort((a, b) => a - b);
-  const paperLum = Math.max(180, Math.min(255, sampleLum[Math.floor(sampleLum.length * 0.9)] || 245));
+  const paperLum = Math.max(180, Math.min(255, sampleLum[Math.floor(sampleLum.length * 0.94)] || 245));
   const dotLumThr = Math.round(Math.max(85, Math.min(135, paperLum * 0.45)));
   // Round, solid, dark blobs: the dots, and nothing that is a line or a letter.
   const blobs = darkComponents(img, (d, i) => lum(d, i) < dotLumThr).filter(c => {
@@ -10618,6 +10873,9 @@ function openDuplexWizard(state = {}, backLabel = '') {
   const draft = alignmentDrafts.get(alignmentDraftKey());
   const frontEdge = ['left', 'right', 'top', 'bottom'].includes(state.frontEdge) ? state.frontEdge : leadEdge(L);
   let baselineMode = state.baselineMode === 'zero' ? 'zero' : 'current';
+  const isLaser = printerOf(S.printer)?.kind === 'Laser';
+  let tonerTouched = typeof state.tonerLoad === 'boolean';
+  let tonerLoad = tonerTouched ? state.tonerLoad : (hasBackAlignment(s) && baselineMode === 'current' && isLaser);
   const inUnit = v => s.backOffsetUnit === 'in' ? `${(v / 25.4).toFixed(3)} in` : `${v.toFixed(2)} mm`;
   const edgeOptionLabel = x => `${x[0].toUpperCase()}${x.slice(1)} edge (${paperEdgeName(x, L).split(' ')[1]} edge)`;
   const choice = ([mode, name]) => `<button type="button" class="duplex-choice${s.duplexFlip === mode ? ' on' : ''}" data-flip="${mode}" role="radio" aria-checked="${s.duplexFlip === mode}">
@@ -10625,7 +10883,11 @@ function openDuplexWizard(state = {}, backLabel = '') {
     ${duplexFlipDiagram(L, mode, frontEdge)}</button>`;
   const closeLabel = document.body.classList.contains('print-settings-active') ? '← Back to alignment' : 'Close';
   openModal(`<div class="hd"><b>Align front and back</b><button data-close>${closeLabel}</button></div><div class="bd">
-    <p class="hint" style="margin-top:0">${L.scm ? 'The template fixes the front. The readings below adjust the back.' : 'Use the <b>Alignment sheet</b> to check the front first.'}</p>
+    <div class="duplex-pass-bar" id="duplexWizardPassBar" aria-label="Calibration pass">
+      <span class="duplex-pass-pill" id="duplexPass1Pill">Pass 1 · Initial scan</span>
+      <span class="duplex-pass-pill" id="duplexPass2Pill">Pass 2 · Verify &amp; refine</span>
+    </div>
+    <p class="hint" style="margin-top:0">${L.scm ? 'The template fixes the front. Run Pass 1 at 0, apply, then print and scan Pass 2 to lock in real-print drift.' : 'Use the <b>Alignment sheet</b> to check the front first. Run Pass 1 at 0, apply, then print and scan Pass 2 to refine.'}</p>
 
     <h4 class="wiz-h">1. ${L.scm ? 'Use long-edge flip' : 'Choose how the paper flips'}</h4>
     <div class="duplex-choices" id="duplexWizardChoices" role="radiogroup" aria-label="Double-sided flip">${DUPLEX_FLIPS.filter(([mode])=>!L.scm || mode === 'long').map(choice).join('')}</div>
@@ -10634,19 +10896,20 @@ function openDuplexWizard(state = {}, backLabel = '') {
       <div class="hint">The yellow line shows the edge that goes in first.</div></div>
     <p class="callout-box" id="duplexWizardFeed" style="margin:10px 0"></p>
 
-    <h4 class="wiz-h">2. Print the test</h4>
+    <h4 class="wiz-h" id="duplexWizardStep2H">2. Print the test</h4>
     <ol class="steps">
       <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b>.</li>
       <li>Flip the sheet as shown above and print page 2 on the back.</li>
     </ol>
-    <p class="hint duplex-test-note" id="duplexWizardTestNote" hidden>Downloads with your current back alignment baked in (<span class="num" id="duplexWizardTestNoteVals"></span>). <button type="button" id="duplexWizardTestReset" class="icon">Reset to 0 first</button></p>
+    <label class="check duplex-toner-opt"><input type="checkbox" id="duplexWizardToner"${tonerLoad ? ' checked' : ''}><span><b>Match card toner load</b> — fills card slots outside the grids so laser fuser heat and feed drag match real cards</span></label>
+    <p class="hint duplex-test-note" id="duplexWizardTestNote" hidden>Downloads with your Pass 1 alignment baked in (<span class="num" id="duplexWizardTestNoteVals"></span>). <button type="button" id="duplexWizardTestReset" class="icon">Reset to 0 first</button></p>
 
-    <h4 class="wiz-h">3. Enter the readings</h4>
+    <h4 class="wiz-h" id="duplexWizardStep3H">3. Enter the readings</h4>
     <div class="warn duplex-base-warn" id="duplexWizardBaseWarn" hidden>
-      <div><b>Existing back alignment is active:</b> <span class="num" id="duplexWizardBaseVals"></span></div>
+      <div><b>Pass 2 refinement — active baseline:</b> <span class="num" id="duplexWizardBaseVals"></span></div>
       <div class="duplex-base-opts" id="duplexWizardBaseOpts" role="radiogroup" aria-label="Test sheet baseline">
-        <label class="check"><input type="radio" name="duplexBaseMode" value="current"${baselineMode === 'current' ? ' checked' : ''}><span><b>Add to current values</b> — sheet printed with the baseline above</span></label>
-        <label class="check"><input type="radio" name="duplexBaseMode" value="zero"${baselineMode === 'zero' ? ' checked' : ''}><span><b>Replace from 0</b> — sheet printed at 0 (unadjusted)</span></label>
+        <label class="check"><input type="radio" name="duplexBaseMode" value="current"${baselineMode === 'current' ? ' checked' : ''}><span><b>Pass 2 — refine current values</b> (sheet printed with the baseline above)</span></label>
+        <label class="check"><input type="radio" name="duplexBaseMode" value="zero"${baselineMode === 'zero' ? ' checked' : ''}><span><b>Pass 1 — replace from 0</b> (sheet printed at 0, unadjusted)</span></label>
       </div>
     </div>
     <p class="hint">Push a pin through each ring center from page 1. Read where holes land on page 2 (1 square = 1 mm).</p>
@@ -10672,7 +10935,6 @@ function openDuplexWizard(state = {}, backLabel = '') {
     ${draft && BACK_CAL_KEYS.some(k => Object.hasOwn(draft,k)) ? '<p class="hint">Applying readings replaces your unapplied back-page values.</p>' : ''}
     <div class="row" style="margin-top:8px"><button id="duplexWizardApply" class="primary">Apply readings</button><button id="duplexWizardClear">Clear readings</button><button id="duplexWizardZero">Reset back alignment</button></div>
     <p id="duplexWizardStatus" class="hint" role="status"></p>
-    <p class="hint">Print the test again. Every reading should be 0.</p>
   </div>`, backLabel);
   $('#modal').classList.add('duplex');
 
@@ -10698,7 +10960,19 @@ function openDuplexWizard(state = {}, backLabel = '') {
   let fit = null;
   const refresh = () => {
     const hasBack = hasBackAlignment(s);
+    const inPass2 = hasBack && !replacingFromZero();
     const baseText = duplexBackBaselineText(s);
+    if (!tonerTouched) {
+      tonerLoad = inPass2 && isLaser;
+      const tEl = $('#duplexWizardToner');
+      if (tEl) tEl.checked = tonerLoad;
+    }
+    $('#duplexPass1Pill').className = `duplex-pass-pill${inPass2 ? ' done' : ' on'}`;
+    $('#duplexPass1Pill').textContent = inPass2 ? '✓ Pass 1 · Applied' : 'Pass 1 · Initial scan';
+    $('#duplexPass2Pill').className = `duplex-pass-pill${inPass2 ? ' on' : ''}`;
+    $('#duplexWizardStep2H').textContent = inPass2 ? '2. Print Pass 2 test' : '2. Print Pass 1 test';
+    $('#duplexWizardStep3H').textContent = inPass2 ? '3. Scan Pass 2 & refine' : '3. Scan Pass 1 & apply';
+    $('#duplexWizardApply').textContent = inPass2 ? 'Apply Pass 2 refinement' : 'Apply Pass 1';
     $('#duplexWizardTestNote').hidden = !hasBack;
     $('#duplexWizardTestNoteVals').textContent = baseText;
     $('#duplexWizardBaseWarn').hidden = !hasBack;
@@ -10710,7 +10984,13 @@ function openDuplexWizard(state = {}, backLabel = '') {
     const got = entered();
     $('#duplexWizardEntered').innerHTML = got.length ? `<span class="num">${got.length}</span> point${got.length === 1 ? '' : 's'} entered: <span class="num">${esc(got.map(r => r.id).join(', '))}</span>.` : 'No readings entered yet.';
     const base = activeBase();
-    fit = got.length ? solveDuplexReadings(L, base, got) : null;
+    fit = got.length ? solveDuplexReadings(L, base, got, {pass2: inPass2}) : null;
+    if (inPass2 && fit && !fit.error && fit.verified) {
+      $('#duplexPass2Pill').className = 'duplex-pass-pill done';
+      $('#duplexPass2Pill').textContent = '✓ Pass 2 · Aligned';
+    } else {
+      $('#duplexPass2Pill').textContent = 'Pass 2 · Verify & refine';
+    }
     $('#duplexWizardApply').disabled = !fit || !!fit.error;
     $('#duplexWizardClear').disabled = !got.length;
     if (!fit || fit.error) { $('#duplexWizardSum').textContent = fit?.error || 'Enter X and Y for at least one point.'; return; }
@@ -10719,10 +10999,22 @@ function openDuplexWizard(state = {}, backLabel = '') {
     const lines = [...fit.active, ...resetKeys].map(k => `${FIT_LABEL[k][0]}: <span class="num">${esc(FIT_LABEL[k][1](s[k]))}</span> → <b class="num">${esc(FIT_LABEL[k][1](nextVals[k]))}</b>`);
     const off = fit.residuals.filter(r => Math.hypot(r.x, r.y) > 0.3).map(r => r.id);
     const notes = [];
-    if (hasBack) notes.push(replacingFromZero() ? 'Replacing current back alignment from a 0 baseline.' : `Adding onto current back alignment (<span class="num">${esc(baseText)}</span>).`);
+    if (hasBack) {
+      if (replacingFromZero()) {
+        notes.push('Replacing current back alignment from a 0 baseline.');
+      } else {
+        const beforeAfter = `Pass 2 measured <span class="num">${fit.rawRms.toFixed(2)}</span> mm avg (<span class="num">${fit.rawMax.toFixed(2)}</span> mm max) residual`;
+        if (fit.verified) {
+          notes.push(`<span class="duplex-verified">Already aligned:</span> ${beforeAfter} — ready to print cards, or apply this tiny polish.`);
+        } else {
+          notes.push(`Adding onto current back alignment (<span class="num">${esc(baseText)}</span>). ${beforeAfter}.`);
+        }
+        if (fit.scaleLocked) notes.push(`Keeping Pass 1 size (<span class="num">${s.backScaleX.toFixed(2)}% × ${s.backScaleY.toFixed(2)}%</span>) locked — Pass 2 residual is a clean shift + angle.`);
+      }
+    }
     if (!fit.active.includes('backRotate')) notes.push('These points are close together, so they correct the offset only. Add points on cards far apart to correct the angle and the size as well.');
     else if (fit.collinear) notes.push('These points lie along one line, so they correct offset and angle only. Add a point off that line to correct X/Y size too.');
-    else if (!fit.active.includes('backScaleX') || !fit.active.includes('backScaleY')) notes.push(`Add points further apart ${!fit.active.includes('backScaleX') ? 'across the sheet' : 'up and down the sheet'} to correct the size in that direction too.`);
+    else if (!fit.scaleLocked && (!fit.active.includes('backScaleX') || !fit.active.includes('backScaleY'))) notes.push(`Add points further apart ${!fit.active.includes('backScaleX') ? 'across the sheet' : 'up and down the sheet'} to correct the size in that direction too.`);
     if (fit.points > 1) notes.push(`With these values every point lands within <span class="num">${fit.max.toFixed(2)}</span> mm (average <span class="num">${fit.rms.toFixed(2)}</span> mm).`);
     if (off.length) notes.push(`${esc(off.join(', '))} ${off.length === 1 ? 'disagrees' : 'disagree'} with the rest by more than <span class="num">0.3</span> mm. Check ${off.length === 1 ? 'that reading' : 'those readings'}.`);
     if (fit.shear !== null && Math.abs(fit.shear) >= 0.05) notes.push(`The back is also skewed by <span class="num">${fit.shear.toFixed(2)}</span>°: its sides are not square to each other. No setting can correct skew, so the values above are the closest square fit.`);
@@ -10745,7 +11037,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
       clearBackOffsetDraft([...Object.keys(vals), 'backScaleX', 'backScaleY']);
       noteCalibration('back', 'measured');
       S.activePreset = null; save(); renderAll(); scmNow(); refresh();
-      $('#duplexWizardStatus').textContent = `Saved the Card Maker offset ${from}: back offset ${inUnit(s.backOffsetX)} by ${inUnit(s.backOffsetY)}, angle ${s.backRotate.toFixed(2)}°, size 100% (Card Maker has no size setting). Print the test again to check.`;
+      $('#duplexWizardStatus').textContent = `Saved the Card Maker offset ${from}: back offset ${inUnit(s.backOffsetX)} by ${inUnit(s.backOffsetY)}, angle ${s.backRotate.toFixed(2)}°, size 100% (Card Maker has no size setting). Print Pass 2 to verify.`;
     };
     $('#duplexScmUse').onclick = () => {
       const x = num($('#duplexScmX').value), y = num($('#duplexScmY').value), a = num($('#duplexScmA').value);
@@ -10789,8 +11081,12 @@ function openDuplexWizard(state = {}, backLabel = '') {
     next?.click();
   });
   $('#duplexWizardFrontEdge').onchange = () => {
-    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings, baselineMode});
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings, baselineMode, tonerLoad: tonerTouched ? tonerLoad : undefined});
     $('#duplexWizardFrontEdge')?.focus();
+  };
+  $('#duplexWizardToner').onchange = ev => {
+    tonerTouched = true;
+    tonerLoad = !!ev.target.checked;
   };
   $('#duplexWizardBaseOpts').onchange = ev => {
     if (ev.target.name !== 'duplexBaseMode') return;
@@ -10833,9 +11129,9 @@ function openDuplexWizard(state = {}, backLabel = '') {
       }
       for (const r of res.readings) readings.set(r.id, {x: r.x, y: r.y});
       rows(); refresh();
-      const far = res.shift ? ` The back was about ${Math.round(Math.hypot(...res.shift))} mm off, past the grids, so these readings are a first pass: apply them and print the test again for the exact values.` : '';
-      const baseNote = hasBackAlignment(s) && !replacingFromZero() ? ' Adding onto your current back alignment — if this test sheet was printed at 0, select "Replace from 0" above.' : '';
-      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}. Apply these, print the test again, and the next scan reads them all.` : ''}${far}${baseNote} Check the values, then apply.`;
+      const far = res.shift ? ` The back was about ${Math.round(Math.hypot(...res.shift))} mm off, past the grids, so these readings are a first pass: apply them and print Pass 2 for the exact values.` : '';
+      const baseNote = hasBackAlignment(s) && !replacingFromZero() ? ' Refining Pass 1 values — if this test sheet was printed at 0, select "Pass 1 — replace from 0" above.' : '';
+      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}. Apply these, print Pass 2, and the next scan reads them all.` : ''}${far}${baseNote} Check the values, then apply.`;
     } catch (e) {
       $('#duplexWizardStatus').textContent = `The scan could not be read: ${e.message}`;
     } finally {
@@ -10845,20 +11141,32 @@ function openDuplexWizard(state = {}, backLabel = '') {
       ev.target.value = '';
     }
   };
-  $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
+  $('#duplexWizardTest').onclick = () => {
+    if (!window.jspdf) return toast('PDF library failed to load.');
+    const useToner = !!$('#duplexWizardToner')?.checked;
+    const passNum = hasBackAlignment(s) ? 2 : 1;
+    const fname = `double-sided-test-pass${passNum}${useToner ? '-toner' : ''}.pdf`;
+    duplexCardTestDoc(layout(), S.settings, {tonerLoad: useToner}).doc.save(fname);
+    toast(`Pass ${passNum} double-sided test${useToner ? ' (toner-matched)' : ''} downloaded. Print page 1 at 100%, flip as shown, and print page 2 on its back.`, 8000);
+  };
   $('#duplexWizardApply').onclick = () => {
     const applied = fit;
     if (!applied || applied.error) { $('#duplexWizardStatus').textContent = 'Enter X and Y for at least one point.'; return; }
     const fromZero = replacingFromZero();
+    const wasPass2 = hasBackAlignment(s) && !fromZero;
     if (fromZero) Object.assign(s, {backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100});
     for (const k of applied.active) s[k] = applied.values[k];
     s.backOffsetRel = true;
     clearBackOffsetDraft(fromZero ? BACK_CAL_KEYS : applied.active);
     noteCalibration('back', 'measured');
     baselineMode = 'current';
+    if (!wasPass2 && !tonerTouched) tonerLoad = isLaser;
     S.activePreset = null; save(); renderAll();
     readings.clear(); rows(); refresh(); if (L.scm) scmNow();
-    $('#duplexWizardStatus').textContent = `Saved. ${applied.active.map(k => `${FIT_LABEL[k][0]} ${FIT_LABEL[k][1](s[k])}`).join(', ')}. Print the test again to check.`;
+    const summary = applied.active.map(k => `${FIT_LABEL[k][0]} ${FIT_LABEL[k][1](s[k])}`).join(', ');
+    $('#duplexWizardStatus').textContent = wasPass2
+      ? `Pass 2 refinement saved (${summary}). Alignment is dialed in — you can print cards now or scan one more sheet to verify.`
+      : `Pass 1 saved (${summary}). Now download and print the Pass 2 test${isLaser ? ' (toner-matched is checked)' : ''} and scan again to catch any remaining fuser or feed drift.`;
   };
   $('#duplexWizardClear').onclick = () => { readings.clear(); rows(); refresh(); $('#duplexWizardStatus').textContent = ''; };
   $('#duplexWizardZero').onclick = () => {
@@ -10868,6 +11176,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     clearBackOffsetDraft(BACK_CAL_KEYS);
     noteCalibration('back', 'none');
     baselineMode = 'current';
+    tonerTouched = false;
     S.activePreset = null; save(); renderAll();
     refresh(); if (L.scm) scmNow();
     $('#duplexWizardStatus').textContent = 'Back-page alignment cleared.';
@@ -12526,6 +12835,7 @@ addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('
 addEventListener('dragover', e => e.preventDefault());
 addEventListener('drop', async e => {
   e.preventDefault(); dragDepth = 0; $('#drop').classList.remove('on');
+  if (e.dataTransfer?.types?.includes(CARD_DRAG_MIME)) return;
   const files = [...(e.dataTransfer?.files || [])];
   const shared = files.find(f => /\.json$/i.test(f.name));
   if (shared) return openPrintDeckFile(shared);
