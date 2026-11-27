@@ -1,9 +1,9 @@
-# Proxy Press v0.10.5
+# Proxy Press v0.10.6
 
-- Added a pinpoint `0.2 mm` center target dot inside each front-page pierce ring on the double-sided alignment test sheet so pins can be centered accurately.
+- Omitted unnecessary cutter registration marks on the back pages of Silhouette Card Maker templates in both Sheet Preview and exported PDFs (front pages keep all registration marks).
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/Proxy-Press-0.10.5.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/Proxy-Press-0.10.5.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/Proxy-Press-0.10.6.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/Proxy-Press-0.10.6.msi).
 
-**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/Proxy-Press-0.10.5.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/Proxy-Press-0.10.5.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/Proxy-Press-0.10.5.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/Proxy-Press-0.10.5.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.10.5/proxypress-bin-aur.tar.gz).
+**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/Proxy-Press-0.10.6.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/Proxy-Press-0.10.6.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/Proxy-Press-0.10.6.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/Proxy-Press-0.10.6.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.10.6/proxypress-bin-aur.tar.gz).
