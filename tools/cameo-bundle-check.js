@@ -338,7 +338,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
       assert.equal(fixedFront,front,'front artwork and marks stay fixed');
       near((image(adjustedBack)[4] - image(back)[4])/pt,1.25);
       const registration = page => page.match(/^.* re$/gm);
-      assert.deepEqual(registration(adjustedBack),registration(back),'back registration marks stay fixed');
+      assert.equal(registration(adjustedBack), null, 'back page has no registration marks');
     }
     const [w,,,h,left,bottom] = image(front);
     const [,,,backH,,backBottom] = image(back);
@@ -347,7 +347,7 @@ const near = (a,b,tolerance=0.001)=>assert.ok(Math.abs(a-b)<tolerance,`${a} diff
     near(left/pt+0.625,x*size);
     near(L.H-(bottom+h)/pt+0.625,y*size);
     assert.equal((front.match(/ re\n/g)||[]).length,5);
-    assert.equal((back.match(/ re\n/g)||[]).length,5);
+    assert.equal((back.match(/ re\n/g)||[]).length,0,'back page omits registration marks');
     for (const page of [front,back]) assert.doesNotMatch(page,/^BT$/m,`${file}: blank labels should print no text`);
     assert.ok(Math.abs(backBottom-bottom)>backH/2,'the first back belongs to the mirrored row');
     if (process.argv[2]) {

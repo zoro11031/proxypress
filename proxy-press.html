@@ -9000,7 +9000,7 @@ async function drawPreview() {
   const backTransform = backRot === 180 ? 'inverted 180°' : backRot ? `rotated ${Math.abs(backRot)}°` : 'not rotated';
   const backNote = back ? ` · back (${backTransform} for ${edge} feed)` : '';
   el.innerHTML = `<span class="lbl">Page ${S.activeSheet + 1} · ${fmtMm(L.W)} × ${fmtMm(L.H)} mm${backNote}</span>${pRot ? '' : matRulers(L, z)}`;
-  const lines = back ? [] : cachedGuideLines(L, page, s), reg = back && !L.scm ? {rects:[], lines:[]} : regMarks(L, s);
+  const lines = back ? [] : cachedGuideLines(L, page, s), reg = back ? {rects:[], lines:[]} : regMarks(L, s);
   const underLines = lines.filter(l => !l[6]), overLines = lines.filter(l => l[6]);
   const sw = Math.max(0.75, s.guideWidth*z);
   if (underLines.length) {
@@ -9477,7 +9477,7 @@ async function exportPrintJob(job, withCut = false) {
           }
         }
         if (turned) backTurn(doc, L, false, back, s);
-        if ((!back || L.scm) && regInk.length) {
+        if (!back && regInk.length) {
           doc.setFillColor('#000000');
           for (const [x,y,w,h] of regInk) doc.rect(x,y,w,h,'F');
         }
