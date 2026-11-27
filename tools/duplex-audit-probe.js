@@ -95,6 +95,49 @@
       const maxErr = Math.max(...scanRes.readings.map(r => Math.hypot(r.x - trueDx, r.y - trueDy)));
       near('noisy matte scan max reading error', maxErr, 0, 0.15);
     }
+
+    // 8. duplexCardTestDoc stamps the baked-in back baseline on both pages.
+    {
+      const d0 = duplexCardTestDoc(L, s).doc;
+      const p0a = d0.internal.pages[1].join('\n'), p0b = d0.internal.pages[2].join('\n');
+      check('zero-baseline test PDF stamps 0 on page 1', p0a.includes('Back baseline baked into this test: 0'));
+      check('zero-baseline test PDF stamps 0 on page 2', p0b.includes('Back baseline baked into this test: 0'));
+      const sNonZero = {...s, backOffsetX: 2.8, backOffsetY: -2.2, backRotate: -0.62, backScaleX: 100.1, backScaleY: 100};
+      const d1 = duplexCardTestDoc(L, sNonZero).doc;
+      const p1a = d1.internal.pages[1].join('\n'), p1b = d1.internal.pages[2].join('\n');
+      check('non-zero test PDF stamps active offset on page 1', p1a.includes('Back baseline baked into this test: X +2.80 mm, Y -2.20 mm, angle -0.62'));
+      check('non-zero test PDF stamps active offset on page 2', p1b.includes('Back baseline baked into this test: X +2.80 mm, Y -2.20 mm, angle -0.62'));
+    }
+
+    // 9. Duplex wizard warns when existing back alignment is active and supports "Replace from 0".
+    {
+      S.settings = {...s, backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100};
+      openDuplexWizard();
+      check('wizard hides baseline warning at 0', $('#duplexWizardBaseWarn').hidden === true && $('#duplexWizardTestNote').hidden === true);
+      closeModal(true);
+
+      S.settings = {...s, backOffsetX: 2.8, backOffsetY: -2.2, backRotate: -0.62, backScaleX: 100.12, backScaleY: 100.04};
+      openDuplexWizard();
+      check('wizard shows baseline warning when non-zero', $('#duplexWizardBaseWarn').hidden === false && $('#duplexWizardTestNote').hidden === false);
+      check('wizard warning lists active offset values', $('#duplexWizardBaseVals').textContent.includes('+2.80 mm') && $('#duplexWizardBaseVals').textContent.includes('-2.20 mm'));
+      const setRead = (id, x, y) => { for (const [ax, v] of [['x', x], ['y', y]]) { const el = document.querySelector(`#duplexWizardPoints input[data-id="${id}"][data-ax="${ax}"]`); el.value = v; el.dispatchEvent(new Event('input', {bubbles: true})); } };
+      setRead('1E', '0.5', '1.0');
+      const sumStack = $('#duplexWizardSum').textContent;
+      check('default mode stacks onto current values', sumStack.includes('Adding onto current back alignment'));
+      // Switch to Replace from 0 without losing readings.
+      const zeroRadio = document.querySelector('#duplexWizardBaseOpts input[value="zero"]');
+      zeroRadio.checked = true;
+      zeroRadio.dispatchEvent(new Event('change', {bubbles: true}));
+      const sumZero = $('#duplexWizardSum').textContent;
+      check('replace-from-0 mode updates summary live', sumZero.includes('Replacing current back alignment from a 0 baseline') && sumZero.includes('-0.50 mm'));
+      $('#duplexWizardApply').click();
+      near('replace-from-0 applies X from 0', S.settings.backOffsetX, -0.5, 0.01);
+      near('replace-from-0 applies Y from 0', S.settings.backOffsetY, -1.0, 0.01);
+      near('replace-from-0 clears stale backRotate', S.settings.backRotate, 0, 1e-6);
+      near('replace-from-0 clears stale backScaleX', S.settings.backScaleX, 100, 1e-6);
+      near('replace-from-0 clears stale backScaleY', S.settings.backScaleY, 100, 1e-6);
+      closeModal(true);
+    }
   } catch (err) {
     fails.push('threw: ' + (err.stack || err));
   } finally {

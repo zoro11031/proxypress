@@ -352,6 +352,12 @@ body:not(.preview-focus) #stage .toolbar .quick-paper-cluster{display:none}
 .duplex-points th[scope=row]{white-space:nowrap}
 .duplex-points .pt-name{display:block;font-size:var(--t-s);color:var(--muted)}
 .duplex-read{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-md);padding:10px;max-width:480px}
+.duplex-base-warn{max-width:74ch}
+.duplex-base-warn .num,.duplex-test-note .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.duplex-base-opts{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.duplex-base-opts .check{margin:0;align-items:flex-start;color:var(--text);font-size:12px}
+.duplex-base-opts .check input{margin-top:2px}
+.duplex-test-note{margin:6px 0 0}
 @keyframes scrim-in{from{background-color:transparent}}
 @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .modal .hd{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
@@ -1109,6 +1115,7 @@ body:not(.has-cards) #btnXml{background:var(--panel2);border-color:var(--line);c
           <button id="deckDup" role="menuitem">Duplicate deck</button>
           <button id="btnTokens" role="menuitem" hidden>Add needed tokens</button>
           <button id="btnCopyList" role="menuitem">Copy decklist</button>
+          <button id="btnExportCustomPngs" role="menuitem" hidden>Export custom cards (PNG)</button>
           <button id="btnReplace" role="menuitem">Replace from decklist…</button>
           <button id="btnUndoReplace" role="menuitem" style="display:none">Undo deck replacement</button>
           <button id="btnClear" role="menuitem" class="danger">Remove all cards</button>
@@ -5500,6 +5507,12 @@ function syncImportDrawer() {
   $('#btnImport').textContent = replace ? 'Review replacement' : 'Add to deck';
   $('#btnAddInstead').hidden = !replace;
   $('#btnTokens').hidden = !deck()?.entries.length;
+  const customPngBtn = $('#btnExportCustomPngs');
+  if (customPngBtn) {
+    const customCount = deckCustomCardFaces().length;
+    customPngBtn.hidden = !customCount;
+    customPngBtn.textContent = customCount > 1 ? `Export ${customCount} custom cards (PNG zip)` : 'Export custom card (PNG)';
+  }
 }
 function openDeckImport() {
   if (document.body.classList.contains('preview-focus')) setPreviewFocus(false);
@@ -5686,6 +5699,7 @@ $('#btnLink').onclick = () => {
   $('#linkIn').focus();
 };
 $('#btnTokens').onclick = addTokens;
+$('#btnExportCustomPngs').onclick = () => { $('#deckMenu').removeAttribute('open'); exportDeckCustomPngs(); };
 $('#btnUpload').onclick = () => $('#fileUpload').click();
 $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.target.value = ''; };
 const clearDeck = async () => {
@@ -6661,6 +6675,111 @@ function manaCounts(str) {
 }
 const manaFromCounts = c => '{X}'.repeat(c.X || 0) + (c.N ? `{${c.N}}` : '') + '{C}'.repeat(c.C || 0) + [...'WUBRG'].map(k => `{${k}}`.repeat(c[k] || 0)).join('');
 
+function customCardFilename(name, suffix = '') {
+  const base = toolSanitize((name || 'Custom card').trim() || 'Custom card').replace(/\.png$/i, '');
+  return `${base}${suffix}.png`;
+}
+
+async function customCardCanvasToPngBlob(canvas, includeBleed = true) {
+  let out = canvas;
+  if (!includeBleed) {
+    const k = canvas.width / (63 + 2 * MPC_BLEED);
+    const pad = Math.round(MPC_BLEED * k);
+    const w = Math.max(1, canvas.width - 2 * pad), h = Math.max(1, canvas.height - 2 * pad);
+    out = document.createElement('canvas');
+    out.width = w; out.height = h;
+    out.getContext('2d').drawImage(canvas, pad, pad, w, h, 0, 0, w, h);
+  }
+  const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+  if (!blob) throw new Error('Failed to encode PNG.');
+  return blob;
+}
+
+async function savedCustomFacePngBlob(face, includeBleed = true) {
+  if (includeBleed && face.custom) {
+    const stored = await store.get('images', face.custom);
+    if (stored?.size && stored.type === 'image/png') return stored;
+  }
+  if (face.template) {
+    let art = null;
+    if (face.template.artKey) {
+      const u = await customUrl(face.template.artKey);
+      if (u) art = await loadImage(u).catch(() => null);
+    }
+    const c = await renderCustomCard({...face.template}, art, 600 / 25.4);
+    return customCardCanvasToPngBlob(c, includeBleed);
+  }
+  if (face.custom) {
+    const stored = await store.get('images', face.custom);
+    if (stored?.size) {
+      if (stored.type === 'image/png' && includeBleed) return stored;
+      const u = URL.createObjectURL(stored);
+      try {
+        const im = await loadImage(u);
+        const cv = document.createElement('canvas');
+        cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+        cv.getContext('2d').drawImage(im, 0, 0);
+        return customCardCanvasToPngBlob(cv, includeBleed);
+      } finally { URL.revokeObjectURL(u); }
+    }
+  }
+  throw new Error(`No image found for ${face.name || 'custom card'}.`);
+}
+
+function deckCustomCardFaces(d = deck()) {
+  const out = [];
+  for (const e of d?.entries || []) {
+    e.faces.forEach((f, i) => {
+      if (f?.template) out.push({e, f, i});
+    });
+  }
+  return out;
+}
+
+async function exportCustomFacePng(e, i, includeBleed = true) {
+  const f = e?.faces?.[i];
+  if (!f?.template) return toast('This card is not a custom created card.');
+  busy(true, 'Exporting PNG…');
+  try {
+    const blob = await savedCustomFacePngBlob(f, includeBleed);
+    const suffix = e.faces.length > 1 ? (i === 0 ? ' - Front' : ' - Back') : '';
+    const label = f.template?.skin || f.name || e.name || 'Custom card';
+    download(blob, customCardFilename(label, suffix));
+    toast(`Exported ${label} as PNG.`);
+  } catch (err) {
+    toast('Could not export PNG: ' + err.message, 6000);
+  } finally { busy(false); }
+}
+
+async function exportDeckCustomPngs(includeBleed = true) {
+  const d = deck();
+  const items = deckCustomCardFaces(d);
+  if (!items.length) return toast('No custom created cards in this deck.');
+  if (items.length === 1) {
+    const {e, i} = items[0];
+    return exportCustomFacePng(e, i, includeBleed);
+  }
+  busy(true, 'Exporting custom cards…');
+  try {
+    const files = [], used = new Set();
+    for (const [idx, {e, f, i}] of items.entries()) {
+      busyProgress(idx / items.length, `Preparing PNG ${idx + 1} of ${items.length}…`);
+      const blob = await savedCustomFacePngBlob(f, includeBleed);
+      const suffix = e.faces.length > 1 ? (i === 0 ? ' - Front' : ' - Back') : '';
+      const label = f.template?.skin || f.name || e.name || 'Custom card';
+      let name = customCardFilename(label, suffix);
+      for (let k = 2; used.has(name.toLowerCase()); k++) name = name.replace(/\.png$/i, ` (${k}).png`);
+      used.add(name.toLowerCase());
+      files.push({name, data: new Uint8Array(await blob.arrayBuffer())});
+    }
+    busyProgress(1, 'Packing zip…'); await sleep(20);
+    download(makeZip(files), `${orderName(d)} - custom cards.zip`);
+    toast(`Exported ${files.length} custom card PNGs.`);
+  } catch (err) {
+    toast('Could not export custom cards: ' + err.message, 6000);
+  } finally { busy(false); }
+}
+
 async function openCardMaker(target) {
   const editorDeck = deck(), editorRevision = captureDeckRevision(editorDeck);
   busy(true, 'Loading your frames…'); await serverAssetsP; busy(false);
@@ -6700,7 +6819,7 @@ async function openCardMaker(target) {
     <input type="text" id="ccManaText" value="${esc(t.mana || '')}" placeholder="e.g. 2UU, XR, W/U or {2}{U}{U}" ${manaAdv ? '' : 'hidden'} aria-label="Mana cost">
     <label class="check" style="margin-top:6px"><input type="checkbox" id="ccManaAdv" ${manaAdv ? 'checked' : ''}> Type it instead (hybrid, Phyrexian, split costs)</label></div>`;
   const textField = ([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label for="cc-${k}">${label}</label>${k === 'text' || k === 'flavor' ? `<textarea id="cc-${k}" data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input id="cc-${k}" type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`;
-  openModal(`<div class="hd"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name ? esc(t.name) + ' · custom card' : 'Custom card'}</b><div class="row" style="flex-wrap:nowrap"><button class="primary" id="ccSave" ${art ? '' : 'disabled title="Choose artwork first"'}>Save card</button><button data-close>Close</button></div></div>
+  openModal(`<div class="hd"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name ? esc(t.name) + ' · custom card' : 'Custom card'}</b><div class="row" style="flex-wrap:nowrap"><button id="ccExportPng" ${art ? '' : 'disabled title="Choose artwork first"'}>Export PNG</button><button class="primary" id="ccSave" ${art ? '' : 'disabled title="Choose artwork first"'}>Save card</button><button data-close>Close</button></div></div>
     <div class="bd"><div class="cc">
       <div><canvas id="ccCanvas" aria-label="Card preview"></canvas>
         <div class="row" style="justify-content:center;font-size:11px;gap:12px;margin:4px 0 2px;flex-wrap:wrap">
@@ -6709,6 +6828,7 @@ async function openCardMaker(target) {
           <span style="color:#c084fc;font-weight:600">╍ ╍ Safe zone</span>
         </div>
         <p class="hint">Drag to move the art. Scroll to zoom.</p>
+        <label class="check" style="justify-content:center;font-size:12px;margin-top:6px"><input type="checkbox" id="ccPngBleed" checked> Include print bleed in PNG export</label>
       </div>
       <div>
         <h3>Card lookup &amp; art</h3>
@@ -6878,7 +6998,9 @@ async function openCardMaker(target) {
       if (!cv.isConnected) return;
       t.artKey = await storeImage(f); art = next;
       $('#ccArtReset').click(); $('#ccArt').textContent = 'Change art…'; $('#ccArt').classList.remove('primary');
-      $('#ccSave').disabled = false; $('#ccSave').removeAttribute('title'); $('#ccStatus').textContent = '';
+      $('#ccSave').disabled = false; $('#ccSave').removeAttribute('title');
+      $('#ccExportPng').disabled = false; $('#ccExportPng').removeAttribute('title');
+      $('#ccStatus').textContent = '';
     } catch { if (cv.isConnected) $('#ccStatus').textContent = 'Could not open that image. Choose a PNG, JPEG or WebP image.'; }
     finally { URL.revokeObjectURL(u); }
   };
@@ -6939,6 +7061,19 @@ async function openCardMaker(target) {
   };
   $('#ccFace').onchange = ev => { ccFaceIndex = +ev.target.value; if (ccCard) fillFrom(ccCard); };
   ['#ccLookup', '#ccNum'].forEach(id => { $(id).onkeydown = ev => { if (ev.key === 'Enter') $('#ccFill').click(); }; });
+  $('#ccExportPng').onclick = async () => {
+    if (!art) return toast('Choose your art first.');
+    const includeBleed = $('#ccPngBleed')?.checked !== false;
+    busy(true, 'Exporting PNG…');
+    try {
+      const c = await renderCustomCard({...t}, art, 600 / 25.4);
+      const blob = await customCardCanvasToPngBlob(c, includeBleed);
+      const label = t.skin || t.name || 'Custom card';
+      download(blob, customCardFilename(label));
+      toast(`Exported ${label} as PNG.`);
+    } catch (err) { toast('Could not export PNG: ' + err.message, 6000); }
+    busy(false);
+  };
   $('#ccSave').onclick = async () => {
     if (!art) return toast('Choose your art first.');
     busy(true, 'Drawing your card…');
@@ -7257,6 +7392,7 @@ function openCtx(x, y, e, i, copy) {
        <button data-c="corner" role="menuitem">Corner guide color…</button>
        <button data-c="match" role="menuitem">${e.kind==='TOKEN'?'Choose token faces…':'Change card match…'}</button>
        <button data-c="maker" role="menuitem">${e.faces[i]?.template ? 'Edit custom card…' : 'Customize card…'}</button>
+       ${e.faces[i]?.template ? '<button data-c="exportpng" role="menuitem">Export PNG</button>' : ''}
        <button data-c="upload" role="menuitem">${e.scryId && instanceArtAvailable()?'Upload &amp; share image…':'Upload image…'}</button>
        <button data-c="del" class="danger" role="menuitem">Remove card</button>`;
   ctxReturnFocus = document.activeElement;
@@ -7275,6 +7411,7 @@ function openCtx(x, y, e, i, copy) {
     else if (c === 'allart') openMpcPicker({e, i, deckId:S.deckId, copies:same.map(x => ({uid:x.uid, copies:Array.from({length:x.qty}, (_, q) => q)}))});
     else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
     else if (c === 'maker') openCardMaker({e, i});
+    else if (c === 'exportpng') exportCustomFacePng(e, i);
     else if (c === 'del') { removeEntryWithUndo(e); }
   };
 }
@@ -9918,6 +10055,20 @@ function duplexOrientDot(L, pre, s = S.settings) {
 // (backPageRot 180) runs those axes the other way in its own coordinates.
 function duplexReadSign(L) { return backPageRot(L) === 180 ? -1 : 1; }
 
+function hasBackAlignment(s = S.settings) {
+  return !!(s.backOffsetX || s.backOffsetY || s.backRotate || s.backScaleX !== 100 || s.backScaleY !== 100);
+}
+function duplexBackBaselineText(s = S.settings) {
+  if (!hasBackAlignment(s)) return '0 (unadjusted)';
+  const inUnit = v => s.backOffsetUnit === 'in'
+    ? `${v > 0 ? '+' : ''}${(v / 25.4).toFixed(3)} in`
+    : `${v > 0 ? '+' : ''}${v.toFixed(2)} mm`;
+  const parts = [`X ${inUnit(s.backOffsetX || 0)}`, `Y ${inUnit(s.backOffsetY || 0)}`];
+  if (s.backRotate) parts.push(`angle ${s.backRotate > 0 ? '+' : ''}${s.backRotate.toFixed(2)}°`);
+  if (s.backScaleX !== 100 || s.backScaleY !== 100) parts.push(`size ${s.backScaleX.toFixed(2)}% × ${s.backScaleY.toFixed(2)}%`);
+  return parts.join(', ');
+}
+
 function duplexCardTestDoc(L, s = S.settings) {
   const doc = newDoc(L), pts = duplexCardPoints(L, s), rot2 = backPageRot(L), f2 = duplexReadSign(L);
   const Tf = makeT(L, false, s), Tb = makeT(L, true, s), d = duplexCardInset(L);
@@ -9948,6 +10099,10 @@ function duplexCardTestDoc(L, s = S.settings) {
   doc.setFontSize(6.5);
   const note = 'DOUBLE-SIDED TEST, PAGE 1. Print at 100%. Turn the sheet over as Align front and back shows and print page 2 on its back. Pierce each ringed point from this side.';
   if (L.y0 >= 4) doc.text(note, L.W / 2, Math.min(L.y0 - 1.2, 4), {align: 'center', maxWidth: L.W - 20});
+  const baseStamp = `Back baseline baked into this test: ${duplexBackBaselineText(s)}`;
+  const botGap = L.H - (L.y0 + L.gh);
+  const botY = botGap >= 8 ? Math.min(L.H - 5.5, Math.max(L.y0 + L.gh + 3.5, L.H - botGap / 2)) : Math.min(L.H - 2.2, L.y0 + L.gh + 3.5);
+  if (botGap >= 4) doc.text(baseStamp, L.W / 2, botY, {align: 'center', maxWidth: L.W - 20});
 
   /* page 2, the back: read grids, the dots round them, and the card skeletons */
   doc.addPage([L.W, L.H], L.W > L.H ? 'l' : 'p');
@@ -9964,6 +10119,14 @@ function duplexCardTestDoc(L, s = S.settings) {
     atext(doc, p.id, Tb.x(x + f2 * 1.2), Tb.y(y + f2 * 7.6), null, rot2);
   }
   if (turned) backTurn(doc, L, false, true, s);
+  doc.setFontSize(6.5);
+  doc.setTextColor('#000000');
+  if (rot2 === 180) {
+    const topY = L.y0 >= 8 ? Math.max(5.5, Math.min(L.y0 / 2 + 1, L.y0 - 3.5)) : Math.min(L.y0 - 1.2, 4);
+    if (L.y0 >= 4) atext(doc, baseStamp, L.W / 2, topY, 'center', 180);
+  } else if (botGap >= 4) {
+    doc.text(baseStamp, L.W / 2, botY, {align: 'center', maxWidth: L.W - 20});
+  }
   return {doc, points: pts};
 }
 
@@ -10454,6 +10617,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
   const s = S.settings, L = layout();
   const draft = alignmentDrafts.get(alignmentDraftKey());
   const frontEdge = ['left', 'right', 'top', 'bottom'].includes(state.frontEdge) ? state.frontEdge : leadEdge(L);
+  let baselineMode = state.baselineMode === 'zero' ? 'zero' : 'current';
   const inUnit = v => s.backOffsetUnit === 'in' ? `${(v / 25.4).toFixed(3)} in` : `${v.toFixed(2)} mm`;
   const edgeOptionLabel = x => `${x[0].toUpperCase()}${x.slice(1)} edge (${paperEdgeName(x, L).split(' ')[1]} edge)`;
   const choice = ([mode, name]) => `<button type="button" class="duplex-choice${s.duplexFlip === mode ? ' on' : ''}" data-flip="${mode}" role="radio" aria-checked="${s.duplexFlip === mode}">
@@ -10475,8 +10639,16 @@ function openDuplexWizard(state = {}, backLabel = '') {
       <li>Download the <button id="duplexWizardTest" class="icon">double-sided test</button> and print page 1 at <b>Actual size / 100%</b>.</li>
       <li>Flip the sheet as shown above and print page 2 on the back.</li>
     </ol>
+    <p class="hint duplex-test-note" id="duplexWizardTestNote" hidden>Downloads with your current back alignment baked in (<span class="num" id="duplexWizardTestNoteVals"></span>). <button type="button" id="duplexWizardTestReset" class="icon">Reset to 0 first</button></p>
 
     <h4 class="wiz-h">3. Enter the readings</h4>
+    <div class="warn duplex-base-warn" id="duplexWizardBaseWarn" hidden>
+      <div><b>Existing back alignment is active:</b> <span class="num" id="duplexWizardBaseVals"></span></div>
+      <div class="duplex-base-opts" id="duplexWizardBaseOpts" role="radiogroup" aria-label="Test sheet baseline">
+        <label class="check"><input type="radio" name="duplexBaseMode" value="current"${baselineMode === 'current' ? ' checked' : ''}><span><b>Add to current values</b> — sheet printed with the baseline above</span></label>
+        <label class="check"><input type="radio" name="duplexBaseMode" value="zero"${baselineMode === 'zero' ? ' checked' : ''}><span><b>Replace from 0</b> — sheet printed at 0 (unadjusted)</span></label>
+      </div>
+    </div>
     <p class="hint">Push a pin through each ring center from page 1. Read where holes land on page 2 (1 square = 1 mm).</p>
     <div class="duplex-read">${duplexReadSvg()}</div>
     <div class="row" style="margin-top:10px;align-items:end">
@@ -10509,6 +10681,9 @@ function openDuplexWizard(state = {}, backLabel = '') {
   const num = v => { const x = String(v ?? '').trim().replace(/−/g, '-').replace(',', '.'); return x === '' ? NaN : Number(x); };
   const show = v => Number.isFinite(v) ? String(v) : '';
   const entered = () => [...readings].filter(([, r]) => Number.isFinite(r.x) && Number.isFinite(r.y)).map(([id, r]) => ({id, x: r.x, y: r.y}));
+  const zeroBase = () => ({...s, backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100});
+  const replacingFromZero = () => hasBackAlignment(s) && baselineMode === 'zero';
+  const activeBase = () => replacingFromZero() ? zeroBase() : s;
   const rows = () => {
     const c = +$('#duplexWizardCard').value || 1;
     $('#duplexWizardPoints tbody').innerHTML = DUPLEX_LETTERS.map(l => {
@@ -10522,17 +10697,29 @@ function openDuplexWizard(state = {}, backLabel = '') {
     backRotate: ['Back angle', v => `${v.toFixed(3)}°`], backScaleX: ['Back size X', v => `${v.toFixed(3)}%`], backScaleY: ['Back size Y', v => `${v.toFixed(3)}%`]};
   let fit = null;
   const refresh = () => {
+    const hasBack = hasBackAlignment(s);
+    const baseText = duplexBackBaselineText(s);
+    $('#duplexWizardTestNote').hidden = !hasBack;
+    $('#duplexWizardTestNoteVals').textContent = baseText;
+    $('#duplexWizardBaseWarn').hidden = !hasBack;
+    $('#duplexWizardBaseVals').textContent = baseText;
+    const radio = $(`#duplexWizardBaseOpts input[value="${baselineMode}"]`);
+    if (radio) radio.checked = true;
     const feed = duplexFeedInstruction(L, $('#duplexWizardFrontEdge').value);
     $('#duplexWizardFeed').innerHTML = `<b>Page 2 goes in ${esc(feed.back)} first.</b> ${esc(feed.text)}<br><span class="hint">Put the sheet back with the printed side facing the other way.</span>`;
     const got = entered();
     $('#duplexWizardEntered').innerHTML = got.length ? `<span class="num">${got.length}</span> point${got.length === 1 ? '' : 's'} entered: <span class="num">${esc(got.map(r => r.id).join(', '))}</span>.` : 'No readings entered yet.';
-    fit = got.length ? solveDuplexReadings(L, s, got) : null;
+    const base = activeBase();
+    fit = got.length ? solveDuplexReadings(L, base, got) : null;
     $('#duplexWizardApply').disabled = !fit || !!fit.error;
     $('#duplexWizardClear').disabled = !got.length;
     if (!fit || fit.error) { $('#duplexWizardSum').textContent = fit?.error || 'Enter X and Y for at least one point.'; return; }
-    const lines = fit.active.map(k => `${FIT_LABEL[k][0]}: <span class="num">${esc(FIT_LABEL[k][1](s[k]))}</span> → <b class="num">${esc(FIT_LABEL[k][1](fit.values[k]))}</b>`);
+    const nextVals = {...base, ...fit.values};
+    const resetKeys = replacingFromZero() ? Object.keys(FIT_LABEL).filter(k => !fit.active.includes(k) && s[k] !== nextVals[k]) : [];
+    const lines = [...fit.active, ...resetKeys].map(k => `${FIT_LABEL[k][0]}: <span class="num">${esc(FIT_LABEL[k][1](s[k]))}</span> → <b class="num">${esc(FIT_LABEL[k][1](nextVals[k]))}</b>`);
     const off = fit.residuals.filter(r => Math.hypot(r.x, r.y) > 0.3).map(r => r.id);
     const notes = [];
+    if (hasBack) notes.push(replacingFromZero() ? 'Replacing current back alignment from a 0 baseline.' : `Adding onto current back alignment (<span class="num">${esc(baseText)}</span>).`);
     if (!fit.active.includes('backRotate')) notes.push('These points are close together, so they correct the offset only. Add points on cards far apart to correct the angle and the size as well.');
     else if (fit.collinear) notes.push('These points lie along one line, so they correct offset and angle only. Add a point off that line to correct X/Y size too.');
     else if (!fit.active.includes('backScaleX') || !fit.active.includes('backScaleY')) notes.push(`Add points further apart ${!fit.active.includes('backScaleX') ? 'across the sheet' : 'up and down the sheet'} to correct the size in that direction too.`);
@@ -10541,7 +10728,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
     if (fit.shear !== null && Math.abs(fit.shear) >= 0.05) notes.push(`The back is also skewed by <span class="num">${fit.shear.toFixed(2)}</span>°: its sides are not square to each other. No setting can correct skew, so the values above are the closest square fit.`);
     let cm = '';
     if (L.scm) {
-      const o = scmOffsetFromBack({...s, ...fit.values});
+      const o = scmOffsetFromBack(nextVals);
       cm = `<br>In Card Maker: <code class="num">offset_pdf.py --x_offset ${o.x} --y_offset ${o.y} --angle ${o.angle}</code>${fit.active.some(k => k.startsWith('backScale')) ? ' (it has no size setting)' : ''}`;
     }
     $('#duplexWizardSum').innerHTML = `${lines.join('<br>')}${notes.length ? `<br>${notes.join(' ')}` : ''}${cm}`;
@@ -10602,9 +10789,15 @@ function openDuplexWizard(state = {}, backLabel = '') {
     next?.click();
   });
   $('#duplexWizardFrontEdge').onchange = () => {
-    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings});
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings, baselineMode});
     $('#duplexWizardFrontEdge')?.focus();
   };
+  $('#duplexWizardBaseOpts').onchange = ev => {
+    if (ev.target.name !== 'duplexBaseMode') return;
+    baselineMode = ev.target.value === 'zero' ? 'zero' : 'current';
+    refresh();
+  };
+  $('#duplexWizardTestReset').onclick = () => $('#duplexWizardZero').click();
   $('#duplexWizardCard').onchange = rows;
   $('#duplexWizardPoints').oninput = ev => {
     const el = ev.target.closest('input[data-id]');
@@ -10632,7 +10825,7 @@ function openDuplexWizard(state = {}, backLabel = '') {
       const imgData = g.getImageData(0, 0, c.width, c.height);
       bmp.close?.(); bmp = null;
       c.width = c.height = 0; c = null;
-      const res = readDuplexScan(imgData, L, s);
+      const res = readDuplexScan(imgData, L, activeBase());
       if (res.error) { $('#duplexWizardStatus').textContent = res.error; return; }
       if (!res.readings.length) {
         $('#duplexWizardStatus').textContent = `The grids were found but no pin holes. Check each hole goes right through and the scan has black paper behind the sheet. If the holes sit more than about 8 mm from their grids, read one card by eye, apply that, and print the test again.`;
@@ -10641,7 +10834,8 @@ function openDuplexWizard(state = {}, backLabel = '') {
       for (const r of res.readings) readings.set(r.id, {x: r.x, y: r.y});
       rows(); refresh();
       const far = res.shift ? ` The back was about ${Math.round(Math.hypot(...res.shift))} mm off, past the grids, so these readings are a first pass: apply them and print the test again for the exact values.` : '';
-      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}. Apply these, print the test again, and the next scan reads them all.` : ''}${far} Check the values, then apply.`;
+      const baseNote = hasBackAlignment(s) && !replacingFromZero() ? ' Adding onto your current back alignment — if this test sheet was printed at 0, select "Replace from 0" above.' : '';
+      $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}. Apply these, print the test again, and the next scan reads them all.` : ''}${far}${baseNote} Check the values, then apply.`;
     } catch (e) {
       $('#duplexWizardStatus').textContent = `The scan could not be read: ${e.message}`;
     } finally {
@@ -10655,10 +10849,13 @@ function openDuplexWizard(state = {}, backLabel = '') {
   $('#duplexWizardApply').onclick = () => {
     const applied = fit;
     if (!applied || applied.error) { $('#duplexWizardStatus').textContent = 'Enter X and Y for at least one point.'; return; }
+    const fromZero = replacingFromZero();
+    if (fromZero) Object.assign(s, {backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100});
     for (const k of applied.active) s[k] = applied.values[k];
     s.backOffsetRel = true;
-    clearBackOffsetDraft(applied.active);
+    clearBackOffsetDraft(fromZero ? BACK_CAL_KEYS : applied.active);
     noteCalibration('back', 'measured');
+    baselineMode = 'current';
     S.activePreset = null; save(); renderAll();
     readings.clear(); rows(); refresh(); if (L.scm) scmNow();
     $('#duplexWizardStatus').textContent = `Saved. ${applied.active.map(k => `${FIT_LABEL[k][0]} ${FIT_LABEL[k][1](s[k])}`).join(', ')}. Print the test again to check.`;
@@ -10666,10 +10863,11 @@ function openDuplexWizard(state = {}, backLabel = '') {
   $('#duplexWizardClear').onclick = () => { readings.clear(); rows(); refresh(); $('#duplexWizardStatus').textContent = ''; };
   $('#duplexWizardZero').onclick = () => {
     const prev = {backOffsetX: s.backOffsetX, backOffsetY: s.backOffsetY, backRotate: s.backRotate, backScaleX: s.backScaleX, backScaleY: s.backScaleY, backOffsetRel: s.backOffsetRel};
-    const hadValues = prev.backOffsetX || prev.backOffsetY || prev.backRotate || prev.backScaleX !== 100 || prev.backScaleY !== 100;
+    const hadValues = hasBackAlignment(prev);
     Object.assign(s, {backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100, backOffsetRel: true});
     clearBackOffsetDraft(BACK_CAL_KEYS);
     noteCalibration('back', 'none');
+    baselineMode = 'current';
     S.activePreset = null; save(); renderAll();
     refresh(); if (L.scm) scmNow();
     $('#duplexWizardStatus').textContent = 'Back-page alignment cleared.';
