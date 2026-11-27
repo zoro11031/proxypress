@@ -1,11 +1,12 @@
-# Proxy Press v0.10.2
+# Proxy Press v0.10.3
 
-- Hardened the Python server and Electron desktop relay: one-time SQLite WAL initialization, background disk cache pruning, atomic Electron cache writes, Scryfall rate limiting and collection caching, symlink-safe asset resolution, magic-byte upload validation, and `/healthz` container health checks.
-- Fixed frontend memory and state edge cases: revoked blob URLs on deck clear/delete/replacement, serialized Scryfall requests with timeouts, clamped parsed card quantities, guarded `busy()` states with `try/finally`, and fixed cardback/orphan image cleanup.
-- Polished UI and accessibility: raised toasts above mobile navigation, lowered dropdown menus below modals, removed duplicate confirmation cancel buttons, unified art-fill copy, and synced ARIA state on proof and settings controls.
+- Fixed the duplex alignment calculator for 2-point diagonal and 3-point collinear readings, added leave-one-out + Tukey IRLS outlier isolation, and guarded against singular matrices and extreme typos.
+- Hardened the duplex scan reader: downscaled oversized high-DPI scans, cut connected-component RAM by 4×, indexed quad detection into an O(N) spatial grid, adapted thresholds for dim/matte scans, and added undo for resetting back alignment.
+- Fixed shared artwork storage failures in read-only containers (`PRAGMA temp_store=MEMORY` and safe WAL fallback), rounded millimeter trim/sheet labels (`62.99 × 87.97 mm`), and deduplicated share-error toasts.
+- Improved UI usability and accessibility: single primary action on empty decks, instant Undo for card removal and clearing a deck, pause-on-hover toasts, full keyboard navigation on the deck menu and duplex flip choices, and consistent `Backups & data` labeling.
 
 ## Downloads
 
-**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/Proxy-Press-0.10.2.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/Proxy-Press-0.10.2.msi).
+**Windows x64:** [Installer (.exe)](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/Proxy-Press-0.10.3.exe) or [MSI](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/Proxy-Press-0.10.3.msi).
 
-**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/Proxy-Press-0.10.2.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/Proxy-Press-0.10.2.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/Proxy-Press-0.10.2.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/Proxy-Press-0.10.2.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.10.2/proxypress-bin-aur.tar.gz).
+**Linux x86_64:** [AppImage](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/Proxy-Press-0.10.3.AppImage), [Debian or Ubuntu](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/Proxy-Press-0.10.3.deb), [Fedora or openSUSE](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/Proxy-Press-0.10.3.rpm), [Arch or CachyOS](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/Proxy-Press-0.10.3.pacman), or [AUR build files](https://github.com/zoro11031/proxypress/releases/download/v0.10.3/proxypress-bin-aur.tar.gz).
