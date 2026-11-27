@@ -4582,6 +4582,7 @@ async function openMpcPicker(target) {
         const old = S.settings.backImage, oldBack = deck().cardback?.custom;
         deck().cardback = {name:'Card back', ...mpcArt(card)};
         S.settings.backImage = null;
+        if (S.mode === 'print') S.settings.backs = true;
         await removeImageIfUnused(old);
         if (oldBack && oldBack !== old) await removeImageIfUnused(oldBack);
       } else {
@@ -5196,6 +5197,7 @@ async function uploadSharedCardback(file) {
   if (deckId !== S.deckId) { await removeImageIfUnused(key); return false; }
   const old = S.settings.backImage;
   S.settings.backImage = key;
+  if (S.mode === 'print') S.settings.backs = true;
   S.activePreset = null;
   await removeImageIfUnused(old);
   save(); renderAll();
@@ -7946,9 +7948,11 @@ function renderSettings() {
     const hint = typeof f.hint === 'function' ? f.hint() : f.hint;
     if (f.type === 'check') return `<label class="check"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
     if (f.type === 'backimg') {
-      if (!s.backs) return '';
       const has = s.backImage || deck().cardback;
-      return `<div class="field full"><span>Shared cardback</span><div class="row"><img id="backThumb" style="width:40px;height:56px;object-fit:cover;border-radius:3px;background:#000;${has ? '' : 'display:none'}"><button data-backup>Upload back…</button><button data-mpcback>Browse cardbacks…</button>${has ? '<button class="danger" data-backclear>Remove</button>' : ''}</div><input type="file" accept="image/*" hidden id="fileBack"></div>`;
+      const backHint = !s.backs
+        ? (has ? '<span class="hint">Check "Print a shared back" above to include this back.</span>' : '<span class="hint">Choosing a cardback turns on "Print a shared back".</span>')
+        : '';
+      return `<div class="field full"><span>Shared cardback</span><div class="row"><img id="backThumb" alt="" style="width:40px;height:56px;object-fit:cover;border-radius:3px;background:#000;${has ? '' : 'display:none'}"><button type="button" data-mpcback>Browse cardbacks…</button><button type="button" data-backup>Upload back…</button>${has ? '<button type="button" class="danger" data-backclear>Remove</button>' : ''}</div>${backHint}<input type="file" accept="image/*" hidden id="fileBack"></div>`;
     }
     let input;
     const label = ['backOffsetX', 'backOffsetY'].includes(f.k) ? `${f.label} (${offsetUnit})` : f.label;
@@ -7994,7 +7998,7 @@ function renderSettings() {
   if (form) form.innerHTML = html;
   if (scrollParent) scrollParent.scrollTop = st;
   const bf = s.backImage ? {custom:s.backImage} : deck().cardback;
-  if (s.backs && bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
+  if (bf) thumbSrc(bf).then(u => { const t = $('#backThumb'); if (t && u) t.src = u; });
   if (document.body.classList.contains('print-settings-active') && $('#printSettingsView').dataset.page === 'alignment') refreshAlignmentPage();
   else renderCalibrationProfiles();
   renderColorSliders();
@@ -8929,13 +8933,8 @@ async function drawPreview() {
   clearTimeout(previewTimer);
   const gen = ++previewGen, job = buildPrintJob(), s = job.settings, L = job.layout, z = S.zoom;
   const backButton = $('#btnProofBack');
-  backButton.disabled = !job.hasBacks;
-  backButton.title = job.hasBacks ? '' : 'Fronts only';
-  if (S.mode === 'print' && S.showBacks && !job.hasBacks) {
-    S.showBacks = false;
-    S.proofSide = 'front';
-    $('#showBacks').checked = false;
-  }
+  backButton.disabled = !job.slots.length;
+  backButton.title = '';
   syncPreviewControls();
   syncProofViewButtons();
   const on = !s.silhouette && !!S.showCuts;
@@ -8973,6 +8972,21 @@ async function drawPreview() {
   if (!slots.length) {
     wrap.innerHTML = emptySheetHtml(L, z, s);
     alignMat(wrap.firstElementChild);
+    return;
+  }
+  if (S.showBacks && !hasBacks) {
+    wrap.innerHTML = `<div class="empty" id="proofBackEmpty">
+      <h2>No card backs yet</h2>
+      <p class="hint">Choose a shared cardback to print on the back of single-faced cards.</p>
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button type="button" class="primary" id="proofBrowseBacks">Browse cardbacks…</button>
+        <button type="button" id="proofUploadBack">Upload back…</button>
+        <button type="button" id="proofBackToFronts">Back to fronts</button>
+      </div>
+    </div>`;
+    $('#proofBrowseBacks').onclick = () => openMpcPicker({cardback:true});
+    $('#proofUploadBack').onclick = () => $('#fileOrderBack').click();
+    $('#proofBackToFronts').onclick = () => $('#btnProofFront').click();
     return;
   }
   const frag = document.createDocumentFragment(), jobs = [];

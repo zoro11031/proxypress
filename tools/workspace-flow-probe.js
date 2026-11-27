@@ -210,7 +210,9 @@
   renderAll();
   await drawPreview();
   check($('#exportScope').value === 'all', 'A removed sheet should reset the review scope.');
-  check($('#btnProofBack').disabled && !S.showBacks, 'Removing the backs should return the preview to the front.');
+  check(!$('#btnProofBack').disabled && !!$('#proofBackEmpty'), 'Removing the backs while viewing backs should show the add-cardbacks prompt.');
+  click('#proofBackToFronts');
+  check(!S.showBacks, 'Back to fronts should return the preview to the front.');
   S.settings.cols = 100;
   renderAll();
   click('#btnReviewExport');
