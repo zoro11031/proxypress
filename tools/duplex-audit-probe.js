@@ -192,7 +192,14 @@
       near('Pass 2 compounded backOffsetY', fit2.values.backOffsetY, -1.26, 0.05);
       near('Pass 2 compounded backRotate', fit2.values.backRotate, -0.57, 0.02);
 
-      // Pass 2 with genuine thermal scale shrinkage (-0.30%): unlocks scale automatically.
+      // Pass 2 with subtle feed-axis thermal shrinkage (+0.20%, like cardstock under heavy toner): unlocks scale on full scan!
+      const s2SubtleShrink = {...s2True, backScaleX: 100.32, backScaleY: 100.04};
+      const r2Subtle = synthReadings(s1, s2SubtleShrink, 0.04);
+      const fit2Subtle = solveDuplexReadings(Lscm, s1, r2Subtle, {pass2: true});
+      check('Pass 2 unlocks scale on subtle +0.20% feed-axis shrinkage', !fit2Subtle.error && fit2Subtle.scaleLocked === false && fit2Subtle.active.includes('backScaleX'), JSON.stringify(fit2Subtle));
+      near('Pass 2 subtle shrinkage backScaleX', fit2Subtle.values.backScaleX, 100.32, 0.03);
+
+      // Pass 2 with larger thermal shrinkage (-0.30%): unlocks scale automatically.
       const s2Shrunk = {...s2True, backScaleX: 99.82, backScaleY: 99.74};
       const r2Shrink = synthReadings(s1, s2Shrunk, 0.03);
       const fit2Shrink = solveDuplexReadings(Lscm, s1, r2Shrink, {pass2: true});

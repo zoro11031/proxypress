@@ -139,6 +139,42 @@
       eq('an old flat set stays unscoped', `${g3.from} ${g3.set.backOffsetY}`, 'any 1');
       eq('and is applied as it always was', JSON.stringify(calSlots(legacy)),
         '{"any":{"duplexFlip":"short","backOffsetX":0,"backOffsetY":1}}');
+
+      // Regression: typing values into Alignment inputs and clicking Save profile without clicking Apply first
+      // must commit those typed values into the saved profile (not save stale zeros).
+      openPrintSettings('alignment');
+      S.calibrationProfiles = []; S.calibrationProfileId = null;
+      S.settings = cleanSettings({...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexMethod:'auto', duplexFlip:'long',
+        backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
+      refreshAlignmentPage();
+      const setAlign = (id, val) => { const el = document.getElementById(id); el.value = String(val); el.dispatchEvent(new Event('input', {bubbles:true})); };
+      setAlign('input-backOffsetX', '-2.61');
+      setAlign('input-backOffsetY', '-1.26');
+      setAlign('input-backScaleX', '100.55');
+      setAlign('input-backScaleY', '100.08');
+      setAlign('input-backRotate', '-0.61');
+      box.value = 'Canon Auto Cardstock';
+      document.querySelector('#calProfileSave').click();
+      eq('save profile committed unapplied backOffsetX', S.settings.backOffsetX, -2.61);
+      eq('save profile committed unapplied backScaleX', S.settings.backScaleX, 100.55);
+      eq('save profile committed unapplied backRotate', S.settings.backRotate, -0.61);
+      const savedCard = document.querySelector('#calProfileCards [data-cal-profile]');
+      eq('saved profile card shows actual saved values', savedCard && document.querySelector('#calProfileCards').textContent.includes('-2.61'), true);
+
+      // Regression: loading an auto/long profile from a manual/long setup must load its saved offsets & duplexMethod,
+      // AND clear any unapplied draft in the alignment inputs!
+      S.settings = cleanSettings({...DEFAULTS, pageSize:'letter', orientation:'landscape', duplexMethod:'manual', duplexFlip:'long',
+        backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
+      S.calibrationProfileId = null;
+      refreshAlignmentPage();
+      setAlign('input-backOffsetX', '9.99'); // unapplied draft that must be cleared when loading profile
+      document.querySelector(`#calProfileCards [data-cal-profile="${prof().id}"]`).click();
+      eq('clicking auto/long profile from manual setup loads backOffsetX', S.settings.backOffsetX, -2.61);
+      eq('clicking auto/long profile from manual setup loads backScaleX', S.settings.backScaleX, 100.55);
+      eq('clicking auto/long profile from manual setup loads backRotate', S.settings.backRotate, -0.61);
+      eq('clicking auto/long profile switches duplexMethod to auto', S.settings.duplexMethod, 'auto');
+      eq('clicking profile clears stale input draft in UI', document.getElementById('input-backOffsetX').value, '-2.61');
+      backToProof();
     } finally { window.confirm = realConfirm; }
   } catch (e) { fails.push(`threw: ${e && e.message}`); }
   finally { S.calibrationProfiles = savedList; S.settings = savedS; S.printer = savedP; renderAll(); }

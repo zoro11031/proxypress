@@ -9,7 +9,7 @@ const DARK_CARD = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgY
 const root = path.join(__dirname,'..');
 const html = fs.readFileSync(path.join(root,'proxy-press.html'),'utf8');
 const slice = (from,to) => html.slice(html.indexOf(from),html.indexOf(to));
-const functions = ['printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','preferredScmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
+const functions = ['isSharedBackSlot','printSourceBleed','scmArtworkPlacement','scmTemplateFor','scmSettings','preferredScmSettings','scmSkipPositions','scmLayout','layout','slotPos','turnAngle','turnPt','backTurn','faceRot','makeT',
   'registrationFrame','regArm','regArmCap','regMarks','regInkBoxes','regMarksClipped','regConflict','regContacts',
   'newDoc','pdfLines','runPreflight','exportSheetIndex','exportPrintJob','cameoPaperLayout','studioCanvasPad','activeGuides','guideLines','cardCornerColor',
   'cutterCardRect','cutterTurn','cutSheetCards','cutSvg','cutDxf','studioCutBounds','studioBoundsText','buildCameoBundle',

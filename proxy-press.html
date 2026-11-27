@@ -1732,25 +1732,25 @@ body:not(.has-cards) #btnXml{background:var(--panel2);border-color:var(--line);c
             <div class="align-fields-grid">
               <div class="field">
                 <label for="input-backOffsetX">Extra back offset X (mm)</label>
-                <input type="number" step="0.05" id="input-backOffsetX" data-align="backOffsetX" value="0">
+                <input type="number" step="0.01" id="input-backOffsetX" data-align="backOffsetX" value="0">
                 <span class="hint">Shift back right (+) or left (-)</span>
               </div>
               <div class="field">
                 <label for="input-backOffsetY">Extra back offset Y (mm)</label>
-                <input type="number" step="0.05" id="input-backOffsetY" data-align="backOffsetY" value="0">
+                <input type="number" step="0.01" id="input-backOffsetY" data-align="backOffsetY" value="0">
                 <span class="hint">Shift back down (+) or up (-)</span>
               </div>
               <div class="field">
                 <label for="input-backScaleX">Back horizontal scale (%)</label>
-                <input type="number" step="0.1" min="50" max="150" id="input-backScaleX" data-align="backScaleX" value="100">
+                <input type="number" step="0.01" min="50" max="150" id="input-backScaleX" data-align="backScaleX" value="100">
               </div>
               <div class="field">
                 <label for="input-backScaleY">Back vertical scale (%)</label>
-                <input type="number" step="0.1" min="50" max="150" id="input-backScaleY" data-align="backScaleY" value="100">
+                <input type="number" step="0.01" min="50" max="150" id="input-backScaleY" data-align="backScaleY" value="100">
               </div>
               <div class="field full">
                 <label for="input-backRotate">Back rotation (°)</label>
-                <input type="number" step="0.1" min="-180" max="180" id="input-backRotate" data-align="backRotate" value="0">
+                <input type="number" step="0.01" min="-180" max="180" id="input-backRotate" data-align="backRotate" value="0">
               </div>
             </div>
             <div class="col-actions" style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
@@ -1905,7 +1905,7 @@ const DEFAULTS = {
   guides:'both', guideColor:'#000000', cornerGuideColor:'#00bfff', guideWidth:0.25, guideLen:6, guideShape:'brackets', guidePlacement:'inside', guidePlacementSet:true, guideStyle:'solid', guideHalo:false,
   offsetX:0, offsetY:0, backOffsetX:0, backOffsetY:0, backOffsetRel:true, backOffsetUnit:'mm', scaleX:100, scaleY:100, backScaleX:100, backScaleY:100, backRotate:0, printRotate:0,
   dpi:1200, jpeg:92, brightness:100, saturation:100, contrast:100, foilTint:0, customSrcBleed:3.048,
-  dfcMode:'duplex', dfcChosen:false, duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null,
+  dfcMode:'duplex', dfcChosen:false, duplexMethod:'manual', duplexFlip:'long', backs:false, backImage:null, backImageBleed:null,
   silhouette:false, scmTemplate:'custom', scmCustomChosen:false, scmSkip:'', scmFit:'crop', scmStretchChosen:false, scmFitBack:'same', scmCrop:0, scmCropBack:0, scmLabel:'',
   regPattern:3, regOrientation:'auto', regInset:10, regLen:0, regThickness:1, showCuts:false
 };
@@ -2125,19 +2125,21 @@ const S = { decks:[], deckId:null, settings:{...DEFAULTS}, presets:[], activePre
 const deck = () => S.decks.find(d => d.id === S.deckId);
 
 let saveTimer, saveGeneration = 0, saveQueue = Promise.resolve();
-function save() {
+function save(immediate = false) {
   rememberProjectSetup();
   clearTimeout(saveTimer);
   const generation = ++saveGeneration;
   $('#saveStatus').textContent = 'Saving…';
-  saveTimer = setTimeout(async () => {
+  const flush = async () => {
     const d = deck(); if (d) d.updated = Date.now();
     const entries = [['decks', structuredClone(S.decks)], ['ui', {deckId:S.deckId, settings:S.settings, activePreset:S.activePreset, calibrationProfiles:S.calibrationProfiles, calibrationProfileId:S.calibrationProfileId, foilColorDefaults:S.foilColorDefaults, zoom:S.zoom, zoomMode:S.zoomMode, orderDensity:S.orderDensity, showBacks:S.showBacks, proofViewVersion:1, orderShowBacks:S.orderShowBacks, advOpen:S.advOpen, printer:S.printer, printerByKind:S.printerByKind, mpc:S.mpc, orderStockVersion:1, showCuts:S.showCuts, mode:S.mode, welcomed:S.welcomed, manaAdv:S.manaAdv, ccFonts:S.ccFonts, ccFontNames:S.ccFontNames, frameSets:S.frameSets, ccStyle:S.ccStyle}], ['presets', structuredClone(S.presets)]];
     const snapshot = structuredClone(entries);
     saveQueue = saveQueue.catch(() => {}).then(() => store.commit(snapshot));
     try { await saveQueue; if (generation === saveGeneration) { $('#saveStatus').textContent = 'Saved'; $('#retrySave').hidden=true; } }
     catch { if (generation === saveGeneration) { $('#saveStatus').textContent = 'Save failed'; $('#retrySave').hidden=false; } }
-  }, 250);
+  };
+  if (immediate) flush();
+  else saveTimer = setTimeout(flush, 250);
 }
 
 $('#retrySave').onclick=()=>save();
@@ -3215,7 +3217,7 @@ function regContacts(L, s, occupied, clearance = 0) {
 /* ---------- slots ---------- */
 function buildSlots(d = deck(), s = S.settings) {
   const out = [];
-  const backFace = !s.backs ? null : s.backImage ? {name:'Card back', custom:s.backImage} : d.cardback || null;
+  const backFace = !s.backs ? null : s.backImage ? {name:'Card back', custom:s.backImage, ...(s.backImageBleed != null ? {srcBleed:s.backImageBleed} : {})} : d.cardback || null;
   for (const e of d.entries) {
     if (!e.faces.length) continue;
     for (let q = 0; q < e.qty; q++) {
@@ -4008,7 +4010,7 @@ async function importMpcXml(text, fileName, {review = false} = {}) {
   S.decks.push(d); activateDeck(d.id);
   const stock = val(order, 'details > stock');
   if (MPC_STOCKS.includes(stock)) { S.mpc.stock = stock; S.mpc.foil = stock !== '(P10) Plastic' && val(order, 'details > foil').toLowerCase() === 'true'; }
-  if (cb) { const old = S.settings.backImage; S.settings.backImage = null; await removeImageIfUnused(old); }
+  if (cb) { const old = S.settings.backImage; S.settings.backImage = null; S.settings.backImageBleed = null; await removeImageIfUnused(old); }
   save(); renderAll();
   toast(`Imported ${entries.reduce((a, e) => a + e.qty, 0)} cards from ${fileName}.`, 6000);
   return true;
@@ -4612,6 +4614,7 @@ async function openMpcPicker(target) {
         const old = S.settings.backImage, oldBack = deck().cardback?.custom;
         deck().cardback = {name:'Card back', ...mpcArt(card)};
         S.settings.backImage = null;
+        S.settings.backImageBleed = null;
         if (S.mode === 'print') S.settings.backs = true;
         await removeImageIfUnused(old);
         if (oldBack && oldBack !== old) await removeImageIfUnused(oldBack);
@@ -5225,8 +5228,11 @@ $('#oBackUpload').onclick = () => $('#fileOrderBack').click();
 async function uploadSharedCardback(file) {
   const deckId = S.deckId, key = await storeImage(file);
   if (deckId !== S.deckId) { await removeImageIfUnused(key); return false; }
+  let srcBleed = null;
+  try { srcBleed = await uploadedBleed(file); } catch {}
   const old = S.settings.backImage;
   S.settings.backImage = key;
+  S.settings.backImageBleed = srcBleed;
   if (S.mode === 'print') S.settings.backs = true;
   S.activePreset = null;
   await removeImageIfUnused(old);
@@ -5240,7 +5246,7 @@ $('#fileOrderBack').onchange = async ev => {
   catch (err) { toast('Couldn’t save the cardback: ' + err.message); }
 };
 $('#oBackClear').onclick = async () => {
-  const old = [S.settings.backImage, deck().cardback?.custom]; S.settings.backImage = null; deck().cardback = null;
+  const old = [S.settings.backImage, deck().cardback?.custom]; S.settings.backImage = null; S.settings.backImageBleed = null; deck().cardback = null;
   for (const key of old) await removeImageIfUnused(key);
   save(); renderAll();
   toast('Shared cardback removed.');
@@ -5757,9 +5763,12 @@ $('#fileFace').onchange = async ev => {
   const f = ev.target.files[0]; ev.target.value = ''; if (!f || !faceTarget) return;
   const target = faceTarget, {e, i} = target;
   const key = await storeImage(f);
+  let srcBleed = undefined;
+  try { srcBleed = await uploadedBleed(f); } catch {}
   await applyArtChoice(target, i, async face => {
     const old = face.custom; face.custom = key;
     for (const k of ['srcBleed', 'drive', 'file', 'mpcName', 'mpcSource', 'mpcDpi', 'localName', 'auto', 'template', 'lowRes', 'scryArt']) delete face[k];
+    if (srcBleed != null) face.srcBleed = srcBleed;
     if (e.custom) face.name = e.name;
     await removeImageIfUnused(old);
   });
@@ -7729,6 +7738,7 @@ function cleanSettings(raw) {
     if (typeof def === 'number') { const n = Number(v); if (v !== null && v !== '' && typeof v !== 'boolean' && Number.isFinite(n) && (!SELECT_OPTS[k] || SELECT_OPTS[k].includes(String(n)))) out[k] = n; }
     else if (typeof def === 'boolean') { if (typeof v === 'boolean') out[k] = v; else if (v === 'true' || v === 'false') out[k] = v === 'true'; }
     else if (k === 'backImage') out[k] = typeof v === 'string' ? v : null;
+    else if (k === 'backImageBleed') out[k] = typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
     else if (k === 'scmSkip') out[k] = scmSkipPositions(String(v).slice(0,120)).join(', ');
     else if (k === 'scmLabel') out[k] = String(v ?? '').replace(/[\r\n\t]/g,' ').trim().slice(0,48);
     else if (k === 'guideColor' || k === 'cornerGuideColor') { if (/^#[0-9a-f]{6}$/i.test(v)) out[k] = v; }
@@ -8323,7 +8333,7 @@ function renderSettings() {
 // profile holds one set per sheet size and orientation, keyed by both, and
 // applies the one that matches. The layout itself is never part of a set, so
 // choosing a profile still cannot move the cards about.
-const CAL_SLOT_KEYS = ['duplexFlip', ...CAL_KEYS];
+const CAL_SLOT_KEYS = ['duplexMethod', 'duplexFlip', ...CAL_KEYS];
 const calPageKey = s => s.pageSize === 'custom' ? `custom:${Math.round((s.pageW || 0)*10)/10}x${Math.round((s.pageH || 0)*10)/10}` : s.pageSize;
 const calSlotKey = s => `${calPageKey(s)}/${s.orientation}`;
 function calSlotName(key) {
@@ -8360,7 +8370,7 @@ function turnCalSet(to, set) {
 // Which of a profile's sets to use for a layout, and how good a match it is:
 // the layout's own, then one measured on another sheet the same way round, then
 // an unscoped old set, and only then the other orientation turned to fit.
-function calSlotFor(p, s) {
+function calSlotFor(p, s, opt = {}) {
   const slots = calSlots(p), want = calSlotKey(s);
   const keys = Object.keys(slots).filter(k => k !== 'any');
   const sameWay = keys.filter(k => k.endsWith('/' + s.orientation));
@@ -8369,17 +8379,24 @@ function calSlotFor(p, s) {
 
   const applySlot = (rawSet, from, key) => {
     let res = {...rawSet};
+    let chosenDupKey = null;
     if (res.byDuplex && res.byDuplex[dupKey]) {
-      res = {...res, ...res.byDuplex[dupKey]};
+      chosenDupKey = dupKey;
+    } else if (opt.fallbackDuplex && res.byDuplex) {
+      const dupKeys = Object.keys(res.byDuplex);
+      const wantFlip = `/${s.duplexFlip || 'long'}`;
+      chosenDupKey = dupKeys.find(k => k.endsWith(wantFlip)) || dupKeys[0] || null;
     }
-    const hasDuplex=!!rawSet.byDuplex?.[dupKey];
-    const targetSet = hasDuplex ? {...rawSet, ...rawSet.byDuplex[dupKey]} : rawSet;
+    if (chosenDupKey) res = {...res, ...res.byDuplex[chosenDupKey]};
+    const hasDuplex = !!chosenDupKey;
+    const duplexFallback = hasDuplex && chosenDupKey !== dupKey;
+    const targetSet = hasDuplex ? {...rawSet, ...rawSet.byDuplex[chosenDupKey]} : rawSet;
     const hasBack = ['backOffsetX','backOffsetY','backScaleX','backScaleY','backRotate'].some(k=>Object.hasOwn(targetSet,k)&&Number.isFinite(targetSet[k]));
-    const backMeasured = hasDuplex && rawSet.byDuplex[dupKey].backMeasured === true && hasBack;
+    const backMeasured = hasDuplex && rawSet.byDuplex[chosenDupKey].backMeasured === true && hasBack;
     if (rawSet.byDuplex && !hasDuplex) Object.assign(res, {backOffsetX:0, backOffsetY:0, backScaleX:100, backScaleY:100, backRotate:0});
     const hasFront = ['offsetX','offsetY','scaleX','scaleY','printRotate'].some(k=>Object.hasOwn(rawSet,k)&&Number.isFinite(rawSet[k]));
     const frontMeasured = rawSet.frontMeasured === true && hasFront;
-    return {set: res, from, key, hasFront, hasBack, backMeasured, frontMeasured, status: from === 'exact' ? ((frontMeasured || backMeasured) ? 'Measured' : 'Saved') : from === 'any' ? 'Legacy' : 'Estimated'};
+    return {set: res, from, key, hasFront, hasBack, backMeasured, frontMeasured, duplexKey: chosenDupKey, duplexFallback, status: from === 'exact' ? ((frontMeasured || backMeasured) ? 'Measured' : 'Saved') : from === 'any' ? 'Legacy' : 'Estimated'};
   };
 
   if (slots[want]) return applySlot(slots[want], 'exact', want);
@@ -8411,8 +8428,9 @@ function getCalibrationStatus(s = S.settings, d = deck(), printer = S.printer, p
     if(neutral){status='Uncalibrated';source='Not adjusted';}
     else {
       const recordMatches=record&&same(record.values),recordExact=recordMatches&&record.scope===calibrationScope(s,printer,back);
-      if(recordExact){status=record.kind==='measured'?'Measured':'Manual';source=record.kind==='measured'?'Recorded measurement':'Entered by hand';}
+      if(recordExact && record.kind==='measured'){status='Measured';source='Recorded measurement';}
       else if(profHasSide && got?.set && same(got.set) && got.from==='exact'){status=profMeasured?'Measured':'Saved';source=p.name;}
+      else if(recordExact){status='Manual';source='Entered by hand';}
       else if(recordMatches && record.kind!=='none'){status='Estimated';source='Alignment from another setup';}
       else if(profHasSide && got?.set && same(got.set)){status='Estimated';source=got.from==='turned'?'Turned from other orientation':'Carried alignment';}
       else {status='Manual';source='Entered by hand';}
@@ -8576,13 +8594,16 @@ function resolveAppliedCalibration() {
   }
 }
 function applyCalProfile(p) {
+  alignmentDrafts.delete(alignmentDraftKey());
   S.calibrationProfileId = p.id;
-  const got = calSlotFor(p, S.settings), here = calSlotName(calSlotKey(S.settings));
+  const got = calSlotFor(p, S.settings, {fallbackDuplex: true}), here = calSlotName(calSlotKey(S.settings));
   if (!got.set) return toast(`"${p.name}" has nothing saved yet.`);
   if (PRINTERS.some(x => x.id === p.printer)) {
     S.printer = p.printer;
     S.printerByKind = {...S.printerByKind, [printerOf(S.printer).kind]:S.printer};
   }
+  if (got.set.duplexFlip && S.settings.scmTemplate === 'custom') S.settings.duplexFlip = got.set.duplexFlip;
+  if (got.set.duplexMethod) S.settings.duplexMethod = got.set.duplexMethod;
   const d = deck();
   if (!d.calibrationState) d.calibrationState = {};
   if (got.hasFront) {
@@ -8595,9 +8616,8 @@ function applyCalProfile(p) {
     for (const k of BACK_CAL_KEYS) if (k in got.set) S.settings[k] = got.set[k];
     d.calibrationState.back = {kind: got.backMeasured ? 'measured' : 'manual', scope: calibrationScope(S.settings, S.printer, true), values: Object.fromEntries(BACK_CAL_KEYS.map(k => [k, S.settings[k]]))};
   }
-  if (got.set.duplexFlip && S.settings.scmTemplate === 'custom') S.settings.duplexFlip = got.set.duplexFlip;
-  if (got.set.duplexMethod) S.settings.duplexMethod = got.set.duplexMethod;
-  S.activePreset = null; save(); renderAll();
+  alignmentDrafts.delete(alignmentDraftKey());
+  S.activePreset = null; save(true); renderAll();
   if (got.from === 'exact') return toast(`Loaded the ${calSlotName(got.key)} alignment from "${p.name}".`);
   if (got.from === 'size') return toast(`"${p.name}" has no ${here} set. Used its ${calSlotName(got.key)} numbers: the axes match, the sheet size does not.`, 9000);
   if (got.from === 'turned') return toast(`"${p.name}" has no ${here} set. Turned its ${calSlotName(got.key)} numbers to match \u2014 arithmetic, not a measurement, so print the double-sided test.`, 10000);
@@ -8641,13 +8661,20 @@ function renderCalibrationProfiles(activeId) {
     const activeIdVal = sel.value;
     const card = (p, mine) => {
       const isAct = p.id === activeIdVal;
-      const got = calSlotFor(p, S.settings);
+      const got = calSlotFor(p, S.settings, {fallbackDuplex: true});
       let sub;
       if (got.set) {
         const bk = got.set;
-        const ox = bk.backOffsetX ?? 0, oy = bk.backOffsetY ?? 0;
-        sub = `Back: X ${ox >= 0 ? '+' : ''}${ox}, Y ${oy >= 0 ? '+' : ''}${oy} mm`;
-        if (got.key && got.key !== 'any') sub = `${calSlotName(got.key)} · ${sub}`;
+        const parts = [];
+        if (got.key && got.key !== 'any') parts.push(calSlotName(got.key));
+        if (got.duplexKey) parts.push(got.duplexKey.replace('/', ' · '));
+        const ox = bk.backOffsetX ?? 0, oy = bk.backOffsetY ?? 0, rot = bk.backRotate ?? 0;
+        const sx = bk.backScaleX ?? 100, sy = bk.backScaleY ?? 100;
+        let backTxt = `Back: X ${ox >= 0 ? '+' : ''}${ox}, Y ${oy >= 0 ? '+' : ''}${oy} mm`;
+        if (rot) backTxt += `, ${rot > 0 ? '+' : ''}${rot}°`;
+        if (sx !== 100 || sy !== 100) backTxt += `, ${sx}% × ${sy}%`;
+        parts.push(backTxt);
+        sub = parts.join(' · ');
       } else {
         const keys = Object.keys(calSlots(p)).filter(k => k !== 'any');
         sub = keys.length ? keys.map(calSlotName).join(', ') : 'Calibration starting point';
@@ -8674,6 +8701,7 @@ function renderCalibrationProfiles(activeId) {
   }
 
   const statusEl=$('#calProfileStatus');if(statusEl){const state=getCalibrationStatus();statusEl.textContent=state.label;}
+  const delBtn=$('#calProfileDelete');if(delBtn)delBtn.disabled=!S.calibrationProfiles.some(p=>p.id===sel.value);
 }
 $('#printSettingsView').addEventListener('change', async ev => {
   const t = ev.target, k = t.dataset.k; if (!k) return;
@@ -8804,6 +8832,7 @@ $('#printSettingsView').addEventListener('click', async ev => {
   if (ev.target.hasAttribute('data-backclear')) {
     const old = [S.settings.backImage, !S.settings.backImage ? deck().cardback?.custom : null].filter(Boolean);
     S.settings.backImage = null;
+    S.settings.backImageBleed = null;
     if (!old.length || deck().cardback) deck().cardback = null;
     for (const key of old) await removeImageIfUnused(key);
     save(); renderAll();
@@ -8842,7 +8871,7 @@ $('#printSettingsView').addEventListener('click', async ev => {
       $('#calProfileSel').value = ''; S.calibrationProfileId = null;
       $('#calProfileName').value = '';
     }
-    save(); renderCalibrationProfiles();refreshCalibrationStatus();
+    save(true); renderCalibrationProfiles();refreshCalibrationStatus();
     toast(`Deleted profile "${p.name}".`);
     return;
   }
@@ -8894,6 +8923,7 @@ if (newCalBtn) newCalBtn.onclick = () => {
   toast('Enter a profile name and click Save profile.');
 };
 $('#calProfileSave').onclick = async () => {
+  if (alignmentDrafts.has(alignmentDraftKey()) && !commitAlignmentInputs({silent: true})) return;
   let name = $('#calProfileName').value.trim().slice(0, 100);
   if (!name) {
     const def = printerOf(S.printer).name.replace(/ \(.*\)$/, '') + ' alignment';
@@ -8933,7 +8963,7 @@ $('#calProfileSave').onclick = async () => {
   else S.calibrationProfiles.push({id:uid(), name, printer:S.printer, settings});
   const targetId = (target || S.calibrationProfiles[S.calibrationProfiles.length - 1]).id;
   S.calibrationProfileId = targetId;
-  save();
+  save(true);
   renderCalibrationProfiles(targetId);refreshCalibrationStatus();
   toast(`Saved profile "${name}".`);
 };
@@ -8956,12 +8986,12 @@ $('#calProfileDelete').onclick = async () => {
   S.calibrationProfiles = S.calibrationProfiles.filter(x => x.id !== id);
   $('#calProfileName').value = '';
   $('#calProfileSel').value = ''; S.calibrationProfileId = null;
-  save(); renderCalibrationProfiles();refreshCalibrationStatus();
+  save(true); renderCalibrationProfiles();refreshCalibrationStatus();
   toast(`Deleted profile "${p.name}".`);
 };
 
 /* ---------- presets ---------- */
-const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage');
+const PRESET_KEYS = Object.keys(DEFAULTS).filter(k => k !== 'backImage' && k !== 'backImageBleed');
 // An allowlist, not a spread: a builtin preset's other declared keys are dormant.
 // presetSettings only copies pageSize, orientation, cardRotation and these two, so
 // a preset cannot reach margin, bleed, dpi or the card size. For a preset with a
@@ -8973,7 +9003,7 @@ function cameoPaperLayout(orientation) {
 }
 const presetImageSettings = p => FOIL_IDS.includes(p.id) ? foilColors() : p.settings;
 function presetSettings(p) {
-  if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage};
+  if (!p.builtin) return {...cleanSettings(p.settings), backImage:S.settings.backImage, backImageBleed:S.settings.backImageBleed};
   const next = {...S.settings, pageSize:p.settings.pageSize || S.settings.pageSize, orientation:p.settings.orientation, cardRotation:'upright'};
   const colors = presetImageSettings(p);
   for (const k of PRESET_IMAGE_KEYS) next[k] = colors[k] ?? DEFAULTS[k];
@@ -9391,7 +9421,7 @@ function matRulers(L, z) {
   return `<div class="ruler ruler-x" style="${ticks}" aria-hidden="true">${marks(L.W).map(n => `<i style="left:${n * z}px">${n}</i>`).join('')}</div>`
     + `<div class="ruler ruler-y" style="${ticks}" aria-hidden="true">${marks(L.H).map(n => `<i style="top:${n * z}px">${n}</i>`).join('')}</div>`;
 }
-function orderSharedBack(d=deck(),settings=S.settings){return settings.backImage ? {name:'Card back',custom:settings.backImage} : d.cardback;}
+function orderSharedBack(d=deck(),settings=S.settings){return settings.backImage ? {name:'Card back',custom:settings.backImage,...(settings.backImageBleed != null ? {srcBleed:settings.backImageBleed} : {})} : d.cardback;}
 function sizeOrderGallery() {
   if (S.mode !== 'order') return;
   const gallery = $('.order-gallery');
@@ -10256,13 +10286,13 @@ function duplexCardTestDoc(L, s = S.settings, opt = {}) {
       doc.setLineDashPattern([], 0);
     }
   };
-  // Optional toner load simulates real full-bleed card toner laydown (border + interior)
-  // so laser fuser heat, curl, and duplex roller traction match an actual card sheet.
+  // Optional toner load simulates real full-bleed card toner laydown (rich black border + dark CMYK interior)
+  // so laser fuser heat, thermal feed-axis shrinkage, curl, and duplex roller traction match actual card sheets.
   const drawTonerCard = (T, x, y) => {
-    doc.setFillColor('#1c1c1c');
+    doc.setFillColor('#121212');
     doc.rect(T.x(x), T.y(y), T.w(L.sw), T.h(L.sh), 'F');
     if (L.cw > 2 * REG_TEST_SAFE && L.ch > 2 * REG_TEST_SAFE) {
-      doc.setFillColor('#333a44');
+      doc.setFillColor('#241c18');
       doc.rect(T.x(x + B.x + REG_TEST_SAFE), T.y(y + B.y + REG_TEST_SAFE), T.w(L.cw - 2 * REG_TEST_SAFE), T.h(L.ch - 2 * REG_TEST_SAFE), 'F');
     }
   };
@@ -10489,15 +10519,18 @@ function solveDuplexReadings(L, s, readings, opt = {}) {
   let scaleLocked = false;
   let cur = null;
   if (pass2 && active.some(k => k.startsWith('backScale'))) {
-    // Pass 2 rigid-first refinement: Pass 1 already measured sheet scale, so hold
-    // backScaleX/Y steady and solve the rigid (X, Y, angle) residual unless Pass 2
-    // demonstrates a genuine scale shift (e.g. thermal shrinkage under toner load).
+    // Pass 2 rigid-first refinement: keep Pass 1 scale locked when Pass 2 is purely rigid
+    // shift + angle (preventing sparse pinhole noise from drifting scale), but unlock scale
+    // whenever Pass 2 detects real thermal fuser shrinkage (>= 0.05% scale change that
+    // meaningfully reduces residual RMS, including subtle ~0.15-0.45% feed-axis shrinkage).
     const curRigid = fitRobust(rigidKeys);
     const curFull = fitRobust(active);
     if (curRigid && curFull) {
       const rmsRigid = rmsOf(resid(curRigid)), rmsFull = rmsOf(resid(curFull));
       const maxScaleDelta = Math.max(Math.abs(curFull.backScaleX - s.backScaleX), Math.abs(curFull.backScaleY - s.backScaleY));
-      if (rmsRigid - rmsFull >= 0.05 && rmsRigid > 0.18 && maxScaleDelta >= 0.04) {
+      const rmsDrop = rmsRigid - rmsFull;
+      const unlockScale = maxScaleDelta >= 0.05 && (used.length >= 8 ? rmsDrop >= 0.015 : rmsDrop >= 0.04);
+      if (unlockScale) {
         cur = curFull;
       } else {
         cur = curRigid;
@@ -12163,7 +12196,7 @@ $('#fileBackup').onchange = ev => {
 };
 $('#resetSettings').onclick = () => {
   const proceed = () => {
-    S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings, backImage:S.settings.backImage};
+    S.settings = {...DEFAULTS, ...BUILTIN_PRESETS[0].settings, backImage:S.settings.backImage, backImageBleed:S.settings.backImageBleed};
     S.printer = 'et2800'; S.printerByKind = {}; S.activePreset = null; S.mpc = {...MPC_DEFAULTS};
     S.zoom = innerWidth <= 820 ? Math.max(1, Math.min(2.4, (innerWidth - 40) / layout().W)) : 2.4; S.showBacks = false; S.orderShowBacks = false; S.showCuts = false; S.advOpen = false;
     $('#zoom').value = S.zoom; $('#showBacks').checked = S.showBacks; $('#orderShowBacks').checked = false;
@@ -12449,6 +12482,9 @@ function switchSettingsPage(page) {
   });
   if (target === 'alignment') {
     refreshAlignmentPage();
+    const act = S.calibrationProfiles.find(p => p.id === S.calibrationProfileId);
+    const nameBox = $('#calProfileName');
+    if (nameBox && document.activeElement !== nameBox && !nameBox.value.trim() && act) nameBox.value = act.name;
   } else if (target === 'printer') {
     renderPrinter();
   } else if (target === 'color') {
@@ -12618,7 +12654,7 @@ $('#btnChangeLayoutTemplate').onclick = ev => {
   requestAnimationFrame(() => $('#scmTemplate').focus());
 };
 
-$('#btnApplyAlignment').onclick = () => {
+function commitAlignmentInputs({silent = false} = {}) {
   const fields = [
     { id: 'input-offsetX', k: 'offsetX', min: -100, max: 100 },
     { id: 'input-offsetY', k: 'offsetY', min: -100, max: 100 },
@@ -12655,14 +12691,14 @@ $('#btnApplyAlignment').onclick = () => {
     }
     invalidField.el?.setAttribute('aria-invalid','true');
     invalidField.el?.focus();
-    return;
+    return false;
   }
   if (err) { err.style.display = 'none'; err.textContent = ''; }
 
   const draftKey = alignmentDraftKey();
   const changed = Object.keys(parsed).filter(k => parsed[k] !== S.settings[k]);
   alignmentDrafts.delete(draftKey);
-  if (!changed.length) { refreshAlignmentPage(); return; }
+  if (!changed.length) { refreshAlignmentPage(); return true; }
   for (const [k, v] of Object.entries(parsed)) {
     S.settings[k] = v;
   }
@@ -12671,8 +12707,10 @@ $('#btnApplyAlignment').onclick = () => {
   S.activePreset = null;
   save();
   refreshCalibrationStatus();
-  toast(frontLocked ? 'Applied back alignment.' : 'Applied alignment changes.');
-};
+  if (!silent) toast(frontLocked ? 'Applied back alignment.' : 'Applied alignment changes.');
+  return true;
+}
+$('#btnApplyAlignment').onclick = () => commitAlignmentInputs();
 
 $('#btnResetAlignment').onclick = () => {
   alignmentDrafts.delete(alignmentDraftKey());

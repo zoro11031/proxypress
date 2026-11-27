@@ -62,8 +62,59 @@
     const bmpTrim = await createImageBitmap(downloads[0].blob);
     check('with-bleed PNG is larger than trimmed PNG', bmpBleed.width > bmpTrim.width && bmpBleed.height > bmpTrim.height, `${bmpBleed.width}x${bmpBleed.height} vs ${bmpTrim.width}x${bmpTrim.height}`);
     check('trimmed PNG matches 63x88mm at 600 DPI', Math.abs(bmpTrim.width - 1488) <= 2 && Math.abs(bmpTrim.height - 2079) <= 2, `${bmpTrim.width}x${bmpTrim.height}`);
+    const bleedBlob = downloads.length ? null : null; // captured below
     bmpBleed.close();
     bmpTrim.close();
+
+    // 2b. Re-importing an exported custom card PNG (with bleed) via #fileFace, uploadImages, and uploadSharedCardback
+    //     MUST preserve MPC_BLEED so Silhouette (SCM) does not shrink the artwork or inflate the bleed!
+    closeModal(true);
+    const renderedCardCanvas = await renderCustomCard({...e1.faces[0].template}, await loadImage(await customUrl(artKey)), 600 / 25.4);
+    const exportedBleedBlob = await customCardCanvasToPngBlob(renderedCardCanvas, true);
+    const exportedTrimBlob = await customCardCanvasToPngBlob(renderedCardCanvas, false);
+    const origFaceKey = await storeImage(exportedBleedBlob);
+    const origCustomFace = {name: 'Test Pony', custom: origFaceKey, srcBleed: MPC_BLEED};
+
+    // Simulate #fileFace upload (replacing art on an existing card with the exported bleed PNG).
+    const eTarget = {uid: uid(), qty: 1, name: 'Demonic Tutor', custom: true, faces: [{name: 'Demonic Tutor', custom: artKey, srcBleed: 0}], tokens: []};
+    d.entries.push(eTarget);
+    const dtBleed = new DataTransfer();
+    dtBleed.items.add(new File([exportedBleedBlob], 'Test Pony.png', {type: 'image/png'}));
+    faceTarget = {e: eTarget, i: 0};
+    $('#fileFace').files = dtBleed.files;
+    $('#fileFace').dispatchEvent(new Event('change', {bubbles: true}));
+    await sleep(300);
+    closeModal(true);
+    check('#fileFace detects MPC_BLEED on re-imported custom PNG', Math.abs((eTarget.faces[0].srcBleed ?? -1) - MPC_BLEED) < 0.01, `got ${eTarget.faces[0].srcBleed}`);
+
+    // Verify rendered pixels under Silhouette letter-standard-v6 match the original custom card (zero shrinkage!).
+    const scmSet = {...DEFAULTS, silhouette: true, pageSize: 'letter', cardPreset: 'mtg', orientation: 'landscape', scmTemplate: 'standard'};
+    const cOrig = await renderFace(origCustomFace, 150, true, 0, scmSet, false);
+    const cReimp = await renderFace(eTarget.faces[0], 150, true, 0, scmSet, false);
+    const pxOrig = cOrig.getContext('2d').getImageData(0, 0, cOrig.width, cOrig.height).data;
+    const pxReimp = cReimp.getContext('2d').getImageData(0, 0, cReimp.width, cReimp.height).data;
+    let maxDiff = 0;
+    for (let k = 0; k < pxOrig.length; k += 16) maxDiff = Math.max(maxDiff, Math.abs(pxOrig[k] - pxReimp[k]));
+    check('re-imported bleed PNG renders pixel-identically under Silhouette (no art shrink)', maxDiff <= 2, `maxDiff=${maxDiff}`);
+
+    // Verify #fileFace sets srcBleed=0 on a trimmed (no-bleed) exported PNG.
+    const dtTrim = new DataTransfer();
+    dtTrim.items.add(new File([exportedTrimBlob], 'Test Pony trimmed.png', {type: 'image/png'}));
+    faceTarget = {e: eTarget, i: 0};
+    $('#fileFace').files = dtTrim.files;
+    $('#fileFace').dispatchEvent(new Event('change', {bubbles: true}));
+    await sleep(300);
+    closeModal(true);
+    check('#fileFace sets srcBleed=0 on trimmed exported PNG', eTarget.faces[0].srcBleed === 0, `got ${eTarget.faces[0].srcBleed}`);
+
+    // Verify uploadSharedCardback also preserves MPC_BLEED under Silhouette.
+    const origBackImg = S.settings.backImage, origBackBleed = S.settings.backImageBleed;
+    await uploadSharedCardback(new File([exportedBleedBlob], 'Custom Back.png', {type: 'image/png'}));
+    check('uploadSharedCardback detects MPC_BLEED on bleed PNG', Math.abs((S.settings.backImageBleed ?? -1) - MPC_BLEED) < 0.01, `got ${S.settings.backImageBleed}`);
+    const backSlot = buildSlots(d, {...scmSet, backs: true, backImage: S.settings.backImage, backImageBleed: S.settings.backImageBleed})[0];
+    check('buildSlots forwards backImageBleed to shared cardback face', Math.abs((backSlot.back.srcBleed ?? -1) - MPC_BLEED) < 0.01, `got ${backSlot.back?.srcBleed}`);
+    S.settings.backImage = origBackImg; S.settings.backImageBleed = origBackBleed;
+    d.entries = d.entries.filter(x => x !== eTarget);
 
     // 3. Add a 2nd custom card with the same name and verify bulk zip export deduplication.
     const e2 = {
