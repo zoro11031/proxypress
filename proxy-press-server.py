@@ -186,10 +186,14 @@ def share_db():
     try:
         db.execute("PRAGMA foreign_keys=ON")
         db.execute("PRAGMA busy_timeout=5000")
+        db.execute("PRAGMA temp_store=MEMORY")
         if not _share_db_ready:
             with _share_db_init_lock:
                 if not _share_db_ready:
-                    db.execute("PRAGMA journal_mode=WAL")
+                    try:
+                        db.execute("PRAGMA journal_mode=WAL")
+                    except sqlite3.Error:
+                        pass
                     with db:
                         db.execute("CREATE TABLE IF NOT EXISTS shares (id TEXT PRIMARY KEY, created INTEGER NOT NULL, document TEXT)")
                         db.execute("CREATE TABLE IF NOT EXISTS share_images (hash TEXT PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL)")
@@ -774,8 +778,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     db.execute("UPDATE instance_art SET thumb=? WHERE id=?", (digest, art_id))
                 prune_shares(db)
             return self.share_json(200, {"id": art_id})
-        except (OSError, sqlite3.Error, urllib.error.URLError):
-            return self.share_json(503, {"message": "Could not save or search shared artwork. Your deck still keeps its image."})
+        except urllib.error.URLError as err:
+            sys.stderr.write(f"[proxypress] art_api {route}: {type(err).__name__}: {err}\n")
+            return self.share_json(503, {"message": "Could not reach Scryfall to verify this card."})
+        except (OSError, sqlite3.Error) as err:
+            sys.stderr.write(f"[proxypress] art_api {route}: {type(err).__name__}: {err}\n")
+            return self.share_json(503, {"message": "Could not save or search shared artwork."})
 
     def public_share(self, route):
         if route.startswith("/share/assets/"):

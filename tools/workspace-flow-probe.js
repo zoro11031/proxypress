@@ -526,21 +526,21 @@
   check($('#modalTitle')?.textContent === 'Import backup' && $('#modal .bd').textContent.includes('1 deck') && S.decks.length === originalDeckCount, 'Project files should preview the backup before adding decks.');
   check($('#restoreBackupSettings') && !$('#restoreBackupSettings').checked, 'Backup settings should be opt-in.');
   closeModal();
-  check($('#modalTitle')?.textContent === 'Project files' && S.decks.length === originalDeckCount, 'Closing the backup preview should return to project files and preserve existing decks.');
+  check($('#modalTitle')?.textContent === 'Backups & data' && S.decks.length === originalDeckCount, 'Closing the backup preview should return to backups & data and preserve existing decks.');
   await openPrintDeckFile(backupBlob,{fromBackup:true});
   if ($('#confirmBackupRestore')) {
     await $('#confirmBackupRestore').onclick();
     check(S.decks.length === originalDeckCount + 1 && S.decks.some(d=>d.id !== deckId && d.name === 'Backup fixture (imported)') && S.deckId === deckId, 'Importing a backup should add a copy and keep the current deck active.');
     check(S.settings.brightness === originalBrightness, 'Importing decks alone should keep the current print settings.');
   } else check(false, 'The backup preview should provide an explicit import action.');
-  if ($('#modalTitle')?.textContent !== 'Project files') closeModal();
+  if ($('#modalTitle')?.textContent !== 'Backups & data') closeModal();
   await openPrintDeckFile(new Blob([JSON.stringify({...backupData,decks:[]})],{type:'application/json'}),{fromBackup:true});
   if ($('#confirmBackupRestore')) {
     $('#restoreBackupSettings').checked = true;
     await $('#confirmBackupRestore').onclick();
     check(S.settings.brightness === 137, 'Selecting the restore option should apply the backup print settings.');
   }
-  if ($('#modalTitle')?.textContent !== 'Project files') closeModal();
+  if ($('#modalTitle')?.textContent !== 'Backups & data') closeModal();
   closeModal();
 
   if (innerWidth <= 820) {

@@ -1072,6 +1072,9 @@ body[data-mode=order] .gal .tile:has(img.selected){border-color:transparent;back
 .stage-controls{border-bottom-color:var(--line)}
 body:not(.has-cards,.print-settings-active) #btnReviewExport,
 body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
+body:not(.has-cards) #btnPdf,
+body:not(.has-cards) #btnXml{background:var(--panel2);border-color:var(--line);color:var(--muted)}
+#importDrawerSummary{display:none}
 #btnResumeImport{margin-bottom:var(--s3)}
 #btnFilterNeedsArt{background:var(--panel2);color:var(--warning);border:1px solid var(--line)}
 #btnFilterNeedsArt[aria-pressed=true]{background:rgb(var(--warning-rgb) / .12);border-color:var(--warning)}
@@ -1100,16 +1103,16 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
       <select id="deckSel" aria-label="Deck"></select>
       <details class="menu" id="deckMenu">
         <summary title="Deck options" aria-label="Deck options"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg></summary>
-        <div class="menu-list">
-          <button id="deckNew">New deck</button>
-          <button id="deckRename">Rename deck</button>
-          <button id="deckDup">Duplicate deck</button>
-          <button id="btnTokens" hidden>Add needed tokens</button>
-          <button id="btnCopyList">Copy decklist</button><button id="projectFiles">Project files…</button>
-          <button id="btnReplace">Replace from decklist…</button>
-          <button id="btnUndoReplace" style="display:none">Undo deck replacement</button>
-          <button id="btnClear" class="danger">Remove all cards</button>
-          <button id="deckDel" class="danger">Delete deck</button>
+        <div class="menu-list" role="menu">
+          <button id="deckNew" role="menuitem">New deck</button>
+          <button id="deckRename" role="menuitem">Rename deck</button>
+          <button id="deckDup" role="menuitem">Duplicate deck</button>
+          <button id="btnTokens" role="menuitem" hidden>Add needed tokens</button>
+          <button id="btnCopyList" role="menuitem">Copy decklist</button>
+          <button id="btnReplace" role="menuitem">Replace from decklist…</button>
+          <button id="btnUndoReplace" role="menuitem" style="display:none">Undo deck replacement</button>
+          <button id="btnClear" role="menuitem" class="danger">Remove all cards</button>
+          <button id="deckDel" role="menuitem" class="danger">Delete deck</button>
         </div>
       </details>
     </div>
@@ -1117,7 +1120,7 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
   </div>
   <div class="hzone hzone-act">
     <button id="btnHelp" class="icon round" title="Help" aria-label="Help"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4"/><circle cx="8" cy="11.6" r=".5"/></svg></button>
-    <button id="btnSettings" class="icon" aria-label="Project files"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg><span>Project files</span></button>
+    <button id="btnSettings" class="icon" aria-label="Backups and data"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg><span>Backups &amp; data</span></button>
     <button id="btnPdf" class="primary print-only">Review export</button>
     <button id="btnXml" class="primary order-only">Review order</button>
   </div>
@@ -1253,7 +1256,7 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
         <p id="scmTemplateHint" class="hint"></p>
         <div id="cameoStatus"></div>
         <div class="row" style="margin-top:10px"><button id="btnRegTestPdf" aria-describedby="regTestHint">Download registration test page</button></div>
-        <p class="hint" id="regTestHint">Print on scrap paper to test mark detection and cut alignment before cutting cards.</p>
+        <p class="hint" id="regTestHint">Print on scrap paper to test alignment.</p>
 
         <details class="adv" id="cameoAdvDrawer" style="margin-top:12px">
           <summary>Advanced cutting options</summary>
@@ -1833,7 +1836,7 @@ body[data-mode=order]:not(.has-cards) #workspaceBar{display:none}
 <div id="toast"><span id="toastMessage" role="status" aria-live="polite"></span><button type="button" id="toastAction" hidden></button></div>
 <div id="drop">Drop a shared deck, card images, or a decklist here</div>
 <div id="ctx" role="menu"></div>
-<nav id="mbar" aria-label="View"><button data-mview="cards" class="on">Cards</button><button data-mview="proof">Preview <span id="mbarCount"></span></button><button data-mview="setup">Print settings</button></nav>
+<nav id="mbar" aria-label="View"><button data-mview="cards" class="on" aria-current="page">Cards</button><button data-mview="proof">Preview <span id="mbarCount"></span></button><button data-mview="setup">Print settings</button></nav>
 
 <script>
 const $ = (s, r = document) => r.querySelector(s);
@@ -3316,7 +3319,7 @@ function precacheStaples() {
   fetchCollection(missing.map(name => ({id:{name}}))).catch(() => {});
 }
 
-let deckUndo = null, cardUndo = null;
+let deckUndo = null, cardUndo = null, clearUndo = null;
 
 function captureDeckRevision(d) {
   if (!d) return null;
@@ -3876,7 +3879,10 @@ async function publishMatchedArt(e, faceIndex = 0) {
 }
 async function shareUploadedArt(e, faceIndex = 0) {
   try { if(await publishMatchedArt(e,faceIndex))toast('Artwork added to shared art search.'); }
-  catch(err){toast('Image saved in your deck. Could not share artwork: '+err.message,9000);}
+  catch(err){
+    const reason = String(err?.message || 'Try again later.').replace(/\s*Your deck still keeps its image\.?$/i, '');
+    toast('Saved in your deck. Could not share artwork: ' + reason, 9000);
+  }
 }
 function promptUploadedMatches(entries, at = 0) {
   const e=entries[at];if(!e || !deck().entries.includes(e))return;
@@ -3901,6 +3907,7 @@ async function uploadImages(files) {
 async function removeImageIfUnused(key) {
   if (!key || imageLeases.has(key)) return;
   if (cardUndo && cardUndo.entry?.faces?.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key)) return;
+  if (clearUndo && clearUndo.entries?.some(e => e.faces?.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key))) return;
   if (deckUndo && (deckUndo.target?.cardback?.custom === key || deckUndo.target?.snapshot?.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key)))) return;
   const used = S.decks.some(d => d.printSettings?.backImage === key || d.cardback?.custom === key || d.entries.some(e => e.faces.some(f => f.custom === key || f.template?.artKey === key || f.template?.frameKey === key || f.template?.popKey === key))) || S.settings.backImage === key || Object.values(S.ccFonts || {}).includes(key) || (S.frameSets || []).some(f => Object.values(f.images || {}).includes(key));
   if (!used) {
@@ -4415,7 +4422,7 @@ async function openMpcPicker(target) {
 
       <div id="tabPanelLocal" class="src-tab-content" role="tabpanel" aria-labelledby="artSource-local" tabindex="0" ${initialTab === 'local' ? '' : 'hidden'}>
         ${isBack ? '' : `<div class="row"><button id="mpcOwn">Upload image…</button>${copyCount ? '' : '<button id="mpcMaker">Make custom card…</button>'}</div>`}
-        <p class="hint" id="localStatus" role="status"></p>
+        <p class="hint" id="pickerLocalStatus" role="status"></p>
         <div class="prints" id="localArt"></div>
         <div class="prints" id="sharedArt"></div>
       </div>
@@ -4664,7 +4671,7 @@ async function openMpcPicker(target) {
     find('#sharedArt').replaceChildren();
     shown = 0; sharedHits = []; sfHits = []; sfShown = 0; sfNext = null; sfBusy = false;
     find('#mpcMore').hidden = find('#sfArtMore').hidden = true;
-    const localStatus = find('#localStatus'), noLocalArt = 'No matching images. You can upload one above.';
+    const localStatus = find('#pickerLocalStatus'), noLocalArt = 'No matching images. You can upload one above.';
     localStatus.textContent = localHits.length ? '' : noLocalArt;
 
     const jobs = [];
@@ -5170,6 +5177,8 @@ function renderOrder() {
   const auto = $('#oAuto'); if (auto) auto.onclick = () => mpcAutofill();
   const attach = $('#oAttach'); if (attach) attach.onclick = () => $('#fileMpcImgs').click();
   $('#oZip').disabled = !order.slot;
+  if (!order.slot) $('#oZip').title = 'Add cards with high-res or uploaded art first';
+  else $('#oZip').removeAttribute('title');
   $('#oXml').disabled = !xml.slot;
   const uploadsExcluded = xml.uploads.length || (order.cardback && !xml.cardback && orderBackCount(xml) < xml.slot);
   $('#xmlSummary').textContent = total
@@ -5202,6 +5211,7 @@ $('#oBackClear').onclick = async () => {
   const old = [S.settings.backImage, deck().cardback?.custom]; S.settings.backImage = null; deck().cardback = null;
   for (const key of old) await removeImageIfUnused(key);
   save(); renderAll();
+  toast('Shared cardback removed.');
 };
 $('#oZip').onclick = () => exportMpcZip(false,reviewedOrderSnapshots.zip);
 $('#oXml').onclick = () => exportMpcXml(false,reviewedOrderSnapshots.xml);
@@ -5274,17 +5284,19 @@ $('#deckDel').onclick = async () => {
 /* ---------- UI: card list ---------- */
 let selectedCopies = new Set(), selectionDeck = null, selectionAnchor = null;
 const copyKey = (e, copy) => `${e.uid}:${copy}`;
+const fmtMm = v => String(+Number(v || 0).toFixed(2));
 function updateProofCardSummary(slots = buildSlots(), settings = S.settings) {
-  const key = selectedCopies.values().next().value;
+  const key = (selectionAnchor && selectedCopies.has(selectionAnchor)) ? selectionAnchor : selectedCopies.values().next().value;
   const active = slots.find(slot=>copyKey(slot.e,slot.copy) === key && (S.showBacks || slot.fi === (S.activeFace || 0)))
     || slots.find(slot=>copyKey(slot.e,slot.copy) === key);
   $('#proofCardFooter').style.display = active ? 'flex' : 'none';
   if (!active) return;
   const face = S.showBacks ? active.back : active.front;
-  $('#proofCardName').textContent = face?.name || active.e.name;
+  const extra = selectedCopies.size > 1 ? ` (+${selectedCopies.size - 1} more)` : '';
+  $('#proofCardName').textContent = (face?.name || active.e.name) + extra;
   $('#proofCardStatus').textContent = !face ? 'No back for this copy' : isPreview(face) ? 'Needs high-resolution art' : S.showBacks ? 'Back art ready' : 'Front art ready';
-  $('#proofCardTrim').textContent = `${settings.cardW} × ${settings.cardH} mm trim`;
-  $('#btnProofChangeArt').textContent = !face && S.showBacks ? 'Choose cardback' : 'Change art';
+  $('#proofCardTrim').textContent = `${fmtMm(settings.cardW)} × ${fmtMm(settings.cardH)} mm trim`;
+  $('#btnProofChangeArt').textContent = !face && S.showBacks ? 'Choose cardback' : selectedCopies.size > 1 ? `Change art (${selectedCopies.size})` : 'Change art';
 }
 function syncCardSelection() {
   if (selectionDeck !== S.deckId) { selectedCopies.clear(); selectionAnchor = null; selectionDeck = S.deckId; }
@@ -5564,7 +5576,7 @@ $('#cardList').addEventListener('click', async ev => {
   const d = deck(), e = d.entries.find(x => x.uid === row.dataset.uid);
   if (act === 'inc') e.qty++;
   else if (act === 'dec') e.qty = Math.max(0, e.qty - 1);
-  else if (act === 'del') { await removeEntry(e); return; }
+  else if (act === 'del') { await removeEntryWithUndo(e); return; }
   else if (act === 'fix-issue') {
     const faceIdx = +(control.dataset.face || 0);
     const side = control.dataset.side || (faceIdx === 1 ? 'back' : 'front');
@@ -5677,19 +5689,29 @@ $('#fileUpload').onchange = ev => { uploadImages([...ev.target.files]); ev.targe
 const clearDeck = async () => {
   const d = deck();
   if (!d.entries.length) return;
-  const ok = window.confirm !== nativeConfirm
-    ? window.confirm('Remove all cards from this deck?')
-    : await askConfirm({
-        title: 'Remove all cards',
-        message: `Remove all cards from "${d.name}"?`,
-        ok: 'Remove cards',
-        cancel: 'Cancel',
-        danger: true
-      });
-  if (!ok) return;
-  const keys = d.entries.flatMap(e => e.faces.map(f => f.custom)); d.entries = [];
-  for (const k of keys) await removeImageIfUnused(k);
+  const count = d.entries.reduce((n, e) => n + (e.qty || 1), 0);
+  const prevUndo = clearUndo;
+  const prevEntries = structuredClone(d.entries);
+  const deckId = d.id;
+  clearUndo = { deckId, entries: prevEntries };
+  d.entries = [];
   save(); renderAll();
+  if (prevUndo?.entries) {
+    const oldKeys = prevUndo.entries.flatMap(e => e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey])).filter(Boolean);
+    for (const k of oldKeys) await removeImageIfUnused(k);
+  }
+  toast(`Removed ${count} card${count === 1 ? '' : 's'}.`, 9000, {
+    label: 'Undo',
+    fn: () => {
+      if (!clearUndo || clearUndo.deckId !== deckId) return;
+      const target = S.decks.find(x => x.id === deckId);
+      if (!target) return;
+      target.entries = clearUndo.entries;
+      clearUndo = null;
+      save(); renderAll();
+      toast('Cards restored.');
+    }
+  });
 };
 $('#btnClear').onclick = clearDeck;
 $('#btnCopyList').onclick = async () => {
@@ -5843,7 +5865,9 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
   if ($('#overlay').classList.contains('on')) { e.preventDefault(); closeModal(); return; }
   if ($('#ctx').classList.contains('on') || $('#deckMenu').open) {
+    const wasDeckMenu = $('#deckMenu').open;
     e.preventDefault(); closeCtx(true); $('#deckMenu').removeAttribute('open');
+    if (wasDeckMenu) $('#deckMenu > summary')?.focus();
   }
 });
 
@@ -6642,18 +6666,20 @@ async function openCardMaker(target) {
   let e = target.e || null;
   const i = target.i || 0, face = e?.faces[i];
   busy(true, 'Loading card text…');
-  const sets = allSets(), named = n => sets.find(f => f.name === n), setStyle = f => f && 'set:' + f.id;
-  const primary = FRAME_PRIMARY.map(named).filter(Boolean), more = sets.filter(f => !FRAME_PRIMARY.includes(f.name)).sort((a, b) => frameLabel(a).localeCompare(frameLabel(b)));
-  const fallback = setStyle(named('magic-m15')) || setStyle(named('magic-new')) || setStyle(sets[0]) || 'modern';
-  const lastStyle = S.ccStyle && (!S.ccStyle.startsWith('set:') || setOf({style:S.ccStyle})) && !(sets.length && /^(modern|retro)$/.test(S.ccStyle)) ? S.ccStyle : fallback;
-  let t = face?.template ? {style:'modern', ...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto', style:lastStyle};
-  const missingFrame = t.style?.startsWith('set:') && !setOf(t);
-  if (missingFrame) t.style = fallback;
-  if (sets.length && (t.style === 'modern' || t.style === 'retro')) t.style = setStyle(named(t.style === 'modern' ? 'magic-new' : 'magic-old')) || fallback;
-  const pwSet = named('magic-m15-planeswalker'), isPw = ty => /Planeswalker/.test(ty || '');
-  if (!face?.template) { if (pwSet && isPw(t.type)) t.style = setStyle(pwSet); else if (setOf(t)?.layout.pw) t.style = fallback; }
-  const isMore = more.some(f => t.style === 'set:' + f.id);
-  busy(false);
+  let sets, named, setStyle, primary, more, fallback, lastStyle, t, missingFrame, pwSet, isPw, isMore;
+  try {
+    sets = allSets(); named = n => sets.find(f => f.name === n); setStyle = f => f && 'set:' + f.id;
+    primary = FRAME_PRIMARY.map(named).filter(Boolean); more = sets.filter(f => !FRAME_PRIMARY.includes(f.name)).sort((a, b) => frameLabel(a).localeCompare(frameLabel(b)));
+    fallback = setStyle(named('magic-m15')) || setStyle(named('magic-new')) || setStyle(sets[0]) || 'modern';
+    lastStyle = S.ccStyle && (!S.ccStyle.startsWith('set:') || setOf({style:S.ccStyle})) && !(sets.length && /^(modern|retro)$/.test(S.ccStyle)) ? S.ccStyle : fallback;
+    t = face?.template ? {style:'modern', ...face.template} : {...await ccData(e, i), zoom:1, ox:0, oy:0, fullArt:false, color:'auto', style:lastStyle};
+    missingFrame = t.style?.startsWith('set:') && !setOf(t);
+    if (missingFrame) t.style = fallback;
+    if (sets.length && (t.style === 'modern' || t.style === 'retro')) t.style = setStyle(named(t.style === 'modern' ? 'magic-new' : 'magic-old')) || fallback;
+    pwSet = named('magic-m15-planeswalker'); isPw = ty => /Planeswalker/.test(ty || '');
+    if (!face?.template) { if (pwSet && isPw(t.type)) t.style = setStyle(pwSet); else if (setOf(t)?.layout.pw) t.style = fallback; }
+    isMore = more.some(f => t.style === 'set:' + f.id);
+  } finally { busy(false); }
   let art = null;
   if (t.artKey) { const u = await customUrl(t.artKey); if (u) art = await loadImage(u).catch(() => null); }
   const F = [['name', 'Name'], ['skin', 'Nickname'], ['mana', 'Mana cost'], ['type', 'Type line'], ['text', 'Rules text'], ['flavor', 'Flavor text'], ['pt', 'Power / toughness'], ['artist', 'Artist credit']];
@@ -6672,7 +6698,7 @@ async function openCardMaker(target) {
     <input type="text" id="ccManaText" value="${esc(t.mana || '')}" placeholder="e.g. 2UU, XR, W/U or {2}{U}{U}" ${manaAdv ? '' : 'hidden'} aria-label="Mana cost">
     <label class="check" style="margin-top:6px"><input type="checkbox" id="ccManaAdv" ${manaAdv ? 'checked' : ''}> Type it instead (hybrid, Phyrexian, split costs)</label></div>`;
   const textField = ([k, label]) => k === 'mana' ? manaField() : `<div class="field full"><label for="cc-${k}">${label}</label>${k === 'text' || k === 'flavor' ? `<textarea id="cc-${k}" data-cc="${k}" rows="${k === 'text' ? 5 : 2}">${esc(t[k] || '')}</textarea>` : `<input id="cc-${k}" type="text" data-cc="${k}" value="${esc(t[k] || '')}">`}</div>`;
-  openModal(`<div class="hd"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name ? esc(t.name) + ' · custom card' : 'Custom card'}</b><div class="row" style="flex-wrap:nowrap"><button class="primary" id="ccSave" ${art ? '' : 'disabled'}>Save card</button><button data-close>Close</button></div></div>
+  openModal(`<div class="hd"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name ? esc(t.name) + ' · custom card' : 'Custom card'}</b><div class="row" style="flex-wrap:nowrap"><button class="primary" id="ccSave" ${art ? '' : 'disabled title="Choose artwork first"'}>Save card</button><button data-close>Close</button></div></div>
     <div class="bd"><div class="cc">
       <div><canvas id="ccCanvas" aria-label="Card preview"></canvas>
         <div class="row" style="justify-content:center;font-size:11px;gap:12px;margin:4px 0 2px;flex-wrap:wrap">
@@ -6686,7 +6712,7 @@ async function openCardMaker(target) {
         <h3>Card lookup &amp; art</h3>
         <div class="field" style="margin-bottom:10px"><label for="ccLookup">Start from a real card (optional)</label><div class="row"><input type="text" id="ccLookup" placeholder="Card name" style="flex:1 1 140px"><input type="text" id="ccNum" placeholder="No." style="width:64px" aria-label="Collector number (optional)"><button id="ccFill">Load card text</button></div>
           <select id="ccSet" style="margin-top:6px" aria-label="Printing" hidden></select><select id="ccFace" style="margin-top:6px" aria-label="Card face" hidden></select><p class="hint">Loads the card text and colors. Your chosen art stays in place.</p></div>
-        <div class="row" style="margin-bottom:8px"><button class="primary" id="ccArt">${art ? 'Change art…' : 'Choose your art…'}</button><input type="file" id="ccFile" accept="image/*" hidden></div>
+        <div class="row" style="margin-bottom:8px"><button class="${art ? '' : 'primary'}" id="ccArt">${art ? 'Change art…' : 'Choose your art…'}</button><input type="file" id="ccFile" accept="image/*" hidden></div>
         <h3>Card text</h3>
         <div class="grid2">${F.filter(([k]) => !['skin', 'artist'].includes(k)).map(textField).join('')}</div>
         <h3>Art &amp; frame</h3>
@@ -6849,8 +6875,8 @@ async function openCardMaker(target) {
       const next = await loadImage(u);
       if (!cv.isConnected) return;
       t.artKey = await storeImage(f); art = next;
-      $('#ccArtReset').click(); $('#ccArt').textContent = 'Change art…';
-      $('#ccSave').disabled = false; $('#ccStatus').textContent = '';
+      $('#ccArtReset').click(); $('#ccArt').textContent = 'Change art…'; $('#ccArt').classList.remove('primary');
+      $('#ccSave').disabled = false; $('#ccSave').removeAttribute('title'); $('#ccStatus').textContent = '';
     } catch { if (cv.isConnected) $('#ccStatus').textContent = 'Could not open that image. Choose a PNG, JPEG or WebP image.'; }
     finally { URL.revokeObjectURL(u); }
   };
@@ -7008,9 +7034,9 @@ function openHelp() {
   $('#helpTour').onclick = () => { closeModal(true); openTour(0); };
 }
 $('#btnHelp').onclick = openHelp;
-$('#projectFiles').onclick = () => $('#btnSettings').click();
+if ($('#projectFiles')) $('#projectFiles').onclick = () => $('#btnSettings').click();
 $('#btnSettings').onclick = () => {
-  openModal(`<div class="hd"><b>Project files</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
+  openModal(`<div class="hd"><b>Backups &amp; data</b><button data-close>Close</button></div><div class="bd" id="dataSlot"></div>`);
   $('#modal').classList.add('narrow');
   const d = $('#tab-data'); d.classList.add('on'); $('#dataSlot').appendChild(d);
   renderStorage();
@@ -7026,8 +7052,33 @@ function parkData() {
 /* ---------- right-click menu ---------- */
 async function removeEntry(e) {
   const d = deck(); d.entries = d.entries.filter(x => x !== e);
-  for (const f of e.faces) await removeImageIfUnused(f.custom);
+  const keys = e.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]).filter(Boolean);
+  for (const k of keys) await removeImageIfUnused(k);
   save(); renderAll();
+}
+async function removeEntryWithUndo(e) {
+  const d = deck(), idx = d.entries.indexOf(e), prevUndo = cardUndo;
+  cardUndo = { entry: structuredClone(e), deckId: d.id, index: idx };
+  await removeEntry(e);
+  if (prevUndo?.entry) {
+    const oldKeys = prevUndo.entry.faces.flatMap(f => [f.custom, f.template?.artKey, f.template?.frameKey, f.template?.popKey]).filter(Boolean);
+    for (const k of oldKeys) await removeImageIfUnused(k);
+  }
+  toast(`Removed ${e.name}.`, 6000, {
+    label: 'Undo',
+    fn: () => {
+      if (!cardUndo || cardUndo.deckId !== deck().id) return;
+      const cur = deck();
+      if (cardUndo.index >= 0 && cardUndo.index <= cur.entries.length) {
+        cur.entries.splice(cardUndo.index, 0, cardUndo.entry);
+      } else {
+        cur.entries.push(cardUndo.entry);
+      }
+      cardUndo = null;
+      cur.updated = Date.now();
+      save(); renderAll();
+    }
+  });
 }
 async function cacheTokenPrinting(entry) {
   const keys=[];
@@ -7222,26 +7273,7 @@ function openCtx(x, y, e, i, copy) {
     else if (c === 'allart') openMpcPicker({e, i, deckId:S.deckId, copies:same.map(x => ({uid:x.uid, copies:Array.from({length:x.qty}, (_, q) => q)}))});
     else if (c === 'upload') { faceTarget = target; $('#fileFace').click(); }
     else if (c === 'maker') openCardMaker({e, i});
-    else if (c === 'del') {
-      const d = deck(), idx = d.entries.indexOf(e), entryCopy = structuredClone(e);
-      cardUndo = { entry: entryCopy, deckId: d.id, index: idx };
-      removeEntry(e);
-      toast(`Removed ${e.name}.`, 6000, {
-        label: 'Undo',
-        fn: () => {
-          if (!cardUndo || cardUndo.deckId !== deck().id) return;
-          const cur = deck();
-          if (cardUndo.index >= 0 && cardUndo.index <= cur.entries.length) {
-            cur.entries.splice(cardUndo.index, 0, cardUndo.entry);
-          } else {
-            cur.entries.push(cardUndo.entry);
-          }
-          cardUndo = null;
-          cur.updated = Date.now();
-          save(); renderAll();
-        }
-      });
-    }
+    else if (c === 'del') { removeEntryWithUndo(e); }
   };
 }
 function longPress(root, run) {
@@ -8200,7 +8232,7 @@ function renderAlignmentOverlay() {
   const selected=page.findIndex(slot=>selectedCopies.has(copyKey(slot.e,slot.copy)));
   let displacement='';
   if(selected>=0 && page[selected].back){const center=back=>points(selected,back).split(' ').map(pair=>pair.split(',').map(Number)).reduce((sum,pt)=>[sum[0]+pt[0]/4,sum[1]+pt[1]/4],[0,0]);const front=center(false),back=center(true);displacement=`<p class="hint">Selected copy ${page[selected].copy+1}: back displacement X ${(back[0]-front[0]).toFixed(2)} mm, Y ${(back[1]-front[1]).toFixed(2)} mm.</p>`;}
-  container.innerHTML = `<p class="hint">Solid violet outlines show the front. Dashed blue outlines show the back, viewed through the front of the sheet.</p><svg role="img" aria-label="Expected front and back alignment in millimetres" viewBox="-2 -2 ${L.W+4} ${L.H+4}" style="display:block;width:100%;background:#e8e5de"><rect width="${L.W}" height="${L.H}" fill="#fff" stroke="#777" stroke-width="0.3"/>${outlines}</svg><p class="hint">${L.W} × ${L.H} mm. ${status.frontLocked ? 'Front: Fixed by template.' : `Front: X ${s.offsetX}, Y ${s.offsetY} mm.`} Extra back: X ${s.backOffsetX}, Y ${s.backOffsetY} mm.</p>${displacement}<p class="hint">${esc(status.label)}. This is the expected alignment; print the test sheets to measure your printer.</p>`;
+  container.innerHTML = `<p class="hint">Solid violet outlines show the front. Dashed blue outlines show the back, viewed through the front of the sheet.</p><svg role="img" aria-label="Expected front and back alignment in millimetres" viewBox="-2 -2 ${L.W+4} ${L.H+4}" style="display:block;width:100%;background:#e8e5de"><rect width="${L.W}" height="${L.H}" fill="#fff" stroke="#777" stroke-width="0.3"/>${outlines}</svg><p class="hint">${fmtMm(L.W)} × ${fmtMm(L.H)} mm. ${status.frontLocked ? 'Front: Fixed by template.' : `Front: X ${s.offsetX}, Y ${s.offsetY} mm.`} Extra back: X ${s.backOffsetX}, Y ${s.backOffsetY} mm.</p>${displacement}<p class="hint">${esc(status.label)}. This is the expected alignment; print the test sheets to measure your printer.</p>`;
 }
 function drawProofAlignment() {
   $$('.proof-alignment').forEach(el=>el.remove());
@@ -8384,10 +8416,10 @@ $('#printSettingsView').addEventListener('change', async ev => {
             Object.assign(s, next);
         } else {
           askConfirm({
-            title: 'Update alignment numbers?',
-            message: 'The page turns on the paper, so alignment numbers no longer point the same way. Turn them to match?',
-            ok: 'Turn alignment',
-            cancel: 'Keep numbers'
+            title: 'Rotate alignment offsets?',
+            message: 'Rotate alignment offsets to match the new paper direction?',
+            ok: 'Rotate offsets',
+            cancel: 'Keep as-is'
           }).then(ok => {
             if (ok) {
               Object.assign(s, next);
@@ -8454,7 +8486,14 @@ $('#printSettingsView').addEventListener('click', async ev => {
   }
   if (ev.target.hasAttribute('data-backup')) $('#fileBack').click();
   if (ev.target.hasAttribute('data-mpcback')) openMpcPicker({cardback:true});
-  if (ev.target.hasAttribute('data-backclear')) { const old = S.settings.backImage; S.settings.backImage = null; if (!old) deck().cardback = null; removeImageIfUnused(old); save(); renderAll(); }
+  if (ev.target.hasAttribute('data-backclear')) {
+    const old = [S.settings.backImage, !S.settings.backImage ? deck().cardback?.custom : null].filter(Boolean);
+    S.settings.backImage = null;
+    if (!old.length || deck().cardback) deck().cardback = null;
+    for (const key of old) await removeImageIfUnused(key);
+    save(); renderAll();
+    toast('Shared cardback removed.');
+  }
   const calCard = ev.target.closest('[data-cal-profile]');
   if (calCard) {
     const id = calCard.dataset.calProfile;
@@ -8489,6 +8528,7 @@ $('#printSettingsView').addEventListener('click', async ev => {
       $('#calProfileName').value = '';
     }
     save(); renderCalibrationProfiles();refreshCalibrationStatus();
+    toast(`Deleted profile "${p.name}".`);
     return;
   }
 });
@@ -8509,8 +8549,9 @@ $('#printSettingsView').addEventListener('keydown', ev => {
 });
 $('#settingsForm').addEventListener('change', async ev => {
   if (ev.target.id !== 'fileBack' || !ev.target.files[0]) return;
-  const old = S.settings.backImage; S.settings.backImage = await storeImage(ev.target.files[0]);
-  await removeImageIfUnused(old); save(); renderAll();
+  const f = ev.target.files[0]; ev.target.value = '';
+  try { await uploadSharedCardback(f); }
+  catch (err) { toast('Could not save cardback: ' + err.message, 6000); }
 });
 $('#calProfileSel').onchange = ev => {
   S.calibrationProfileId = ev.target.value || null;
@@ -8535,7 +8576,7 @@ if (newCalBtn) newCalBtn.onclick = () => {
   const nameBox = $('#calProfileName');
   if (nameBox) { nameBox.value = ''; nameBox.focus(); }
   renderCalibrationProfiles();save();refreshCalibrationStatus();
-  toast('Ready to create new alignment profile. Adjust alignment numbers, enter a profile name, and click Save profile.');
+  toast('Enter a profile name and click Save profile.');
 };
 $('#calProfileSave').onclick = async () => {
   let name = $('#calProfileName').value.trim().slice(0, 100);
@@ -8601,6 +8642,7 @@ $('#calProfileDelete').onclick = async () => {
   $('#calProfileName').value = '';
   $('#calProfileSel').value = ''; S.calibrationProfileId = null;
   save(); renderCalibrationProfiles();refreshCalibrationStatus();
+  toast(`Deleted profile "${p.name}".`);
 };
 
 /* ---------- presets ---------- */
@@ -8878,7 +8920,7 @@ function emptySheetHtml(L, z, s) {
   }
   const paper = (FIELDS.find(f => f.k === 'pageSize').opts.find(o => o[0] === s.pageSize) || [, 'Custom'])[1].replace(/ \(.*\)$/, '');
   return `<div class="pg pg-empty" style="width:${L.W*z}px;height:${L.H*z}px">
-    <span class="lbl">${esc(paper)} ${s.orientation} · <span class="n">${L.W} × ${L.H} mm</span> · <span class="n">${L.cols} × ${L.rows}</span> cards</span>${matRulers(L, z)}
+    <span class="lbl">${esc(paper)} ${s.orientation} · <span class="n">${fmtMm(L.W)} × ${fmtMm(L.H)} mm</span> · <span class="n">${L.cols} × ${L.rows}</span> cards</span>${matRulers(L, z)}
     <svg class="pg-slots" width="${L.W*z}" height="${L.H*z}" aria-hidden="true">${slots}</svg>
     ${emptyWorkspaceHtml()}
   </div>`;
@@ -8920,7 +8962,7 @@ async function drawPreview() {
   const cardCount = `${slots.length} card${slots.length === 1 ? '' : 's'}`;
   $('#previewSummary').textContent = !slots.length ? (S.mode === 'order' ? 'Your order workspace' : 'Your print workspace')
     : S.mode === 'order' ? `${cardCount} in this order`
-    : `${cardCount} · ${pages.length} sheet${pages.length === 1 ? '' : 's'} · ${L.W} × ${L.H} mm`;
+    : `${cardCount} · ${pages.length} sheet${pages.length === 1 ? '' : 's'} · ${fmtMm(L.W)} × ${fmtMm(L.H)} mm`;
   $('#zoomValue').textContent = Math.round(z / 2.4 * 100) + '%';
   $('#stage').style.setProperty('--stage-controls-height',$('.stage-controls').offsetHeight+'px');
   updateProofCardSummary(slots,s);
@@ -8943,7 +8985,7 @@ async function drawPreview() {
   const backRot = faceRot(L, true), edge = s.duplexFlip === 'short' ? 'short-edge' : 'long-edge';
   const backTransform = backRot === 180 ? 'inverted 180°' : backRot ? `rotated ${Math.abs(backRot)}°` : 'not rotated';
   const backNote = back ? ` · back (${backTransform} for ${edge} feed)` : '';
-  el.innerHTML = `<span class="lbl">Page ${S.activeSheet + 1} · ${L.W} × ${L.H} mm${backNote}</span>${pRot ? '' : matRulers(L, z)}`;
+  el.innerHTML = `<span class="lbl">Page ${S.activeSheet + 1} · ${fmtMm(L.W)} × ${fmtMm(L.H)} mm${backNote}</span>${pRot ? '' : matRulers(L, z)}`;
   const lines = back ? [] : cachedGuideLines(L, page, s), reg = back && !L.scm ? {rects:[], lines:[]} : regMarks(L, s);
   const underLines = lines.filter(l => !l[6]), overLines = lines.filter(l => l[6]);
   const sw = Math.max(0.75, s.guideWidth*z);
@@ -9361,9 +9403,9 @@ async function exportPrintJob(job, withCut = false) {
       ? window.confirm(`${soft} card image${soft === 1 ? ' is a Scryfall placeholder' : 's are Scryfall placeholders'}. They're low resolution and will print soft. Export anyway?`)
       : await askConfirm({
           title: 'Low-resolution artwork',
-          message: `${soft} card image${soft === 1 ? ' is a low-resolution placeholder' : 's are low-resolution placeholders'} and will print soft.`,
+          message: `${soft} card${soft === 1 ? ' uses' : 's use'} low-res art. Run Fill missing art for crisp prints.`,
           ok: 'Export anyway',
-          cancel: 'Review artwork'
+          cancel: 'Cancel'
         });
     if (!ok) return;
   }
@@ -9965,29 +10007,101 @@ function solveDuplexReadings(L, s, readings) {
   if (!used.length) return {error: 'Enter at least one reading.'};
   const xs = used.map(u => u.from.x), ys = used.map(u => u.from.y);
   const spanX = Math.max(...xs) - Math.min(...xs), spanY = Math.max(...ys) - Math.min(...ys);
-  const active = ['backOffsetX', 'backOffsetY'];
+  // Perpendicular RMS spread from the best-fit line through the points (mm).
+  // Two points or collinear diagonal points have perpSpread ≈ 0, so fitting both
+  // backScaleX and backScaleY with backRotate would be underdetermined (rank 4 for 5 unknowns).
+  const mx = xs.reduce((a, v) => a + v, 0) / used.length, my = ys.reduce((a, v) => a + v, 0) / used.length;
+  let sxx = 0, sxy = 0, syy = 0;
+  for (const u of used) { const dx = u.from.x - mx, dy = u.from.y - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+  const disc = Math.sqrt(Math.max(0, (sxx - syy) * (sxx - syy) + 4 * sxy * sxy));
+  const perpSpread = Math.sqrt(Math.max(0, (sxx + syy - disc) / 2) / used.length);
+  const twoD = used.length >= 3 && perpSpread >= 8;
+  let active = ['backOffsetX', 'backOffsetY'];
   if (Math.hypot(spanX, spanY) >= 20) active.push('backRotate');
-  if (spanX >= 30) active.push('backScaleX');
-  if (spanY >= 30) active.push('backScaleY');
-  let cur = Object.fromEntries(Object.keys(DUPLEX_FIT_STEP).map(k => [k, s[k]]));
+  let collinear = false;
+  if (twoD) {
+    if (spanX >= 30) active.push('backScaleX');
+    if (spanY >= 30) active.push('backScaleY');
+  } else if (spanX >= 30 && spanY < 10) {
+    active.push('backScaleX');
+  } else if (spanY >= 30 && spanX < 10) {
+    active.push('backScaleY');
+  } else if (spanX >= 30 && spanY >= 30) {
+    collinear = true;
+  }
   const resid = params => used.flatMap(u => { const m = duplexMarkAt(L, {...s, ...params}, u.pre); return [u.to.x - m.x, u.to.y - m.y]; });
-  for (let it = 0; it < 12; it++) {
-    const r0 = resid(cur), J = active.map(k => {
-      const r1 = resid({...cur, [k]: cur[k] + DUPLEX_FIT_STEP[k]});
-      return r0.map((v, i) => (v - r1[i]) / DUPLEX_FIT_STEP[k]);
-    });
-    const A = active.map(a => active.map(b => J[active.indexOf(a)].reduce((t, v, i) => t + v * J[active.indexOf(b)][i], 0)));
-    const g = active.map((a, i) => J[i].reduce((t, v, j) => t + v * r0[j], 0));
-    const step = solveLinear(A, g);
-    if (!step) break;
-    active.forEach((k, i) => { cur[k] += step[i]; });
-    if (step.every((v, i) => Math.abs(v) < DUPLEX_FIT_STEP[active[i]] * 1e-3)) break;
+  const runFit = (activeKeys, weights = null) => {
+    const cur = Object.fromEntries(Object.keys(DUPLEX_FIT_STEP).map(k => [k, s[k]]));
+    let converged = true;
+    for (let it = 0; it < 12; it++) {
+      const r0 = resid(cur), J = activeKeys.map(k => {
+        const r1 = resid({...cur, [k]: cur[k] + DUPLEX_FIT_STEP[k]});
+        return r0.map((v, i) => (v - r1[i]) / DUPLEX_FIT_STEP[k]);
+      });
+      const A = activeKeys.map((_, ia) => activeKeys.map((_, ib) => J[ia].reduce((t, v, i) => t + (weights ? weights[i >> 1] : 1) * v * J[ib][i], 0)));
+      const g = activeKeys.map((_, ia) => J[ia].reduce((t, v, i) => t + (weights ? weights[i >> 1] : 1) * v * r0[i], 0));
+      const step = solveLinear(A, g);
+      if (!step) { converged = false; break; }
+      activeKeys.forEach((k, i) => { cur[k] += step[i]; });
+      if (step.every((v, i) => Math.abs(v) < DUPLEX_FIT_STEP[activeKeys[i]] * 1e-3)) break;
+    }
+    return converged ? cur : null;
+  };
+  let cur = runFit(active);
+  if (!cur && active.length > 3) {
+    active = active.filter(k => !k.startsWith('backScale'));
+    cur = runFit(active);
+  }
+  if (!cur && active.length > 2) {
+    active = ['backOffsetX', 'backOffsetY'];
+    cur = runFit(active);
+  }
+  if (!cur) return {error: 'Could not fit these readings. Check that the points are entered for the right cards.'};
+  // Robust outlier isolation when 1+ gross typos/misreads (>0.5 mm) distort OLS.
+  // Only adopted when downweighting/omitting outliers collapses the majority's error
+  // (so a uniformly sheared sheet keeps its standard least-squares fit).
+  if (used.length >= 4) {
+    const r0 = resid(cur), d0 = used.map((_, i) => Math.hypot(r0[2 * i], r0[2 * i + 1]));
+    const medOf = arr => { const t = [...arr].sort((a, b) => a - b); return t[t.length >> 1]; };
+    const med0 = medOf(d0), max0 = Math.max(...d0);
+    if (max0 > 0.5) {
+      let bestRobust = cur, bestMed = med0;
+      // Leave-one-out check handles high-leverage single outliers even at N=4..12.
+      if (used.length <= 20) {
+        for (let drop = 0; drop < used.length; drop++) {
+          const w = used.map((_, i) => i === drop ? 0 : 1);
+          const cand = runFit(active, w);
+          if (!cand) continue;
+          const rc = resid(cand), dc = used.map((_, i) => Math.hypot(rc[2 * i], rc[2 * i + 1]));
+          const mc = medOf(dc);
+          if (mc < bestMed * 0.5 && mc < 0.2) { bestRobust = cand; bestMed = mc; }
+        }
+      }
+      // Tukey-like IRLS handles multiple outliers on larger point sets.
+      let irls = bestRobust;
+      for (let pass = 0; pass < 6; pass++) {
+        const rp = resid(irls), dp = used.map((_, i) => Math.hypot(rp[2 * i], rp[2 * i + 1]));
+        const w = dp.map(d => d <= 0.3 ? 1 : Math.pow(0.3 / d, 2));
+        const next = runFit(active, w);
+        if (!next) break;
+        irls = next;
+      }
+      const ri = resid(irls), di = used.map((_, i) => Math.hypot(ri[2 * i], ri[2 * i + 1]));
+      const mi = medOf(di);
+      if (mi < bestMed && mi < 0.2) { bestRobust = irls; bestMed = mi; }
+      if (bestRobust !== cur && bestMed < med0 * 0.5 && bestMed < 0.2) cur = bestRobust;
+    }
+  }
+  if (!Number.isFinite(cur.backOffsetX) || !Number.isFinite(cur.backOffsetY)
+    || Math.abs(cur.backOffsetX) > 40 || Math.abs(cur.backOffsetY) > 40
+    || Math.abs(cur.backRotate) > 20 || cur.backScaleX < 80 || cur.backScaleX > 120 || cur.backScaleY < 80 || cur.backScaleY > 120) {
+    return {error: 'These readings imply an extreme adjustment. Check for a typo or wrong card.'};
   }
   const left = resid(cur), per = used.map((u, i) => ({id: u.id, x: left[2 * i] * f2, y: left[2 * i + 1] * f2}));
   const dist = per.map(p => Math.hypot(p.x, p.y));
   return {
-    values: Object.fromEntries(active.map(k => [k, +cur[k].toFixed(k === 'backRotate' ? 3 : 3)])),
-    active, points: used.length, residuals: per,
+    values: Object.fromEntries(active.map(k => [k, +cur[k].toFixed(3)])),
+    active, points: used.length, residuals: per, collinear,
     rms: Math.sqrt(dist.reduce((a, v) => a + v * v, 0) / dist.length), max: Math.max(...dist),
     // Measured from the grid as drawn before the back's settings, so a back that is
     // already turned and stretched unevenly does not read as sheared.
@@ -10021,22 +10135,20 @@ function backFromScmOffset({x = 0, y = 0, angle = 0}) {
 // The grid is cyan, which is light in the green channel, so a hole is found in
 // that channel even where it sits on a grid line.
 function darkComponents(img, test) {
-  const {width: w, height: h, data} = img, lab = new Int32Array(w * h).fill(-1), comps = [];
-  const stack = new Int32Array(w * h);
-  for (let start = 0; start < w * h; start++) {
-    if (lab[start] !== -1 || !test(data, start * 4)) continue;
-    const id = comps.length, c = {n: 0, sx: 0, sy: 0, x0: w, y0: h, x1: 0, y1: 0};
-    let top = 0; stack[top++] = start; lab[start] = id;
+  const {width: w, height: h, data} = img, total = w * h, seen = new Uint8Array(total), comps = [];
+  const stack = new Int32Array(total);
+  for (let start = 0; start < total; start++) {
+    if (seen[start] || !test(data, start * 4)) continue;
+    const c = {n: 0, sx: 0, sy: 0, x0: w, y0: h, x1: 0, y1: 0};
+    let top = 0; stack[top++] = start; seen[start] = 1;
     while (top) {
       const i = stack[--top], x = i % w, y = (i - x) / w;
       c.n++; c.sx += x; c.sy += y;
       if (x < c.x0) c.x0 = x; if (x > c.x1) c.x1 = x; if (y < c.y0) c.y0 = y; if (y > c.y1) c.y1 = y;
-      for (const j of [i - 1, i + 1, i - w, i + w]) {
-        if (j < 0 || j >= w * h || lab[j] !== -1) continue;
-        if ((j === i - 1 && x === 0) || (j === i + 1 && x === w - 1)) continue;
-        if (!test(data, j * 4)) continue;
-        lab[j] = id; stack[top++] = j;
-      }
+      if (x > 0) { const j = i - 1; if (!seen[j] && test(data, j * 4)) { seen[j] = 1; stack[top++] = j; } }
+      if (x + 1 < w) { const j = i + 1; if (!seen[j] && test(data, j * 4)) { seen[j] = 1; stack[top++] = j; } }
+      if (y > 0) { const j = i - w; if (!seen[j] && test(data, j * 4)) { seen[j] = 1; stack[top++] = j; } }
+      if (y + 1 < h) { const j = i + w; if (!seen[j] && test(data, j * 4)) { seen[j] = 1; stack[top++] = j; } }
     }
     comps.push(c);
   }
@@ -10054,34 +10166,65 @@ function fitAffine(src, dst) {
 }
 function invertAffine({px, py}) {
   const det = px[0] * py[1] - px[1] * py[0];
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-9) return null;
   return (X, Y) => { const u = X - px[2], v = Y - py[2]; return [(py[1] * u - px[1] * v) / det, (-py[0] * u + px[0] * v) / det]; };
 }
 function readDuplexScan(img, L, s = S.settings) {
-  const pts = duplexCardPoints(L, s), f2 = duplexReadSign(L), {width: w, data} = img;
+  const pts = duplexCardPoints(L, s), f2 = duplexReadSign(L), {width: w, height: h, data} = img;
   const lum = (d, i) => 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+  // Estimate paper white from ~8,000 evenly sampled pixels so slightly dim or bright scans still separate cleanly.
+  const totalPx = w * h, stride = Math.max(1, Math.floor(totalPx / 8000)), sampleLum = [];
+  for (let p = 0; p < totalPx; p += stride) sampleLum.push(lum(data, p * 4));
+  sampleLum.sort((a, b) => a - b);
+  const paperLum = Math.max(180, Math.min(255, sampleLum[Math.floor(sampleLum.length * 0.9)] || 245));
+  const dotLumThr = Math.round(Math.max(85, Math.min(135, paperLum * 0.45)));
   // Round, solid, dark blobs: the dots, and nothing that is a line or a letter.
-  const blobs = darkComponents(img, (d, i) => lum(d, i) < 110).filter(c => {
+  const blobs = darkComponents(img, (d, i) => lum(d, i) < dotLumThr).filter(c => {
     const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, fill = c.n / (bw * bh);
     return bw >= 4 && bh >= 4 && bw / bh > 0.75 && bw / bh < 1.33 && fill > 0.6 && fill < 0.92;
-  }).map(c => ({x: c.sx / c.n, y: c.sy / c.n, d: (c.x1 - c.x0 + c.y1 - c.y0 + 2) / 2}));
+  }).map((c, idx) => ({idx, x: c.sx / c.n, y: c.sy / c.n, d: (c.x1 - c.x0 + c.y1 - c.y0 + 2) / 2}));
   if (blobs.length < 4) return {error: 'No dots found. Scan page 2 whole, at 600 dpi or more, with black paper behind it.'};
-  // Squares: four dots, sides equal and square to each other.
-  // The nearest dot of the same size: a pin hole close to a dot is smaller, and
-  // must not stand in for it.
-  const near = (x, y, tol, d) => blobs.reduce((best, b) => {
-    const r = Math.hypot(b.x - x, b.y - y);
-    return r < tol && Math.abs(b.d / d - 1) <= 0.3 && (!best || r < best.r) ? {b, r} : best;
-  }, null)?.b;
+  // Spatial grid index so quad search stays O(N) even on noisy/speckled scans.
+  const sortedD = blobs.map(b => b.d).sort((a, b) => a - b);
+  const medD = sortedD[sortedD.length >> 1] || 10;
+  const cell = Math.max(24, Math.min(320, Math.round(medD * 16)));
+  const grid = new Map();
+  const cellKey = (cx, cy) => `${cx},${cy}`;
+  for (const b of blobs) {
+    const k = cellKey(Math.floor(b.x / cell), Math.floor(b.y / cell));
+    let bucket = grid.get(k); if (!bucket) { bucket = []; grid.set(k, bucket); }
+    bucket.push(b);
+  }
+  const near = (x, y, tol, d) => {
+    const gx = Math.floor(x / cell), gy = Math.floor(y / cell), reach = Math.max(1, Math.ceil(tol / cell));
+    let best = null;
+    for (let dy = -reach; dy <= reach; dy++) for (let dx = -reach; dx <= reach; dx++) {
+      const bucket = grid.get(cellKey(gx + dx, gy + dy));
+      if (!bucket) continue;
+      for (const b of bucket) {
+        const r = Math.hypot(b.x - x, b.y - y);
+        if (r < tol && Math.abs(b.d / d - 1) <= 0.3 && (!best || r < best.r)) best = {b, r};
+      }
+    }
+    return best?.b;
+  };
   const quads = new Map();
-  blobs.forEach((a, ia) => blobs.forEach((b, ib) => {
-    if (ia === ib) return;
-    const vx = b.x - a.x, vy = b.y - a.y, side = Math.hypot(vx, vy);
-    if (side < 6 * a.d || side > 16 * a.d || Math.abs(b.d / a.d - 1) > 0.3) return;
-    const tol = side * 0.12, c = near(a.x - vy, a.y + vx, tol, a.d), e = near(b.x - vy, b.y + vx, tol, a.d);
-    if (!c || !e) return;
-    const four = [a, b, c, e], key = four.map(q => blobs.indexOf(q)).sort((p, q) => p - q).join(',');
-    if (!quads.has(key)) quads.set(key, {dots: four, x: four.reduce((t, q) => t + q.x, 0) / 4, y: four.reduce((t, q) => t + q.y, 0) / 4, side});
-  }));
+  for (const a of blobs) {
+    const gx = Math.floor(a.x / cell), gy = Math.floor(a.y / cell), maxR = 16 * a.d, reach = Math.max(1, Math.ceil(maxR / cell));
+    for (let dy = -reach; dy <= reach; dy++) for (let dx = -reach; dx <= reach; dx++) {
+      const bucket = grid.get(cellKey(gx + dx, gy + dy));
+      if (!bucket) continue;
+      for (const b of bucket) {
+        if (a.idx === b.idx) continue;
+        const vx = b.x - a.x, vy = b.y - a.y, side = Math.hypot(vx, vy);
+        if (side < 6 * a.d || side > maxR || Math.abs(b.d / a.d - 1) > 0.3) continue;
+        const tol = side * 0.12, c = near(a.x - vy, a.y + vx, tol, a.d), e = near(b.x - vy, b.y + vx, tol, a.d);
+        if (!c || !e) continue;
+        const four = [a, b, c, e], key = four.map(q => q.idx).sort((p, q) => p - q).join(',');
+        if (!quads.has(key)) quads.set(key, {dots: four, x: four.reduce((t, q) => t + q.x, 0) / 4, y: four.reduce((t, q) => t + q.y, 0) / 4, side});
+      }
+    }
+  }
   const qs = [...quads.values()];
   if (!qs.length) return {error: 'No read grids found. Scan page 2 whole, flat, at 600 dpi or more.'};
   const ppm = qs.map(q => q.side).sort((p, q) => p - q)[qs.length >> 1] / (2 * DUPLEX_DOT);
@@ -10121,18 +10264,11 @@ function readDuplexScan(img, L, s = S.settings) {
   // A wrong anchor still lines a few squares up by chance; the right one, refitted, lines up most of them.
   if (pts.filter(p => nearestQuad(...place(p.mark))).length < Math.max(3, pts.length / 2)) return lost;
   // A back far off. Card Maker's answer to an offset past its grid is to print a
-  // pre-offset sheet and add the two readings; a scan can find it in one go. Every
-  // round dark spot that is not a dot votes for how far it sits from the grids
-  // round it, in the scan's own millimetres; the pin holes all agree, so the vote
-  // with most support is the back's common shift, and each hole is then looked
-  // for round its grid's zero moved by that much. Within 8 mm, because grids are
-  // at least 18 mm apart: further out a hole is as near another grid as its own.
-  // Only the squares matched to a grid are dots. Four round spots can square up by
-  // chance: card 1's hole at its grid's zero, two of the grid's dots and the
-  // orientation dot make a square turned 45 degrees, and the hole is not a dot.
+  // pre-offset sheet and add the two readings; a scan can find it in one go.
   const dotSet = new Set(pts.flatMap(p => nearestQuad(...place(p.mark))?.dots || []));
   const [o0x, o0y] = place(duplexOrientDot(L, anchorPt.pre, s));
-  const loose = blobs.filter(b => !dotSet.has(b) && Math.hypot(b.x - o0x, b.y - o0y) >= ppm);
+  let loose = blobs.filter(b => !dotSet.has(b) && Math.hypot(b.x - o0x, b.y - o0y) >= ppm);
+  if (loose.length > 600) loose = loose.filter(b => b.d >= 0.2 * ppm && b.d <= 2.2 * ppm).slice(0, 600);
   let shift = [0, 0];
   if (loose.length >= 3) {
     const votes = [];
@@ -10146,8 +10282,8 @@ function readDuplexScan(img, L, s = S.settings) {
       if (!bestV || n > bestV.n) bestV = {v, n};
     }
     if (bestV && bestV.n >= Math.max(3, pts.length * 0.3)) {
-      const near = votes.filter(u => Math.hypot(u[0] - bestV.v[0], u[1] - bestV.v[1]) <= 1.5);
-      const m = [near.reduce((a, u) => a + u[0], 0) / near.length, near.reduce((a, u) => a + u[1], 0) / near.length];
+      const nearVotes = votes.filter(u => Math.hypot(u[0] - bestV.v[0], u[1] - bestV.v[1]) <= 1.5);
+      const m = [nearVotes.reduce((a, u) => a + u[0], 0) / nearVotes.length, nearVotes.reduce((a, u) => a + u[1], 0) / nearVotes.length];
       // A small shift is read from the grid's zero as before; the search reaches 4.5 mm.
       if (Math.hypot(...m) > 2.5) shift = m;
     }
@@ -10168,21 +10304,29 @@ function readDuplexScan(img, L, s = S.settings) {
       src.push([p.pre.x + a * D, p.pre.y + b * D]); dst.push([hit.x, hit.y]);
     });
     const A = fitAffine(src, dst);
-    if (!A || new Set(dst.map(String)).size < 4) { missing.push(p.id); continue; }
-    const back = invertAffine(A), [gx, gy] = A.fwd(p.pre.x, p.pre.y), cx = gx + shift[0] * ppm, cy = gy + shift[1] * ppm;
-    // The hole: a whole, round patch dark in the green channel whose centre is
-    // within R of the grid's zero. The window reaches a millimetre past R so a
-    // hole near the edge is seen whole rather than clipped, which would pull its
-    // centre inwards; anything that runs off the window is a line, not a hole.
+    const back = A && new Set(dst.map(String)).size === 4 ? invertAffine(A) : null;
+    if (!back) { missing.push(p.id); continue; }
+    const [gx, gy] = A.fwd(p.pre.x, p.pre.y), cx = gx + shift[0] * ppm, cy = gy + shift[1] * ppm;
     const P = R + Math.round(ppm);
     const x0 = Math.max(0, Math.round(cx - P)), x1 = Math.min(w - 1, Math.round(cx + P));
-    const y0 = Math.max(0, Math.round(cy - P)), y1 = Math.min(img.height - 1, Math.round(cy + P));
+    const y0 = Math.max(0, Math.round(cy - P)), y1 = Math.min(h - 1, Math.round(cy + P));
     const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
     if (cw < 3 || ch < 3) { missing.push(p.id); continue; }
+    // Local paper brightness adapts hole detection cleanly across bright or dim scans while still rejecting cyan lines.
+    const step = Math.max(1, Math.floor((cw * ch) / 400)), winG = [], winR = [];
+    for (let k = 0; k < cw * ch; k += step) {
+      const i = ((y0 + Math.floor(k / cw)) * w + x0 + (k % cw)) * 4;
+      winR.push(data[i]); winG.push(data[i + 1]);
+    }
+    winG.sort((a, b) => a - b); winR.sort((a, b) => a - b);
+    const bgG = Math.max(160, Math.min(255, winG[Math.floor(winG.length * 0.85)] || 245));
+    const bgR = Math.max(160, Math.min(255, winR[Math.floor(winR.length * 0.85)] || 245));
+    const gThr = Math.round(Math.max(70, Math.min(118, bgG * 0.44)));
+    const rThr = Math.round(Math.max(95, Math.min(148, bgR * 0.52)));
     const sub = {width: cw, height: ch, data: new Uint8ClampedArray(cw * ch * 4)};
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const i = (y * w + x) * 4;
-      sub.data[((y - y0) * cw + x - x0) * 4] = data[i + 1] < 80 && data[i] < 120 ? 255 : 0;
+      sub.data[((y - y0) * cw + x - x0) * 4] = data[i + 1] < gThr && data[i] < rThr ? 255 : 0;
     }
     const hole = darkComponents(sub, (d, i) => d[i] === 255).filter(c => {
       const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, area = c.n / (ppm * ppm);
@@ -10194,6 +10338,7 @@ function readDuplexScan(img, L, s = S.settings) {
     }).reduce((a, b) => (!a || b.n > a.n ? b : a), null);
     if (!hole) { missing.push(p.id); continue; }
     const [hx, hy] = back(x0 + hole.sx / hole.n, y0 + hole.sy / hole.n);
+    if (!Number.isFinite(hx) || !Number.isFinite(hy)) { missing.push(p.id); continue; }
     readings.push({id: p.id, x: +(f2 * (hx - p.pre.x)).toFixed(3), y: +(f2 * (hy - p.pre.y)).toFixed(3)});
   }
   return {readings, missing, dpi: ppm * 25.4, shift: Math.hypot(...shift) ? shift : null};
@@ -10367,11 +10512,14 @@ function openDuplexWizard(state = {}, backLabel = '') {
     const got = entered();
     $('#duplexWizardEntered').innerHTML = got.length ? `<span class="num">${got.length}</span> point${got.length === 1 ? '' : 's'} entered: <span class="num">${esc(got.map(r => r.id).join(', '))}</span>.` : 'No readings entered yet.';
     fit = got.length ? solveDuplexReadings(L, s, got) : null;
+    $('#duplexWizardApply').disabled = !fit || !!fit.error;
+    $('#duplexWizardClear').disabled = !got.length;
     if (!fit || fit.error) { $('#duplexWizardSum').textContent = fit?.error || 'Enter X and Y for at least one point.'; return; }
     const lines = fit.active.map(k => `${FIT_LABEL[k][0]}: <span class="num">${esc(FIT_LABEL[k][1](s[k]))}</span> → <b class="num">${esc(FIT_LABEL[k][1](fit.values[k]))}</b>`);
     const off = fit.residuals.filter(r => Math.hypot(r.x, r.y) > 0.3).map(r => r.id);
     const notes = [];
     if (!fit.active.includes('backRotate')) notes.push('These points are close together, so they correct the offset only. Add points on cards far apart to correct the angle and the size as well.');
+    else if (fit.collinear) notes.push('These points lie along one line, so they correct offset and angle only. Add a point off that line to correct X/Y size too.');
     else if (!fit.active.includes('backScaleX') || !fit.active.includes('backScaleY')) notes.push(`Add points further apart ${!fit.active.includes('backScaleX') ? 'across the sheet' : 'up and down the sheet'} to correct the size in that direction too.`);
     if (fit.points > 1) notes.push(`With these values every point lands within <span class="num">${fit.max.toFixed(2)}</span> mm (average <span class="num">${fit.rms.toFixed(2)}</span> mm).`);
     if (off.length) notes.push(`${esc(off.join(', '))} ${off.length === 1 ? 'disagrees' : 'disagree'} with the rest by more than <span class="num">0.3</span> mm. Check ${off.length === 1 ? 'that reading' : 'those readings'}.`);
@@ -10423,11 +10571,25 @@ function openDuplexWizard(state = {}, backLabel = '') {
   $('#duplexWizardChoices').onclick = ev => {
     const b = ev.target.closest('[data-flip]');
     if (!b || b.dataset.flip === s.duplexFlip) return;
+    const hadReadings = readings.size > 0;
     s.duplexFlip = b.dataset.flip; S.activePreset = null; save(); renderAll();
     // The readings belong to a sheet printed with the other flip.
-    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value});
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, cleared: hadReadings});
+    $(`#duplexWizardChoices [data-flip="${s.duplexFlip}"]`)?.focus();
   };
-  $('#duplexWizardFrontEdge').onchange = () => openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings});
+  $('#duplexWizardChoices').addEventListener('keydown', ev => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) return;
+    const radios = $$('[data-flip]', $('#duplexWizardChoices'));
+    if (radios.length < 2) return;
+    ev.preventDefault();
+    const at = radios.indexOf(document.activeElement);
+    const next = radios[(at + (ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1 : -1) + radios.length) % radios.length];
+    next?.click();
+  });
+  $('#duplexWizardFrontEdge').onchange = () => {
+    openDuplexWizard({frontEdge: $('#duplexWizardFrontEdge').value, readings});
+    $('#duplexWizardFrontEdge')?.focus();
+  };
   $('#duplexWizardCard').onchange = rows;
   $('#duplexWizardPoints').oninput = ev => {
     const el = ev.target.closest('input[data-id]');
@@ -10439,16 +10601,24 @@ function openDuplexWizard(state = {}, backLabel = '') {
   $('#duplexWizardScan').onchange = async ev => {
     const file = ev.target.files?.[0];
     if (!file) return;
+    const scanBtn = $('#duplexWizardScanBtn');
+    scanBtn.disabled = true;
     $('#duplexWizardStatus').textContent = 'Reading the scan…';
+    let bmp = null, c = null;
     try {
-      const bmp = await createImageBitmap(file), c = document.createElement('canvas');
-      c.width = bmp.width; c.height = bmp.height;
-      const g = c.getContext('2d', {willReadFrequently: true}); g.drawImage(bmp, 0, 0);
-      const res = readDuplexScan(g.getImageData(0, 0, c.width, c.height), L, s);
+      await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+      bmp = await createImageBitmap(file);
+      const maxDim = 7000, scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+      c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(bmp.width * scale));
+      c.height = Math.max(1, Math.round(bmp.height * scale));
+      const g = c.getContext('2d', {willReadFrequently: true});
+      g.drawImage(bmp, 0, 0, c.width, c.height);
+      const imgData = g.getImageData(0, 0, c.width, c.height);
+      bmp.close?.(); bmp = null;
+      c.width = c.height = 0; c = null;
+      const res = readDuplexScan(imgData, L, s);
       if (res.error) { $('#duplexWizardStatus').textContent = res.error; return; }
-      // The reader looks 4.5 mm round each grid's zero. A back further off than
-      // that reads nothing; a slightly turned one loses only its far corners, and
-      // the points it does read still give the right turn.
       if (!res.readings.length) {
         $('#duplexWizardStatus').textContent = `The grids were found but no pin holes. Check each hole goes right through and the scan has black paper behind the sheet. If the holes sit more than about 8 mm from their grids, read one card by eye, apply that, and print the test again.`;
         return;
@@ -10459,7 +10629,12 @@ function openDuplexWizard(state = {}, backLabel = '') {
       $('#duplexWizardStatus').textContent = `Read ${res.readings.length} point${res.readings.length === 1 ? '' : 's'} from the scan at about ${Math.round(res.dpi)} dpi.${res.missing.length ? ` No hole found at ${res.missing.join(', ')}. Apply these, print the test again, and the next scan reads them all.` : ''}${far} Check the values, then apply.`;
     } catch (e) {
       $('#duplexWizardStatus').textContent = `The scan could not be read: ${e.message}`;
-    } finally { ev.target.value = ''; }
+    } finally {
+      bmp?.close?.();
+      if (c) c.width = c.height = 0;
+      if (scanBtn?.isConnected) scanBtn.disabled = false;
+      ev.target.value = '';
+    }
   };
   $('#duplexWizardTest').onclick = () => $('#btnDuplexTest').click();
   $('#duplexWizardApply').onclick = () => {
@@ -10475,15 +10650,29 @@ function openDuplexWizard(state = {}, backLabel = '') {
   };
   $('#duplexWizardClear').onclick = () => { readings.clear(); rows(); refresh(); $('#duplexWizardStatus').textContent = ''; };
   $('#duplexWizardZero').onclick = () => {
+    const prev = {backOffsetX: s.backOffsetX, backOffsetY: s.backOffsetY, backRotate: s.backRotate, backScaleX: s.backScaleX, backScaleY: s.backScaleY, backOffsetRel: s.backOffsetRel};
+    const hadValues = prev.backOffsetX || prev.backOffsetY || prev.backRotate || prev.backScaleX !== 100 || prev.backScaleY !== 100;
     Object.assign(s, {backOffsetX: 0, backOffsetY: 0, backRotate: 0, backScaleX: 100, backScaleY: 100, backOffsetRel: true});
     clearBackOffsetDraft(BACK_CAL_KEYS);
     noteCalibration('back', 'none');
     S.activePreset = null; save(); renderAll();
     refresh(); if (L.scm) scmNow();
     $('#duplexWizardStatus').textContent = 'Back-page alignment cleared.';
+    if (hadValues) {
+      toast('Back alignment reset.', 8000, {
+        label: 'Undo',
+        fn: () => {
+          Object.assign(s, prev);
+          noteCalibration('back', 'measured');
+          save(); renderAll();
+          if ($('#duplexWizardPoints')) { refresh(); if (L.scm) scmNow(); $('#duplexWizardStatus').textContent = 'Back-page alignment restored.'; }
+        }
+      });
+    }
   };
   rows();
   refresh();
+  if (state.cleared) $('#duplexWizardStatus').textContent = 'Flip changed; cleared previous readings.';
 }
 $('#btnDuplexWizard').onclick = () => openDuplexWizard();
 $('#btnCal').onclick = () => {
@@ -11177,7 +11366,7 @@ $('#manageShares').onclick = async () => {
   busy(true, 'Loading shared decks…');
   try {
     const data = await shareRequest('/shares');
-    openModal(`<div class="hd"><b>Shared decks</b><button data-close>Close</button></div><div class="bd" id="sharedDeckList"><p class="hint">Removing a link stops access through that link. People who saved a copy keep it.</p>${data.shares.length ? data.shares.map(item => `<div class="row" style="margin:10px 0" data-share-row="${esc(item.id)}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(item.name)}</span><button data-share-copy="${esc(item.id)}">Copy link</button><button class="danger" data-share-remove="${esc(item.id)}">Remove link</button></div>`).join('') : '<p class="hint">No shared decks yet.</p>'}<p class="hint" id="sharedDeckStatus" role="status"></p></div>`, $('#tab-data').closest('#modal') ? 'Back to project files' : '');
+    openModal(`<div class="hd"><b>Shared decks</b><button data-close>Close</button></div><div class="bd" id="sharedDeckList"><p class="hint">Removing a link stops access through that link. People who saved a copy keep it.</p>${data.shares.length ? data.shares.map(item => `<div class="row" style="margin:10px 0" data-share-row="${esc(item.id)}"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(item.name)}</span><button data-share-copy="${esc(item.id)}">Copy link</button><button class="danger" data-share-remove="${esc(item.id)}">Remove link</button></div>`).join('') : '<p class="hint" id="sharedDeckEmpty">No shared decks yet.</p>'}<p class="hint" id="sharedDeckStatus" role="status"></p></div>`, $('#tab-data').closest('#modal') ? 'Back to backups & data' : '');
     const status = $('#sharedDeckStatus');
     $('#sharedDeckList').onclick = async ev => {
       const button = ev.target.closest('button'); if (!button) return;
@@ -11185,7 +11374,14 @@ $('#manageShares').onclick = async () => {
       if (!/^[A-Za-z0-9_-]{32}$/.test(id || '')) return;
       if (button.dataset.shareCopy) { showShareLink((data.publicUrl || location.origin) + '/share/' + id); return; }
       button.disabled = true;
-      try { await shareRequest(`/shares/${id}/delete`, {}); button.closest('[data-share-row]')?.remove(); status.textContent = 'Share link removed.'; }
+      try {
+        await shareRequest(`/shares/${id}/delete`, {});
+        button.closest('[data-share-row]')?.remove();
+        if (!$$('[data-share-row]', $('#sharedDeckList')).length && !$('#sharedDeckEmpty')) {
+          status.insertAdjacentHTML('beforebegin', '<p class="hint" id="sharedDeckEmpty">No shared decks yet.</p>');
+        }
+        status.textContent = 'Share link removed.';
+      }
       catch (err) { status.textContent = err.message; button.disabled = false; }
     };
   } catch (err) { toast(err.message, 8000); }
@@ -11304,7 +11500,7 @@ async function openPrintDeckFile(file, {fromBackup = false} = {}) {
   try {
     if (file.size > PRINT_DECK_LIMIT) throw new Error('This file exceeds the 2 GB limit.');
     const data = await readPrintDeck(file);
-    const backLabel = fromBackup && $('#tab-data').closest('#modal') ? 'Back to project files' : '';
+    const backLabel = fromBackup && $('#tab-data').closest('#modal') ? 'Back to backups & data' : '';
     if (fromBackup && data?.app === 'proxy-press' && data.version === 1 && !data.type) {
       reviewBackupRestore(data, backLabel);
       return;
@@ -11458,7 +11654,7 @@ $('#resetSettings').onclick = () => {
   } else {
     askConfirm({
       title: 'Reset settings',
-      message: 'Return printer, layout, art-search, and preview settings to defaults? Your decks, artwork, and saved presets will stay saved.',
+      message: 'Reset printer and layout settings? Decks and artwork stay.',
       ok: 'Reset settings',
       cancel: 'Keep current'
     }).then(ok => { if (ok) proceed(); });
@@ -11496,6 +11692,7 @@ function setWorkspaceView(view, {redraw = true} = {}) {
   $$('#mbar button').forEach(button => {
     const on = button.dataset.mview === view;
     button.classList.toggle('on', on); button.setAttribute('aria-pressed', String(on));
+    if (on) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
   });
   syncCardSelection();
   if (view === 'proof' && redraw) { renderPreview(); if (S.zoomMode === 'fit') requestAnimationFrame(()=>{ if (S.zoomMode === 'fit') $('#zoomFit').click(); }); }
@@ -11877,6 +12074,13 @@ $('#btnCloseSetup').onclick = () => {
 };
 addEventListener('keydown', ev => {
   if (ev.key === 'Escape' && !ev.defaultPrevented && !$('#overlay').classList.contains('on')) {
+    const openMenu = $('details.menu[open]');
+    if (openMenu) {
+      ev.preventDefault();
+      openMenu.open = false;
+      openMenu.querySelector('summary')?.focus();
+      return;
+    }
     if (document.body.classList.contains('print-settings-active')) {
       ev.preventDefault();
       backToProof();
@@ -12080,16 +12284,26 @@ if ($('#btnInspSetup')) $('#btnInspSetup').onclick = () => switchTab('setup');
 if ($('#btnInspAdv')) $('#btnInspAdv').onclick = () => switchTab('cutting');
 if ($('#btnReviewExport')) $('#btnReviewExport').onclick = () => S.mode === 'order' ? switchTab('order') : exportPDF(false);
 let toastT;
+let toastMs = 3000;
 function toast(msg, ms = 3000, action = null) {
   const t = $('#toast'), button = $('#toastAction');
+  toastMs = ms;
   $('#toastMessage').textContent = msg;
   button.hidden = !action;
   button.textContent = action?.label || '';
-  button.onclick = action ? ev => { ev.stopPropagation(); t.style.display = 'none'; action.fn(); } : null;
+  button.onclick = action ? ev => { ev.stopPropagation(); t.style.display = 'none'; clearTimeout(toastT); action.fn(); } : null;
   t.style.display = 'block';
   clearTimeout(toastT);
   toastT = setTimeout(() => t.style.display = 'none', ms);
 }
+$('#toast').addEventListener('mouseenter', () => clearTimeout(toastT));
+$('#toast').addEventListener('focusin', () => clearTimeout(toastT));
+$('#toast').addEventListener('mouseleave', () => {
+  if ($('#toast').style.display === 'block') { clearTimeout(toastT); toastT = setTimeout(() => $('#toast').style.display = 'none', Math.min(toastMs, 2500)); }
+});
+$('#toast').addEventListener('focusout', () => {
+  if ($('#toast').style.display === 'block' && !$('#toast').contains(document.activeElement)) { clearTimeout(toastT); toastT = setTimeout(() => $('#toast').style.display = 'none', Math.min(toastMs, 2500)); }
+});
 function busy(on, text) { $('#busy').classList.toggle('on', on); if (text) $('#busyText').textContent = text; $('#busyBar').style.width = '0'; }
 function busyProgress(f, text) { $('#busyBar').style.width = (f*100).toFixed(1) + '%'; if (text) $('#busyText').textContent = text; }
 
@@ -12364,6 +12578,20 @@ $$('#modeSeg button').forEach(b => b.onclick = () => {
     pages.animate([{opacity:.32,translate:'0 8px'},{opacity:1,translate:'0 0'}],{id:'mode-change',duration:240,easing:'cubic-bezier(.22,1,.36,1)'});
 });
 $$('#deckMenu .menu-list button').forEach(b => b.addEventListener('click', () => $('#deckMenu').removeAttribute('open')));
+$('#deckMenu').addEventListener('toggle', () => {
+  if (!$('#deckMenu').open) return;
+  const first = $$('#deckMenu .menu-list button').find(b => !b.hidden && getComputedStyle(b).display !== 'none');
+  first?.focus();
+});
+$('#deckMenu .menu-list').addEventListener('keydown', ev => {
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(ev.key)) return;
+  const items = $$('#deckMenu .menu-list button').filter(b => !b.hidden && getComputedStyle(b).display !== 'none');
+  if (!items.length) return;
+  ev.preventDefault();
+  const at = items.indexOf(document.activeElement);
+  const next = ev.key === 'Home' ? 0 : ev.key === 'End' ? items.length - 1 : (at + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+  items[next]?.focus();
+});
 addEventListener('click', ev => { if (!ev.target.closest('#deckMenu')) $('#deckMenu').removeAttribute('open'); });
 $('#listIn').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#btnImport').click(); } });
 // The status line wraps only between phrases, never inside "2 passes".
